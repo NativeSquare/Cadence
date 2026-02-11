@@ -1,16 +1,27 @@
-import { SignInForm } from "@/components/blocks/sign-in-form";
-import { ScrollView, View } from "react-native";
+import { SignInCard } from "@/components/app/auth/sign-in-card";
+import { StatusBar } from "expo-status-bar";
+import { ImageBackground, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function SignIn() {
+  const insets = useSafeAreaInsets();
+
   return (
-    <ScrollView
-      keyboardShouldPersistTaps="handled"
-      contentContainerClassName="sm:flex-1 items-center justify-center p-4 py-8 sm:py-4 sm:p-6 mt-safe"
-      keyboardDismissMode="interactive"
-    >
-      <View className="w-full max-w-sm">
-        <SignInForm />
-      </View>
-    </ScrollView>
+    <View className="flex-1">
+      <StatusBar style="light" />
+      <ImageBackground
+        source={require("../../../../assets/images/runner-background.jpg")}
+        className="flex-1"
+        resizeMode="cover"
+      >
+        <View className="flex-1" />
+        <View
+          className="px-4"
+          style={{ paddingBottom: Math.max(insets.bottom, 16) }}
+        >
+          <SignInCard />
+        </View>
+      </ImageBackground>
+    </View>
   );
 }

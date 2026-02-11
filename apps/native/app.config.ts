@@ -6,14 +6,14 @@ const IS_PREVIEW = process.env.APP_VARIANT === "preview";
 
 const getUniqueIdentifier = () => {
   if (IS_DEV) {
-    return `com.${APP_SLUG}.dev`;
+    return `com.${APP_SLUG}.app.dev`;
   }
 
   if (IS_PREVIEW) {
-    return `com.${APP_SLUG}.preview`;
+    return `com.${APP_SLUG}.app.preview`;
   }
 
-  return `com.${APP_SLUG}`;
+  return `com.${APP_SLUG}.app`;
 };
 
 const getAppName = () => {
@@ -55,6 +55,11 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     infoPlist: {
       ITSAppUsesNonExemptEncryption: false,
     },
+    icon: {
+      light: "./assets/icons/ios-icon.png",
+      dark: "./assets/icons/ios-icon.png",
+      tinted: "./assets/icons/ios-icon.png",
+    }
   },
   android: {
     package: getUniqueIdentifier(),
@@ -101,13 +106,13 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   extra: {
     router: {},
     eas: {
-      projectId: "7fe40ff2-2a08-4552-bff9-456b82e87956",
-    },
+      projectId: "14bdb29c-2d76-42b4-8a20-d782d1d9d50d"
+    }
   },
   runtimeVersion: {
     policy: "appVersion",
   },
   updates: {
-    url: "https://u.expo.dev/7fe40ff2-2a08-4552-bff9-456b82e87956",
-  },
+    url: "https://u.expo.dev/14bdb29c-2d76-42b4-8a20-d782d1d9d50d"
+  }
 });
