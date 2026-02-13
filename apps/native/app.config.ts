@@ -6,14 +6,14 @@ const IS_PREVIEW = process.env.APP_VARIANT === "preview";
 
 const getUniqueIdentifier = () => {
   if (IS_DEV) {
-    return `com.${APP_SLUG}.app.dev`;
+    return `com.nativesquare.${APP_SLUG}.dev`;
   }
 
   if (IS_PREVIEW) {
-    return `com.${APP_SLUG}.app.preview`;
+    return `com.nativesquare.${APP_SLUG}.preview`;
   }
 
-  return `com.${APP_SLUG}.app`;
+  return `com.nativesquare.${APP_SLUG}`;
 };
 
 const getAppName = () => {
