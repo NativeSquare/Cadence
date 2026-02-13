@@ -71,6 +71,38 @@ Each phase earns the right to the next. Trust before delight. Foundation before 
 
 ---
 
+## Visual Identity
+
+### Design Philosophy
+
+**Apple Fitness simplicity meets coaching intimacy.** The UI is a clean, dark stage — the words and the coaching voice do the emotional work, not the visuals. Every screen follows the same principle: dark background, white text, and the primary accent color reserved exclusively for interactive elements (buttons, selected states, active indicators). Nothing competes with the coaching narrative.
+
+### Color System
+
+| Role | Value | Usage |
+|---|---|---|
+| **Background** | `#000000` | Primary canvas — flat, consistent, no variation |
+| **Surface / Cards** | `#1C1C1E` | Cards, sheets, elevated containers, input fields |
+| **Primary Accent** | Linear gradient `#D4FF3A` → `#8DFF1A` | Buttons, CTAs, selected chips, active toggle states |
+| **Text Primary** | `#FFFFFF` | All primary readable text — coaching voice, headings, user input |
+| **Text Secondary** | `#8E8E93` | Labels, metadata, timestamps, collapsed thinking headers |
+| **Text Thinking** | `#8E8E93` | Thinking stream monospace text on card surface |
+| **Success** | `#34C759` | Positive data, connected states, health indicators |
+| **Warning** | `#FFB800` | Caution flags, injury-related alerts |
+| **Error** | `#FF3B30` | Critical errors, destructive actions |
+
+### UI Principles
+
+1. **Dark-mode first** — True black background (`#000000`), matching the app icon and Apple ecosystem conventions
+2. **Color is rare and intentional** — The lime gradient appears only on interactive elements: buttons, selected chips, active indicators. Its scarcity is what makes it pop
+3. **Haptics are felt, not seen** — Haptic feedback (arrival pulse, insight tap, question pause) is purely tactile. No visual glow or flash accompanies them. The screen stays clean
+4. **Text is the interface** — Cadence's streaming coaching voice is the primary UI element. Typography is clean sans-serif, generous line height, warm white on black
+5. **Thinking is visually distinct** — Thinking streams use monospace type on a `#1C1C1E` surface card. Clearly "process," not "output." Collapses to a single tappable row when complete
+6. **Interactive moments are obvious** — When it's the user's turn to act, the lime gradient appears (button, input border, selected option). The color shift is the cue
+7. **Apple-native feel** — Components follow iOS dark-mode conventions: system-dark surfaces, standard rounded corners, familiar interaction patterns. Cadence should feel like it belongs on the same Home Screen as Apple Fitness
+
+---
+
 ## Target Users
 
 ### Primary Users
