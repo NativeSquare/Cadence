@@ -5,6 +5,8 @@ import { CoachText, CoachLine } from "./coach-text";
 import { StreamingText } from "./streaming-text";
 import { ThinkingBlock } from "./thinking-block";
 import { ProgressBar } from "./ProgressBar";
+import { RadarScreen } from "./screens/RadarScreen";
+import { ProgressionScreen } from "./screens/ProgressionScreen";
 import { Text } from "@/components/ui/text";
 import { selectionFeedback } from "@/lib/haptics";
 import { useStravaAuth } from "@/hooks/use-strava-auth";
@@ -30,6 +32,8 @@ type Scene =
   | "coaching-response"
   | "honest-limits"
   | "synthesis"
+  | "radar"
+  | "progression"
   | "handoff";
 
 type OnboardingFlowProps = {
@@ -620,7 +624,7 @@ export function OnboardingFlow({ userName, onComplete }: OnboardingFlowProps) {
             phrases={coachingPhrases}
             charDelay={10}
             onComplete={() => {
-              setTimeout(() => goToScene("handoff"), 300);
+              setTimeout(() => goToScene("radar"), 300);
             }}
           />
         )}
@@ -773,6 +777,34 @@ export function OnboardingFlow({ userName, onComplete }: OnboardingFlowProps) {
             )}
           </View>
         </ScrollView>
+        <WelcomeBackToast visible={showWelcomeBack} />
+      </View>
+    );
+  }
+
+  // Radar screen — full-screen visualization
+  if (scene === "radar") {
+    return (
+      <View className="flex-1 bg-[#0a0a0a]">
+        <RadarScreen
+          mockPath={connectedProvider ? "data" : "no-data"}
+          hasData={!!connectedProvider}
+          onComplete={() => goToScene("progression")}
+        />
+        <WelcomeBackToast visible={showWelcomeBack} />
+      </View>
+    );
+  }
+
+  // Progression screen — volume plan visualization
+  if (scene === "progression") {
+    return (
+      <View className="flex-1 bg-[#0a0a0a]">
+        <ProgressionScreen
+          mockPath={connectedProvider ? "data" : "no-data"}
+          hasData={!!connectedProvider}
+          onComplete={() => goToScene("handoff")}
+        />
         <WelcomeBackToast visible={showWelcomeBack} />
       </View>
     );

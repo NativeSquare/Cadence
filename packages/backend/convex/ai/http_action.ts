@@ -4,7 +4,7 @@ import { httpAction } from "../_generated/server";
 import { api } from "../_generated/api";
 import { ConvexError } from "convex/values";
 import { tools } from "./tools";
-import { buildSystemPrompt } from "./prompts/onboarding-coach";
+import { buildSystemPrompt } from "./prompts/onboarding_coach";
 
 /**
  * AI Streaming HTTP Action Endpoint
@@ -20,7 +20,7 @@ export const streamChat = httpAction(async (ctx, request) => {
     return new Response("Method not allowed", { status: 405 });
   }
 
-  // Extract and validate auth token from Authorization header
+  // Validate auth token is present (Convex auth reads it from headers)
   const authHeader = request.headers.get("Authorization");
   if (!authHeader?.startsWith("Bearer ")) {
     return new Response(
@@ -28,8 +28,6 @@ export const streamChat = httpAction(async (ctx, request) => {
       { status: 401, headers: { "Content-Type": "application/json" } }
     );
   }
-
-  const token = authHeader.slice(7);
 
   // Validate the token and get user identity
   const identity = await ctx.auth.getUserIdentity();
@@ -76,7 +74,7 @@ export const streamChat = httpAction(async (ctx, request) => {
       tools,
       system: systemPrompt,
       stopWhen: stepCountIs(5), // Allow up to 5 tool call rounds
-      onStepFinish: async ({ toolCalls, toolResults }) => {
+      onStepFinish: async ({ toolCalls }) => {
         // Tool results are handled by the client via stream
         // Persistence happens through tool execution
         if (toolCalls && toolCalls.length > 0) {
@@ -124,3 +122,4 @@ export const streamChat = httpAction(async (ctx, request) => {
     );
   }
 });
+

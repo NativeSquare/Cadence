@@ -40,6 +40,40 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        // Accent colors with dim variants (Cadence design tokens)
+        lime: {
+          DEFAULT: "#C8FF00",
+          dim: "rgba(200,255,0,0.12)",
+          glow: "rgba(200,255,0,0.06)",
+        },
+        ora: {
+          DEFAULT: "#FF8A00",
+          dim: "rgba(255,138,0,0.12)",
+        },
+        red: {
+          DEFAULT: "#FF5A5A",
+          dim: "rgba(255,90,90,0.12)",
+        },
+        blu: {
+          DEFAULT: "#5B9EFF",
+          dim: "rgba(91,158,255,0.12)",
+        },
+        // Gray scale (white at varying opacities)
+        g1: "rgba(255,255,255,0.92)",
+        g2: "rgba(255,255,255,0.70)",
+        g3: "rgba(255,255,255,0.45)",
+        g4: "rgba(255,255,255,0.25)",
+        g5: "rgba(255,255,255,0.10)",
+        g6: "rgba(255,255,255,0.06)",
+        // Surface tokens
+        brd: "rgba(255,255,255,0.08)",
+        "card-surface": "rgba(255,255,255,0.03)",
+        sb: "rgba(200,255,0,0.4)",
+        sg: "rgba(200,255,0,0.06)",
+      },
+      fontFamily: {
+        coach: ["Outfit"],
+        mono: ["JetBrainsMono"],
       },
       borderRadius: {
         lg: "var(--radius)",

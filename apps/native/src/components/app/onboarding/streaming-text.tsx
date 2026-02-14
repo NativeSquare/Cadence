@@ -4,6 +4,10 @@ import { cn } from "@/lib/utils";
 import { useEffect, useRef } from "react";
 import { Animated, View } from "react-native";
 import { Text } from "@/components/ui/text";
+import { Cursor } from "./Cursor";
+
+// Re-export StreamBlock for convenience
+export { StreamBlock } from "./StreamBlock";
 
 type StreamingTextProps = {
   phrases: StreamPhrase[];
@@ -86,11 +90,11 @@ function PhraseText({
   }, []);
 
   return (
-    <Animated.View style={{ opacity: fadeAnim }}>
+    <Animated.View style={{ opacity: fadeAnim, flexDirection: "row", alignItems: "flex-end" }}>
       <Text className="text-lg leading-7 text-white font-light tracking-wide">
         {text}
-        {isCurrentlyStreaming && <Text className="text-white/40">|</Text>}
       </Text>
+      <Cursor visible={isCurrentlyStreaming} height={18} />
     </Animated.View>
   );
 }

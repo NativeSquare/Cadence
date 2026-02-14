@@ -11,27 +11,20 @@
 #   - in-progress: Epic actively being worked on
 #   - done: All stories in epic completed
 #
-# Epic Status Transitions:
-#   - backlog → in-progress: Automatically when first story is created (via create-story)
-#   - in-progress → done: Manually when all stories reach 'done' status
-#
 # Story Status:
 #   - backlog: Story only exists in epic file
 #   - ready-for-dev: Story file created in stories folder
 #   - in-progress: Developer actively working on implementation
-#   - review: Ready for code review (via Dev's code-review workflow)
+#   - review: Ready for code review
 #   - done: Story completed
 #
-# Retrospective Status:
-#   - optional: Can be completed but not required
-#   - done: Retrospective has been completed
-#
-# WORKFLOW NOTES:
-# ===============
-# - Epic transitions to 'in-progress' automatically when first story is created
-# - Stories can be worked in parallel if team capacity allows
-# - SM typically creates next story after previous one is 'done' to incorporate learnings
-# - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
+# CHANGE LOG:
+# ===========
+# 2026-02-14: Sprint Change Proposal approved - UI-first approach
+#   - Stories 2-8 to 2-13 REWRITTEN for UI components with mock data
+#   - Epic 3 REVISED: visualization UI first, then backend wiring
+#   - Epic 4 REVISED: Paywall UI story added
+#   - Reference: sprint-change-proposal-2026-02-14.md
 
 generated: 2026-02-14
 project: Cadence
@@ -52,6 +45,8 @@ development_status:
   epic-1-retrospective: optional
 
   # Epic 2: Conversational Profile Building
+  # REVISED 2026-02-14: UI-first approach with mock data
+  # Stories 2-8 to 2-13 rewritten per sprint-change-proposal-2026-02-14.md
   epic-2: in-progress
   2-1-ai-sdk-integration-streaming-infrastructure: done
   2-2-generative-ui-tool-renderer: done
@@ -60,30 +55,33 @@ development_status:
   2-5-voice-input-capability: done
   2-6-confirmation-card-tool: done
   2-7-wearable-connection-mock-skip-path: done
-  2-8-runner-profile-phase: ready-for-dev
-  2-9-goals-phase: ready-for-dev
-  2-10-schedule-availability-phase: ready-for-dev
-  2-11-health-injury-phase: ready-for-dev
-  2-12-coaching-preferences-phase: ready-for-dev
-  2-13-final-check-profile-completion: ready-for-dev
+  # --- REWRITTEN STORIES (UI-first with mock data) ---
+  2-8-design-tokens-animation-alignment: done              # was: runner-profile-phase
+  2-9-streaming-text-cursor-polish: done                  # was: goals-phase
+  2-10-freeform-input-mini-analysis: done                 # was: schedule-availability-phase
+  2-11-choice-cards-confidence-badge: done                # was: health-injury-phase
+  2-12-conversation-screen-flow-mock: done                 # was: coaching-preferences-phase
+  2-13-transition-loading-states: done                    # was: final-check-profile-completion
   epic-2-retrospective: optional
 
   # Epic 3: Plan Generation & Visualization
-  epic-3: backlog
-  3-1-plan-generation-engine: backlog
-  3-2-thinking-stream-plan-analysis: backlog
-  3-3-radarchart-runner-profile-visualization: backlog
-  3-4-progresschart-volume-visualization: backlog
-  3-5-calendarwidget-weekly-structure: backlog
-  3-6-projected-outcomes-display: backlog
-  3-7-decision-audit-trail: backlog
+  # REVISED 2026-02-14: UI with mock data first, backend wiring after
+  epic-3: in-progress
+  3-1-radarchart-component: done                            # UI with mock data
+  3-2-progressionchart-component: done                      # UI with mock data
+  3-3-calendarwidget-component: done                        # UI with mock data
+  3-4-verdict-screen-decision-audit: done                   # combines old 3-6, 3-7
+  3-5-full-screen-flow-integration-mock: done     # NEW: complete flow validation
+  3-6-backend-wiring-conversation-phases: backlog          # NEW: wire UI to AI tools
+  3-7-backend-wiring-plan-generation: backlog              # NEW: wire viz to real data
   3-8-adaptive-coaching-language: backlog
   epic-3-retrospective: optional
 
   # Epic 4: Onboarding Completion & Trial Conversion
+  # REVISED 2026-02-14: Paywall UI story added
   epic-4: backlog
-  4-1-plan-revision-option: backlog
-  4-2-paywall-screen: backlog
+  4-1-paywall-screen-ui: backlog                           # NEW: UI with mock data
+  4-2-plan-revision-option: backlog
   4-3-trial-activation: backlog
   4-4-home-screen-transition: backlog
   epic-4-retrospective: optional

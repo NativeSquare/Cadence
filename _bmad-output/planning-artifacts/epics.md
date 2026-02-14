@@ -622,249 +622,283 @@ So that I can still use the app without connected devices.
 
 ---
 
-### Story 2.8: Runner Profile Phase
+### Story 2.8: Design Tokens & Animation Alignment
 
-As a user,
-I want to tell the coach about my running experience and current volume,
-So that the plan can be calibrated to my level.
+*REVISED 2026-02-14: UI-first approach per sprint-change-proposal-2026-02-14.md*
+*Reference: cadence-v3.jsx lines 4-35*
+
+As a developer,
+I want the design system aligned with the prototype tokens,
+So that all UI components match the target visual design.
 
 **Acceptance Criteria:**
 
-**Given** the user is in the profile phase
-**When** the coach asks about experience level
-**Then** options are presented: beginner, returning, casual, serious (FR32)
-**And** the user can select or provide free text
+**Given** the prototype defines specific design tokens
+**When** the design system is configured
+**Then** colors match: lime #C8FF00, orange #FF8A00, red #FF5A5A, blue #5B9EFF
+**And** 6 gray opacity levels are configured (0.92, 0.70, 0.45, 0.25, 0.10, 0.06)
+**And** fonts are configured: Outfit (coach voice), JetBrains Mono (data/monospace)
 
-**Given** the user is not a beginner
-**When** experience is captured
-**Then** follow-up questions ask about current frequency (days/week)
-**And** current volume (weekly km)
-**And** easy pace (if known)
+**Given** the prototype uses specific animations
+**When** animation primitives are created
+**Then** springUp animation overshoots then settles (0.5s ease)
+**And** fadeUp animation moves up 14px while fading in
+**And** scaleIn animation scales from 0.95 to 1.0
+**And** pulseGlow animation cycles opacity for loading indicators
+**And** all animations are exported as reusable presets
 
-**Given** the user provides profile information
-**When** each answer is submitted
-**Then** the corresponding Runner Object fields are updated
-**And** the progress bar advances
-**And** the coach acknowledges with contextual response
-
-**Given** the user volunteers extra information in free text
-**When** the LLM parses their response
-**Then** relevant fields are extracted and populated
-**And** the coach acknowledges: "Good to know — I was going to ask about that"
+**Files:** `apps/native/src/lib/design-tokens.ts`, `apps/native/src/lib/animations.ts`, `tailwind.config.js`
 
 ---
 
-### Story 2.9: Goals Phase
+### Story 2.9: Streaming Text & Cursor Polish
+
+*REVISED 2026-02-14: UI-first approach per sprint-change-proposal-2026-02-14.md*
+*Reference: cadence-v3.jsx lines 41-93 (useStream hook, StreamBlock component)*
 
 As a user,
-I want to tell the coach what I'm working toward,
-So that the plan serves my specific objectives.
+I want coach messages to stream character by character with a blinking cursor,
+So that the coach feels like it's speaking, not appearing.
 
 **Acceptance Criteria:**
 
-**Given** the user enters the goals phase
-**When** the coach asks about goals
-**Then** options are presented: race, speed, base building, return to fitness, general health (FR29)
+**Given** a coach message is rendered
+**When** streaming begins
+**Then** text appears at exactly 28ms per character
+**And** a blinking lime cursor (#C8FF00) follows the text
+**And** cursor blinks at 0.8s interval with sharp on/off (not fade)
 
-**Given** the user selects "race" goal
-**When** they confirm the selection
-**Then** follow-up asks for race distance
-**And** follow-up asks for race date (DateInput)
-**And** follow-up asks for target time (optional, can skip with "Help me figure it out") (FR30)
+**Given** streaming completes
+**When** all characters are displayed
+**Then** the cursor disappears
+**And** onDone callback fires if provided
 
-**Given** the user selects a non-race goal
-**When** they confirm the selection
-**Then** the coach adapts to "Open Training" mode (FR31)
-**And** appropriate follow-ups are asked based on goal type
+**Given** a delay parameter is specified
+**When** the component mounts
+**Then** streaming waits for the delay before starting
 
-**Given** the user has no specific race goal
-**When** they indicate this
-**Then** the coach proposes rolling improvement cycle
-**And** asks what would feel like an accomplishment
+**Given** multiple StreamBlocks are on screen
+**When** they have sequential delays
+**Then** they stream one after another naturally
+
+**Files:** `apps/native/src/components/app/onboarding/streaming-text.tsx`
 
 ---
 
-### Story 2.10: Schedule & Availability Phase
+### Story 2.10: FreeformInput Enhancement & MiniAnalysis Component
+
+*REVISED 2026-02-14: UI-first approach per sprint-change-proposal-2026-02-14.md*
+*Reference: cadence-v3.jsx lines 165-352 (MiniAnalysis, FreeformInput)*
 
 As a user,
-I want to tell the coach my available training days,
-So that the plan fits my life.
+I want to see visible processing when I submit freeform text,
+So that I trust the AI is actually analyzing what I said.
 
 **Acceptance Criteria:**
 
-**Given** the user enters the schedule phase
-**When** the coach asks about availability
-**Then** options for training days are presented (2-3, 4-5, 6-7 days) (FR33)
+**MiniAnalysis Component:**
 
-**Given** the user specifies available days
-**When** they confirm
-**Then** a DaySelector may ask about blocked days (days completely off-limits)
-**And** the user can select specific days or "No blocked days"
+**Given** the user submits freeform text
+**When** analysis begins
+**Then** the user's message displays in a bordered card
+**And** an orange pulsing dot appears with "Analyzing..." label
+**And** monospace terminal lines appear one by one (280ms per line)
 
-**Given** the user has specified schedule
-**When** the phase completes
-**Then** schedule.available_days and schedule.blocked_days are populated
-**And** the progress bar advances
+**Given** analysis is processing
+**When** patterns are detected in the text
+**Then** relevant extractions are shown (race goals, timelines, injuries, schedule)
+**And** important context is flagged with ⚠ markers in orange
+
+**Given** analysis completes
+**When** processing finishes
+**Then** "Added to profile ✓" appears in lime
+**And** container border transitions from gray to lime
+**And** coach streaming response follows
+
+**FreeformInput Component:**
+
+**Given** the user sees a freeform input
+**When** the component renders
+**Then** a textarea with placeholder text is displayed
+**And** quick-tap pill chips appear above (e.g., "No, that covers it")
+**And** a microphone button is available for voice input
+**And** character count displays below
+
+**Given** the user types text
+**When** text is present
+**Then** a send button animates in (scaleIn)
+**And** tapping sends the text and triggers MiniAnalysis
+
+**Given** the user taps a pill chip
+**When** the chip is selected
+**Then** that response submits immediately
+**And** MiniAnalysis may or may not fire depending on content
+
+**Files:** `apps/native/src/components/app/onboarding/generative/MiniAnalysis.tsx`, `apps/native/src/components/app/onboarding/generative/FreeformInput.tsx`
 
 ---
 
-### Story 2.11: Health & Injury Phase
+### Story 2.11: Choice Cards & Confidence Badge
+
+*REVISED 2026-02-14: UI-first approach per sprint-change-proposal-2026-02-14.md*
+*Reference: cadence-v3.jsx lines 128-160 (Choice, Badge)*
 
 As a user,
-I want to tell the coach about my injury history and current health,
-So that the plan protects me from re-injury.
+I want polished selection cards and confidence indicators,
+So that interactions feel premium and data quality is clear.
 
 **Acceptance Criteria:**
 
-**Given** the user enters the health phase
-**When** the coach asks about past injuries
-**Then** common injury options are presented (shin splints, IT band, plantar, knee, achilles, stress fracture, hip/glute, none) (FR34)
-**And** multi-select is allowed
-**And** free text "Other" option is available
+**Choice Cards:**
 
-**Given** the user has injury history
-**When** they report past injuries
-**Then** follow-up asks about current pain/issues
-**And** follow-up asks about recovery style (quick, slow, push through, no injuries)
+**Given** choices are displayed
+**When** rendered
+**Then** cards have 14px border radius with subtle gray border
+**And** unselected state shows transparent background
 
-**Given** the user indicates "push through" recovery style
-**When** that's captured
-**Then** the coach acknowledges this as a risk factor
-**And** notes it will be monitored in planning
+**Given** the user selects a choice
+**When** selection occurs
+**Then** lime border appears with lime-tinted background
+**And** checkmark animates in (checkPop animation)
+**And** haptic feedback fires
 
-**Given** the user is returning from injury (FR35)
-**When** the coach detects comeback situation
-**Then** sensitive language is used
-**And** non-performance goals like confidence rebuilding are explored (FR36)
+**Given** a choice is flagged (e.g., "push through" recovery)
+**When** that option is selected
+**Then** background tints red instead of lime
+**And** description shows warning styling
 
-**Given** the health phase continues
-**When** sleep and stress questions are asked
-**Then** sleep quality options are presented (solid, inconsistent, poor)
-**And** stress level options are presented (low, moderate, high, survival)
+**Given** multi-select mode is enabled
+**When** checkboxes render
+**Then** they use square corners (6px radius)
+
+**Given** single-select mode is enabled
+**When** radio buttons render
+**Then** they use round corners (11px radius)
+
+**Given** the user presses a choice
+**When** touch is active
+**Then** card scales to 0.98 for tactile feedback
+
+**ConfidenceBadge Component:**
+
+**Given** confidence level is HIGH
+**When** badge renders
+**Then** it displays in lime (#C8FF00) with "DATA" label
+
+**Given** confidence level is MODERATE
+**When** badge renders
+**Then** it displays in orange (#FF8A00) with "SELF-REPORTED" label
+
+**Given** confidence level is LOW
+**When** badge renders
+**Then** it displays in red (#FF5A5A)
+
+**Files:** `apps/native/src/components/app/onboarding/generative/MultipleChoiceInput.tsx`, `apps/native/src/components/app/onboarding/generative/ConfidenceBadge.tsx`
 
 ---
 
-### Story 2.12: Coaching Preferences Phase
+### Story 2.12: Conversation Screen Flow (Mock Data)
+
+*REVISED 2026-02-14: UI-first approach per sprint-change-proposal-2026-02-14.md*
+*Reference: cadence-v3.jsx lines 473-678 (SelfReport, Goals, Health, StyleScr, OpenQuestion)*
 
 As a user,
-I want to tell the coach how I prefer to be coached,
-So that the experience matches my personality.
+I want to experience the complete conversation flow visually,
+So that the UX can be validated before backend wiring.
 
 **Acceptance Criteria:**
 
-**Given** the user enters the coaching phase
-**When** the coach asks about coaching style
-**Then** options are presented: tough love, encouraging, analytical, minimalist (FR37)
+**SelfReport Screen (NO DATA path):**
 
-**Given** the user selects a coaching style
-**When** the coach responds
-**Then** the response mirrors the selected style
-**And** coaching.coaching_voice is updated
+**Given** the user skipped wearable connection
+**When** SelfReport screen renders
+**Then** coach streams: "No worries — I can work with what you tell me..."
+**And** weekly km question shows: <20km, 20-40km, 40-60km, 60km+, I'm not sure
+**And** days per week shows numeric buttons 2-7
+**And** longest run shows: <10km, 10-15km, 15-20km, 20km+
+**And** MODERATE confidence badge appears after completion
 
-**Given** the coach asks about biggest challenge
-**When** options are presented
-**Then** they include: consistency, time, motivation, injury fear, pacing, stuck
-**And** free text is allowed
+**Goals Screen:**
 
-**Given** all coaching preferences are captured
-**When** the phase completes
-**Then** relevant Runner Object fields are populated
+**Given** the user reaches goals
+**When** screen renders
+**Then** coach streams: "What are you working toward?"
+**And** options display: Training for a race, Getting faster, Building mileage, Getting back in shape, General health
+**And** "Something else — let me explain" triggers FreeformInput
+**And** freeform submission triggers MiniAnalysis
+**And** selecting "race" shows distance follow-up
+
+**Health Screen:**
+
+**Given** the user reaches health
+**When** screen renders
+**Then** multi-select injury list displays: Shin splints, IT band, Plantar fasciitis, Knee pain, Achilles issues, None
+**And** recovery style follow-up shows: bounce back quick, takes a while, push through
+**And** selecting "push through" triggers red-tinted warning card with coaching acknowledgment
+
+**Style Screen:**
+
+**Given** the user reaches coaching preferences
+**When** screen renders
+**Then** coaching style options display: Tough love, Encouraging, Analytical, Minimalist
+**And** biggest challenge shows: Consistency, Pacing, Time, Stuck
 **And** progress bar approaches completion
 
+**OpenQuestion Screen:**
+
+**Given** the user reaches final check
+**When** screen renders
+**Then** coach streams: "Anything else you want me to know?"
+**And** FreeformInput displays with pills: "No, that covers it", "One more thing..."
+**And** freeform submission triggers MiniAnalysis
+**And** skip pill advances directly
+
+**All screens use MOCK DATA - no backend calls**
+
+**Files:** `apps/native/src/components/app/onboarding/screens/SelfReportScreen.tsx`, `GoalsScreen.tsx`, `HealthScreen.tsx`, `StyleScreen.tsx`, `OpenQuestionScreen.tsx`
+
 ---
 
-### Story 2.13: Final Check & Profile Completion
+### Story 2.13: Transition & Loading States
+
+*REVISED 2026-02-14: UI-first approach per sprint-change-proposal-2026-02-14.md*
+*Reference: cadence-v3.jsx lines 683-699 (TransitionScr)*
 
 As a user,
-I want a chance to add anything else before plan generation,
-So that the coach has the complete picture.
+I want a polished transition between conversation and plan presentation,
+So that the plan generation feels intentional and exciting.
 
 **Acceptance Criteria:**
 
-**Given** all profile phases are complete
-**When** the final check is reached
-**Then** the coach asks: "Anything else you want me to know?"
-**And** an OpenInput with suggestedResponses is shown ("No, I think that covers it", "Actually, there's one more thing...")
+**Given** the conversation flow completes
+**When** transition screen appears
+**Then** coach streams: "Okay. I believe I have what I need to draft your game plan."
+**And** second message streams: "Give me a second to put this together..."
 
-**Given** the user adds additional information
-**When** they submit
-**Then** the LLM parses and updates relevant fields
-**And** the coach acknowledges: "Good to know. That's going into the mix."
+**Given** messages have streamed
+**When** loading state begins
+**Then** progress bar animates to 100%
+**And** spinning loader appears (lime border-top on circle, 1s rotation)
+**And** loader is centered on screen
 
-**Given** the user indicates nothing more to add
-**When** they confirm
-**Then** progress bar hits 100%
-**And** the conversation state is set to ready_for_plan
-**And** transition to plan generation begins (FR25, FR28)
+**Given** loading is complete
+**When** ~2.5s has elapsed
+**Then** screen auto-advances to visualization (RadarChart)
+**And** transition is smooth fade
+
+**Files:** `apps/native/src/components/app/onboarding/screens/TransitionScreen.tsx`
 
 ---
 
 ## Epic 3: Plan Generation & Visualization
 
-User sees their personalized training plan with RadarChart, ProgressChart, CalendarWidget, and can explore the reasoning behind every decision.
+*REVISED 2026-02-14: UI-first approach per sprint-change-proposal-2026-02-14.md*
 
-### Story 3.1: Plan Generation Engine
+User sees their personalized training plan with RadarChart, ProgressChart, CalendarWidget, and can explore the reasoning behind every decision. **UI components built with mock data first, then wired to backend.**
 
-As a user,
-I want my training plan generated based on my complete profile,
-So that I receive personalized coaching.
+### Story 3.1: RadarChart Component
 
-**Acceptance Criteria:**
-
-**Given** the Runner Object is complete (100% data_completeness)
-**When** plan generation is triggered
-**Then** the LLM analyzes the complete profile
-**And** generates a structured training plan
-**And** the plan includes periodization, weekly structure, and session types (FR38)
-
-**Given** the user has a race goal
-**When** the plan is generated
-**Then** it targets their race date and distance
-**And** includes appropriate build, peak, and taper phases
-**And** estimated outcomes are calculated
-
-**Given** the user is a comeback runner (FR39)
-**When** the plan is generated
-**Then** a trust-rebuilding protocol is created
-**And** focus is on confidence milestones, not pace targets
-**And** permission to stop is built into sessions
-
-**Given** the user has no race goal (FR40)
-**When** the plan is generated
-**Then** an open training cycle is created
-**And** rolling improvement metrics are defined
-**And** flexibility is emphasized
-
----
-
-### Story 3.2: Thinking Stream for Plan Analysis
-
-As a user,
-I want to see the coach's reasoning as it analyzes my profile,
-So that I trust the plan is truly personalized.
-
-**Acceptance Criteria:**
-
-**Given** plan generation begins
-**When** the analysis phase starts
-**Then** a ThinkingStream component displays
-**And** lines stream one by one showing the analysis
-
-**Given** the thinking stream is active
-**When** insights are generated
-**Then** specific data points are referenced (volume, pace, rest days)
-**And** gaps and risks are identified
-**And** periodization decisions are explained
-
-**Given** the thinking stream completes
-**When** collapsible is true
-**Then** the stream collapses to "▸ Thinking"
-**And** the user can expand to review later
-**And** the coach's summary response appears
-
----
-
-### Story 3.3: RadarChart Runner Profile Visualization
+*Reference: cadence-v3.jsx lines 704-750 (RadarSVG, RadarScreen)*
 
 As a user,
 I want to see my runner profile as a visual radar chart,
@@ -872,25 +906,34 @@ So that I understand my strengths and areas for improvement.
 
 **Acceptance Criteria:**
 
-**Given** plan presentation begins
-**When** the RadarChart tool is called
-**Then** a FIFA-style web graph renders (FR41)
-**And** axes include: Endurance Base, Speed, Recovery Discipline, Consistency, Injury Resilience, Race Readiness
+**Given** the RadarChart component is rendered
+**When** data is provided (mock initially)
+**Then** a 6-axis spider chart displays: Endurance, Speed, Recovery, Consistency, Injury Risk, Race Ready
+**And** polygon fills from center outward with eased animation (1.4s duration)
+**And** grid lines appear at 25%, 50%, 75%, 100%
 
-**Given** the chart data is provided
-**When** the chart animates in
-**Then** each axis fills to its calculated value
-**And** the animation is smooth (<1 second per NFR-P4)
-**And** design system tokens are used for colors
+**Given** the animation completes
+**When** values are displayed
+**Then** axis labels position around perimeter
+**And** value labels show percentage with count-up animation
+**And** uncertain values (NO DATA path) show in orange with "?" suffix
+**And** confirmed values (DATA path) show in lime
+**And** low values (<50) show in red
 
-**Given** the chart is displayed
-**When** the coach explains it
-**Then** strengths and weaknesses are verbally highlighted
-**And** the user understands what the chart represents
+**Given** coach commentary is needed
+**When** RadarScreen displays
+**Then** coach streams explanation of strengths and weaknesses
+**And** ConfidenceBadge shows HIGH (DATA) or MODERATE (NO DATA)
+
+**Uses MOCK DATA initially**
+
+**Files:** `apps/native/src/components/app/onboarding/viz/RadarChart.tsx`, `apps/native/src/components/app/onboarding/screens/RadarScreen.tsx`
 
 ---
 
-### Story 3.4: ProgressChart Volume Visualization
+### Story 3.2: ProgressionChart Component
+
+*Reference: cadence-v3.jsx lines 755-818 (ProgressionScreen)*
 
 As a user,
 I want to see my training volume progression over the plan duration,
@@ -898,25 +941,41 @@ So that I understand how my training will build.
 
 **Acceptance Criteria:**
 
-**Given** plan presentation continues
-**When** the ProgressChart tool is called
-**Then** a line/area chart renders showing weeks on x-axis (FR42)
-**And** volume (bars) and intensity (line) are displayed
-**And** annotations mark recovery weeks and race week
+**Given** the ProgressionChart component is rendered
+**When** data is provided (mock initially)
+**Then** 10-week view displays with volume bars
+**And** bars animate growing from bottom (growBar animation, 0.6s each with stagger)
+**And** hatched/lined fill pattern appears inside bars
 
-**Given** the chart data is provided
-**When** the chart animates in
-**Then** the visualization is clear and readable
-**And** the user can see the build-rest-build pattern
+**Given** the chart includes intensity
+**When** the line renders
+**Then** intensity line overlays bars as polyline with dots at each week
+**And** line draws on with stroke-dashoffset animation (1.2s)
 
-**Given** the chart is displayed
-**When** the coach explains it
-**Then** recovery weeks are highlighted as intentional
-**And** the taper is explained for race goals
+**Given** recovery weeks are marked
+**When** weeks 4, 7, 10 render
+**Then** they display in blue tint (#5B9EFF)
+**And** "Recovery" or "Race" label appears below
+
+**Given** the legend is shown
+**When** chart displays
+**Then** legend shows: VOLUME (bar), INTENSITY (line), RECOVERY (blue)
+
+**Given** coach commentary is needed
+**When** ProgressionScreen displays
+**Then** coach streams explanation of build-rest-build pattern
+**And** DATA path emphasizes deliberate recovery dips
+**And** NO DATA path explains conservative start with ramp potential
+
+**Uses MOCK DATA initially**
+
+**Files:** `apps/native/src/components/app/onboarding/viz/ProgressionChart.tsx`, `apps/native/src/components/app/onboarding/screens/ProgressionScreen.tsx`
 
 ---
 
-### Story 3.5: CalendarWidget Weekly Structure
+### Story 3.3: CalendarWidget Component
+
+*Reference: cadence-v3.jsx lines 823-858 (CalendarScreen)*
 
 As a user,
 I want to see my typical training week visualized,
@@ -924,73 +983,181 @@ So that I understand what each day looks like.
 
 **Acceptance Criteria:**
 
-**Given** plan presentation continues
-**When** the CalendarWidget tool is called
-**Then** a weekly calendar view renders (FR43)
-**And** each day shows session type, description, and duration
-**And** key sessions are highlighted
+**Given** the CalendarWidget component is rendered
+**When** data is provided (mock initially)
+**Then** 7-column grid displays (Mon-Sun)
+**And** header shows "Typical Week — Build Phase"
 
-**Given** the calendar displays
-**When** the user views it
-**Then** they see their personalized weekly structure
-**And** rest days are explicitly marked
-**And** session types match their goals (tempo, intervals, long run, easy)
+**Given** sessions are displayed
+**When** cards render
+**Then** each shows session type (Tempo, Easy, Intervals, Long Run, Rest)
+**And** duration displays below type
+**And** cards animate in with scaleIn (0.3s stagger)
 
-**Given** the coach explains the calendar
-**When** key sessions are discussed
-**Then** the reasoning for placement is provided (e.g., "Tempo on Monday because Tuesday is busy")
+**Given** key sessions are marked
+**When** Mon, Wed, Sun render
+**Then** they show lime indicator dot
+**And** lime border highlights the card
 
----
+**Given** rest days display
+**When** Thu, Sat render
+**Then** minimal styling with "Rest" label
+**And** no duration shown
 
-### Story 3.6: Projected Outcomes Display
+**Given** coach commentary is needed
+**When** CalendarScreen displays
+**Then** coach streams: "Three key sessions... The rest is recovery. And yes — two actual rest days. Non-negotiable."
 
-As a user,
-I want to see what results I can expect from the plan,
-So that I have clear expectations and motivation.
+**Uses MOCK DATA initially**
 
-**Acceptance Criteria:**
-
-**Given** plan presentation nears completion
-**When** projected outcomes are calculated
-**Then** the coach presents estimated race time or improvement (FR44)
-**And** confidence level is stated (e.g., "75% confidence")
-
-**Given** the user has a time goal
-**When** the projection is presented
-**Then** current estimated time is shown
-**And** target time is shown
-**And** the gap and achievability are discussed
-
-**Given** the user has no race goal
-**When** outcomes are presented
-**Then** improvement trajectory is described
-**And** milestones are defined
-**And** success metrics are personalized
+**Files:** `apps/native/src/components/app/onboarding/viz/CalendarWidget.tsx`, `apps/native/src/components/app/onboarding/screens/CalendarScreen.tsx`
 
 ---
 
-### Story 3.7: Decision Audit Trail
+### Story 3.4: Verdict Screen with DecisionAudit
+
+*Reference: cadence-v3.jsx lines 864-913 (Verdict)*
 
 As a user,
-I want to see why each major coaching decision was made,
-So that I trust and understand the plan.
+I want to see projected outcomes and understand the reasoning behind decisions,
+So that I trust and own my training plan.
 
 **Acceptance Criteria:**
 
-**Given** plan presentation completes
-**When** the Decision Audit Trail is shown
-**Then** collapsible sections display for each major decision (FR45)
-**And** decisions include: volume cap, rest days, session placement, pace targets
+**Verdict Display:**
 
-**Given** a decision section is collapsed
-**When** the user taps to expand
-**Then** detailed justification is revealed (FR46)
-**And** justification references specific user data or stated preferences
+**Given** the Verdict screen renders
+**When** coach introduction streams
+**Then** DATA path shows: "So here's where I think you land."
+**And** NO DATA path shows: "Based on what you've told me, here's my best estimate."
 
-**Given** the audit trail is displayed
-**When** the coach introduces it
-**Then** the coach says "And here's why I made these choices"
-**And** transparency is emphasized as a feature
+**Given** projected time displays
+**When** animation completes
+**Then** large monospace time range appears (e.g., "1:43 — 1:46")
+**And** confidence percentage shows (e.g., "75%")
+**And** range shows (e.g., "±90s")
+**And** DATA path: tighter range, lime tint, higher confidence
+**And** NO DATA path: wider range (±6 min), orange tint, 50% confidence with explanation
+
+**DecisionAudit Accordion:**
+
+**Given** Decision Audit section displays
+**When** header renders
+**Then** "Decision Audit" label appears
+
+**Given** decision rows display
+**When** collapsed
+**Then** each shows question: "Why 8% volume cap?", "Why two rest days?", "Why slow down easy pace?"
+**And** arrow indicator shows collapsed state
+
+**Given** user taps a decision row
+**When** it expands
+**Then** justification reveals with smooth animation
+**And** justification references user data (e.g., "Shin splint history + push through recovery = higher risk")
+
+**Uses MOCK DATA initially**
+
+**Files:** `apps/native/src/components/app/onboarding/viz/DecisionAudit.tsx`, `apps/native/src/components/app/onboarding/screens/VerdictScreen.tsx`
+
+---
+
+### Story 3.5: Full Screen Flow Integration (Mock Data)
+
+*NEW STORY - validates complete UX before backend wiring*
+
+As a developer,
+I want to test the complete onboarding flow with mock data,
+So that UX can be validated before backend integration.
+
+**Acceptance Criteria:**
+
+**Given** the mock flow is configured
+**When** developer navigates through
+**Then** complete flow is testable: Welcome → Wearable → SelfReport → Goals → Health → Style → OpenQuestion → Transition → Radar → Progression → Calendar → Verdict → Paywall
+
+**Given** both paths need testing
+**When** mock toggle is used
+**Then** DATA path shows: high confidence, tight ranges, lime indicators
+**And** NO DATA path shows: moderate confidence, wide ranges, orange uncertain markers
+
+**Given** transitions between screens
+**When** navigation occurs
+**Then** smooth fade/slide transitions work correctly
+**And** progress bar updates accurately across flow
+
+**Given** visual regression is needed
+**When** screens are captured
+**Then** all screens render consistently for comparison
+
+**Files:** `apps/native/src/components/app/onboarding/OnboardingFlowMock.tsx`, navigation configuration
+
+---
+
+### Story 3.6: Backend Wiring - Conversation Phases
+
+*NEW STORY - connects polished UI to existing AI infrastructure*
+*Absorbs conversation phase content from original stories 2-8 to 2-13*
+
+As a user,
+I want the conversation screens to work with real AI responses,
+So that my profile is actually captured and personalized.
+
+**Acceptance Criteria:**
+
+**Given** SelfReport screen is wired
+**When** user makes selections
+**Then** AI tool calls render the UI components
+**And** selections update Runner Object via Convex mutations
+**And** coach responses reflect actual user data
+
+**Given** Goals, Health, Style, OpenQuestion screens are wired
+**When** user completes each
+**Then** corresponding Runner Object fields populate
+**And** phase transitions work correctly
+**And** progress bar reflects real data_completeness
+
+**Given** MiniAnalysis is wired
+**When** user submits freeform text
+**Then** AI actually parses and extracts information
+**And** extracted fields update Runner Object
+**And** coach acknowledges specific extractions
+
+**Depends on:** Story 3.5 (UI validated with mock data)
+
+**Files:** Modify screen components to accept AI tool props, connect to tool-renderer infrastructure
+
+---
+
+### Story 3.7: Backend Wiring - Plan Generation & Visualization
+
+*NEW STORY - connects visualization UI to real plan data*
+
+As a user,
+I want the visualization screens to show my actual plan,
+So that the charts and projections are personalized to me.
+
+**Acceptance Criteria:**
+
+**Given** RadarChart is wired
+**When** plan data is available
+**Then** chart shows actual runner profile metrics from Runner Object
+
+**Given** ProgressionChart is wired
+**When** plan data is available
+**Then** chart shows actual weekly volume and intensity from generated plan
+
+**Given** CalendarWidget is wired
+**When** plan data is available
+**Then** calendar shows actual session structure from generated plan
+
+**Given** Verdict/DecisionAudit is wired
+**When** plan data is available
+**Then** projections show actual calculated outcomes
+**And** audit trail shows actual reasoning from plan generation
+
+**Depends on:** Story 3.6 (conversation phases wired)
+
+**Files:** Modify visualization components to accept real data props
 
 ---
 
@@ -1022,13 +1189,61 @@ So that the advice feels relevant and personal.
 **Then** explanations are concise
 **And** only essential information is shared
 
+**Depends on:** Story 3.7 (visualizations wired)
+
 ---
 
 ## Epic 4: Onboarding Completion & Trial Conversion
 
+*REVISED 2026-02-14: Paywall UI story added per sprint-change-proposal-2026-02-14.md*
+
 User can review/adjust their plan, view the paywall, start a free trial, and transition to the home screen.
 
-### Story 4.1: Plan Revision Option
+### Story 4.1: Paywall Screen UI
+
+*NEW STORY - UI with mock data first*
+*Reference: cadence-v3.jsx lines 918-944 (PaywallScr)*
+
+As a user,
+I want to see a compelling paywall after experiencing my plan,
+So that the value is clear before I commit.
+
+**Acceptance Criteria:**
+
+**Given** the Paywall screen renders
+**When** coach introduction streams
+**Then** "The plan's ready. The coaching is ready." displays
+**And** "To unlock everything, start your free trial." follows
+
+**Given** the trial badge displays
+**When** rendered
+**Then** "7-DAY FREE TRIAL" appears in lime pill badge
+
+**Given** feature list displays
+**When** DATA path active
+**Then** bullets show: Full plan through race day, Daily adaptive sessions, Visible reasoning for every decision, Unlimited plan adjustments
+
+**Given** feature list displays
+**When** NO DATA path active
+**Then** bullets show: Full plan through race day, Sessions that adapt as you log runs, Connect wearable for deeper insights, See why every decision was made
+
+**Given** pricing displays
+**When** rendered
+**Then** "€9.99/month after trial" shows clearly
+**And** "Cancel anytime." appears below
+
+**Given** CTAs display
+**When** rendered
+**Then** primary button: "Start Free Trial" (lime, full width)
+**And** secondary: "Maybe later" (ghost text button)
+
+**Uses MOCK initially - trial activation wired in Story 4.3**
+
+**Files:** `apps/native/src/components/app/onboarding/screens/PaywallScreen.tsx`
+
+---
+
+### Story 4.2: Plan Revision Option
 
 As a user,
 I want the option to adjust my plan before committing,
@@ -1051,31 +1266,6 @@ So that I have ownership over my training.
 **When** they confirm
 **Then** the plan is finalized
 **And** transition to paywall begins
-
----
-
-### Story 4.2: Paywall Screen
-
-As a user,
-I want to see a clear paywall with trial option,
-So that I understand the value and can start my trial.
-
-**Acceptance Criteria:**
-
-**Given** the plan is finalized
-**When** the paywall screen appears
-**Then** trial duration is clearly shown (e.g., 7 days free) (FR52)
-**And** features included are listed (FR53)
-**And** the CTA button is prominent ("Start Free Trial")
-
-**Given** the user views the paywall
-**When** they see the features list
-**Then** it includes: full training plan, daily adaptive sessions, visible reasoning, unlimited adjustments
-
-**Given** the user is on the paywall
-**When** they want to see pricing
-**Then** subscription options and prices are displayed (FR55)
-**And** billing terms are clear
 
 ---
 

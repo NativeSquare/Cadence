@@ -1,4 +1,5 @@
 import "@/lib/nativewind-interop";
+import { fontAssets } from "@/lib/fonts";
 import { ThemeStatusBar } from "@/lib/theme-status-bar";
 import { checkForUpdates } from "@/utils/expo/check-for-updates";
 import { ConvexAuthProvider, useAuthActions } from "@convex-dev/auth/react";
@@ -6,15 +7,19 @@ import { api } from "@packages/backend/convex/_generated/api";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { PortalHost } from "@rn-primitives/portal";
 import { ConvexReactClient, useConvexAuth, useMutation, useQuery } from "convex/react";
+import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SecureStore from "expo-secure-store";
+import * as SplashScreen from "expo-splash-screen";
 import { useColorScheme } from "nativewind";
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { ActivityIndicator, Alert, Platform, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import "./global.css";
+
+SplashScreen.preventAutoHideAsync();
 
 const convex = new ConvexReactClient(process.env.EXPO_PUBLIC_CONVEX_URL!, {
   unsavedChangesWarning: false,
@@ -27,11 +32,28 @@ const secureStorage = {
 };
 
 export default function RootLayout() {
+  const [fontsLoaded, fontError] = useFonts(fontAssets);
+
+  const onLayoutRootView = useCallback(async () => {
+    if (fontsLoaded || fontError) {
+      await SplashScreen.hideAsync();
+    }
+  }, [fontsLoaded, fontError]);
+
   useEffect(() => {
     if (!__DEV__) {
       checkForUpdates();
     }
   }, []);
+
+  useEffect(() => {
+    onLayoutRootView();
+  }, [onLayoutRootView]);
+
+  if (!fontsLoaded && !fontError) {
+    return null;
+  }
+
   return (
     <KeyboardProvider>
       <ConvexAuthProvider
