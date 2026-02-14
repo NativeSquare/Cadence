@@ -5,11 +5,11 @@ import { ConvexAuthProvider, useAuthActions } from "@convex-dev/auth/react";
 import { api } from "@packages/backend/convex/_generated/api";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { PortalHost } from "@rn-primitives/portal";
-import { ConvexReactClient, useConvexAuth, useQuery } from "convex/react";
+import { ConvexReactClient, useConvexAuth, useMutation, useQuery } from "convex/react";
 import { Stack } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { useColorScheme } from "nativewind";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { ActivityIndicator, Alert, Platform, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
@@ -61,7 +61,38 @@ function RootStack() {
   const { isAuthenticated, isLoading } = useConvexAuth();
   const { signOut } = useAuthActions();
   const user = useQuery(api.table.users.currentUser);
+  const runner = useQuery(
+    api.table.runners.getCurrentRunner,
+    isAuthenticated ? {} : "skip"
+  );
+  const createRunner = useMutation(api.table.runners.createRunner);
   const hasCompletedOnboarding = user?.hasCompletedOnboarding ?? false;
+  const runnerCreationAttempted = useRef(false);
+
+  // Auto-create Runner Object for new users
+  useEffect(() => {
+    if (
+      isAuthenticated &&
+      user &&
+      runner === null &&
+      !runnerCreationAttempted.current
+    ) {
+      runnerCreationAttempted.current = true;
+      createRunner({
+        identity: {
+          name: user.name ?? "",
+          nameConfirmed: false,
+        },
+      }).catch((err) => {
+        console.error("Failed to create runner:", err);
+        runnerCreationAttempted.current = false;
+      });
+    }
+    // Reset flag when user changes (e.g., sign out)
+    if (!isAuthenticated) {
+      runnerCreationAttempted.current = false;
+    }
+  }, [isAuthenticated, user, runner, createRunner]);
 
   // Detect banned users and show alert before signing them out
   const isBanned =

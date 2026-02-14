@@ -6,19 +6,22 @@ import { APP_SLUG } from "@packages/shared";
 import { makeRedirectUri } from "expo-auth-session";
 import { openAuthSessionAsync } from "expo-web-browser";
 import * as React from "react";
-import { ActivityIndicator, Image, Platform, View } from "react-native";
+import { ActivityIndicator, Alert, Image, Platform, View } from "react-native";
+
 const SOCIAL_STRATEGIES = [
   {
     provider: "google",
     label: "Continue with Google",
     source: { uri: "https://img.clerk.com/static/google.png?width=160" },
     useTint: false,
+    enabled: true,
   },
   {
     provider: "apple",
     label: "Continue with Apple",
     source: { uri: "https://img.clerk.com/static/apple.png?width=160" },
     useTint: true,
+    enabled: false, // Deferred - Apple Sign-In coming later
   },
 ];
 
@@ -33,6 +36,16 @@ export function SignInCard() {
   async function handleSocialSignIn(
     strategy: (typeof SOCIAL_STRATEGIES)[number],
   ) {
+    // Handle disabled providers (e.g., Apple Sign-In is deferred)
+    if (!strategy.enabled) {
+      Alert.alert(
+        "Coming Soon",
+        "Apple Sign-In will be available in a future update.",
+        [{ text: "OK" }]
+      );
+      return;
+    }
+
     setLoadingProvider(strategy.provider);
     setError(null);
     try {
@@ -67,7 +80,7 @@ export function SignInCard() {
         <Button
           key={strategy.provider}
           variant="outline"
-          className="w-full h-12 rounded-xl !bg-white"
+          className={`w-full h-12 rounded-xl !bg-white ${!strategy.enabled ? "opacity-50" : ""}`}
           onPress={() => handleSocialSignIn(strategy)}
           disabled={!!loadingProvider}
         >

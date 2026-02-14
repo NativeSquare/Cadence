@@ -20,6 +20,7 @@ import type * as strava from "../strava.js";
 import type * as table_admin from "../table/admin.js";
 import type * as table_adminInvites from "../table/adminInvites.js";
 import type * as table_feedback from "../table/feedback.js";
+import type * as table_runners from "../table/runners.js";
 import type * as table_stravaConnections from "../table/stravaConnections.js";
 import type * as table_users from "../table/users.js";
 import type * as utils_generateFunctions from "../utils/generateFunctions.js";
@@ -43,6 +44,7 @@ declare const fullApi: ApiFromModules<{
   "table/admin": typeof table_admin;
   "table/adminInvites": typeof table_adminInvites;
   "table/feedback": typeof table_feedback;
+  "table/runners": typeof table_runners;
   "table/stravaConnections": typeof table_stravaConnections;
   "table/users": typeof table_users;
   "utils/generateFunctions": typeof utils_generateFunctions;
