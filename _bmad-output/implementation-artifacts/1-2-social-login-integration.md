@@ -1,6 +1,6 @@
 # Story 1.2: Social Login Integration
 
-Status: review
+Status: done
 
 **Priority: LOW** - Auth already works in template. Move to end of Epic 1.
 

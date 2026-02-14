@@ -1,6 +1,6 @@
 # Story 1.4: Health Data Consent
 
-Status: ready-for-dev
+Status: done
 
 ---
 
@@ -56,48 +56,48 @@ This story requires work in **TWO apps** of the monorepo:
 
 ### Part A: Native App (`apps/native`)
 
-- [ ] **Task 1: Create Health Consent Screen** (AC: #1)
-  - [ ] Create `apps/native/src/app/(onboarding)/health-consent.tsx`
-  - [ ] Design clear, friendly explanation of data collection
-  - [ ] List data types: running activities, pace, distance, heart rate (if connected)
-  - [ ] Explain usage: personalization, plan generation, improvement
+- [x] **Task 1: Create Health Consent Screen** (AC: #1)
+  - [x] Create `apps/native/src/app/(onboarding)/health-consent.tsx`
+  - [x] Design clear, friendly explanation of data collection
+  - [x] List data types: running activities, pace, distance, heart rate (if connected)
+  - [x] Explain usage: personalization, plan generation, improvement
 
-- [ ] **Task 2: Display User Rights** (AC: #1)
-  - [ ] GDPR rights section: access, rectification, erasure, portability
-  - [ ] CCPA rights section: know, delete, opt-out
-  - [ ] Contact information for data requests
+- [x] **Task 2: Display User Rights** (AC: #1)
+  - [x] GDPR rights section: access, rectification, erasure, portability
+  - [x] CCPA rights section: know, delete, opt-out
+  - [x] Contact information for data requests
 
-- [ ] **Task 3: Create "Learn More" Expandable Sections** (AC: #3)
-  - [ ] In-app collapsible/accordion component for quick details
-  - [ ] Include: data storage, retention, third-party sharing
-  - [ ] Include: security measures, encryption
-  - [ ] Optional: "Full Details" link to web page
+- [x] **Task 3: Create "Learn More" Expandable Sections** (AC: #3)
+  - [x] In-app collapsible/accordion component for quick details
+  - [x] Include: data storage, retention, third-party sharing
+  - [x] Include: security measures, encryption
+  - [x] Optional: "Full Details" link to web page
 
-- [ ] **Task 4: Add Consent Button** (AC: #2)
-  - [ ] Primary CTA: "I Consent" or "I Understand & Consent"
-  - [ ] Style with lime green gradient
-  - [ ] Clear visual hierarchy
+- [x] **Task 4: Add Consent Button** (AC: #2)
+  - [x] Primary CTA: "I Consent" or "I Understand & Consent"
+  - [x] Style with lime green gradient
+  - [x] Clear visual hierarchy
 
-- [ ] **Task 5: Record Health Consent** (AC: #2)
-  - [ ] Create mutation `acceptHealthConsent()`
-  - [ ] Record `healthConsentAt` timestamp
-  - [ ] Store consent version for compliance tracking
+- [x] **Task 5: Record Health Consent** (AC: #2)
+  - [x] Create mutation `acceptHealthConsent()`
+  - [x] Record `healthConsentAt` timestamp
+  - [x] Store consent version for compliance tracking
 
-- [ ] **Task 6: Navigate to Name Confirmation** (AC: #2)
-  - [ ] After consent, route to onboarding name confirmation
-  - [ ] Update `conversation_state.current_phase` to 'intro'
+- [x] **Task 6: Navigate to Name Confirmation** (AC: #2)
+  - [x] After consent, route to onboarding name confirmation
+  - [x] Update `conversation_state.current_phase` to 'intro'
 
 ### Part B: Web App (`apps/web`)
 
-- [ ] **Task 7: Create Health Data Practices Page** (AC: #4)
-  - [ ] Create `apps/web/src/app/health-data/page.tsx`
-  - [ ] Use same legal-style layout as terms/privacy pages
-  - [ ] Comprehensive content about health data handling
-  - [ ] Include all expandable content from native app, plus more detail
+- [x] **Task 7: Create Health Data Practices Page** (AC: #4)
+  - [x] Create `apps/web/src/app/health-data/page.tsx`
+  - [x] Use same legal-style layout as terms/privacy pages
+  - [x] Comprehensive content about health data handling
+  - [x] Include all expandable content from native app, plus more detail
 
-- [ ] **Task 8: Add Link from Native App (Optional)**
-  - [ ] Add "View Full Details" link in native app
-  - [ ] Opens: `WebBrowser.openBrowserAsync(LEGAL_URLS.healthData)`
+- [x] **Task 8: Add Link from Native App (Optional)**
+  - [x] Add "View Full Details" link in native app
+  - [x] Opens: `WebBrowser.openBrowserAsync(LEGAL_URLS.healthData)`
 
 ---
 
@@ -367,25 +367,26 @@ This keeps us in wellness category, not FDA-regulated medical device.
 ## Dev Agent Record
 
 ### Agent Model Used
-{{agent_model_name_version}}
+Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 ### Completion Notes List
-- [ ] Health consent screen created in native app
-- [ ] Expandable sections working
-- [ ] Data types clearly explained
-- [ ] User rights displayed
-- [ ] Health data page created in web app
-- [ ] Consent recorded with timestamp
-- [ ] Navigation to name confirmation works
+- [x] Health consent screen created in native app
+- [x] Expandable sections working (inline ExpandableSection component)
+- [x] Data types clearly explained
+- [x] User rights displayed
+- [x] Health data page created in web app
+- [x] Consent recorded with timestamp via acceptHealthConsent mutation
+- [x] Navigation to name confirmation works (via onboarding index redirect)
 
 ### File List
 **Native App:**
 - `apps/native/src/app/(onboarding)/health-consent.tsx` (created)
-- `apps/native/src/components/app/onboarding/ExpandableSection.tsx` (created)
-- `apps/native/src/components/app/onboarding/DataExplainer.tsx` (created)
 
 **Web App:**
 - `apps/web/src/app/health-data/page.tsx` (created)
 
 **Backend:**
-- `packages/backend/convex/table/runners.ts` (modified)
+- `packages/backend/convex/table/runners.ts` (modified - added acceptHealthConsent mutation)
+
+### Change Log
+- 2026-02-14: Implemented health data consent flow (Story 1.4)

@@ -1,6 +1,6 @@
 # Story 1.3: Onboarding Consent Flow
 
-Status: ready-for-dev
+Status: done
 
 ---
 
@@ -59,64 +59,63 @@ This story requires work in **TWO apps** of the monorepo:
 
 ### Part A: Native App (`apps/native`)
 
-- [ ] **Task 1: Add Website URL Environment Variable**
-  - [ ] Add `EXPO_PUBLIC_WEBSITE_URL=https://cadence.nativesquare.fr` to `apps/native/.env.local`
-  - [ ] Create constants file to expose the URL: `apps/native/src/lib/constants.ts`
-  - [ ] Export `WEBSITE_URL`, `TERMS_URL`, `PRIVACY_URL`
+- [x] **Task 1: Add Website URL Environment Variable**
+  - [x] Add `EXPO_PUBLIC_WEBSITE_URL=https://cadence.nativesquare.fr` to `apps/native/.env.local`
+  - [x] Create constants file to expose the URL: `apps/native/src/lib/constants.ts`
+  - [x] Export `WEBSITE_URL`, `TERMS_URL`, `PRIVACY_URL`
 
-- [ ] **Task 2: Add Consent Fields to Runner Schema** (AC: #1, #4)
-  - [ ] Add `legal` object to runners table schema
-  - [ ] Include: `termsAcceptedAt`, `privacyAcceptedAt`, `consentVersion`
-  - [ ] Create mutation `acceptTerms()` that sets timestamps
+- [x] **Task 2: Add Consent Fields to Runner Schema** (AC: #1, #4)
+  - [x] Add `legal` object to runners table schema
+  - [x] Include: `termsAcceptedAt`, `privacyAcceptedAt`, `consentVersion`
+  - [x] Create mutation `acceptTerms()` that sets timestamps
 
-- [ ] **Task 3: Create Consent Screen UI** (AC: #1)
-  - [ ] Create `apps/native/src/app/(onboarding)/consent.tsx`
-  - [ ] Design follows dark theme with primary accent
-  - [ ] Include app logo or welcome message
-  - [ ] Display consent summary text
+- [x] **Task 3: Create Consent Screen UI** (AC: #1)
+  - [x] Create `apps/native/src/app/(onboarding)/consent.tsx`
+  - [x] Design follows dark theme with primary accent
+  - [x] Include app logo or welcome message
+  - [x] Display consent summary text
 
-- [ ] **Task 4: Add Terms of Service Link** (AC: #2)
-  - [ ] Create tappable "Terms of Service" text/button
-  - [ ] Open browser: `WebBrowser.openBrowserAsync(\`\${WEBSITE_URL}/terms\`)`
+- [x] **Task 4: Add Terms of Service Link** (AC: #2)
+  - [x] Create tappable "Terms of Service" text/button
+  - [x] Open browser: `WebBrowser.openBrowserAsync(\`\${WEBSITE_URL}/terms\`)`
 
-- [ ] **Task 5: Add Privacy Policy Link** (AC: #3)
-  - [ ] Create tappable "Privacy Policy" text/button
-  - [ ] Open browser: `WebBrowser.openBrowserAsync(\`\${WEBSITE_URL}/privacy\`)`
+- [x] **Task 5: Add Privacy Policy Link** (AC: #3)
+  - [x] Create tappable "Privacy Policy" text/button
+  - [x] Open browser: `WebBrowser.openBrowserAsync(\`\${WEBSITE_URL}/privacy\`)`
 
-- [ ] **Task 6: Create Accept Button** (AC: #4)
-  - [ ] Style as primary CTA (lime green gradient)
-  - [ ] Text: "I Accept" or "Accept & Continue"
+- [x] **Task 6: Create Accept Button** (AC: #4)
+  - [x] Style as primary CTA (lime green gradient)
+  - [x] Text: "I Accept" or "Accept & Continue"
 
-- [ ] **Task 7: Record Acceptance** (AC: #4)
-  - [ ] On accept tap, call `acceptTerms` mutation
-  - [ ] Store timestamps and consent version
+- [x] **Task 7: Record Acceptance** (AC: #4)
+  - [x] On accept tap, call `acceptTerms` mutation
+  - [x] Store timestamps and consent version
 
-- [ ] **Task 8: Implement Navigation Guard** (AC: #1)
-  - [ ] Check `termsAcceptedAt` on app load after auth
-  - [ ] If null, redirect to consent screen
+- [x] **Task 8: Implement Navigation Guard** (AC: #1)
+  - [x] Check `termsAcceptedAt` on app load after auth
+  - [x] If null, redirect to consent screen
 
-- [ ] **Task 9: Route to Health Data Consent** (AC: #4)
-  - [ ] After acceptance, navigate to health consent screen
+- [x] **Task 9: Route to Health Data Consent** (AC: #4)
+  - [x] After acceptance, navigate to health consent screen
 
 ### Part B: Web App (`apps/web`)
 
-- [ ] **Task 10: Create Terms of Service Page** (AC: #5)
-  - [ ] Create `apps/web/src/app/terms/page.tsx`
-  - [ ] Create legal-style layout (centered content, readable width)
-  - [ ] Add Terms of Service content (can use placeholder initially)
-  - [ ] Include: last updated date, version number
-  - [ ] Match website styling (dark theme preferred)
+- [x] **Task 10: Create Terms of Service Page** (AC: #5)
+  - [x] Create `apps/web/src/app/terms/page.tsx`
+  - [x] Create legal-style layout (centered content, readable width)
+  - [x] Add Terms of Service content (can use placeholder initially)
+  - [x] Include: last updated date, version number
+  - [x] Match website styling (dark theme preferred)
 
-- [ ] **Task 11: Create Privacy Policy Page** (AC: #5)
-  - [ ] Create `apps/web/src/app/privacy/page.tsx`
-  - [ ] Same layout as Terms page
-  - [ ] Add Privacy Policy content (can use placeholder initially)
-  - [ ] Include: data collection, usage, rights, contact info
-  - [ ] Include: GDPR/CCPA compliance sections
+- [x] **Task 11: Create Privacy Policy Page** (AC: #5)
+  - [x] Create `apps/web/src/app/privacy/page.tsx`
+  - [x] Same layout as Terms page
+  - [x] Add Privacy Policy content (can use placeholder initially)
+  - [x] Include: data collection, usage, rights, contact info
+  - [x] Include: GDPR/CCPA compliance sections
 
-- [ ] **Task 12: Create Shared Legal Layout (Optional)**
-  - [ ] Create `apps/web/src/app/(legal)/layout.tsx` if reusable layout needed
-  - [ ] Style for readability: max-width container, good typography
+- [x] **Task 12: Create Shared Legal Layout (Optional)**
+  - [x] Skipped - not needed, each page has self-contained styling
 
 ---
 
@@ -299,28 +298,30 @@ legal: v.optional(v.object({
 ## Dev Agent Record
 
 ### Agent Model Used
-{{agent_model_name_version}}
+Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 ### Completion Notes List
-- [ ] Env variable configured in native app
-- [ ] Constants file created
-- [ ] Consent screen created with proper styling
-- [ ] Terms page created in web app
-- [ ] Privacy page created in web app
-- [ ] Links open correctly from native app
-- [ ] Acceptance recorded with timestamps
+- [x] Env variable configured in native app
+- [x] Constants file created
+- [x] Consent screen created with proper styling
+- [x] Terms page created in web app
+- [x] Privacy page created in web app
+- [x] Links open correctly from native app (using expo-web-browser)
+- [x] Acceptance recorded with timestamps via acceptTerms mutation
 
 ### File List
 **Native App:**
-- `apps/native/.env.local` (created/modified)
+- `apps/native/.env.local` (modified - added EXPO_PUBLIC_WEBSITE_URL)
 - `apps/native/src/lib/constants.ts` (created)
 - `apps/native/src/app/(onboarding)/consent.tsx` (created)
-- `apps/native/src/components/app/onboarding/LegalLink.tsx` (created)
-- `apps/native/src/app/(onboarding)/_layout.tsx` (modified)
+- `apps/native/src/app/(onboarding)/index.tsx` (modified - added consent redirect)
 
 **Web App:**
 - `apps/web/src/app/terms/page.tsx` (created)
 - `apps/web/src/app/privacy/page.tsx` (created)
 
 **Backend:**
-- `packages/backend/convex/table/runners.ts` (modified)
+- `packages/backend/convex/table/runners.ts` (modified - added legal schema and acceptTerms mutation)
+
+### Change Log
+- 2026-02-14: Implemented consent flow with terms/privacy pages (Story 1.3)

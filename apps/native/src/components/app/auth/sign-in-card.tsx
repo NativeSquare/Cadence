@@ -1,9 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
+import { LEGAL_URLS } from "@/lib/constants";
 import { getConvexErrorMessage } from "@/utils/getConvexErrorMessage";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { APP_SLUG } from "@packages/shared";
 import { makeRedirectUri } from "expo-auth-session";
+import * as WebBrowser from "expo-web-browser";
 import { openAuthSessionAsync } from "expo-web-browser";
 import * as React from "react";
 import { ActivityIndicator, Alert, Image, Platform, View } from "react-native";
@@ -70,6 +72,9 @@ export function SignInCard() {
     }
   }
 
+  const openTerms = () => WebBrowser.openBrowserAsync(LEGAL_URLS.terms);
+  const openPrivacy = () => WebBrowser.openBrowserAsync(LEGAL_URLS.privacy);
+
   return (
     <View className="rounded-3xl bg-card px-6 pt-8 pb-8 gap-3">
       <Text className="text-xl font-bold text-center mb-2">Get Started</Text>
@@ -100,6 +105,18 @@ export function SignInCard() {
           )}
         </Button>
       ))}
+
+      {/* Legal acceptance text */}
+      <Text className="text-muted-foreground text-center text-xs mt-2 leading-5">
+        By signing in, you agree to our{" "}
+        <Text onPress={openTerms} className="text-primary text-xs underline">
+          Terms of Service
+        </Text>
+        {" "}and{" "}
+        <Text onPress={openPrivacy} className="text-primary text-xs underline">
+          Privacy Policy
+        </Text>
+      </Text>
     </View>
   );
 }

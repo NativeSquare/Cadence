@@ -169,6 +169,16 @@ const inferredSchema = v.optional(
   })
 );
 
+// Legal Consent (Story 1.3, 1.4)
+const legalSchema = v.optional(
+  v.object({
+    termsAcceptedAt: v.optional(v.number()),
+    privacyAcceptedAt: v.optional(v.number()),
+    healthConsentAt: v.optional(v.number()),
+    consentVersion: v.optional(v.string()),
+  })
+);
+
 // Conversation State (meta-tracking)
 const conversationStateSchema = v.object({
   dataCompleteness: v.number(), // 0-100 percentage
@@ -202,6 +212,7 @@ const documentSchema = {
   coaching: coachingSchema,
   connections: connectionsSchema,
   inferred: inferredSchema,
+  legal: legalSchema,
   conversationState: conversationStateSchema,
 };
 
@@ -217,6 +228,7 @@ const partialSchema = {
   coaching: coachingSchema,
   connections: v.optional(connectionsSchema),
   inferred: inferredSchema,
+  legal: legalSchema,
   conversationState: v.optional(conversationStateSchema),
 };
 
@@ -355,5 +367,42 @@ export const getCurrentRunner = query({
       .query("runners")
       .withIndex("by_userId", (q) => q.eq("userId", userId))
       .first();
+  },
+});
+
+/**
+ * Confirm or update user name (Story 1.5)
+ */
+export const confirmName = mutation({
+  args: {
+    name: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) {
+      throw new ConvexError({ code: "UNAUTHORIZED", message: "Not authenticated" });
+    }
+
+    const runner = await ctx.db
+      .query("runners")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .first();
+
+    if (!runner) {
+      throw new ConvexError({ code: "RUNNER_NOT_FOUND", message: "Runner not found" });
+    }
+
+    await ctx.db.patch(runner._id, {
+      identity: {
+        name: args.name ?? runner.identity.name,
+        nameConfirmed: true,
+      },
+      conversationState: {
+        ...runner.conversationState,
+        dataCompleteness: 5,
+      },
+    });
+
+    return runner._id;
   },
 });

@@ -1,6 +1,6 @@
 # Story 1.1: Runner Object Schema & CRUD
 
-Status: review
+Status: done
 
 ---
 

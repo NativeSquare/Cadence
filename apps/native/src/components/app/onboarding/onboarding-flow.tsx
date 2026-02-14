@@ -15,6 +15,7 @@ import { Animated, Pressable, ScrollView, View } from "react-native";
 
 type Scene =
   | "welcome-intro"
+  | "welcome-got-it"
   | "welcome-transition"
   | "questions"
   | "wearable"
@@ -199,7 +200,7 @@ function getSynthesisThinkingLines(responses: OnboardingResponses): string[] {
 
 export function OnboardingFlow({ userName, onComplete }: OnboardingFlowProps) {
   const scrollRef = useRef<ScrollView>(null);
-  const displayName = userName || "there";
+  const [displayName, setDisplayName] = useState(userName || "there");
 
   // Scene state
   const [scene, setScene] = useState<Scene>("welcome-intro");
@@ -240,6 +241,15 @@ export function OnboardingFlow({ userName, onComplete }: OnboardingFlowProps) {
   // ─── Welcome Handlers ───────────────────────────────────────────────
 
   const handleWelcomeIntroContinue = () => {
+    goToScene("welcome-transition");
+  };
+
+  const handleNameChanged = (newName: string) => {
+    setDisplayName(newName);
+    goToScene("welcome-got-it");
+  };
+
+  const handleGotItContinue = () => {
     goToScene("welcome-transition");
   };
 
@@ -618,6 +628,21 @@ export function OnboardingFlow({ userName, onComplete }: OnboardingFlowProps) {
           userName={displayName}
           part="intro"
           onContinue={handleWelcomeIntroContinue}
+          onNameChanged={handleNameChanged}
+        />
+      </View>
+    );
+  }
+
+  // "Got it" intermediary scene after name change
+  if (scene === "welcome-got-it") {
+    return (
+      <View className="flex-1 bg-[#0a0a0a]">
+        <WelcomeScreen
+          key="got-it"
+          userName={displayName}
+          part="got-it"
+          onContinue={handleGotItContinue}
         />
       </View>
     );

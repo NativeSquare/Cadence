@@ -8,7 +8,6 @@ import {
   Zap,
 } from "lucide-react";
 import Image from "next/image";
-import Link from "next/link";
 
 /* ─────────────────────────── constants ─────────────────────────── */
 
@@ -64,36 +63,7 @@ const STEPS = [
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-[#000000] text-white selection:bg-[#D4FF3A]/30 selection:text-white">
-      {/* ── Nav ── */}
-      <nav className="fixed top-0 z-50 w-full border-b border-white/5 bg-black/60 backdrop-blur-xl">
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
-          <Link href="/" className="flex items-center gap-2.5">
-            <Image
-              src="/logo.png"
-              alt="Cadence logo"
-              width={32}
-              height={32}
-              className="rounded-lg"
-            />
-            <span className="text-lg font-semibold tracking-tight">
-              Cadence
-            </span>
-          </Link>
-
-          <div className="hidden items-center gap-8 text-sm text-[#8E8E93] md:flex">
-            <a href="#features" className="transition hover:text-white">
-              Features
-            </a>
-            <a href="#how-it-works" className="transition hover:text-white">
-              How It Works
-            </a>
-          </div>
-
-          {/* spacer to keep nav balanced */}
-          <div className="w-16" />
-        </div>
-      </nav>
+    <div className="selection:bg-[#D4FF3A]/30 selection:text-white">
 
       {/* ── Hero ── */}
       <section className="relative flex min-h-[100dvh] flex-col items-center justify-center overflow-hidden px-6 pt-16">
@@ -271,27 +241,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── Footer ── */}
-      <footer className="border-t border-white/5 px-6 py-12">
-        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-6 sm:flex-row">
-          <div className="flex items-center gap-2.5">
-            <Image
-              src="/logo.png"
-              alt="Cadence logo"
-              width={28}
-              height={28}
-              className="rounded-md"
-            />
-            <span className="text-sm font-semibold tracking-tight">
-              Cadence
-            </span>
-          </div>
-
-          <p className="text-sm text-[#8E8E93]">
-            &copy; {new Date().getFullYear()} Cadence. All rights reserved.
-          </p>
-        </div>
-      </footer>
     </div>
   );
 }
