@@ -683,3 +683,58 @@ export const confirmName = mutation({
     return runner._id;
   },
 });
+
+/**
+ * Skip wearable connection (Story 2.7)
+ * Sets connection fields to indicate user skipped wearable setup.
+ * Automatically transitions phase to "profile" via determinePhase.
+ */
+export const skipWearableConnection = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) {
+      throw new ConvexError({ code: "UNAUTHORIZED", message: "Not authenticated" });
+    }
+
+    const runner = await ctx.db
+      .query("runners")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .first();
+
+    if (!runner) {
+      throw new ConvexError({ code: "RUNNER_NOT_FOUND", message: "Runner not found" });
+    }
+
+    // Update connections to reflect skip
+    const updatedConnections = {
+      stravaConnected: false,
+      wearableConnected: false,
+      wearableType: "none" as const,
+      calendarConnected: runner.connections.calendarConnected,
+    };
+
+    // Build merged runner for phase calculation
+    const mergedRunner = {
+      ...runner,
+      connections: updatedConnections,
+    };
+
+    // Recalculate completeness and phase
+    const dataCompleteness = calculateDataCompleteness(mergedRunner);
+    const fieldsMissing = getMissingFields(mergedRunner);
+    const currentPhase = determinePhase(mergedRunner);
+
+    await ctx.db.patch(runner._id, {
+      connections: updatedConnections,
+      conversationState: {
+        ...runner.conversationState,
+        dataCompleteness,
+        fieldsMissing,
+        currentPhase,
+      },
+    });
+
+    return runner._id;
+  },
+});

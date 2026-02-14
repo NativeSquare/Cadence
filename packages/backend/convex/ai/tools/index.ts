@@ -136,6 +136,33 @@ export const renderProgress = tool({
 });
 
 /**
+ * Connection card tool (Story 2.7)
+ * Displays wearable/data connection options
+ */
+export const renderConnectionCard = tool({
+  description:
+    "Display wearable and data source connection options. Use after name confirmation to offer wearable integration. User can connect a provider or skip for later.",
+  inputSchema: z.object({
+    prompt: z
+      .string()
+      .optional()
+      .describe("Optional prompt text to display above the card"),
+    providers: z
+      .array(z.enum(["garmin", "coros", "apple", "strava"]))
+      .default(["strava", "garmin", "coros", "apple"])
+      .describe("Wearable providers to display"),
+    skipLabel: z
+      .string()
+      .default("I'll do this later")
+      .describe("Label for the skip option"),
+    allowSkip: z
+      .boolean()
+      .default(true)
+      .describe("Whether to show the skip option"),
+  }),
+});
+
+/**
  * Tool registry for AI SDK streamText
  */
 export const tools = {
@@ -144,6 +171,7 @@ export const tools = {
   renderConfirmation,
   renderVoiceInput,
   renderProgress,
+  renderConnectionCard,
 };
 
 export type ToolName = keyof typeof tools;

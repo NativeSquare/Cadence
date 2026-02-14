@@ -5,7 +5,7 @@
  * Used in conversational onboarding flow with AI SDK streaming.
  *
  * Source: Story 2.2 - AC#1
- * Updated: Stories 2.3, 2.4, 2.5, 2.6
+ * Updated: Stories 2.3, 2.4, 2.5, 2.6, 2.7
  */
 
 // =============================================================================
@@ -22,11 +22,12 @@ export {
   useToolState,
 } from "./tool-state-context";
 
-// Tool Components (Stories 2.3-2.6)
+// Tool Components (Stories 2.3-2.7)
 export { MultipleChoiceInput } from "./MultipleChoiceInput";
 export { OpenInput } from "./OpenInput";
 export { VoiceInput } from "./VoiceInput";
 export { ConfirmationCard } from "./ConfirmationCard";
+export { ConnectionCardTool } from "./ConnectionCardTool";
 
 // =============================================================================
 // Types
