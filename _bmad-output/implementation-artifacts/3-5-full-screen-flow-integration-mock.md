@@ -532,6 +532,17 @@ N/A
 - testIDs added to all screens for visual regression capture
 - Dev controls: Path toggle + screen jump buttons at bottom of screen
 
+**Session 2 (2026-02-14):**
+- Created dedicated mock screens in `mocks/screens/` that exactly match cadence-v3.jsx prototype
+- WelcomeMock: 42px headlines, Outfit-Light font, streaming text with cursor
+- SelfReportMock: Phase-based flow, Choice cards, 52x52 day pills
+- GoalsMock: Freeform "Something else" trigger, MiniAnalysis integration
+- HealthMock: Multi-select injury options, "None" exclusivity, push-through warning
+- StyleMock: Coaching style + challenge follow-up questions
+- OpenQuestionMock: Freeform input with pills, MiniAnalysis for custom responses
+- TransitionMock: Streaming coach messages with spinner animation
+- Updated OnboardingFlowMock to use new prototype-matching screens instead of Story 2-12 screens
+
 ### File List
 
 | File | Action |
@@ -545,3 +556,11 @@ N/A
 | `apps/native/src/components/app/onboarding/screens/WearableScreen.tsx` | Created |
 | `apps/native/src/components/app/onboarding/screens/PaywallScreen.tsx` | Created |
 | `apps/native/src/components/app/onboarding/screens/CalendarScreen.tsx` | Modified |
+| `apps/native/src/components/app/onboarding/mocks/screens/index.ts` | Created |
+| `apps/native/src/components/app/onboarding/mocks/screens/WelcomeMock.tsx` | Created |
+| `apps/native/src/components/app/onboarding/mocks/screens/SelfReportMock.tsx` | Created |
+| `apps/native/src/components/app/onboarding/mocks/screens/GoalsMock.tsx` | Created |
+| `apps/native/src/components/app/onboarding/mocks/screens/HealthMock.tsx` | Created |
+| `apps/native/src/components/app/onboarding/mocks/screens/StyleMock.tsx` | Created |
+| `apps/native/src/components/app/onboarding/mocks/screens/OpenQuestionMock.tsx` | Created |
+| `apps/native/src/components/app/onboarding/mocks/screens/TransitionMock.tsx` | Created |

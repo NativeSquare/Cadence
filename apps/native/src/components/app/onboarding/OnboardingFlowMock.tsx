@@ -12,7 +12,7 @@
 
 import { useState, useCallback, useMemo } from "react";
 import { View, StyleSheet, ScrollView, Pressable } from "react-native";
-import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
+import Animated, { FadeIn } from "react-native-reanimated";
 import { Text } from "@/components/ui/text";
 import { MockPathProvider, useMockPath } from "./MockPathContext";
 import { FlowProgressBar } from "./FlowProgressBar";
@@ -21,15 +21,19 @@ import { ScreenTransition } from "./ScreenTransition";
 import { screenProgressMap } from "./mock-data";
 import { COLORS, GRAYS, SURFACES } from "@/lib/design-tokens";
 
-// Screen components
-import { WelcomeScreen } from "./welcome-screen";
+// Mock screens (matching cadence-v3.jsx prototype)
+import {
+  WelcomeMock,
+  SelfReportMock,
+  GoalsMock,
+  HealthMock,
+  StyleMock,
+  OpenQuestionMock,
+  TransitionMock,
+} from "./mocks/screens";
+
+// Regular screens (visualization/utility)
 import { WearableScreen } from "./screens/WearableScreen";
-import { SelfReportScreen } from "./screens/SelfReportScreen";
-import { GoalsScreen } from "./screens/GoalsScreen";
-import { HealthScreen } from "./screens/HealthScreen";
-import { StyleScreen } from "./screens/StyleScreen";
-import { OpenQuestionScreen } from "./screens/OpenQuestionScreen";
-import { TransitionScreen } from "./screens/TransitionScreen";
 import { RadarScreen } from "./screens/RadarScreen";
 import { ProgressionScreen } from "./screens/ProgressionScreen";
 import { CalendarScreen } from "./screens/CalendarScreen";
@@ -105,8 +109,7 @@ function OnboardingFlowMockInner({
 }: Omit<OnboardingFlowMockProps, "initialPath">) {
   const { hasData, togglePath, setPath } = useMockPath();
   const [currentScreenIndex, setCurrentScreenIndex] = useState(initialScreenIndex);
-  const [welcomePart, setWelcomePart] = useState<"intro" | "got-it" | "transition">("intro");
-  const [userName, setUserName] = useState("Runner");
+  const [userName] = useState("Alex");
 
   const showDevControls = devMode ?? __DEV__;
   const currentScreen = SCREENS[currentScreenIndex];
@@ -119,30 +122,11 @@ function OnboardingFlowMockInner({
     }
   }, [currentScreenIndex]);
 
-  const goToPrevious = useCallback(() => {
-    if (currentScreenIndex > 0) {
-      setCurrentScreenIndex((i) => i - 1);
-    }
-  }, [currentScreenIndex]);
-
   const jumpToScreen = useCallback((index: number) => {
     if (index >= 0 && index < SCREENS.length) {
       setCurrentScreenIndex(index);
     }
   }, []);
-
-  // Welcome screen handlers
-  const handleWelcomeIntro = useCallback(() => {
-    setWelcomePart("got-it");
-  }, []);
-
-  const handleWelcomeGotIt = useCallback(() => {
-    setWelcomePart("transition");
-  }, []);
-
-  const handleWelcomeTransition = useCallback(() => {
-    goToNext();
-  }, [goToNext]);
 
   // Wearable screen handler - sets path based on choice
   const handleWearableComplete = useCallback(
@@ -173,17 +157,9 @@ function OnboardingFlowMockInner({
     switch (currentScreen.name) {
       case "welcome":
         return (
-          <WelcomeScreen
+          <WelcomeMock
             userName={userName}
-            part={welcomePart}
-            onContinue={
-              welcomePart === "intro"
-                ? handleWelcomeIntro
-                : welcomePart === "got-it"
-                  ? handleWelcomeGotIt
-                  : handleWelcomeTransition
-            }
-            onNameChanged={setUserName}
+            onNext={goToNext}
           />
         );
 
@@ -196,47 +172,22 @@ function OnboardingFlowMockInner({
         );
 
       case "selfReport":
-        return (
-          <SelfReportScreen
-            onComplete={handleScreenComplete}
-          />
-        );
+        return <SelfReportMock onNext={goToNext} />;
 
       case "goals":
-        return (
-          <GoalsScreen
-            onComplete={handleScreenComplete}
-          />
-        );
+        return <GoalsMock hasData={hasData} onNext={goToNext} />;
 
       case "health":
-        return (
-          <HealthScreen
-            onComplete={handleScreenComplete}
-          />
-        );
+        return <HealthMock hasData={hasData} onNext={goToNext} />;
 
       case "style":
-        return (
-          <StyleScreen
-            onComplete={handleScreenComplete}
-          />
-        );
+        return <StyleMock onNext={goToNext} />;
 
       case "openQuestion":
-        return (
-          <OpenQuestionScreen
-            onComplete={handleScreenComplete}
-          />
-        );
+        return <OpenQuestionMock onNext={goToNext} />;
 
       case "transition":
-        return (
-          <TransitionScreen
-            currentProgress={screenProgressMap[currentScreenIndex]}
-            onComplete={handleScreenComplete}
-          />
-        );
+        return <TransitionMock onDone={goToNext} />;
 
       case "radar":
         return (
@@ -286,11 +237,7 @@ function OnboardingFlowMockInner({
     currentScreen.name,
     hasData,
     userName,
-    welcomePart,
-    currentScreenIndex,
-    handleWelcomeIntro,
-    handleWelcomeGotIt,
-    handleWelcomeTransition,
+    goToNext,
     handleWearableComplete,
     handleScreenComplete,
     handlePaywallComplete,
@@ -313,7 +260,7 @@ function OnboardingFlowMockInner({
 
       {/* Screen content with transition */}
       <ScreenTransition
-        screenKey={`${currentScreen.name}-${welcomePart}`}
+        screenKey={currentScreen.name}
         testID={`screen-${currentScreen.name}`}
       >
         {renderScreen}

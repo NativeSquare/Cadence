@@ -1,4 +1,4 @@
-import { OnboardingFlow } from "@/components/app/onboarding/onboarding-flow";
+import { OnboardingFlowMock } from "@/components/app/onboarding/OnboardingFlowMock";
 import { api } from "@packages/backend/convex/_generated/api";
 import { useMutation, useQuery } from "convex/react";
 import { View, ActivityIndicator } from "react-native";
@@ -17,19 +17,16 @@ export default function Onboarding() {
     );
   }
 
-  const handleComplete = () => {
+  const handleComplete = (result: { startedTrial: boolean }) => {
     if (!user?._id) return;
     patchUser({ id: user._id, data: { hasCompletedOnboarding: true } });
   };
 
-  // Read from runner identity first, fallback to user name
-  const rawName = runner?.identity?.name || user?.name || "";
-  const displayName = rawName.split(" ")[0] || "there";
-
   return (
-    <OnboardingFlow
-      userName={displayName}
+    <OnboardingFlowMock
+      initialPath="no-data"
       onComplete={handleComplete}
+      devMode={__DEV__}
     />
   );
 }

@@ -12,6 +12,7 @@ import { useEffect } from "react";
 import { StyleSheet, View } from "react-native";
 import Animated, {
   Easing,
+  runOnJS,
   useAnimatedProps,
   useAnimatedStyle,
   useDerivedValue,
@@ -73,6 +74,7 @@ function getPoint(
   center: number,
   progress: number = 1
 ): { x: number; y: number } {
+  "worklet";
   const n = 6; // Always 6 axes
   const angle = (Math.PI * 2 * index) / n - Math.PI / 2; // Start from top
   const r = (value / 100) * radius * progress;
@@ -250,8 +252,7 @@ export function RadarChart({
           },
           (finished) => {
             if (finished && onAnimationComplete) {
-              // Run callback on JS thread
-              onAnimationComplete();
+              runOnJS(onAnimationComplete)();
             }
           }
         );
@@ -271,17 +272,6 @@ export function RadarChart({
       points: pts.join(" "),
     };
   });
-
-  // Animated data point circles
-  const getCircleAnimatedProps = (index: number) => {
-    return useAnimatedProps(() => {
-      const point = getPoint(index, data[index].value, radius, center, progress.value);
-      return {
-        cx: point.x,
-        cy: point.y,
-      };
-    });
-  };
 
   return (
     <View style={[styles.container, { width: size, height: size }]}>
