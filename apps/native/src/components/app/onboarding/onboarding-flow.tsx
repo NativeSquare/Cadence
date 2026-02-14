@@ -6,6 +6,7 @@ import { StreamingText } from "./streaming-text";
 import { ThinkingBlock } from "./thinking-block";
 import { Text } from "@/components/ui/text";
 import { selectionFeedback } from "@/lib/haptics";
+import { useStravaAuth } from "@/hooks/use-strava-auth";
 import { StreamPhrase } from "@/hooks/use-streaming-text";
 import { useRef, useState, useEffect } from "react";
 import { Animated, Pressable, ScrollView, View } from "react-native";
@@ -255,18 +256,44 @@ export function OnboardingFlow({ userName, onComplete }: OnboardingFlowProps) {
 
   // ─── Wearable Handlers ──────────────────────────────────────────────
 
+  const { connect: connectStrava } = useStravaAuth();
   const [connectingProvider, setConnectingProvider] = useState<string | null>(
     null,
   );
+  const [connectedAthleteName, setConnectedAthleteName] = useState<
+    string | null
+  >(null);
 
-  const handleConnect = (providerId: string) => {
-    setIsConnecting(true);
-    setConnectingProvider(providerId);
-    setTimeout(() => {
-      setConnectedProvider(providerId);
-      setIsConnecting(false);
-      setConnectingProvider(null);
-    }, 2000);
+  const handleConnect = async (providerId: string) => {
+    if (providerId === "strava") {
+      setIsConnecting(true);
+      setConnectingProvider("strava");
+
+      try {
+        const result = await connectStrava();
+
+        if (result) {
+          const name =
+            [result.athleteFirstName, result.athleteLastName]
+              .filter(Boolean)
+              .join(" ") || null;
+          setConnectedAthleteName(name);
+          setConnectedProvider("strava");
+        }
+      } finally {
+        setIsConnecting(false);
+        setConnectingProvider(null);
+      }
+    } else {
+      // Other providers remain mocked for now
+      setIsConnecting(true);
+      setConnectingProvider(providerId);
+      setTimeout(() => {
+        setConnectedProvider(providerId);
+        setIsConnecting(false);
+        setConnectingProvider(null);
+      }, 2000);
+    }
   };
 
   const handleSkipConnect = () => {
@@ -651,6 +678,7 @@ export function OnboardingFlow({ userName, onComplete }: OnboardingFlowProps) {
                 isConnecting={isConnecting}
                 connectingProvider={connectingProvider}
                 connectedProvider={connectedProvider}
+                connectedAthleteName={connectedAthleteName}
               />
             )}
           </View>
