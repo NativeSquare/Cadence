@@ -227,25 +227,30 @@ export function OnboardingFlow({ userName, onComplete }: OnboardingFlowProps) {
   const { completeness } = useOnboardingProgress();
 
   // Resume detection (Story 1.6)
+  // Only check resume on initial mount, not after user interactions
   const { isResuming, targetScene, isLoading: isResumeLoading } = useOnboardingResume();
   const [showWelcomeBack, setShowWelcomeBack] = useState(false);
-  const [hasAppliedResume, setHasAppliedResume] = useState(false);
+  const hasCheckedResume = useRef(false);
 
-  // Handle resume on mount
+  // Handle resume ONLY on initial mount
   useEffect(() => {
-    if (!isResumeLoading && isResuming && !hasAppliedResume) {
-      setHasAppliedResume(true);
-      setShowWelcomeBack(true);
-      setScene(targetScene);
+    // Only run once when loading completes for the first time
+    if (!isResumeLoading && !hasCheckedResume.current) {
+      hasCheckedResume.current = true;
 
-      // Auto-dismiss welcome back message after 2 seconds
-      const timer = setTimeout(() => {
-        setShowWelcomeBack(false);
-      }, 2000);
+      if (isResuming && targetScene !== "welcome-intro") {
+        setShowWelcomeBack(true);
+        setScene(targetScene);
 
-      return () => clearTimeout(timer);
+        // Auto-dismiss welcome back message after 2 seconds
+        const timer = setTimeout(() => {
+          setShowWelcomeBack(false);
+        }, 2000);
+
+        return () => clearTimeout(timer);
+      }
     }
-  }, [isResumeLoading, isResuming, targetScene, hasAppliedResume]);
+  }, [isResumeLoading]); // Only depend on loading state, not on isResuming/targetScene
 
   // Determine if progress bar should be visible
   // Hidden during welcome scenes, visible after name confirmation

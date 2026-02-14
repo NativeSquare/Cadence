@@ -1,0 +1,4 @@
+- test connection with apple works and gives correct name in first screen
+- test connection with google works and gives correct name in first screen
+- test that changing the name reflects in the database and subsequent screens.
+- check that the frontend always reads from identity and fallacks to users.name if identity is not available.

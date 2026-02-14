@@ -5,10 +5,11 @@ import { View, ActivityIndicator } from "react-native";
 
 export default function Onboarding() {
   const user = useQuery(api.table.users.currentUser);
+  const runner = useQuery(api.table.runners.getCurrentRunner);
   const patchUser = useMutation(api.table.users.patch);
 
-  // Loading state
-  if (user === undefined) {
+  // Loading state - wait for both queries
+  if (user === undefined || runner === undefined) {
     return (
       <View className="flex-1 bg-[#0a0a0a] items-center justify-center">
         <ActivityIndicator color="#a3e635" />
@@ -21,7 +22,9 @@ export default function Onboarding() {
     patchUser({ id: user._id, data: { hasCompletedOnboarding: true } });
   };
 
-  const displayName = user?.name?.split(" ")[0] || "there";
+  // Read from runner identity first, fallback to user name
+  const rawName = runner?.identity?.name || user?.name || "";
+  const displayName = rawName.split(" ")[0] || "there";
 
   return (
     <OnboardingFlow

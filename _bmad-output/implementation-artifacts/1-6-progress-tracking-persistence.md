@@ -1,6 +1,6 @@
 # Story 1.6: Progress Tracking & Persistence
 
-Status: review
+Status: done
 
 ---
 
@@ -325,6 +325,16 @@ ProgressBar animates to new value
 
 4. **Welcome Back Message:** Keep it brief and non-blocking. A toast notification or subtle text that auto-dismisses after 2 seconds.
 
+5. **Name Data Pattern:** The authoritative source of truth for the user's name is `runners.identity.name`. The pattern for reading the name is:
+   ```typescript
+   // Read from runner identity first, fallback to user name
+   const rawName = runner?.identity?.name || user?.name || "";
+   const displayName = rawName.split(" ")[0] || "there";
+   ```
+   - No sync between `runners` and `users` tables (sync is unsafe if it fails)
+   - `confirmName` mutation writes only to `runners.identity.name`
+   - Frontend reads from runner first, falls back to user table if runner doesn't exist
+
 ---
 
 ## Dev Agent Record
@@ -351,6 +361,7 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 - Implemented `determinePhase()` - maps filled fields to current phase
 - Enhanced `updateRunner` mutation to auto-calculate completeness, fieldsMissing, currentPhase
 - Enhanced `confirmName` mutation to use calculator functions
+- **Name source of truth:** `runners.identity.name` is authoritative; no sync to users table
 
 **Frontend Components:**
 - Created `ProgressBar.tsx` with reanimated spring animation and design tokens
@@ -366,7 +377,9 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 - `apps/native/src/hooks/use-onboarding-resume.ts` (new)
 - `packages/backend/convex/table/runners.ts` (modified)
 - `apps/native/src/components/app/onboarding/onboarding-flow.tsx` (modified)
+- `apps/native/src/app/(onboarding)/index.tsx` (modified)
 
 ### Change Log
 
 - 2026-02-14: Implemented Story 1.6 Progress Tracking & Persistence
+- 2026-02-14: Updated name reading pattern to use runners.identity.name with fallback to users.name

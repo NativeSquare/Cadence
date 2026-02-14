@@ -600,6 +600,10 @@ export const getCurrentRunner = query({
 /**
  * Confirm or update user name (Story 1.5)
  * Automatically recalculates data completeness after name confirmation.
+ * Creates a runner if one doesn't exist yet.
+ *
+ * Source of truth: runners.identity.name
+ * No sync to users table - read from runner, fallback to user if runner doesn't exist.
  */
 export const confirmName = mutation({
   args: {
@@ -611,20 +615,52 @@ export const confirmName = mutation({
       throw new ConvexError({ code: "UNAUTHORIZED", message: "Not authenticated" });
     }
 
-    const runner = await ctx.db
+    // Get user to fetch current name if not provided
+    const user = await ctx.db.get(userId);
+    const nameToUse = args.name ?? user?.name ?? "";
+
+    let runner = await ctx.db
       .query("runners")
       .withIndex("by_userId", (q) => q.eq("userId", userId))
       .first();
 
+    // Create runner if it doesn't exist
     if (!runner) {
-      throw new ConvexError({ code: "RUNNER_NOT_FOUND", message: "Runner not found" });
+      const newIdentity = {
+        name: nameToUse,
+        nameConfirmed: true,
+      };
+
+      const dataCompleteness = calculateDataCompleteness({ identity: newIdentity });
+      const fieldsMissing = getMissingFields({ identity: newIdentity });
+      const currentPhase = determinePhase({ identity: newIdentity });
+
+      const runnerId = await ctx.db.insert("runners", {
+        userId,
+        identity: newIdentity,
+        connections: {
+          stravaConnected: false,
+          wearableConnected: false,
+          calendarConnected: false,
+        },
+        conversationState: {
+          dataCompleteness,
+          readyForPlan: false,
+          currentPhase,
+          fieldsToConfirm: [],
+          fieldsMissing,
+        },
+      });
+
+      return runnerId;
     }
 
     // Build merged runner with confirmed name
+    const finalName = args.name ?? runner.identity.name;
     const mergedRunner = {
       ...runner,
       identity: {
-        name: args.name ?? runner.identity.name,
+        name: finalName,
         nameConfirmed: true,
       },
     };
