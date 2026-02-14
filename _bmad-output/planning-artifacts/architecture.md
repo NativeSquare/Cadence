@@ -178,6 +178,32 @@ Mobile Client → Convex HTTP Action → OpenAI (via AI SDK)
               Tool calls update Runner Object
 ```
 
+**Runtime Compatibility (Verified February 2025):**
+
+Convex default runtime is confirmed compatible with Vercel AI SDK v6.x:
+
+| Requirement | Status |
+|-------------|--------|
+| `TextDecoderStream` | Supported (added April 2025) |
+| `streamText()` in HTTP Actions | Works in default runtime |
+| `toTextStreamResponse()` | Returns SSE stream correctly |
+| Web Streams API | Full support (ReadableStream, WritableStream, TransformStream) |
+
+**Two Streaming Approaches Available:**
+
+| Approach | Implementation | Trade-offs |
+|----------|----------------|------------|
+| **HTTP Action Streaming** | `streamText().toTextStreamResponse()` returns SSE directly | Simple, real-time, no persistence |
+| **Delta Streaming** | Chunks saved to DB via `DeltaStreamer`, clients subscribe via `useQuery` | Survives disconnects, multi-client sync, slightly more complex |
+
+**Recommended:** Use Delta Streaming for onboarding flow (matches "partial progress persistence" NFR).
+
+**Runtime Options:**
+- Default runtime (no `"use node"`) — No cold starts, sufficient for AI SDK streaming
+- Node.js runtime (`"use node"` directive) — Escape hatch if edge cases arise
+
+**Optional Enhancement:** Convex provides an official `@convex-dev/agent` component that wraps AI SDK with built-in persistence via `agent.streamText({ saveStreamDeltas: true })`.
+
 ---
 
 ### Generative UI Implementation
