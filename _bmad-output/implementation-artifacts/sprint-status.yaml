@@ -44,10 +44,10 @@ development_status:
   # NOTE: 1-2 moved to end - auth already works, focus on onboarding flow first
   epic-1: in-progress
   1-1-runner-object-schema-crud: review
-  1-3-onboarding-consent-flow: ready-for-dev
-  1-4-health-data-consent: ready-for-dev
-  1-5-name-confirmation-screen: ready-for-dev
-  1-6-progress-tracking-persistence: ready-for-dev
+  1-3-onboarding-consent-flow: done
+  1-4-health-data-consent: done
+  1-5-name-confirmation-screen: done
+  1-6-progress-tracking-persistence: review
   1-2-social-login-integration: review  # LOW PRIORITY - auth already works
   epic-1-retrospective: optional
 

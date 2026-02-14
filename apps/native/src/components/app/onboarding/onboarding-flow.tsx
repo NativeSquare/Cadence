@@ -4,12 +4,19 @@ import { ConnectionCard } from "./connection-card";
 import { CoachText, CoachLine } from "./coach-text";
 import { StreamingText } from "./streaming-text";
 import { ThinkingBlock } from "./thinking-block";
+import { ProgressBar } from "./ProgressBar";
 import { Text } from "@/components/ui/text";
 import { selectionFeedback } from "@/lib/haptics";
 import { useStravaAuth } from "@/hooks/use-strava-auth";
+import { useOnboardingProgress } from "@/hooks/use-onboarding-progress";
+import { useOnboardingResume } from "@/hooks/use-onboarding-resume";
 import { StreamPhrase } from "@/hooks/use-streaming-text";
 import { useRef, useState, useEffect } from "react";
 import { Animated, Pressable, ScrollView, View } from "react-native";
+import Reanimated, {
+  FadeIn,
+  FadeOut,
+} from "react-native-reanimated";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -215,6 +222,41 @@ export function OnboardingFlow({ userName, onComplete }: OnboardingFlowProps) {
   // Responses from section flow
   const [onboardingResponses, setOnboardingResponses] =
     useState<OnboardingResponses>({});
+
+  // Progress tracking (Story 1.6)
+  const { completeness } = useOnboardingProgress();
+
+  // Resume detection (Story 1.6)
+  const { isResuming, targetScene, isLoading: isResumeLoading } = useOnboardingResume();
+  const [showWelcomeBack, setShowWelcomeBack] = useState(false);
+  const [hasAppliedResume, setHasAppliedResume] = useState(false);
+
+  // Handle resume on mount
+  useEffect(() => {
+    if (!isResumeLoading && isResuming && !hasAppliedResume) {
+      setHasAppliedResume(true);
+      setShowWelcomeBack(true);
+      setScene(targetScene);
+
+      // Auto-dismiss welcome back message after 2 seconds
+      const timer = setTimeout(() => {
+        setShowWelcomeBack(false);
+      }, 2000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [isResumeLoading, isResuming, targetScene, hasAppliedResume]);
+
+  // Determine if progress bar should be visible
+  // Hidden during welcome scenes, visible after name confirmation
+  const showProgressBar =
+    scene === "questions" ||
+    scene === "wearable" ||
+    scene === "thinking-stream" ||
+    scene === "coaching-response" ||
+    scene === "honest-limits" ||
+    scene === "synthesis" ||
+    scene === "handoff";
 
   // Auto-scroll on content change (for analysis scenes)
   useEffect(() => {
@@ -666,7 +708,18 @@ export function OnboardingFlow({ userName, onComplete }: OnboardingFlowProps) {
   if (scene === "questions") {
     return (
       <View className="flex-1 bg-[#0a0a0a]">
+        {showProgressBar && (
+          <Reanimated.View
+            entering={FadeIn.duration(400)}
+            className="absolute top-0 left-0 right-0 z-10 px-6 pt-safe"
+          >
+            <View className="pt-4">
+              <ProgressBar value={completeness} />
+            </View>
+          </Reanimated.View>
+        )}
         <SectionFlow onComplete={handleQuestionsComplete} />
+        <WelcomeBackToast visible={showWelcomeBack} />
       </View>
     );
   }
@@ -675,6 +728,13 @@ export function OnboardingFlow({ userName, onComplete }: OnboardingFlowProps) {
   if (scene === "wearable") {
     return (
       <View className="flex-1 bg-[#0a0a0a]">
+        {showProgressBar && (
+          <View className="absolute top-0 left-0 right-0 z-10 px-6 pt-safe">
+            <View className="pt-4">
+              <ProgressBar value={completeness} />
+            </View>
+          </View>
+        )}
         <ScrollView
           contentContainerStyle={{ flexGrow: 1 }}
           contentContainerClassName="px-6 pt-safe pb-12"
@@ -708,6 +768,7 @@ export function OnboardingFlow({ userName, onComplete }: OnboardingFlowProps) {
             )}
           </View>
         </ScrollView>
+        <WelcomeBackToast visible={showWelcomeBack} />
       </View>
     );
   }
@@ -715,6 +776,13 @@ export function OnboardingFlow({ userName, onComplete }: OnboardingFlowProps) {
   // Analysis scenes — bottom-aligned scroll layout
   return (
     <View className="flex-1 bg-[#0a0a0a]">
+      {showProgressBar && (
+        <View className="absolute top-0 left-0 right-0 z-10 px-6 pt-safe">
+          <View className="pt-4">
+            <ProgressBar value={completeness} />
+          </View>
+        </View>
+      )}
       <ScrollView
         ref={scrollRef}
         contentContainerStyle={{ flexGrow: 1 }}
@@ -727,6 +795,7 @@ export function OnboardingFlow({ userName, onComplete }: OnboardingFlowProps) {
           {renderAnalysisScene()}
         </View>
       </ScrollView>
+      <WelcomeBackToast visible={showWelcomeBack} />
     </View>
   );
 }
@@ -769,5 +838,25 @@ function LetsRunButton({ onPress }: { onPress: () => void }) {
         </Text>
       </Pressable>
     </Animated.View>
+  );
+}
+
+// ─── Welcome Back Toast ────────────────────────────────────────────────────────
+
+function WelcomeBackToast({ visible }: { visible: boolean }) {
+  if (!visible) return null;
+
+  return (
+    <Reanimated.View
+      entering={FadeIn.duration(300)}
+      exiting={FadeOut.duration(300)}
+      className="absolute bottom-20 left-6 right-6 z-20"
+    >
+      <View className="bg-secondary/90 rounded-2xl py-3 px-4 items-center">
+        <Text className="text-secondary-foreground font-medium">
+          Welcome back! Picking up where you left off.
+        </Text>
+      </View>
+    </Reanimated.View>
   );
 }

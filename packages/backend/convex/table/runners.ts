@@ -198,6 +198,201 @@ const conversationStateSchema = v.object({
 });
 
 // =============================================================================
+// Data Completeness Calculator (Story 1.6)
+// =============================================================================
+
+/**
+ * Required fields for data completeness calculation.
+ * Based on UX V6 Runner Object Model specification.
+ */
+const REQUIRED_FIELDS: string[] = [
+  // Identity (5%)
+  "identity.nameConfirmed",
+
+  // Running Profile (20%)
+  "running.experienceLevel",
+  "running.currentFrequency",
+  "running.currentVolume",
+
+  // Goals (20%) - base fields
+  "goals.goalType",
+
+  // Schedule (15%)
+  "schedule.availableDays",
+  "schedule.blockedDays",
+
+  // Health (20%)
+  "health.pastInjuries",
+  "health.recoveryStyle",
+  "health.sleepQuality",
+  "health.stressLevel",
+
+  // Coaching (20%)
+  "coaching.coachingVoice",
+  "coaching.biggestChallenge",
+];
+
+/**
+ * Conditionally required fields based on goal type.
+ */
+const CONDITIONAL_FIELDS: Record<string, string[]> = {
+  race: ["goals.raceDistance", "goals.raceDate"],
+};
+
+type RunnerDocument = {
+  identity?: { name?: string; nameConfirmed?: boolean };
+  running?: {
+    experienceLevel?: string;
+    currentFrequency?: number;
+    currentVolume?: number;
+  };
+  goals?: {
+    goalType?: string;
+    raceDistance?: number;
+    raceDate?: number;
+  };
+  schedule?: {
+    availableDays?: number;
+    blockedDays?: string[];
+  };
+  health?: {
+    pastInjuries?: string[];
+    recoveryStyle?: string;
+    sleepQuality?: string;
+    stressLevel?: string;
+  };
+  coaching?: {
+    coachingVoice?: string;
+    biggestChallenge?: string;
+  };
+};
+
+/**
+ * Get a nested field value from a runner document using dot notation.
+ */
+function getFieldValue(
+  runner: RunnerDocument,
+  fieldPath: string
+): unknown {
+  const parts = fieldPath.split(".");
+  let value: unknown = runner;
+
+  for (const part of parts) {
+    if (value === null || value === undefined) return undefined;
+    value = (value as Record<string, unknown>)[part];
+  }
+
+  return value;
+}
+
+/**
+ * Check if a field has a valid value (not undefined, not null, not empty).
+ */
+function isFieldFilled(value: unknown): boolean {
+  if (value === undefined || value === null) return false;
+  if (typeof value === "string" && value.trim() === "") return false;
+  if (Array.isArray(value) && value.length === 0) return false;
+  return true;
+}
+
+/**
+ * Calculate data completeness percentage for a runner.
+ * Returns a value from 0-100 rounded to nearest integer.
+ */
+export function calculateDataCompleteness(runner: RunnerDocument): number {
+  const goalType = runner.goals?.goalType;
+
+  // Build list of required fields based on goal type
+  const requiredFields = [...REQUIRED_FIELDS];
+  if (goalType === "race") {
+    requiredFields.push(...CONDITIONAL_FIELDS.race);
+  }
+
+  // Count filled fields
+  const filledCount = requiredFields.filter((field) => {
+    const value = getFieldValue(runner, field);
+    return isFieldFilled(value);
+  }).length;
+
+  // Calculate percentage
+  const completeness = Math.round((filledCount / requiredFields.length) * 100);
+  return completeness;
+}
+
+/**
+ * Get list of missing required fields for a runner.
+ */
+export function getMissingFields(runner: RunnerDocument): string[] {
+  const goalType = runner.goals?.goalType;
+
+  // Build list of required fields based on goal type
+  const requiredFields = [...REQUIRED_FIELDS];
+  if (goalType === "race") {
+    requiredFields.push(...CONDITIONAL_FIELDS.race);
+  }
+
+  // Find missing fields
+  return requiredFields.filter((field) => {
+    const value = getFieldValue(runner, field);
+    return !isFieldFilled(value);
+  });
+}
+
+/**
+ * Determine current phase based on filled fields.
+ */
+export function determinePhase(
+  runner: RunnerDocument
+): "intro" | "data_bridge" | "profile" | "goals" | "schedule" | "health" | "coaching" | "analysis" {
+  // Check identity
+  if (!runner.identity?.nameConfirmed) {
+    return "intro";
+  }
+
+  // Check running profile
+  const runningFields = ["running.experienceLevel", "running.currentFrequency", "running.currentVolume"];
+  const runningComplete = runningFields.every((f) => isFieldFilled(getFieldValue(runner, f)));
+  if (!runningComplete) {
+    return "profile";
+  }
+
+  // Check goals
+  const goalType = runner.goals?.goalType;
+  if (!goalType) {
+    return "goals";
+  }
+  if (goalType === "race") {
+    if (!runner.goals?.raceDistance || !runner.goals?.raceDate) {
+      return "goals";
+    }
+  }
+
+  // Check schedule
+  const scheduleFields = ["schedule.availableDays", "schedule.blockedDays"];
+  const scheduleComplete = scheduleFields.every((f) => isFieldFilled(getFieldValue(runner, f)));
+  if (!scheduleComplete) {
+    return "schedule";
+  }
+
+  // Check health
+  const healthFields = ["health.pastInjuries", "health.recoveryStyle", "health.sleepQuality", "health.stressLevel"];
+  const healthComplete = healthFields.every((f) => isFieldFilled(getFieldValue(runner, f)));
+  if (!healthComplete) {
+    return "health";
+  }
+
+  // Check coaching
+  const coachingFields = ["coaching.coachingVoice", "coaching.biggestChallenge"];
+  const coachingComplete = coachingFields.every((f) => isFieldFilled(getFieldValue(runner, f)));
+  if (!coachingComplete) {
+    return "coaching";
+  }
+
+  // All complete
+  return "analysis";
+}
+
+// =============================================================================
 // Full Document Schema
 // =============================================================================
 
@@ -297,6 +492,7 @@ export const createRunner = mutation({
 
 /**
  * Update specific fields on a Runner Object.
+ * Automatically recalculates data_completeness, fields_missing, and current_phase.
  */
 export const updateRunner = mutation({
   args: {
@@ -319,7 +515,38 @@ export const updateRunner = mutation({
       throw new ConvexError({ code: "UNAUTHORIZED", message: "Not authorized to update this runner" });
     }
 
-    await ctx.db.patch(args.runnerId, args.fields);
+    // Merge existing runner data with new fields
+    const mergedRunner = {
+      ...runner,
+      ...args.fields,
+      identity: args.fields.identity ?? runner.identity,
+      running: { ...runner.running, ...args.fields.running },
+      goals: { ...runner.goals, ...args.fields.goals },
+      schedule: { ...runner.schedule, ...args.fields.schedule },
+      health: { ...runner.health, ...args.fields.health },
+      coaching: { ...runner.coaching, ...args.fields.coaching },
+    };
+
+    // Recalculate completeness, missing fields, and phase
+    const dataCompleteness = calculateDataCompleteness(mergedRunner);
+    const fieldsMissing = getMissingFields(mergedRunner);
+    const currentPhase = determinePhase(mergedRunner);
+    const readyForPlan = dataCompleteness === 100;
+
+    // Build the update with recalculated conversation state
+    const update = {
+      ...args.fields,
+      conversationState: {
+        ...runner.conversationState,
+        ...args.fields.conversationState,
+        dataCompleteness,
+        fieldsMissing,
+        currentPhase,
+        readyForPlan,
+      },
+    };
+
+    await ctx.db.patch(args.runnerId, update);
     return args.runnerId;
   },
 });
@@ -372,6 +599,7 @@ export const getCurrentRunner = query({
 
 /**
  * Confirm or update user name (Story 1.5)
+ * Automatically recalculates data completeness after name confirmation.
  */
 export const confirmName = mutation({
   args: {
@@ -392,14 +620,27 @@ export const confirmName = mutation({
       throw new ConvexError({ code: "RUNNER_NOT_FOUND", message: "Runner not found" });
     }
 
-    await ctx.db.patch(runner._id, {
+    // Build merged runner with confirmed name
+    const mergedRunner = {
+      ...runner,
       identity: {
         name: args.name ?? runner.identity.name,
         nameConfirmed: true,
       },
+    };
+
+    // Recalculate completeness and phase
+    const dataCompleteness = calculateDataCompleteness(mergedRunner);
+    const fieldsMissing = getMissingFields(mergedRunner);
+    const currentPhase = determinePhase(mergedRunner);
+
+    await ctx.db.patch(runner._id, {
+      identity: mergedRunner.identity,
       conversationState: {
         ...runner.conversationState,
-        dataCompleteness: 5,
+        dataCompleteness,
+        fieldsMissing,
+        currentPhase,
       },
     });
 
