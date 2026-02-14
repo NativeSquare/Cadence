@@ -2,6 +2,7 @@ import { httpRouter } from "convex/server";
 import { httpAction } from "./_generated/server";
 import { auth } from "./auth";
 import { resend } from "./emails";
+import { streamChat } from "./ai/http-action";
 
 const http = httpRouter();
 
@@ -18,6 +19,14 @@ http.route({
   handler: httpAction(async (ctx, req) => {
     return await resend.handleResendEventWebhook(ctx, req);
   }),
+});
+
+// AI Streaming endpoint for conversational coach
+// Story 2.1: AI SDK Integration & Streaming Infrastructure
+http.route({
+  path: "/api/ai/stream",
+  method: "POST",
+  handler: streamChat,
 });
 
 export default http;

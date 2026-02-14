@@ -52,20 +52,20 @@ development_status:
   epic-1-retrospective: optional
 
   # Epic 2: Conversational Profile Building
-  epic-2: backlog
-  2-1-ai-sdk-integration-streaming-infrastructure: backlog
-  2-2-generative-ui-tool-renderer: backlog
-  2-3-multiple-choice-input-tool: backlog
-  2-4-open-text-input-tool: backlog
-  2-5-voice-input-capability: backlog
-  2-6-confirmation-card-tool: backlog
-  2-7-wearable-connection-mock-skip-path: backlog
-  2-8-runner-profile-phase: backlog
-  2-9-goals-phase: backlog
-  2-10-schedule-availability-phase: backlog
-  2-11-health-injury-phase: backlog
-  2-12-coaching-preferences-phase: backlog
-  2-13-final-check-profile-completion: backlog
+  epic-2: in-progress
+  2-1-ai-sdk-integration-streaming-infrastructure: review
+  2-2-generative-ui-tool-renderer: ready-for-dev
+  2-3-multiple-choice-input-tool: ready-for-dev
+  2-4-open-text-input-tool: ready-for-dev
+  2-5-voice-input-capability: ready-for-dev
+  2-6-confirmation-card-tool: ready-for-dev
+  2-7-wearable-connection-mock-skip-path: ready-for-dev
+  2-8-runner-profile-phase: ready-for-dev
+  2-9-goals-phase: ready-for-dev
+  2-10-schedule-availability-phase: ready-for-dev
+  2-11-health-injury-phase: ready-for-dev
+  2-12-coaching-preferences-phase: ready-for-dev
+  2-13-final-check-profile-completion: ready-for-dev
   epic-2-retrospective: optional
 
   # Epic 3: Plan Generation & Visualization
