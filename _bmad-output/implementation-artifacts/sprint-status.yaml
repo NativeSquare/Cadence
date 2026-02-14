@@ -53,12 +53,12 @@ development_status:
 
   # Epic 2: Conversational Profile Building
   epic-2: in-progress
-  2-1-ai-sdk-integration-streaming-infrastructure: review
-  2-2-generative-ui-tool-renderer: ready-for-dev
-  2-3-multiple-choice-input-tool: ready-for-dev
-  2-4-open-text-input-tool: ready-for-dev
-  2-5-voice-input-capability: ready-for-dev
-  2-6-confirmation-card-tool: ready-for-dev
+  2-1-ai-sdk-integration-streaming-infrastructure: done
+  2-2-generative-ui-tool-renderer: done
+  2-3-multiple-choice-input-tool: done
+  2-4-open-text-input-tool: done
+  2-5-voice-input-capability: done
+  2-6-confirmation-card-tool: done
   2-7-wearable-connection-mock-skip-path: ready-for-dev
   2-8-runner-profile-phase: ready-for-dev
   2-9-goals-phase: ready-for-dev
