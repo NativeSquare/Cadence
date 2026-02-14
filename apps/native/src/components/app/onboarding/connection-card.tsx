@@ -23,6 +23,7 @@ type ConnectionCardProps = {
   isConnecting?: boolean;
   connectingProvider?: string | null;
   connectedProvider?: string | null;
+  connectedAthleteName?: string | null;
   className?: string;
 };
 
@@ -32,6 +33,7 @@ export function ConnectionCard({
   isConnecting = false,
   connectingProvider = null,
   connectedProvider = null,
+  connectedAthleteName = null,
   className,
 }: ConnectionCardProps) {
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -74,7 +76,9 @@ export function ConnectionCard({
             )}
             {connectedProvider === provider.id && (
               <Text className="text-emerald-400 text-sm font-medium">
-                Connected
+                {connectedAthleteName
+                  ? `Connected · ${connectedAthleteName}`
+                  : "Connected"}
               </Text>
             )}
           </Pressable>
