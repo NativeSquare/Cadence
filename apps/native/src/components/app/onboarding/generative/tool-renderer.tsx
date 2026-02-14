@@ -5,23 +5,18 @@
  * Maps tool names to their corresponding React components.
  *
  * Source: Story 2.2 - AC#1
- * Updated: Stories 2.3, 2.4, 2.5, 2.6
+ * Updated: Stories 2.3, 2.4, 2.5, 2.6, 2.7
  */
 
 import { useEffect, useRef } from "react";
 import { questionPause } from "@/lib/haptics";
 import { ThinkingBlock } from "../thinking-block";
-import { ConnectionCard } from "../connection-card";
 import { ToolLoading } from "./ToolLoading";
 import { MultipleChoiceInput } from "./MultipleChoiceInput";
 import { OpenInput } from "./OpenInput";
 import { ConfirmationCard } from "./ConfirmationCard";
-import type {
-  ToolState,
-  MultipleChoiceArgs,
-  ThinkingStreamArgs,
-  ConnectionCardArgs,
-} from "./types";
+import { ConnectionCardTool } from "./ConnectionCardTool";
+import type { ToolState, MultipleChoiceArgs, ThinkingStreamArgs } from "./types";
 
 // =============================================================================
 // Types
@@ -100,30 +95,15 @@ function ThinkingStreamWrapper({
   );
 }
 
-/**
- * Wrapper for ConnectionCard to handle tool props
- */
-function ConnectionCardWrapper({
-  args,
-  onSubmit,
-}: {
-  args?: ConnectionCardArgs;
-  onSubmit?: (value: unknown) => void;
-}) {
-  const handleConnect = (providerId: string) => {
-    onSubmit?.({ providerId, skipped: false });
-  };
+// =============================================================================
+// ConnectionCard Args Type (aligned with backend - Story 2.7)
+// =============================================================================
 
-  const handleSkip = () => {
-    onSubmit?.({ providerId: null, skipped: true });
-  };
-
-  return (
-    <ConnectionCard
-      onConnect={handleConnect}
-      onSkip={handleSkip}
-    />
-  );
+interface ConnectionCardToolArgs {
+  prompt?: string;
+  providers?: Array<"garmin" | "coros" | "apple" | "strava">;
+  skipLabel?: string;
+  allowSkip?: boolean;
 }
 
 // =============================================================================
@@ -223,9 +203,11 @@ export function ToolRenderer({
 
     case "renderConnectionCard":
       return (
-        <ConnectionCardWrapper
-          args={args as ConnectionCardArgs}
-          onSubmit={onSubmit}
+        <ConnectionCardTool
+          toolCallId={toolCallId}
+          args={args as ConnectionCardToolArgs}
+          onSubmit={(value) => onSubmit?.(value)}
+          disabled={isDisabled}
         />
       );
 

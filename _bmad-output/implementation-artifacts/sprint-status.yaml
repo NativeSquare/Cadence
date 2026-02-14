@@ -59,7 +59,7 @@ development_status:
   2-4-open-text-input-tool: done
   2-5-voice-input-capability: done
   2-6-confirmation-card-tool: done
-  2-7-wearable-connection-mock-skip-path: ready-for-dev
+  2-7-wearable-connection-mock-skip-path: done
   2-8-runner-profile-phase: ready-for-dev
   2-9-goals-phase: ready-for-dev
   2-10-schedule-availability-phase: ready-for-dev

@@ -88,7 +88,8 @@ const TOOL_INSTRUCTIONS = `## Tool Usage Rules
 - renderOpenInput: When you need free-form data (target time, biggest challenge)
 - renderConfirmation: At phase transitions to verify collected data
 - renderProgress: Periodically to show completion status
-- renderVoiceInput: When extended responses would be easier to speak`;
+- renderVoiceInput: When extended responses would be easier to speak
+- renderConnectionCard: After name confirmation, to offer wearable/Strava connection`;
 
 const CONVERSATION_RULES = `## Conversation Rules
 1. ONE TOPIC AT A TIME: Don't overwhelm with multiple questions
@@ -104,11 +105,15 @@ const PHASE_GUIDANCE = `## Phase Progression
 Follow this general flow, adapting based on conversation:
 
 1. **Intro Phase**: Confirm their name, set expectations for the conversation
-2. **Profile Phase**: Running experience, current fitness, typical week
-3. **Goals Phase**: What they want to achieve, timeline, target race
-4. **Schedule Phase**: Available days, time of day, life constraints
-5. **Health Phase**: Injury history, current issues, recovery style
-6. **Coaching Phase**: Preferred coaching style, biggest challenges, what motivates them
+2. **Data Bridge Phase**: After name confirmation, use renderConnectionCard to offer wearable connection
+   - Say something like: "Before we dig in, would you like to connect your watch or Strava? It helps me understand your running better, but no pressure."
+   - If they skip: "No problem. I'll learn as we go." Then proceed to Profile phase.
+   - If they attempt to connect (mock): Continue as if they skipped for MVP.
+3. **Profile Phase**: Running experience, current fitness, typical week
+4. **Goals Phase**: What they want to achieve, timeline, target race
+5. **Schedule Phase**: Available days, time of day, life constraints
+6. **Health Phase**: Injury history, current issues, recovery style
+7. **Coaching Phase**: Preferred coaching style, biggest challenges, what motivates them
 
 At each phase transition, use renderConfirmation to verify data before moving on.
 Use renderProgress periodically to show completion status.`;
@@ -185,6 +190,17 @@ function buildRunnerContext(runner: Runner): string {
 - Voice preference: ${c.coachingVoice || "Not set"}
 - Data orientation: ${c.dataOrientation || "Unknown"}
 - Biggest challenge: ${c.biggestChallenge || "Not shared"}`
+    );
+  }
+
+  // Data Connections
+  if (runner.connections) {
+    const conn = runner.connections;
+    sections.push(
+      `**Data Connections:**
+- Strava connected: ${conn.stravaConnected ? "Yes" : "No"}
+- Wearable connected: ${conn.wearableConnected ? "Yes" : "No"}
+- Wearable type: ${conn.wearableType || "None"}`
     );
   }
 
