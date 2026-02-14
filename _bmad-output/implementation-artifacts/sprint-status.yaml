@@ -1,0 +1,107 @@
+# generated: 2026-02-14
+# project: Cadence
+# project_key: NOKEY
+# tracking_system: file-system
+# story_location: "{project-root}/_bmad-output/implementation-artifacts"
+
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic not yet started
+#   - in-progress: Epic actively being worked on
+#   - done: All stories in epic completed
+#
+# Epic Status Transitions:
+#   - backlog → in-progress: Automatically when first story is created (via create-story)
+#   - in-progress → done: Manually when all stories reach 'done' status
+#
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - ready-for-dev: Story file created in stories folder
+#   - in-progress: Developer actively working on implementation
+#   - review: Ready for code review (via Dev's code-review workflow)
+#   - done: Story completed
+#
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - done: Retrospective has been completed
+#
+# WORKFLOW NOTES:
+# ===============
+# - Epic transitions to 'in-progress' automatically when first story is created
+# - Stories can be worked in parallel if team capacity allows
+# - SM typically creates next story after previous one is 'done' to incorporate learnings
+# - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
+
+generated: 2026-02-14
+project: Cadence
+project_key: NOKEY
+tracking_system: file-system
+story_location: "{project-root}/_bmad-output/implementation-artifacts"
+
+development_status:
+  # Epic 1: Foundation & Runner Object Setup
+  epic-1: in-progress
+  1-1-runner-object-schema-crud: ready-for-dev
+  1-2-social-login-integration: backlog
+  1-3-onboarding-consent-flow: backlog
+  1-4-health-data-consent: backlog
+  1-5-name-confirmation-screen: backlog
+  1-6-progress-tracking-persistence: backlog
+  epic-1-retrospective: optional
+
+  # Epic 2: Conversational Profile Building
+  epic-2: backlog
+  2-1-ai-sdk-integration-streaming-infrastructure: backlog
+  2-2-generative-ui-tool-renderer: backlog
+  2-3-multiple-choice-input-tool: backlog
+  2-4-open-text-input-tool: backlog
+  2-5-voice-input-capability: backlog
+  2-6-confirmation-card-tool: backlog
+  2-7-wearable-connection-mock-skip-path: backlog
+  2-8-runner-profile-phase: backlog
+  2-9-goals-phase: backlog
+  2-10-schedule-availability-phase: backlog
+  2-11-health-injury-phase: backlog
+  2-12-coaching-preferences-phase: backlog
+  2-13-final-check-profile-completion: backlog
+  epic-2-retrospective: optional
+
+  # Epic 3: Plan Generation & Visualization
+  epic-3: backlog
+  3-1-plan-generation-engine: backlog
+  3-2-thinking-stream-plan-analysis: backlog
+  3-3-radarchart-runner-profile-visualization: backlog
+  3-4-progresschart-volume-visualization: backlog
+  3-5-calendarwidget-weekly-structure: backlog
+  3-6-projected-outcomes-display: backlog
+  3-7-decision-audit-trail: backlog
+  3-8-adaptive-coaching-language: backlog
+  epic-3-retrospective: optional
+
+  # Epic 4: Onboarding Completion & Trial Conversion
+  epic-4: backlog
+  4-1-plan-revision-option: backlog
+  4-2-paywall-screen: backlog
+  4-3-trial-activation: backlog
+  4-4-home-screen-transition: backlog
+  epic-4-retrospective: optional
+
+  # Epic 5: Error Handling & Resilience
+  epic-5: backlog
+  5-1-network-unavailable-handling: backlog
+  5-2-connection-lost-mid-flow: backlog
+  5-3-llm-failure-fallback: backlog
+  5-4-permission-denied-guidance: backlog
+  epic-5-retrospective: optional
+
+  # Epic 6: Wearable Data Connection & Analysis (Deferred)
+  epic-6: backlog
+  6-1-strava-oauth-integration: backlog
+  6-2-healthkit-integration-ios: backlog
+  6-3-health-connect-integration-android: backlog
+  6-4-historical-data-retrieval: backlog
+  6-5-wearable-data-analysis-display: backlog
+  6-6-fitness-level-estimation: backlog
+  6-7-skip-wearable-option-real-implementation: backlog
+  epic-6-retrospective: optional

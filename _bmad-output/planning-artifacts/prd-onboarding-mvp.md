@@ -396,9 +396,8 @@ No additional requirements needed — transparency is a core feature, not a comp
 
 ### 1. Account & Authentication
 
-- **FR1:** User can create a new account using email/password or social login
+- **FR1:** User can create a new account using social login (Apple, Google)
 - **FR2:** User can authenticate to access the app
-- **FR3:** User can recover access if they forget their credentials
 - **FR4:** User can view and accept terms of service and privacy policy during onboarding
 - **FR5:** User can provide explicit consent for health data collection and usage
 

@@ -18,9 +18,8 @@ This document provides the complete epic and story breakdown for Cadence, decomp
 ### Functional Requirements
 
 **1. Account & Authentication**
-- FR1: User can create a new account using email/password or social login
+- FR1: User can create a new account using social login (Apple, Google)
 - FR2: User can authenticate to access the app
-- FR3: User can recover access if they forget their credentials
 - FR4: User can view and accept terms of service and privacy policy during onboarding
 - FR5: User can provide explicit consent for health data collection and usage
 
@@ -131,7 +130,7 @@ This document provides the complete epic and story breakdown for Cadence, decomp
 **From Architecture:**
 - NOT a greenfield project - existing monorepo with infrastructure (Expo SDK 54, NativeWind, Convex auth)
 - Vercel AI SDK integration required for LLM tool-calling
-- Runner Object schema needed in Convex (runners + runnerUpdates tables)
+- Runner Object schema needed in Convex (runners table)
 - Strava OAuth via expo-auth-session, tokens stored in Convex
 - HealthKit integration requires EAS Build (custom dev client, no Expo Go)
 - Design system tokens must be extended for Thinking Stream, charts, gradients
@@ -169,9 +168,8 @@ This document provides the complete epic and story breakdown for Cadence, decomp
 
 | FR | Epic | Description |
 |----|------|-------------|
-| FR1 | Epic 1 | Account creation (email/social) |
+| FR1 | Epic 1 | Account creation (social login) |
 | FR2 | Epic 1 | Authentication |
-| FR3 | Epic 1 | Credential recovery |
 | FR4 | Epic 1 | Terms/privacy acceptance |
 | FR5 | Epic 1 | Health data consent |
 | FR6 | Epic 6 | Strava OAuth connection |
@@ -232,8 +230,8 @@ This document provides the complete epic and story breakdown for Cadence, decomp
 ## Epic List
 
 ### Epic 1: Foundation & Runner Object Setup
-User can sign up/login, confirm their identity, and the system can track their onboarding progress.
-**FRs covered:** FR1, FR2, FR3, FR4, FR5, FR48, FR49, FR50, FR51
+User can sign up/login via social login, confirm their identity, and the system can track their onboarding progress.
+**FRs covered:** FR1, FR2, FR4, FR5, FR48, FR49, FR50, FR51
 
 ### Epic 2: Conversational Profile Building
 User can engage in natural conversation with the coach, answer questions via multiple modes, and build their complete runner profile (no-wearable path initially with mock buttons).
@@ -259,7 +257,7 @@ User can connect Strava/HealthKit, see their running data synced, and watch the 
 
 ## Epic 1: Foundation & Runner Object Setup
 
-User can sign up/login, confirm their identity, and the system can track their onboarding progress.
+User can sign up/login via social login, confirm their identity, and the system can track their onboarding progress.
 
 ### Story 1.1: Runner Object Schema & CRUD
 
@@ -272,13 +270,8 @@ So that all onboarding data can be stored and tracked consistently.
 **Given** the Convex backend is running
 **When** the schema is deployed
 **Then** a `runners` table exists with fields for identity, physical, running, goals, schedule, health, coaching, connections, and inferred data sections
-**And** a `runnerUpdates` table exists with fields for runnerId, field, oldValue, newValue, source, and timestamp
 **And** basic CRUD mutations exist: createRunner, updateRunner, getRunner
 **And** an index exists on runners by userId
-
-**Given** a runner record exists
-**When** any field is updated via updateRunner mutation
-**Then** an entry is automatically created in runnerUpdates with the change details
 
 ---
 
@@ -310,37 +303,7 @@ So that I can quickly create an account without managing another password.
 
 ---
 
-### Story 1.3: Password Recovery Flow
-
-As a returning user,
-I want to recover my account if I forget my password,
-So that I don't lose access to my training data.
-
-**Acceptance Criteria:**
-
-**Given** the user is on the login screen
-**When** they tap "Forgot Password"
-**Then** they are shown a screen to enter their email
-
-**Given** the user enters a registered email
-**When** they submit the password reset request
-**Then** a reset email is sent via Resend
-**And** the email contains a secure, time-limited reset link
-**And** a success message is displayed
-
-**Given** the user clicks the reset link in their email
-**When** they enter a new password meeting requirements
-**Then** their password is updated
-**And** they are redirected to login with a success message
-
-**Given** the user clicks an expired reset link
-**When** they attempt to reset their password
-**Then** they see an error message indicating the link has expired
-**And** they are prompted to request a new reset link
-
----
-
-### Story 1.4: Onboarding Consent Flow
+### Story 1.3: Onboarding Consent Flow
 
 As a new user,
 I want to review and accept terms of service and privacy policy,
@@ -367,7 +330,7 @@ So that I understand my rights and obligations before using the app.
 
 ---
 
-### Story 1.5: Health Data Consent
+### Story 1.4: Health Data Consent
 
 As a new user,
 I want to explicitly consent to health data collection,
@@ -392,7 +355,7 @@ So that I understand how my running and fitness data will be used.
 
 ---
 
-### Story 1.6: Name Confirmation Screen
+### Story 1.5: Name Confirmation Screen
 
 As a new user,
 I want the coach to confirm my name from OAuth,
@@ -419,7 +382,7 @@ So that the experience feels personal from the first moment.
 
 ---
 
-### Story 1.7: Progress Tracking & Persistence
+### Story 1.6: Progress Tracking & Persistence
 
 As a user going through onboarding,
 I want my progress to be saved automatically,

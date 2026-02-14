@@ -120,7 +120,7 @@ Onboarding components **already exist** in `apps/native/src/components/app/onboa
 | Layer | Implementation |
 |-------|----------------|
 | **Database** | Convex (real-time, serverless) |
-| **Auth** | `@convex-dev/auth` with email/password |
+| **Auth** | `@convex-dev/auth` with social login (Apple, Google) |
 | **Email** | Resend via `@convex-dev/resend` |
 | **Migrations** | `@convex-dev/migrations` |
 
@@ -234,15 +234,12 @@ Convex default runtime is confirmed compatible with Vercel AI SDK v6.x:
 
 | Aspect | Decision |
 |--------|----------|
-| **Pattern** | Hybrid — Single document + Activity Log |
+| **Pattern** | Single document per runner |
 | **Main Table** | `runners` — current state, single subscription |
-| **Audit Table** | `runnerUpdates` — field-level change log |
 | **Validation** | Zod schemas (already in dependencies) |
 
 **Schema Design:**
 - `runners` — Complete Runner Object, updated atomically
-- `runnerUpdates` — Append-only log with `field`, `oldValue`, `newValue`, `source`, `timestamp`
-- Supports learning layer analytics and debugging
 
 ---
 
@@ -289,7 +286,7 @@ Convex default runtime is confirmed compatible with Vercel AI SDK v6.x:
 ### Decision Impact Analysis
 
 **Implementation Sequence:**
-1. Convex schema for Runner Object + runnerUpdates
+1. Convex schema for Runner Object
 2. AI SDK integration in Convex HTTP action
 3. Tool definitions matching existing onboarding components
 4. Strava OAuth flow
@@ -318,7 +315,7 @@ Convex default runtime is confirmed compatible with Vercel AI SDK v6.x:
 
 | Element | Convention | Example |
 |---------|------------|---------|
-| Tables | camelCase plural | `runners`, `runnerUpdates` |
+| Tables | camelCase plural | `runners` |
 | Fields | camelCase | `userId`, `goalType` |
 | Foreign Keys | `{table}Id` | `runnerId` |
 | Indexes | `by_{field}` | `by_userId` |
@@ -507,12 +504,11 @@ Cadence/
 ├── packages/
 │   ├── backend/
 │   │   └── convex/
-│   │       ├── schema.ts           # ← UPDATE: Add runners, runnerUpdates
+│   │       ├── schema.ts           # ← UPDATE: Add runners
 │   │       ├── http.ts             # ← UPDATE: Add AI streaming endpoint
 │   │       │
 │   │       ├── table/
 │   │       │   ├── runners.ts      # ← NEW
-│   │       │   └── runnerUpdates.ts # ← NEW
 │   │       │
 │   │       ├── ai/                 # ← NEW: AI/LLM integration
 │   │       │   ├── http-action.ts
@@ -578,13 +574,13 @@ Mobile Client → HTTP Stream → Convex HTTP Action → OpenAI
 
 ### Files to Create (MVP)
 
-**~25 new files across:**
+**~24 new files across:**
 
 | Location | Count | Purpose |
 |----------|-------|---------|
 | `packages/backend/convex/ai/` | 12 | AI integration + tools |
 | `packages/backend/convex/integrations/` | 3 | Strava OAuth |
-| `packages/backend/convex/table/` | 2 | runners, runnerUpdates |
+| `packages/backend/convex/table/` | 1 | runners |
 | `apps/native/src/components/app/charts/` | 4 | Chart components |
 | `apps/native/src/components/app/onboarding/generative/` | 6 | Tool renderer |
 | `apps/native/src/hooks/` | 4 | Data hooks |
@@ -641,7 +637,7 @@ Project structure supports all architectural decisions:
 - Examples provided for generative UI, error handling, design tokens
 
 **Structure Completeness:**
-- Complete project tree with ~25 new files defined
+- Complete project tree with ~24 new files defined
 - All directories and integration points specified
 - Component boundaries well-defined (UI → Hooks → Convex)
 
@@ -718,7 +714,7 @@ Project structure supports all architectural decisions:
 
 **First Implementation Priority:**
 
-1. `packages/backend/convex/schema.ts` — Add `runners` and `runnerUpdates` tables
+1. `packages/backend/convex/schema.ts` — Add `runners` table
 2. `packages/backend/convex/table/runners.ts` — CRUD operations
 3. `packages/backend/convex/http.ts` — Add AI streaming endpoint
 4. `packages/backend/convex/ai/http-action.ts` — AI SDK integration
