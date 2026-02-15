@@ -4,7 +4,7 @@ import { httpAction } from "../_generated/server";
 import { api } from "../_generated/api";
 import { ConvexError } from "convex/values";
 import { tools } from "./tools";
-import { buildSystemPrompt } from "./prompts/onboarding-coach";
+import { buildSystemPrompt } from "./prompts/onboarding_coach";
 
 /**
  * AI Streaming HTTP Action Endpoint

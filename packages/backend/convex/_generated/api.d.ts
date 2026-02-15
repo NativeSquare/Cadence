@@ -8,9 +8,14 @@
  * @module
  */
 
+import type * as ai_http_action from "../ai/http_action.js";
+import type * as ai_messages from "../ai/messages.js";
+import type * as ai_prompts_onboarding_coach from "../ai/prompts/onboarding_coach.js";
+import type * as ai_tools_index from "../ai/tools/index.js";
 import type * as auth from "../auth.js";
 import type * as crons from "../crons.js";
 import type * as emails from "../emails.js";
+import type * as healthkit from "../healthkit.js";
 import type * as http from "../http.js";
 import type * as lib_auth_ResendOTP from "../lib/auth/ResendOTP.js";
 import type * as lib_auth_ResendOTPPasswordReset from "../lib/auth/ResendOTPPasswordReset.js";
@@ -32,9 +37,14 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  "ai/http_action": typeof ai_http_action;
+  "ai/messages": typeof ai_messages;
+  "ai/prompts/onboarding_coach": typeof ai_prompts_onboarding_coach;
+  "ai/tools/index": typeof ai_tools_index;
   auth: typeof auth;
   crons: typeof crons;
   emails: typeof emails;
+  healthkit: typeof healthkit;
   http: typeof http;
   "lib/auth/ResendOTP": typeof lib_auth_ResendOTP;
   "lib/auth/ResendOTPPasswordReset": typeof lib_auth_ResendOTPPasswordReset;

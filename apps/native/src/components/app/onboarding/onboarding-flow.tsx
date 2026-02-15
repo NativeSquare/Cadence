@@ -8,15 +8,13 @@ import { ProgressBar } from "./ProgressBar";
 import { Text } from "@/components/ui/text";
 import { selectionFeedback } from "@/lib/haptics";
 import { useStravaAuth } from "@/hooks/use-strava-auth";
+import { useHealthKit } from "@/hooks/use-healthkit";
 import { useOnboardingProgress } from "@/hooks/use-onboarding-progress";
 import { useOnboardingResume } from "@/hooks/use-onboarding-resume";
 import { StreamPhrase } from "@/hooks/use-streaming-text";
 import { useRef, useState, useEffect } from "react";
 import { Animated, Pressable, ScrollView, View } from "react-native";
-import Reanimated, {
-  FadeIn,
-  FadeOut,
-} from "react-native-reanimated";
+import Reanimated, { FadeIn, FadeOut } from "react-native-reanimated";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -228,7 +226,11 @@ export function OnboardingFlow({ userName, onComplete }: OnboardingFlowProps) {
 
   // Resume detection (Story 1.6)
   // Only check resume on initial mount, not after user interactions
-  const { isResuming, targetScene, isLoading: isResumeLoading } = useOnboardingResume();
+  const {
+    isResuming,
+    targetScene,
+    isLoading: isResumeLoading,
+  } = useOnboardingResume();
   const [showWelcomeBack, setShowWelcomeBack] = useState(false);
   const hasCheckedResume = useRef(false);
 
@@ -314,6 +316,7 @@ export function OnboardingFlow({ userName, onComplete }: OnboardingFlowProps) {
   // ─── Wearable Handlers ──────────────────────────────────────────────
 
   const { connect: connectStrava } = useStravaAuth();
+  const { connect: connectHealthKit } = useHealthKit();
   const [connectingProvider, setConnectingProvider] = useState<string | null>(
     null,
   );
@@ -341,8 +344,23 @@ export function OnboardingFlow({ userName, onComplete }: OnboardingFlowProps) {
         setIsConnecting(false);
         setConnectingProvider(null);
       }
+    } else if (providerId === "apple") {
+      setIsConnecting(true);
+      setConnectingProvider("apple");
+
+      try {
+        const result = await connectHealthKit();
+
+        if (result) {
+          setConnectedAthleteName(result.summary);
+          setConnectedProvider("apple");
+        }
+      } finally {
+        setIsConnecting(false);
+        setConnectingProvider(null);
+      }
     } else {
-      // Other providers remain mocked for now
+      // Other providers (garmin, coros) remain mocked for now
       setIsConnecting(true);
       setConnectingProvider(providerId);
       setTimeout(() => {

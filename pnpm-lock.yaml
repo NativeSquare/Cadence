@@ -177,6 +177,9 @@ importers:
       '@gorhom/bottom-sheet':
         specifier: ^5.2.8
         version: 5.2.8(@types/react@19.1.17)(react-native-gesture-handler@2.28.0(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native-reanimated@4.1.6(@babel/core@7.29.0)(react-native-worklets@0.5.1(@babel/core@7.29.0)(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
+      '@kingstinct/react-native-healthkit':
+        specifier: ^13.1.4
+        version: 13.1.4(react-native-nitro-modules@0.33.7(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
       '@packages/backend':
         specifier: workspace:*
         version: link:../../packages/backend
@@ -366,6 +369,9 @@ importers:
       react-native-keyboard-controller:
         specifier: 1.18.5
         version: 1.18.5(react-native-reanimated@4.1.6(@babel/core@7.29.0)(react-native-worklets@0.5.1(@babel/core@7.29.0)(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
+      react-native-nitro-modules:
+        specifier: 0.33.7
+        version: 0.33.7(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
       react-native-otp-entry:
         specifier: ^1.8.5
         version: 1.8.5(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
@@ -2203,6 +2209,13 @@ packages:
 
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
+
+  '@kingstinct/react-native-healthkit@13.1.4':
+    resolution: {integrity: sha512-q+2poqkt+efMvL2/1g13CifHs+cd4rGojZTlmf7CUmydwiCXO1o07qbuqmdwCU/dwMU2HnD8KnyBn8JDYYr72A==}
+    peerDependencies:
+      react: '>=19'
+      react-native: '>=0.79'
+      react-native-nitro-modules: '>=0.30'
 
   '@napi-rs/wasm-runtime@0.2.12':
     resolution: {integrity: sha512-ZVWUcfwY4E/yPitQJl481FjFo3K22D6qF0DuFH6Y/nbnE11GY5uguDxZMGXPQ8WQ0128MXQD7TnfHyK4oWoIJQ==}
@@ -7499,6 +7512,12 @@ packages:
       react-native: '*'
       react-native-reanimated: '>=3.0.0'
 
+  react-native-nitro-modules@0.33.7:
+    resolution: {integrity: sha512-WepMobWe4j1Ae5GQ5RxYGBdBpJBwzP6zaOxJ7r6nhbY5iyl01DL3Gsh4gk8edzNFRuAh1rvXDAHIipq8SahxeQ==}
+    peerDependencies:
+      react: '*'
+      react-native: '*'
+
   react-native-otp-entry@1.8.5:
     resolution: {integrity: sha512-TZNkIuUzZKAAWrC8X/A22ZHJdycLysxUNysrGf0yTmDLRUyf4zLXwVFcDYUcRNe763Hjaf5qvtKGILb6lDGzoA==}
     peerDependencies:
@@ -8391,7 +8410,7 @@ packages:
   use-sync-external-store@1.6.0:
     resolution: {integrity: sha512-Pp6GSwGP/NrPIrxVFAIkOQeyw8lFenOHijQWkUTrDvrF4ALqylP2C/KCkeS9dpUM3KvYRQhna5vt7IL95+ZQ9w==}
     peerDependencies:
-      react: 19.2.3
+      react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
 
   util-deprecate@1.0.2:
     resolution: {integrity: sha512-EPD5q1uXyFxJpCrLnCc1nHnq3gOa6DZBocAIiI2TaSCA7VCJ1UJDMagCzIkXNsUYfD1daK//LTEQ8xiIbrHtcw==}
@@ -10356,6 +10375,12 @@ snapshots:
     dependencies:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
+
+  '@kingstinct/react-native-healthkit@13.1.4(react-native-nitro-modules@0.33.7(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)':
+    dependencies:
+      react: 19.1.0
+      react-native: 0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0)
+      react-native-nitro-modules: 0.33.7(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
 
   '@napi-rs/wasm-runtime@0.2.12':
     dependencies:
@@ -16827,6 +16852,11 @@ snapshots:
       react-native: 0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0)
       react-native-is-edge-to-edge: 1.2.1(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
       react-native-reanimated: 4.1.6(@babel/core@7.29.0)(react-native-worklets@0.5.1(@babel/core@7.29.0)(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
+
+  react-native-nitro-modules@0.33.7(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0):
+    dependencies:
+      react: 19.1.0
+      react-native: 0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0)
 
   react-native-otp-entry@1.8.5(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0):
     dependencies:
