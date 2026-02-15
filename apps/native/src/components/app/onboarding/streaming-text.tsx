@@ -2,9 +2,10 @@ import { arrivalPulse, insightTap, questionPause } from "@/lib/haptics";
 import { StreamPhrase, useStreamingText } from "@/hooks/use-streaming-text";
 import { cn } from "@/lib/utils";
 import { useEffect, useRef } from "react";
-import { Animated, View } from "react-native";
+import { Animated, View, StyleSheet } from "react-native";
 import { Text } from "@/components/ui/text";
 import { Cursor } from "./Cursor";
+import { GRAYS } from "@/lib/design-tokens";
 
 // Re-export StreamBlock for convenience
 export { StreamBlock } from "./StreamBlock";
@@ -90,11 +91,24 @@ function PhraseText({
   }, []);
 
   return (
-    <Animated.View style={{ opacity: fadeAnim, flexDirection: "row", alignItems: "flex-end" }}>
-      <Text className="text-lg leading-7 text-white font-light tracking-wide">
-        {text}
-      </Text>
-      <Cursor visible={isCurrentlyStreaming} height={18} />
+    <Animated.View style={[phraseStyles.container, { opacity: fadeAnim }]}>
+      <Text style={phraseStyles.text}>{text}</Text>
+      <Cursor visible={isCurrentlyStreaming} height={16} />
     </Animated.View>
   );
 }
+
+// Styles matching prototype StreamBlock (cadence-v3.jsx lines 85-93)
+const phraseStyles = StyleSheet.create({
+  container: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+  },
+  text: {
+    fontFamily: "Outfit-Light",
+    fontSize: 17,
+    color: GRAYS.g2, // rgba(255,255,255,0.7)
+    lineHeight: 24, // ~1.4 ratio
+    letterSpacing: -0.3, // -.02em equivalent
+  },
+});

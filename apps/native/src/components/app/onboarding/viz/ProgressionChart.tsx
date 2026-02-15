@@ -12,6 +12,7 @@ import { useEffect } from "react";
 import { StyleSheet, View } from "react-native";
 import Animated, {
   Easing,
+  runOnJS,
   useAnimatedProps,
   useAnimatedStyle,
   useSharedValue,
@@ -364,7 +365,7 @@ export function ProgressionChart({
           },
           (finished) => {
             if (finished && onAnimationComplete) {
-              onAnimationComplete();
+              runOnJS(onAnimationComplete)();
             }
           }
         );

@@ -1,15 +1,17 @@
 /**
- * CalendarScreen Component - Coach commentary + weekly calendar visualization.
+ * CalendarScreen Component - Weekly calendar visualization with coach commentary.
  *
- * Displays streaming coach text with CalendarWidget below.
- * Part of the plan generation flow in onboarding.
+ * Layout per prototype (cadence-v3.jsx lines 823-858):
+ * 1. Header with phase label
+ * 2. Calendar widget with 7-column grid
+ * 3. Streaming coach text (appears after calendar animation)
+ * 4. Continue button
  *
  * Source: Story 3.3 - AC#6
- * Reference: cadence-v3.jsx lines 823-858
  */
 
 import { useState, useCallback } from "react";
-import { View, StyleSheet } from "react-native";
+import { View, StyleSheet, ScrollView } from "react-native";
 import Animated, { FadeIn } from "react-native-reanimated";
 import { StreamingText } from "../streaming-text";
 import {
@@ -37,37 +39,21 @@ export interface CalendarScreenProps {
 }
 
 // =============================================================================
-// Coach Phrases
+// Coach Phrases (per prototype lines 853)
 // =============================================================================
 
-const COACH_PHRASES_DATA: StreamPhrase[] = [
+const COACH_PHRASES: StreamPhrase[] = [
   {
-    text: "Three key sessions anchor your week.",
-    pauseAfter: 600,
+    text: "Three key sessions: Monday tempo, Wednesday intervals, Sunday long run.",
+    pauseAfter: 400,
     haptic: "insight",
   },
   {
     text: "The rest is recovery.",
-    pauseAfter: 400,
+    pauseAfter: 300,
   },
   {
     text: "And yes — two actual rest days. Non-negotiable.",
-    haptic: "arrival",
-  },
-];
-
-const COACH_PHRASES_NO_DATA: StreamPhrase[] = [
-  {
-    text: "Based on your input, here's a sustainable structure.",
-    pauseAfter: 600,
-    haptic: "insight",
-  },
-  {
-    text: "Three quality sessions. Two full rest days.",
-    pauseAfter: 400,
-  },
-  {
-    text: "We'll refine this as we learn more about you.",
     haptic: "arrival",
   },
 ];
@@ -82,36 +68,52 @@ export function CalendarScreen({
   phaseLabel = "Build Phase",
   onComplete,
 }: CalendarScreenProps) {
+  const [showCoachText, setShowCoachText] = useState(false);
   const [showButton, setShowButton] = useState(false);
-  const coachPhrases =
-    mockPath === "no-data" ? COACH_PHRASES_NO_DATA : COACH_PHRASES_DATA;
 
+  // Show coach text after calendar animation completes
+  const handleCalendarAnimationComplete = useCallback(() => {
+    setShowCoachText(true);
+  }, []);
+
+  // Show button after streaming text completes
   const handleStreamingComplete = useCallback(() => {
-    // Show button after streaming and animation complete
-    setTimeout(() => setShowButton(true), 800);
+    setShowButton(true);
   }, []);
 
   return (
     <View style={styles.container}>
-      {/* Coach streaming text */}
-      <View style={styles.coachSection}>
-        <StreamingText
-          phrases={coachPhrases}
-          charDelay={14}
-          defaultPause={400}
-          initialDelay={300}
-          onComplete={handleStreamingComplete}
-        />
-      </View>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Calendar widget - shows first */}
+        <View style={styles.calendarSection}>
+          <CalendarWidget
+            schedule={schedule}
+            phaseLabel={phaseLabel}
+            animate={true}
+            onAnimationComplete={handleCalendarAnimationComplete}
+          />
+        </View>
 
-      {/* Calendar widget */}
-      <View style={styles.calendarSection}>
-        <CalendarWidget
-          schedule={schedule}
-          phaseLabel={phaseLabel}
-          animate={true}
-        />
-      </View>
+        {/* Coach streaming text - appears after calendar animation */}
+        {showCoachText && (
+          <Animated.View
+            entering={FadeIn.duration(400)}
+            style={styles.coachSection}
+          >
+            <StreamingText
+              phrases={COACH_PHRASES}
+              charDelay={18}
+              defaultPause={300}
+              initialDelay={200}
+              onComplete={handleStreamingComplete}
+            />
+          </Animated.View>
+        )}
+      </ScrollView>
 
       {/* Continue button */}
       {showButton && onComplete && (
@@ -119,7 +121,7 @@ export function CalendarScreen({
           entering={FadeIn.duration(300)}
           style={styles.buttonContainer}
         >
-          <Btn label="See the projection" onPress={onComplete} />
+          <Btn label="See projections" onPress={onComplete} />
         </Animated.View>
       )}
     </View>
@@ -133,21 +135,27 @@ export function CalendarScreen({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 40,
+    paddingTop: 70,
   },
-  coachSection: {
-    marginBottom: 32,
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingHorizontal: 24,
+    paddingBottom: 120,
   },
   calendarSection: {
-    flex: 1,
+    marginBottom: 24,
+  },
+  coachSection: {
+    paddingHorizontal: 8,
   },
   buttonContainer: {
     position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
-    paddingHorizontal: 24,
+    paddingHorizontal: 32,
     paddingBottom: 48,
     backgroundColor: COLORS.black,
   },

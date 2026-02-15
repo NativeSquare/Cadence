@@ -71,7 +71,7 @@ export function ProjectionCard({
         <Text style={[styles.time, { color: accentColor }]}>
           {timeRange[0]}
         </Text>
-        <Text style={[styles.timeSeparator, { color: accentColor }]}> — </Text>
+        <Text style={styles.timeSeparator}>–</Text>
         <Text style={[styles.time, { color: accentColor }]}>
           {timeRange[1]}
         </Text>
@@ -127,16 +127,21 @@ const styles = StyleSheet.create({
   timeRow: {
     flexDirection: "row",
     alignItems: "baseline",
+    justifyContent: "center",
+    gap: 4,
     marginBottom: 20,
   },
   time: {
     fontFamily: "JetBrainsMono-Medium",
     fontSize: 42,
-    fontWeight: "500",
+    lineHeight: 52, // Explicit to prevent clipping
+    letterSpacing: -1.2, // -.03em equivalent
   },
   timeSeparator: {
-    fontFamily: "JetBrainsMono-Regular",
-    fontSize: 32,
+    fontFamily: "JetBrainsMono-Light",
+    fontSize: 20, // Smaller per prototype
+    lineHeight: 28,
+    color: GRAYS.g3, // Lighter than time numbers per prototype
   },
   metricsRow: {
     flexDirection: "row",
@@ -156,11 +161,11 @@ const styles = StyleSheet.create({
   },
   metricValue: {
     fontFamily: "JetBrainsMono-Medium",
-    fontSize: 18,
+    fontSize: 14, // Per prototype
   },
   metricValueWhite: {
     fontFamily: "JetBrainsMono-Medium",
-    fontSize: 18,
+    fontSize: 14, // Per prototype
     color: GRAYS.g1,
   },
   divider: {

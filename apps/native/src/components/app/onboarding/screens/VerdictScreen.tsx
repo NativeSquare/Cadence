@@ -76,9 +76,11 @@ interface CoachMessageProps {
   text: string;
   active: boolean;
   delay: number;
+  /** Use intro style (larger, brighter) or follow-up style (smaller, dimmer) */
+  variant?: "intro" | "followup";
 }
 
-function CoachMessage({ text, active, delay }: CoachMessageProps) {
+function CoachMessage({ text, active, delay, variant = "intro" }: CoachMessageProps) {
   const { displayed, done, started } = useStream({
     text,
     speed: 28,
@@ -90,10 +92,13 @@ function CoachMessage({ text, active, delay }: CoachMessageProps) {
     return null;
   }
 
+  const textStyle = variant === "intro" ? styles.coachTextIntro : styles.coachTextFollowup;
+  const cursorHeight = variant === "intro" ? 20 : 14;
+
   return (
     <View style={styles.coachMessage}>
-      <Text style={styles.coachText}>{displayed}</Text>
-      <Cursor visible={started && !done} height={18} />
+      <Text style={textStyle}>{displayed}</Text>
+      <Cursor visible={started && !done} height={cursorHeight} />
     </View>
   );
 }
@@ -143,7 +148,7 @@ export function VerdictScreen({
         showsVerticalScrollIndicator={false}
       >
         {/* Coach Intro */}
-        <CoachMessage text={introText} active={phase >= 1} delay={0} />
+        <CoachMessage text={introText} active={phase >= 1} delay={0} variant="intro" />
 
         {/* Projection Card */}
         {phase >= 2 && (
@@ -167,7 +172,7 @@ export function VerdictScreen({
         {/* Coach Follow-up */}
         {phase >= 3 && (
           <View style={styles.followupSection}>
-            <CoachMessage text={followupText} active={phase >= 3} delay={0} />
+            <CoachMessage text={followupText} active={phase >= 3} delay={0} variant="followup" />
           </View>
         )}
 
@@ -212,8 +217,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: 20,
-    paddingTop: 40,
+    paddingHorizontal: 32, // Per prototype padding: "0 32px"
+    paddingTop: 70,
     paddingBottom: 100,
   },
   coachMessage: {
@@ -221,12 +226,21 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
     flexWrap: "wrap",
   },
-  coachText: {
+  // Intro style: larger, brighter (per prototype StreamBlock size={22})
+  coachTextIntro: {
     fontFamily: "Outfit-Light",
-    fontSize: 18,
+    fontSize: 22,
     color: GRAYS.g1,
-    lineHeight: 28,
-    letterSpacing: 0.3,
+    lineHeight: 31, // ~1.4 ratio
+    letterSpacing: -0.4, // -.02em
+  },
+  // Follow-up style: smaller, dimmer (per prototype StreamBlock size={16} color={T.g3})
+  coachTextFollowup: {
+    fontFamily: "Outfit-Light",
+    fontSize: 16,
+    color: GRAYS.g3,
+    lineHeight: 22, // ~1.4 ratio
+    letterSpacing: -0.3,
   },
   cardSection: {
     marginTop: 24,
@@ -242,8 +256,8 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    paddingHorizontal: 20,
-    paddingBottom: 32,
+    paddingHorizontal: 32, // Per prototype
+    paddingBottom: 48, // Per prototype padding: "16px 32px 48px"
     paddingTop: 16,
     backgroundColor: "rgba(0,0,0,0.9)",
   },
