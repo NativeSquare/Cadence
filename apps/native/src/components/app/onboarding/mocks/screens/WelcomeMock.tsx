@@ -4,7 +4,7 @@
  * Source: cadence-v3.jsx lines 376-394
  */
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback, memo } from "react";
 import {
   View,
   StyleSheet,
@@ -29,6 +29,90 @@ interface WelcomeMockProps {
   onNameChanged?: (newName: string) => void;
 }
 
+// Separate component for name input to isolate state updates
+interface NameInputViewProps {
+  initialName: string;
+  onConfirm: (name: string) => Promise<void>;
+}
+
+function NameInputView({ initialName, onConfirm }: NameInputViewProps) {
+  // Use a ref instead of state to track input value — avoids a full React
+  // re-render on every keystroke, which causes a visible desync/glitch
+  // between the native TextInput layer and React's controlled `value` prop.
+  const valueRef = useRef(initialName);
+  const [isConfirming, setIsConfirming] = useState(false);
+  const inputRef = useRef<TextInput>(null);
+
+  useEffect(() => {
+    const timeout = setTimeout(() => inputRef.current?.focus(), 100);
+    return () => clearTimeout(timeout);
+  }, []);
+
+  const handleSubmit = async () => {
+    const trimmedName = valueRef.current.trim();
+    if (!trimmedName) {
+      inputRef.current?.focus();
+      return;
+    }
+
+    selectionFeedback();
+    Keyboard.dismiss();
+    setIsConfirming(true);
+    try {
+      await onConfirm(trimmedName);
+    } finally {
+      setIsConfirming(false);
+    }
+  };
+
+  return (
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      style={styles.container}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
+    >
+      <View style={styles.nameInputContainer}>
+        <Text style={styles.headline}>How should I call you?</Text>
+
+        <View style={styles.inputRow}>
+          <TextInput
+            ref={inputRef}
+            defaultValue={initialName}
+            onChangeText={(text) => {
+              valueRef.current = text;
+            }}
+            placeholder="Your name"
+            placeholderTextColor={GRAYS.g4}
+            autoCapitalize="none"
+            autoCorrect={false}
+            autoComplete="off"
+            spellCheck={false}
+            textContentType="none"
+            returnKeyType="done"
+            onSubmitEditing={handleSubmit}
+            selectionColor={COLORS.lime}
+            cursorColor={COLORS.lime}
+            style={styles.nameInput}
+          />
+        </View>
+
+        <Pressable
+          onPress={handleSubmit}
+          disabled={isConfirming}
+          style={[
+            styles.primaryButton,
+            isConfirming && styles.primaryButtonDisabled,
+          ]}
+        >
+          <Text style={styles.primaryButtonText}>
+            {isConfirming ? "..." : "That's better"}
+          </Text>
+        </Pressable>
+      </View>
+    </KeyboardAvoidingView>
+  );
+}
+
 export function WelcomeMock({
   userName = "Alex",
   onNext,
@@ -36,10 +120,7 @@ export function WelcomeMock({
 }: WelcomeMockProps) {
   const [ready, setReady] = useState(false);
   const [showNameInput, setShowNameInput] = useState(false);
-  const [newName, setNewName] = useState("");
-  const [isConfirming, setIsConfirming] = useState(false);
   const [displayName, setDisplayName] = useState(userName);
-  const inputRef = useRef<TextInput>(null);
 
   const confirmName = useMutation(api.table.runners.confirmName);
 
@@ -47,20 +128,21 @@ export function WelcomeMock({
     text: `${displayName}, every runner's different.`,
     speed: 32,
     delay: 500,
+    active: !showNameInput,
   });
 
   const s2 = useStream({
     text: "Before I coach you, I need to know who I'm working with.",
     speed: 32,
     delay: 400,
-    active: s1.done,
+    active: s1.done && !showNameInput,
   });
 
   const s3 = useStream({
     text: "Mind a few questions?",
     speed: 32,
     delay: 600,
-    active: s2.done,
+    active: s2.done && !showNameInput,
   });
 
   useEffect(() => {
@@ -71,73 +153,23 @@ export function WelcomeMock({
 
   const handleChangeName = () => {
     selectionFeedback();
-    setNewName(displayName);
     setShowNameInput(true);
-    setTimeout(() => inputRef.current?.focus(), 100);
   };
 
-  const handleSubmitNewName = async () => {
-    const trimmedName = newName.trim();
-    if (!trimmedName) {
-      inputRef.current?.focus();
-      return;
-    }
-
-    selectionFeedback();
-    Keyboard.dismiss();
-    setIsConfirming(true);
-    try {
+  const handleConfirmName = useCallback(
+    async (trimmedName: string) => {
       await confirmName({ name: trimmedName });
       setDisplayName(trimmedName);
       onNameChanged?.(trimmedName);
       setShowNameInput(false);
-    } finally {
-      setIsConfirming(false);
-    }
-  };
+    },
+    [confirmName, onNameChanged],
+  );
 
-  // Name input view
+  // Name input view - rendered in separate component to isolate state
   if (showNameInput) {
     return (
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={styles.container}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
-      >
-        <View style={styles.nameInputContainer}>
-          <Text style={styles.headline}>How should I call you?</Text>
-
-          <View style={styles.inputRow}>
-            <TextInput
-              ref={inputRef}
-              value={newName}
-              onChangeText={setNewName}
-              placeholder="Your name"
-              placeholderTextColor={GRAYS.g4}
-              autoCapitalize="words"
-              autoCorrect={false}
-              returnKeyType="done"
-              onSubmitEditing={handleSubmitNewName}
-              selectionColor={COLORS.lime}
-              cursorColor={COLORS.lime}
-              style={styles.nameInput}
-            />
-          </View>
-
-          <Pressable
-            onPress={handleSubmitNewName}
-            disabled={isConfirming || !newName.trim()}
-            style={[
-              styles.primaryButton,
-              (isConfirming || !newName.trim()) && styles.primaryButtonDisabled,
-            ]}
-          >
-            <Text style={styles.primaryButtonText}>
-              {isConfirming ? "..." : "That's better"}
-            </Text>
-          </Pressable>
-        </View>
-      </KeyboardAvoidingView>
+      <NameInputView initialName={displayName} onConfirm={handleConfirmName} />
     );
   }
 
@@ -261,13 +293,15 @@ const styles = StyleSheet.create({
   },
   nameInput: {
     fontSize: 42,
-    lineHeight: 50,
+    // Avoid lineHeight on TextInput — it causes a layout recalc / shift on
+    // every keystroke. Use an explicit height for stable sizing instead.
+    height: 56,
     color: GRAYS.g1,
     fontFamily: "Outfit-Light",
     fontWeight: "300",
     letterSpacing: -1.26,
     padding: 0,
     margin: 0,
-    minWidth: 100,
+    flex: 1,
   },
 });

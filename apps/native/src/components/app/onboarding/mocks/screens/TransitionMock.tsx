@@ -6,15 +6,39 @@
 
 import { useEffect, useState } from "react";
 import { View, StyleSheet } from "react-native";
-import Animated, { FadeIn } from "react-native-reanimated";
+import Animated, {
+  FadeIn,
+  useSharedValue,
+  useAnimatedStyle,
+  withRepeat,
+  withTiming,
+  Easing,
+} from "react-native-reanimated";
 import { Text } from "@/components/ui/text";
 import { useStream } from "@/hooks/use-stream";
 import { Cursor } from "../../Cursor";
-import { FlowProgressBar } from "../../FlowProgressBar";
 import { COLORS, GRAYS } from "@/lib/design-tokens";
 
 interface TransitionMockProps {
   onDone: () => void;
+}
+
+function Spinner() {
+  const rotation = useSharedValue(0);
+
+  useEffect(() => {
+    rotation.value = withRepeat(
+      withTiming(360, { duration: 1000, easing: Easing.linear }),
+      -1,
+      false
+    );
+  }, []);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${rotation.value}deg` }],
+  }));
+
+  return <Animated.View style={[styles.spinner, animatedStyle]} />;
 }
 
 export function TransitionMock({ onDone }: TransitionMockProps) {
@@ -47,8 +71,6 @@ export function TransitionMock({ onDone }: TransitionMockProps) {
 
   return (
     <View style={styles.container}>
-      <FlowProgressBar progress={100} />
-
       <View style={styles.content}>
         <Text style={styles.headline}>
           {s1.displayed}
@@ -64,7 +86,7 @@ export function TransitionMock({ onDone }: TransitionMockProps) {
 
         {showSpinner && (
           <Animated.View entering={FadeIn.duration(500)} style={styles.spinnerContainer}>
-            <View style={styles.spinner} />
+            <Spinner />
           </Animated.View>
         )}
       </View>
@@ -78,7 +100,9 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.black,
     justifyContent: "center",
     alignItems: "center",
+    paddingTop: 82,
     paddingHorizontal: 32,
+    paddingBottom: 48,
   },
   content: {
     maxWidth: 300,

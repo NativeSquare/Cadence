@@ -174,9 +174,6 @@ export function CalendarScreen({
 
         {/* Coach comment - appears after 8s */}
         {showCoachComment && <CoachComment />}
-
-        {/* Bottom spacer for button */}
-        <View style={styles.bottomSpacer} />
       </ScrollView>
 
       {/* Continue button */}
@@ -210,7 +207,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingBottom: 120,
   },
   // Intro section
   introSection: {
@@ -252,10 +249,6 @@ const styles = StyleSheet.create({
   coachCommentHighlight: {
     fontFamily: "Outfit-Medium",
     color: COLORS.lime,
-  },
-  // Bottom spacer
-  bottomSpacer: {
-    height: 20,
   },
   // Button container
   buttonContainer: {

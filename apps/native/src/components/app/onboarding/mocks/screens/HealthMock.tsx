@@ -146,9 +146,9 @@ export function HealthMock({ hasData, onNext }: HealthMockProps) {
       </ScrollView>
 
       {injuries.length > 0 && (
-        <View style={styles.buttonContainer}>
+        <Animated.View entering={FadeIn.duration(300)} style={styles.buttonContainer}>
           <Btn label="Continue" onPress={onNext} />
-        </View>
+        </Animated.View>
       )}
     </View>
   );
@@ -208,7 +208,12 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
   buttonContainer: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
     paddingHorizontal: 32,
     paddingBottom: 48,
+    backgroundColor: COLORS.black,
   },
 });

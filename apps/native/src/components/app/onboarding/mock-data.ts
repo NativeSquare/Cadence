@@ -169,7 +169,7 @@ export const screenProgressMap: Record<number, number> = {
   4: 40, // Health
   5: 50, // Style
   6: 60, // OpenQuestion
-  7: 70, // Transition
+  7: 100, // Transition (profile complete)
   8: 75, // Radar
   9: 82, // Progression
   10: 88, // Calendar
