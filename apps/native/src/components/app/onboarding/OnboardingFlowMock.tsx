@@ -242,10 +242,18 @@ function OnboardingFlowMockInner({
     handlePaywallComplete,
   ]);
 
+  // Progress bar visible from wearable through transition (screens 1-7)
+  // Hidden on welcome and after transition (radar onwards)
+  const showProgressBar =
+    currentScreen.name !== "welcome" &&
+    !["radar", "progression", "calendar", "verdict", "paywall"].includes(
+      currentScreen.name
+    );
+
   return (
     <View style={styles.container} testID={testID}>
-      {/* Progress bar (hidden on welcome) */}
-      {currentScreen.name !== "welcome" && (
+      {/* Progress bar (visible wearable → transition, hidden before/after) */}
+      {showProgressBar && (
         <FlowProgressBar progress={progress} testID="flow-progress-bar" />
       )}
 

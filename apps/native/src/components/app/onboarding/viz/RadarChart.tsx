@@ -8,25 +8,24 @@
  * Reference: cadence-v3.jsx lines 704-726
  */
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import Animated, {
   Easing,
   runOnJS,
   useAnimatedProps,
+  useAnimatedReaction,
   useAnimatedStyle,
-  useDerivedValue,
   useSharedValue,
   withDelay,
   withTiming,
   type SharedValue,
-  type DerivedValue,
 } from "react-native-reanimated";
 import Svg, {
   Circle,
   G,
   Line,
-  Polygon,
+  Path,
 } from "react-native-svg";
 import { Text } from "@/components/ui/text";
 import { PROGRESS_BAR_MS } from "@/lib/animations";
@@ -57,7 +56,7 @@ export interface RadarChartProps {
 // Animated SVG Components
 // =============================================================================
 
-const AnimatedPolygon = Animated.createAnimatedComponent(Polygon);
+const AnimatedPath = Animated.createAnimatedComponent(Path);
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 // =============================================================================
@@ -85,23 +84,24 @@ function getPoint(
 }
 
 /**
- * Generate polygon points string for grid lines.
+ * Generate SVG path d string for grid hexagons.
  */
-function getGridPolygonPoints(
+function getGridPathD(
   level: number,
   radius: number,
   center: number
 ): string {
   const n = 6;
-  const points: string[] = [];
+  const commands: string[] = [];
   for (let i = 0; i < n; i++) {
     const angle = (Math.PI * 2 * i) / n - Math.PI / 2;
     const r = (level / 100) * radius;
     const x = center + r * Math.cos(angle);
     const y = center + r * Math.sin(angle);
-    points.push(`${x},${y}`);
+    commands.push(i === 0 ? `M ${x} ${y}` : `L ${x} ${y}`);
   }
-  return points.join(" ");
+  commands.push("Z"); // Close the path
+  return commands.join(" ");
 }
 
 /**
@@ -143,16 +143,21 @@ function ValueLabel({
   size,
   progress,
 }: ValueLabelProps) {
+  const [displayValue, setDisplayValue] = useState(0);
   const n = 6;
   const angle = (Math.PI * 2 * index) / n - Math.PI / 2;
-  const labelRadius = radius + 28; // Position labels outside the chart
+  const labelRadius = radius + 36; // Position labels well outside the chart
   const x = center + labelRadius * Math.cos(angle);
   const y = center + labelRadius * Math.sin(angle);
 
-  // Animated count-up value
-  const displayValue = useDerivedValue(() => {
-    return Math.round(data.value * progress.value);
-  });
+  // Update display value when progress changes
+  useAnimatedReaction(
+    () => Math.round(data.value * progress.value),
+    (result) => {
+      runOnJS(setDisplayValue)(result);
+    },
+    [data.value]
+  );
 
   // Entrance animation
   const animatedStyle = useAnimatedStyle(() => {
@@ -182,43 +187,14 @@ function ValueLabel({
           styles.labelText,
           { color: labelColor },
         ]}
+        numberOfLines={1}
       >
         {data.label.toUpperCase()}
       </Text>
-      <AnimatedValueText
-        value={displayValue}
-        color={valueColor}
-        uncertain={data.uncertain}
-      />
+      <Text style={[styles.valueText, { color: valueColor }]}>
+        {displayValue}{data.uncertain ? "?" : ""}
+      </Text>
     </Animated.View>
-  );
-}
-
-// Separate component for animated value text
-function AnimatedValueText({
-  value,
-  color,
-  uncertain,
-}: {
-  value: DerivedValue<number>;
-  color: string;
-  uncertain?: boolean;
-}) {
-  const animatedProps = useAnimatedProps(() => {
-    return {
-      text: `${value.value}${uncertain ? "?" : ""}`,
-    };
-  });
-
-  // Use Animated.Text for number animation
-  return (
-    <Animated.Text
-      style={[styles.valueText, { color }]}
-      // @ts-expect-error - animatedProps works at runtime
-      animatedProps={animatedProps}
-    >
-      {/* Static fallback */}
-    </Animated.Text>
   );
 }
 
@@ -233,7 +209,7 @@ export function RadarChart({
   onAnimationComplete,
 }: RadarChartProps) {
   const center = size / 2;
-  const radius = size / 2 - 36; // Leave room for labels
+  const radius = size / 2 - 50; // Leave ample room for labels outside
   const gridLevels = [25, 50, 75, 100];
 
   // Animation progress (0 to 1)
@@ -262,29 +238,31 @@ export function RadarChart({
     }
   }, [animate, progress, onAnimationComplete]);
 
-  // Animated polygon points
-  const animatedPolygonProps = useAnimatedProps(() => {
-    const pts = data.map((d, i) => {
+  // Animated path d string for data polygon
+  const animatedPathProps = useAnimatedProps(() => {
+    const commands: string[] = [];
+    data.forEach((d, i) => {
       const point = getPoint(i, d.value, radius, center, progress.value);
-      return `${point.x},${point.y}`;
+      commands.push(i === 0 ? `M ${point.x} ${point.y}` : `L ${point.x} ${point.y}`);
     });
+    commands.push("Z"); // Close the path
     return {
-      points: pts.join(" "),
+      d: commands.join(" "),
     };
   });
 
   return (
     <View style={[styles.container, { width: size, height: size }]}>
       <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-        {/* Grid lines at 25%, 50%, 75%, 100% */}
+        {/* Grid hexagons at 25%, 50%, 75%, 100% */}
         <G>
           {gridLevels.map((level) => (
-            <Polygon
+            <Path
               key={level}
-              points={getGridPolygonPoints(level, radius, center)}
+              d={getGridPathD(level, radius, center)}
               fill="none"
-              stroke={GRAYS.g6}
-              strokeWidth={0.5}
+              stroke={GRAYS.g5}
+              strokeWidth={1}
             />
           ))}
         </G>
@@ -302,19 +280,20 @@ export function RadarChart({
                 y1={center}
                 x2={x2}
                 y2={y2}
-                stroke={GRAYS.g6}
-                strokeWidth={0.5}
+                stroke={GRAYS.g5}
+                strokeWidth={1}
               />
             );
           })}
         </G>
 
-        {/* Data polygon with fill */}
-        <AnimatedPolygon
-          animatedProps={animatedPolygonProps}
+        {/* Data polygon with fill - connects all points with lime outline */}
+        <AnimatedPath
+          animatedProps={animatedPathProps}
           fill="rgba(200,255,0,0.07)"
           stroke={COLORS.lime}
           strokeWidth={1.5}
+          strokeLinejoin="round"
         />
 
         {/* Data point circles */}
@@ -388,6 +367,8 @@ function DataPointCircle({
 // Styles
 // =============================================================================
 
+const LABEL_WIDTH = 90; // Fixed width to allow centering
+
 const styles = StyleSheet.create({
   container: {
     position: "relative",
@@ -395,7 +376,9 @@ const styles = StyleSheet.create({
   },
   labelContainer: {
     position: "absolute",
-    transform: [{ translateX: -50 }, { translateY: -50 }],
+    width: LABEL_WIDTH,
+    marginLeft: -LABEL_WIDTH / 2,
+    marginTop: -18, // Approximate half-height of label+value
     alignItems: "center",
   },
   labelText: {
