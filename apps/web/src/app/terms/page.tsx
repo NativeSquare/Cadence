@@ -1,128 +1,120 @@
 export default function TermsPage() {
   return (
-    <div className="container mx-auto max-w-3xl px-6 py-16">
-        <h1 className="text-3xl font-bold text-white mb-4">Terms of Service</h1>
-        <p className="text-[#8E8E93] mb-8">Last updated: February 2026</p>
+    <div className="mx-auto max-w-3xl px-5 pb-20 pt-32 sm:px-8 lg:px-12">
+      <div className="mb-4 font-mono text-[11px] font-medium uppercase tracking-[0.08em] text-[#C8FF00]">
+        Legal
+      </div>
+      <h1 className="mb-2 text-[clamp(36px,4.5vw,56px)] font-light leading-[1.1] tracking-[-0.03em] text-white/[0.92]">
+        Terms of Service
+      </h1>
+      <p className="mb-12 text-sm font-light text-white/25">
+        Last updated: February 2026
+      </p>
 
-        <div className="space-y-8">
-          <section>
-            <h2 className="text-xl font-semibold text-white mb-4">
-              1. Acceptance of Terms
-            </h2>
-            <p className="text-[#8E8E93] leading-relaxed">
-              By accessing or using Cadence, you agree to be bound by these
-              Terms of Service. If you do not agree to these terms, please do
-              not use our service.
-            </p>
-          </section>
+      <div className="space-y-10">
+        <LegalSection title="1. Acceptance of Terms">
+          <p>
+            By accessing or using Cadence, you agree to be bound by these Terms
+            of Service. If you do not agree to these terms, please do not use
+            our service.
+          </p>
+        </LegalSection>
 
-          <section>
-            <h2 className="text-xl font-semibold text-white mb-4">
-              2. Description of Service
-            </h2>
-            <p className="text-[#8E8E93] leading-relaxed">
-              Cadence provides personalized running coaching and training plan
-              generation services. Our AI-powered coach analyzes your running
-              data, goals, and preferences to create tailored training plans.
-            </p>
-          </section>
+        <LegalSection title="2. Description of Service">
+          <p>
+            Cadence provides personalized running coaching and training plan
+            generation services. Our AI-powered coach analyzes your running
+            data, goals, and preferences to create tailored training plans.
+          </p>
+        </LegalSection>
 
-          <section>
-            <h2 className="text-xl font-semibold text-white mb-4">
-              3. User Accounts
-            </h2>
-            <p className="text-[#8E8E93] leading-relaxed">
-              You are responsible for maintaining the confidentiality of your
-              account credentials and for all activities that occur under your
-              account. You agree to notify us immediately of any unauthorized
-              use of your account.
-            </p>
-          </section>
+        <LegalSection title="3. User Accounts">
+          <p>
+            You are responsible for maintaining the confidentiality of your
+            account credentials and for all activities that occur under your
+            account. You agree to notify us immediately of any unauthorized use
+            of your account.
+          </p>
+        </LegalSection>
 
-          <section>
-            <h2 className="text-xl font-semibold text-white mb-4">
-              4. User Data
-            </h2>
-            <p className="text-[#8E8E93] leading-relaxed">
-              You retain ownership of all data you provide to Cadence. By using
-              our service, you grant us a license to use this data to provide
-              and improve our services. See our Privacy Policy for details on
-              how we handle your data.
-            </p>
-          </section>
+        <LegalSection title="4. User Data">
+          <p>
+            You retain ownership of all data you provide to Cadence. By using
+            our service, you grant us a license to use this data to provide and
+            improve our services. See our Privacy Policy for details on how we
+            handle your data.
+          </p>
+        </LegalSection>
 
-          <section>
-            <h2 className="text-xl font-semibold text-white mb-4">
-              5. Third-Party Integrations
-            </h2>
-            <p className="text-[#8E8E93] leading-relaxed">
-              Cadence may integrate with third-party services such as Strava,
-              Garmin, and Apple Health. Your use of these integrations is
-              subject to the terms of service of those third parties.
-            </p>
-          </section>
+        <LegalSection title="5. Third-Party Integrations">
+          <p>
+            Cadence may integrate with third-party services such as Strava,
+            Garmin, and Apple Health. Your use of these integrations is subject
+            to the terms of service of those third parties.
+          </p>
+        </LegalSection>
 
-          <section>
-            <h2 className="text-xl font-semibold text-white mb-4">
-              6. Wellness Disclaimer
-            </h2>
-            <p className="text-[#8E8E93] leading-relaxed">
-              Cadence provides fitness and wellness coaching. It is not a
-              medical device and does not provide medical advice, diagnosis, or
-              treatment. Always consult a healthcare professional before
-              starting any exercise program or if you have concerns about your
-              health.
-            </p>
-          </section>
+        <LegalSection title="6. Wellness Disclaimer">
+          <p>
+            Cadence provides fitness and wellness coaching. It is not a medical
+            device and does not provide medical advice, diagnosis, or treatment.
+            Always consult a healthcare professional before starting any
+            exercise program or if you have concerns about your health.
+          </p>
+        </LegalSection>
 
-          <section>
-            <h2 className="text-xl font-semibold text-white mb-4">
-              7. Limitation of Liability
-            </h2>
-            <p className="text-[#8E8E93] leading-relaxed">
-              Cadence is provided &quot;as is&quot; without warranties of any kind. We
-              are not liable for any injuries, damages, or losses resulting
-              from your use of our service or following our training
-              recommendations.
-            </p>
-          </section>
+        <LegalSection title="7. Limitation of Liability">
+          <p>
+            Cadence is provided &quot;as is&quot; without warranties of any
+            kind. We are not liable for any injuries, damages, or losses
+            resulting from your use of our service or following our training
+            recommendations.
+          </p>
+        </LegalSection>
 
-          <section>
-            <h2 className="text-xl font-semibold text-white mb-4">
-              8. Modifications to Service
-            </h2>
-            <p className="text-[#8E8E93] leading-relaxed">
-              We reserve the right to modify or discontinue our service at any
-              time. We will provide reasonable notice of any significant
-              changes.
-            </p>
-          </section>
+        <LegalSection title="8. Modifications to Service">
+          <p>
+            We reserve the right to modify or discontinue our service at any
+            time. We will provide reasonable notice of any significant changes.
+          </p>
+        </LegalSection>
 
-          <section>
-            <h2 className="text-xl font-semibold text-white mb-4">
-              9. Termination
-            </h2>
-            <p className="text-[#8E8E93] leading-relaxed">
-              You may terminate your account at any time. We reserve the right
-              to suspend or terminate accounts that violate these terms.
-            </p>
-          </section>
+        <LegalSection title="9. Termination">
+          <p>
+            You may terminate your account at any time. We reserve the right to
+            suspend or terminate accounts that violate these terms.
+          </p>
+        </LegalSection>
 
-          <section>
-            <h2 className="text-xl font-semibold text-white mb-4">
-              10. Contact Us
-            </h2>
-            <p className="text-[#8E8E93] leading-relaxed">
-              For questions about these Terms of Service, contact us at:{" "}
-              <a
-                href="mailto:legal@cadence.nativesquare.fr"
-                className="text-[#D4FF3A] hover:underline"
-              >
-                legal@cadence.nativesquare.fr
-              </a>
-            </p>
-          </section>
-        </div>
+        <LegalSection title="10. Contact Us">
+          <p>
+            For questions about these Terms of Service, contact us at:{" "}
+            <a
+              href="mailto:legal@cadence.nativesquare.fr"
+              className="text-[#C8FF00] transition-opacity hover:opacity-80"
+            >
+              legal@cadence.nativesquare.fr
+            </a>
+          </p>
+        </LegalSection>
+      </div>
     </div>
+  );
+}
+
+function LegalSection({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="border-b border-white/[0.08] pb-10 last:border-b-0 [&_p]:text-[15px] [&_p]:font-light [&_p]:leading-[1.6] [&_p]:text-white/45">
+      <h2 className="mb-4 text-lg font-medium tracking-[-0.02em] text-white/[0.92]">
+        {title}
+      </h2>
+      {children}
+    </section>
   );
 }

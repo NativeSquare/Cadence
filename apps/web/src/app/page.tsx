@@ -1,246 +1,533 @@
+import { ScrollReveal } from "@/components/landing/scroll-reveal";
+import { HeroTerminal } from "@/components/landing/hero-terminal";
+import { Marquee } from "@/components/landing/marquee";
 import {
-  ArrowRight,
-  Brain,
-  ChevronRight,
-  Eye,
-  Target,
-  Watch,
-  Zap,
-} from "lucide-react";
-import Image from "next/image";
-
-/* ─────────────────────────── constants ─────────────────────────── */
-
-const FEATURES = [
-  {
-    icon: Brain,
-    title: "Live Coaching Intelligence",
-    description:
-      "Real-time narrative coaching that explains every decision in plain language — not just what to do, but why.",
-  },
-  {
-    icon: Target,
-    title: "Goal-Anchored Plans",
-    description:
-      "Periodized training plans tied to your specific race goals, target times, and event dates. Every session has a purpose.",
-  },
-  {
-    icon: Watch,
-    title: "Wearable Integration",
-    description:
-      "Seamlessly syncs with Garmin, COROS, and Apple Watch to analyze training load, heart rate, and recovery in real time.",
-  },
-  {
-    icon: Eye,
-    title: "Full Transparency",
-    description:
-      "No black-box decisions. Cadence shows its reasoning, flags uncertainty, and adapts when the data changes.",
-  },
-] as const;
-
-const STEPS = [
-  {
-    step: "01",
-    title: "Connect Your Data",
-    description:
-      "Link your wearable and import your training history. Cadence audits your fitness and builds a complete picture.",
-  },
-  {
-    step: "02",
-    title: "Get Your Plan",
-    description:
-      "Set your race goal and target time. Your AI coach builds a periodized plan and explains every choice it makes.",
-  },
-  {
-    step: "03",
-    title: "Train & Evolve",
-    description:
-      "Each day, Cadence calibrates your next session based on how you're responding — then tells you exactly why.",
-  },
-] as const;
-
-/* ─────────────────────────── page ─────────────────────────── */
+  StepCardWaveform,
+  StepCardGraph,
+  StepCardCalendar,
+} from "@/components/landing/step-cards";
+import { RadarChart } from "@/components/landing/radar-chart";
+import { AuditAccordion } from "@/components/landing/audit-accordion";
+import { FaqAccordion } from "@/components/landing/faq-accordion";
 
 export default function Home() {
   return (
-    <div className="selection:bg-[#D4FF3A]/30 selection:text-white">
+    <div className="selection:bg-[#C8FF00]/30 selection:text-white">
+      {/* ═══════════════ HERO ═══════════════ */}
+      <section className="relative flex min-h-screen flex-col justify-center overflow-hidden px-5 pb-[60px] pt-[120px] sm:px-8 sm:pb-20 sm:pt-[140px] lg:px-12">
+        {/* Glow effects */}
+        <div className="pointer-events-none absolute -right-[200px] -top-[200px] h-[800px] w-[800px] bg-[radial-gradient(circle,rgba(200,255,0,0.04)_0%,transparent_60%)]" />
+        <div className="pointer-events-none absolute -bottom-[300px] -left-[200px] h-[600px] w-[600px] bg-[radial-gradient(circle,rgba(200,255,0,0.02)_0%,transparent_60%)]" />
 
-      {/* ── Hero ── */}
-      <section className="relative flex min-h-[100dvh] flex-col items-center justify-center overflow-hidden px-6 pt-16">
-        {/* Glow effect */}
-        <div className="animate-pulse-glow pointer-events-none absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2">
-          <div className="h-[500px] w-[700px] rounded-full bg-[#D4FF3A]/10 blur-[120px]" />
+        {/* Tag */}
+        <div className="mb-8 inline-flex w-fit animate-fadeUp items-center gap-2 rounded-full border border-[#C8FF00]/15 bg-[rgba(200,255,0,0.12)] px-4 py-1.5">
+          <div className="relative h-1.5 w-1.5">
+            <span className="absolute inset-0 rounded-full bg-[#C8FF00]" />
+            <span className="absolute -inset-1 animate-pulseRing rounded-full border border-[#C8FF00]" />
+          </div>
+          <span className="font-mono text-[11px] font-medium tracking-[0.04em] text-white/70">
+            <b className="font-semibold text-[#C8FF00]">12,847</b> runners
+            training right now
+          </span>
         </div>
 
-        {/* Grid pattern */}
-        <div
-          className="pointer-events-none absolute inset-0 opacity-[0.03]"
-          style={{
-            backgroundImage:
-              "linear-gradient(rgba(255,255,255,.4) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.4) 1px, transparent 1px)",
-            backgroundSize: "60px 60px",
-          }}
-        />
+        {/* Headline */}
+        <h1 className="max-w-[900px] animate-fadeUp animation-delay-100 text-[clamp(52px,7.5vw,96px)] font-light leading-[1.05] tracking-[-0.04em] text-white/[0.92]">
+          Your coach sees
+          <br />
+          what{" "}
+          <em className="not-italic font-medium text-[#C8FF00]">
+            you can&apos;t.
+          </em>
+        </h1>
 
-        <div className="relative z-10 mx-auto max-w-4xl text-center">
-          {/* Badge */}
-          <div className="animate-slide-up mb-8 inline-flex items-center gap-2 rounded-full border border-[#D4FF3A]/20 bg-[#D4FF3A]/5 px-4 py-1.5 text-sm text-[#D4FF3A]">
-            <Zap className="size-3.5" />
-            AI-Powered Running Coach
+        {/* Sub */}
+        <p className="mt-7 max-w-[540px] animate-fadeUp animation-delay-250 text-xl font-light leading-[1.55] tracking-[-0.01em] text-white/45">
+          Cadence is an AI running coach that analyzes your data, builds
+          adaptive plans, and shows you <em className="not-italic">why</em>{" "}
+          every decision was made. Not a template. A real coach.
+        </p>
+
+        {/* Actions */}
+        <div className="mt-12 flex animate-fadeUp flex-col gap-3.5 animation-delay-400 sm:flex-row">
+          <a
+            href="#download"
+            className="inline-flex items-center justify-center gap-2.5 rounded-[14px] bg-[#C8FF00] px-9 py-[18px] text-[17px] font-semibold tracking-[-0.01em] text-black transition-transform hover:scale-[1.03] active:scale-[0.97]"
+          >
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+              <path
+                d="M9 2V12M9 12L5 8M9 12L13 8"
+                stroke="black"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <path
+                d="M2 14V15C2 15.55 2.45 16 3 16H15C15.55 16 16 15.55 16 15V14"
+                stroke="black"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+            Download Free
+          </a>
+          <a
+            href="#how"
+            className="inline-flex items-center justify-center gap-2.5 rounded-[14px] border border-white/[0.08] bg-white/[0.03] px-9 py-[18px] text-[17px] font-normal tracking-[-0.01em] text-white/70 transition-colors hover:border-white/25 hover:text-white/[0.92]"
+          >
+            See how it works
+          </a>
+        </div>
+
+        {/* Terminal */}
+        <HeroTerminal />
+      </section>
+
+      {/* ═══════════════ MARQUEE ═══════════════ */}
+      <Marquee />
+
+      {/* ═══════════════ HOW IT WORKS ═══════════════ */}
+      <section
+        className="px-5 py-16 sm:px-8 sm:py-20 lg:px-12 lg:py-[120px]"
+        id="how"
+      >
+        <ScrollReveal>
+          <div className="mb-4 font-mono text-[11px] font-medium uppercase tracking-[0.08em] text-[#C8FF00]">
+            How It Works
           </div>
-
-          {/* Headline */}
-          <h1 className="animate-slide-up animation-delay-200 text-5xl leading-[1.1] font-bold tracking-tight sm:text-6xl md:text-7xl">
-            Train Smarter.
+          <h2 className="mb-5 max-w-[700px] text-[clamp(36px,4.5vw,56px)] font-light leading-[1.1] tracking-[-0.03em] text-white/[0.92]">
+            Three minutes to a
             <br />
-            <span className="animate-gradient-shift bg-gradient-to-r from-[#D4FF3A] via-[#8DFF1A] to-[#D4FF3A] bg-clip-text text-transparent">
-              Race Faster.
-            </span>
-          </h1>
-
-          {/* Subtitle */}
-          <p className="animate-slide-up animation-delay-400 mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-[#8E8E93] sm:text-xl">
-            Cadence is your AI running coach that doesn&apos;t just tell you
-            what to do — it explains{" "}
-            <span className="text-white/90">why</span>. Personalized plans,
-            wearable intelligence, and transparent reasoning for every session.
+            <em className="not-italic font-medium text-[#C8FF00]">
+              real coaching plan.
+            </em>
+          </h2>
+          <p className="max-w-[520px] text-lg font-light leading-[1.6] tracking-[-0.01em] text-white/45">
+            No questionnaire. A conversation. Cadence asks the right questions,
+            processes your answers in real time, and builds a plan you can
+            actually see the reasoning behind.
           </p>
+        </ScrollReveal>
 
-          {/* CTAs */}
-          <div className="animate-slide-up animation-delay-600 mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
-            <a
-              href="#features"
-              className="group inline-flex h-12 items-center gap-2 rounded-full bg-gradient-to-r from-[#D4FF3A] to-[#8DFF1A] px-7 text-sm font-semibold text-black transition hover:shadow-[0_0_32px_rgba(212,255,58,0.3)]"
-            >
-              Explore Features
-              <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
-            </a>
-            <a
-              href="#how-it-works"
-              className="inline-flex h-12 items-center gap-2 rounded-full border border-white/10 px-7 text-sm font-medium text-white/80 transition hover:border-white/20 hover:text-white"
-            >
-              How It Works
-            </a>
-          </div>
-        </div>
-
-        {/* Scroll indicator */}
-        <div className="absolute bottom-10 left-1/2 -translate-x-1/2">
-          <div className="flex h-8 w-5 items-start justify-center rounded-full border border-white/20 p-1">
-            <div className="animate-float h-1.5 w-1 rounded-full bg-[#D4FF3A]" />
-          </div>
+        <div className="mt-16 grid gap-5 lg:grid-cols-3">
+          <ScrollReveal delay={1}>
+            <StepCardWaveform />
+          </ScrollReveal>
+          <ScrollReveal delay={2}>
+            <StepCardGraph />
+          </ScrollReveal>
+          <ScrollReveal delay={3}>
+            <StepCardCalendar />
+          </ScrollReveal>
         </div>
       </section>
 
-      {/* ── Features ── */}
-      <section id="features" className="relative px-6 py-32">
-        <div className="mx-auto max-w-6xl">
-          {/* Section header */}
-          <div className="mb-16 max-w-2xl">
-            <p className="mb-3 text-sm font-semibold tracking-widest text-[#D4FF3A] uppercase">
-              Features
-            </p>
-            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-              Coaching that thinks <br className="hidden sm:block" />
-              out loud.
-            </h2>
-            <p className="mt-4 text-lg leading-relaxed text-[#8E8E93]">
-              Every feature is designed around one principle: you should always
-              understand your training as well as your coach does.
-            </p>
+      {/* ═══════════════ THE DIFFERENCE ═══════════════ */}
+      <section
+        className="px-5 py-16 sm:px-8 sm:py-20 lg:px-12 lg:py-[120px]"
+        id="features"
+      >
+        <ScrollReveal>
+          <div className="mb-4 font-mono text-[11px] font-medium uppercase tracking-[0.08em] text-[#C8FF00]">
+            The Difference
           </div>
+          <h2 className="mb-5 max-w-[700px] text-[clamp(36px,4.5vw,56px)] font-light leading-[1.1] tracking-[-0.03em] text-white/[0.92]">
+            Not another{" "}
+            <em className="not-italic font-medium text-[#C8FF00]">
+              training template.
+            </em>
+          </h2>
+          <p className="max-w-[520px] text-lg font-light leading-[1.6] tracking-[-0.01em] text-white/45">
+            Most apps give you a plan and hope for the best. Cadence gives you a
+            coach that adapts, explains, and gets smarter over time.
+          </p>
+        </ScrollReveal>
 
-          {/* Feature cards */}
-          <div className="grid gap-6 sm:grid-cols-2">
-            {FEATURES.map((feature) => (
-              <div
-                key={feature.title}
-                className="group rounded-2xl border border-white/5 bg-[#1C1C1E]/60 p-8 transition hover:border-[#D4FF3A]/10 hover:bg-[#1C1C1E]"
-              >
-                <div className="mb-5 flex size-12 items-center justify-center rounded-xl bg-[#D4FF3A]/10 text-[#D4FF3A] transition group-hover:bg-[#D4FF3A]/15">
-                  <feature.icon className="size-6" />
+        <div className="mt-16 grid gap-6 lg:grid-cols-2">
+          {/* Them */}
+          <ScrollReveal delay={1}>
+            <div className="rounded-[20px] border border-white/[0.08] bg-white/[0.015] p-8 md:p-9">
+              <div className="mb-6 flex items-center gap-2 font-mono text-[10px] font-medium uppercase tracking-[0.08em] text-white/25">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                  <line
+                    x1="3"
+                    y1="3"
+                    x2="11"
+                    y2="11"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                  />
+                  <line
+                    x1="11"
+                    y1="3"
+                    x2="3"
+                    y2="11"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                  />
+                </svg>
+                Other apps
+              </div>
+              {[
+                "Static plan generated once, never changes",
+                "Generic template based on distance selection",
+                "No explanation for why sessions exist",
+                "Miss a run? You're on your own",
+                "Same plan whether you ran 20km or 80km last week",
+              ].map((text, i) => (
+                <div
+                  key={i}
+                  className={`flex items-start gap-3 py-3.5 ${i < 4 ? "border-b border-white/[0.08]" : ""}`}
+                >
+                  <span className="mt-0.5 flex-shrink-0 text-sm text-white/25">
+                    →
+                  </span>
+                  <p className="text-[15px] font-light leading-[1.5] text-white/45">
+                    {text}
+                  </p>
                 </div>
-                <h3 className="mb-2 text-xl font-semibold">{feature.title}</h3>
-                <p className="leading-relaxed text-[#8E8E93]">
-                  {feature.description}
-                </p>
+              ))}
+            </div>
+          </ScrollReveal>
+          {/* Us */}
+          <ScrollReveal delay={2}>
+            <div className="rounded-[20px] border border-[#C8FF00]/30 bg-[rgba(200,255,0,0.06)] p-8 md:p-9">
+              <div className="mb-6 flex items-center gap-2 font-mono text-[10px] font-medium uppercase tracking-[0.08em] text-[#C8FF00]">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                  <path
+                    d="M3 7L6 10L11 4"
+                    stroke="#C8FF00"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+                Cadence
               </div>
-            ))}
-          </div>
+              {[
+                "Plan adapts after every single run you log",
+                "Built from your actual GPS data and conversation",
+                <>
+                  <strong>Decision Audit</strong> — see why every choice was
+                  made
+                </>,
+                "Missed a run? Plan reshapes around it automatically",
+                "Knows your injury history, recovery style, and limits",
+              ].map((text, i) => (
+                <div
+                  key={i}
+                  className={`flex items-start gap-3 py-3.5 ${i < 4 ? "border-b border-white/[0.08]" : ""}`}
+                >
+                  <span className="mt-0.5 flex-shrink-0 text-sm text-[#C8FF00]">
+                    →
+                  </span>
+                  <p className="text-[15px] font-light leading-[1.5] text-white/70">
+                    {text}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </ScrollReveal>
         </div>
       </section>
 
-      {/* ── How It Works ── */}
-      <section id="how-it-works" className="relative px-6 py-32">
-        {/* Subtle divider glow */}
-        <div className="pointer-events-none absolute top-0 left-1/2 h-px w-2/3 -translate-x-1/2 bg-gradient-to-r from-transparent via-[#D4FF3A]/20 to-transparent" />
+      {/* ═══════════════ RADAR / DECISION AUDIT ═══════════════ */}
+      <section className="px-5 py-16 sm:px-8 sm:py-20 lg:px-12 lg:py-[120px]">
+        <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-20">
+          <div>
+            <ScrollReveal>
+              <div className="mb-4 font-mono text-[11px] font-medium uppercase tracking-[0.08em] text-[#C8FF00]">
+                Visible Intelligence
+              </div>
+              <h2 className="mb-5 max-w-[700px] text-[clamp(36px,4.5vw,56px)] font-light leading-[1.1] tracking-[-0.03em] text-white/[0.92]">
+                Every decision,{" "}
+                <em className="not-italic font-medium text-[#C8FF00]">
+                  explained.
+                </em>
+              </h2>
+              <p className="max-w-[520px] text-lg font-light leading-[1.6] tracking-[-0.01em] text-white/45">
+                Cadence doesn&apos;t hide behind a black box. Your runner
+                profile, projected finish, and every coaching choice comes with
+                reasoning you can inspect.
+              </p>
+            </ScrollReveal>
 
-        <div className="mx-auto max-w-6xl">
-          {/* Section header */}
-          <div className="mb-16 text-center">
-            <p className="mb-3 text-sm font-semibold tracking-widest text-[#D4FF3A] uppercase">
-              How It Works
-            </p>
-            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-              From first sync to race day.
-            </h2>
-            <p className="mx-auto mt-4 max-w-xl text-lg leading-relaxed text-[#8E8E93]">
-              Three steps to training that adapts to you — and tells you why.
-            </p>
+            <ScrollReveal delay={2}>
+              <AuditAccordion />
+            </ScrollReveal>
           </div>
 
-          {/* Steps */}
-          <div className="grid gap-8 md:grid-cols-3">
-            {STEPS.map((step) => (
-              <div key={step.step} className="relative text-center md:text-left">
-                <span className="mb-4 inline-block font-mono text-4xl font-bold text-[#D4FF3A]/20">
-                  {step.step}
+          <ScrollReveal delay={1}>
+            <div className="flex justify-center">
+              <RadarChart />
+            </div>
+          </ScrollReveal>
+        </div>
+      </section>
+
+      {/* ═══════════════ TESTIMONIALS ═══════════════ */}
+      <section
+        className="px-5 py-16 sm:px-8 sm:py-20 lg:px-12 lg:py-[120px]"
+        id="proof"
+      >
+        <ScrollReveal>
+          <div className="mb-4 font-mono text-[11px] font-medium uppercase tracking-[0.08em] text-[#C8FF00]">
+            Real Runners
+          </div>
+          <h2 className="mb-5 max-w-[700px] text-[clamp(36px,4.5vw,56px)] font-light leading-[1.1] tracking-[-0.03em] text-white/[0.92]">
+            Results that speak{" "}
+            <em className="not-italic font-medium text-[#C8FF00]">
+              for themselves.
+            </em>
+          </h2>
+        </ScrollReveal>
+
+        <div className="mt-16 grid gap-4 lg:grid-cols-3">
+          {[
+            {
+              quote:
+                "Cadence saw what I couldn't — I was overtraining every easy day. Two weeks of slowing down and my tempo pace dropped by 15 seconds.",
+              name: "Sarah M.",
+              initial: "S",
+              result: "1:38 half marathon",
+              meta: "London · 12 weeks",
+            },
+            {
+              quote:
+                "The plan adapted after my knee flared up. It didn't just delete sessions — it restructured everything around the injury. No other app does that.",
+              name: "Thomas K.",
+              initial: "T",
+              result: "Sub-3:15 marathon",
+              meta: "Berlin · 16 weeks",
+            },
+            {
+              quote:
+                "I went from not running at all to completing my first 10K. The decision audit sold me — I finally understand why I'm doing each run.",
+              name: "Léa R.",
+              initial: "L",
+              result: "First 10K completed",
+              meta: "Lyon · 8 weeks",
+            },
+          ].map((t, i) => (
+            <ScrollReveal key={i} delay={(i + 1) as 1 | 2 | 3}>
+              <div className="rounded-[20px] border border-white/[0.08] bg-white/[0.03] p-7 transition-all hover:-translate-y-1 hover:border-[#C8FF00]/[0.12]">
+                <div className="mb-1 text-4xl font-light leading-none text-[#C8FF00] opacity-30">
+                  &ldquo;
+                </div>
+                <p className="mb-6 text-base font-light leading-[1.55] tracking-[-0.01em] text-white/70">
+                  {t.quote}
+                </p>
+                <div className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full border-[1.5px] border-[#C8FF00]/20 bg-[rgba(200,255,0,0.12)] text-sm font-semibold text-[#C8FF00]">
+                    {t.initial}
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium text-white/[0.92]">
+                      {t.name}
+                    </div>
+                    <div className="font-mono text-xs text-[#C8FF00]">
+                      {t.result}
+                    </div>
+                    <div className="font-mono text-[10px] text-white/25">
+                      {t.meta}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </ScrollReveal>
+          ))}
+        </div>
+      </section>
+
+      {/* ═══════════════ PRICING ═══════════════ */}
+      <section
+        className="px-5 py-16 sm:px-8 sm:py-20 lg:px-12 lg:py-[120px]"
+        id="pricing"
+      >
+        <ScrollReveal>
+          <div className="mb-4 font-mono text-[11px] font-medium uppercase tracking-[0.08em] text-[#C8FF00]">
+            Pricing
+          </div>
+          <h2 className="mb-5 max-w-[700px] text-[clamp(36px,4.5vw,56px)] font-light leading-[1.1] tracking-[-0.03em] text-white/[0.92]">
+            Start free.{" "}
+            <em className="not-italic font-medium text-[#C8FF00]">
+              Stay coached.
+            </em>
+          </h2>
+          <p className="max-w-[520px] text-lg font-light leading-[1.6] tracking-[-0.01em] text-white/45">
+            7-day free trial, cancel anytime. No credit card required to start.
+          </p>
+        </ScrollReveal>
+
+        <div className="mx-auto mt-16 grid max-w-[720px] gap-4 lg:grid-cols-2">
+          {/* Free trial */}
+          <ScrollReveal delay={1} className="h-full">
+            <div className="flex h-full flex-col rounded-3xl border border-white/[0.08] bg-white/[0.03] p-8 md:p-10">
+              <div className="mb-6 font-mono text-[10px] font-medium uppercase tracking-[0.08em] text-white/25">
+                Free Trial
+              </div>
+              <div className="font-mono text-5xl font-medium tracking-[-0.03em] text-white/[0.92]">
+                &euro;0
+                <span className="ml-1 text-base font-light text-white/25">
+                  /7 days
                 </span>
-                <h3 className="mb-3 text-xl font-semibold">{step.title}</h3>
-                <p className="leading-relaxed text-[#8E8E93]">
-                  {step.description}
-                </p>
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── CTA ── */}
-      <section className="relative px-6 py-32">
-        <div className="pointer-events-none absolute top-0 left-1/2 h-px w-2/3 -translate-x-1/2 bg-gradient-to-r from-transparent via-[#D4FF3A]/20 to-transparent" />
-
-        <div className="mx-auto max-w-3xl text-center">
-          <div className="rounded-3xl border border-white/5 bg-[#1C1C1E]/40 p-12 sm:p-16">
-            <Image
-              src="/logo.png"
-              alt="Cadence logo"
-              width={64}
-              height={64}
-              className="mx-auto mb-6 rounded-2xl"
-            />
-            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-              Ready to run smarter?
-            </h2>
-            <p className="mx-auto mt-4 max-w-md text-lg leading-relaxed text-[#8E8E93]">
-              Cadence is coming soon. Be the first to experience AI coaching
-              that thinks out loud.
-            </p>
-            <div className="mt-8">
+              <p className="mb-7 mt-2 text-sm font-light leading-[1.5] text-white/45">
+                Full access. See if Cadence is right for you.
+              </p>
+              <ul className="mb-8 space-y-0">
+                {[
+                  "Full onboarding conversation",
+                  "Runner profile + radar chart",
+                  "10-week volume plan",
+                  "Weekly structure",
+                  "Decision audit",
+                ].map((f) => (
+                  <li
+                    key={f}
+                    className="flex items-center gap-2.5 border-b border-white/[0.08] py-2.5 text-sm font-light text-white/70"
+                  >
+                    <span className="font-mono text-xs font-semibold text-[#C8FF00]">
+                      ✓
+                    </span>
+                    {f}
+                  </li>
+                ))}
+              </ul>
               <a
-                href="https://testflight.apple.com/join/FAYgzVWk"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group inline-flex h-12 items-center gap-2 rounded-full bg-gradient-to-r from-[#D4FF3A] to-[#8DFF1A] px-8 text-sm font-semibold text-black transition hover:shadow-[0_0_32px_rgba(212,255,58,0.3)]"
+                href="#download"
+                className="mt-auto inline-flex w-full items-center justify-center rounded-[14px] border border-white/[0.08] bg-white/[0.03] px-4 py-3.5 text-[17px] font-normal tracking-[-0.01em] text-white/70 transition-colors hover:border-white/25 hover:text-white/[0.92]"
               >
-                Get Early Access
-                <ChevronRight className="size-4 transition-transform group-hover:translate-x-0.5" />
+                Start Free Trial
               </a>
             </div>
-          </div>
+          </ScrollReveal>
+          {/* Pro */}
+          <ScrollReveal delay={2} className="h-full">
+            <div className="flex h-full flex-col rounded-3xl border border-[#C8FF00]/30 bg-gradient-to-b from-[rgba(200,255,0,0.06)] to-white/[0.03] p-8 md:p-10">
+              <div className="mb-6 inline-flex w-fit rounded-full bg-[rgba(200,255,0,0.12)] px-3.5 py-1 font-mono text-[10px] font-medium tracking-[0.06em] text-[#C8FF00]">
+                RECOMMENDED
+              </div>
+              <div className="font-mono text-5xl font-medium tracking-[-0.03em] text-white/[0.92]">
+                &euro;9.99
+                <span className="ml-1 text-base font-light text-white/25">
+                  /month
+                </span>
+              </div>
+              <p className="mb-7 mt-2 text-sm font-light leading-[1.5] text-white/45">
+                Everything in trial, plus continuous coaching.
+              </p>
+              <ul className="mb-8 space-y-0">
+                {[
+                  "Unlimited plan adaptations",
+                  "Daily session adjustments",
+                  "Injury-responsive reshaping",
+                  "Race day predictions",
+                  "Priority wearable sync",
+                  "Full coaching history",
+                ].map((f) => (
+                  <li
+                    key={f}
+                    className="flex items-center gap-2.5 border-b border-white/[0.08] py-2.5 text-sm font-light text-white/70"
+                  >
+                    <span className="font-mono text-xs font-semibold text-[#C8FF00]">
+                      ✓
+                    </span>
+                    {f}
+                  </li>
+                ))}
+              </ul>
+              <a
+                href="#download"
+                className="mt-auto inline-flex w-full items-center justify-center rounded-[14px] bg-[#C8FF00] px-4 py-3.5 text-[17px] font-semibold tracking-[-0.01em] text-black transition-transform hover:scale-[1.03] active:scale-[0.97]"
+              >
+                Get Started
+              </a>
+            </div>
+          </ScrollReveal>
         </div>
       </section>
 
+      {/* ═══════════════ FINAL CTA ═══════════════ */}
+      <section
+        className="px-5 pb-40 pt-16 text-center sm:px-8 sm:pt-20 lg:px-12 lg:pt-[120px]"
+        id="download"
+      >
+        <ScrollReveal>
+          <h2 className="mx-auto mb-6 max-w-[680px] text-[clamp(40px,5.5vw,72px)] font-light leading-[1.08] tracking-[-0.04em]">
+            Your next PR starts with a{" "}
+            <em className="not-italic font-medium text-[#C8FF00]">
+              conversation.
+            </em>
+          </h2>
+          <p className="mx-auto mb-12 max-w-[440px] text-lg font-light leading-[1.55] tracking-[-0.01em] text-white/45">
+            Download Cadence. Connect your watch or answer a few questions. Get a
+            plan you can trust — because you can see how it thinks.
+          </p>
+          <div className="flex flex-wrap justify-center gap-3.5">
+            {/* App Store */}
+            <a
+              href="#"
+              className="inline-flex items-center gap-3 rounded-[14px] bg-white px-8 py-4 text-black transition-transform hover:scale-[1.03]"
+            >
+              <svg width="22" height="26" viewBox="0 0 22 26" fill="black">
+                <path d="M18.07 13.58c-.03-2.84 2.32-4.21 2.43-4.27-1.32-1.93-3.38-2.2-4.11-2.23-1.75-.18-3.42 1.03-4.31 1.03-.9 0-2.28-1.01-3.75-.98-1.93.03-3.71 1.13-4.7 2.85-2.01 3.48-.51 8.63 1.44 11.46.96 1.37 2.1 2.92 3.59 2.87 1.44-.06 1.99-.93 3.73-.93 1.74 0 2.23.93 3.75.9 1.55-.03 2.53-1.4 3.47-2.78 1.1-1.59 1.55-3.14 1.57-3.22-.03-.02-3.02-1.16-3.05-4.6l-.06-.1zM15.18 4.84c.79-.96 1.32-2.3 1.18-3.63-1.14.05-2.52.76-3.34 1.72-.73.85-1.38 2.21-1.2 3.52 1.27.1 2.56-.64 3.36-1.61z" />
+              </svg>
+              <div className="text-left">
+                <div className="text-[10px] font-normal opacity-70">
+                  Download on the
+                </div>
+                <div className="text-[17px] font-semibold tracking-[-0.02em]">
+                  App Store
+                </div>
+              </div>
+            </a>
+            {/* Google Play */}
+            <a
+              href="#"
+              className="inline-flex items-center gap-3 rounded-[14px] bg-white px-8 py-4 text-black transition-transform hover:scale-[1.03]"
+            >
+              <svg width="22" height="24" viewBox="0 0 22 24" fill="none">
+                <path d="M1 1.5L12.5 12L1 22.5V1.5Z" fill="#4285F4" />
+                <path d="M1 1.5L16.5 9L12.5 12L1 1.5Z" fill="#34A853" />
+                <path d="M1 22.5L12.5 12L16.5 15L1 22.5Z" fill="#EA4335" />
+                <path
+                  d="M16.5 9L21 11.5L16.5 15L12.5 12L16.5 9Z"
+                  fill="#FBBC05"
+                />
+              </svg>
+              <div className="text-left">
+                <div className="text-[10px] font-normal opacity-70">
+                  Get it on
+                </div>
+                <div className="text-[17px] font-semibold tracking-[-0.02em]">
+                  Google Play
+                </div>
+              </div>
+            </a>
+          </div>
+        </ScrollReveal>
+      </section>
+
+      {/* ═══════════════ FAQ ═══════════════ */}
+      <section
+        className="px-5 pb-16 pt-10 text-center sm:px-8 sm:pb-20 lg:px-12 lg:pb-[120px]"
+        id="faq"
+      >
+        <ScrollReveal>
+          <div className="mx-auto mb-4 font-mono text-[11px] font-medium uppercase tracking-[0.08em] text-[#C8FF00]">
+            FAQ
+          </div>
+          <h2 className="mx-auto max-w-[700px] text-[clamp(36px,4.5vw,56px)] font-light leading-[1.1] tracking-[-0.03em] text-white/[0.92]">
+            Questions you might have.
+          </h2>
+        </ScrollReveal>
+
+        <FaqAccordion />
+      </section>
     </div>
   );
 }

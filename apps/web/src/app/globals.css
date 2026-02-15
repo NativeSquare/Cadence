@@ -6,8 +6,8 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-outfit), sans-serif;
+  --font-mono: var(--font-jetbrains-mono), monospace;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -119,13 +119,49 @@
   * {
     @apply border-border outline-ring/50;
   }
+  html {
+    scroll-behavior: smooth;
+  }
   body {
     @apply bg-background text-foreground;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
   }
 }
 
 /* ── Cadence Landing Page ── */
 
+/* Grain overlay */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  opacity: 0.5;
+  mix-blend-mode: overlay;
+}
+
+/* Animations */
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
 @keyframes float {
   0%,
   100% {
@@ -135,17 +171,33 @@
     transform: translateY(-12px);
   }
 }
-
 @keyframes pulse-glow {
   0%,
   100% {
     opacity: 0.4;
   }
   50% {
-    opacity: 0.8;
+    opacity: 1;
   }
 }
-
+@keyframes pulseRing {
+  0% {
+    transform: scale(1);
+    opacity: 0.4;
+  }
+  100% {
+    transform: scale(2.5);
+    opacity: 0;
+  }
+}
+@keyframes marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
 @keyframes slide-up {
   from {
     opacity: 0;
@@ -156,7 +208,6 @@
     transform: translateY(0);
   }
 }
-
 @keyframes gradient-shift {
   0%,
   100% {
@@ -170,32 +221,170 @@
 .animate-float {
   animation: float 6s ease-in-out infinite;
 }
-
 .animate-pulse-glow {
   animation: pulse-glow 4s ease-in-out infinite;
 }
-
 .animate-slide-up {
   animation: slide-up 0.8s ease-out both;
 }
-
 .animate-gradient-shift {
   background-size: 200% 200%;
   animation: gradient-shift 6s ease infinite;
 }
+.animate-fadeUp {
+  animation: fadeUp 0.8s ease both;
+}
+.animate-marquee {
+  animation: marquee 30s linear infinite;
+}
+.animate-pulseRing {
+  animation: pulseRing 2s ease infinite;
+}
 
+.animation-delay-100 {
+  animation-delay: 0.1s;
+}
 .animation-delay-200 {
   animation-delay: 0.2s;
 }
-
+.animation-delay-250 {
+  animation-delay: 0.25s;
+}
 .animation-delay-400 {
   animation-delay: 0.4s;
 }
-
+.animation-delay-500 {
+  animation-delay: 0.5s;
+}
 .animation-delay-600 {
   animation-delay: 0.6s;
 }
-
 .animation-delay-800 {
   animation-delay: 0.8s;
+}
+
+/* Scroll reveal */
+.reveal {
+  opacity: 0;
+  transform: translateY(40px);
+  transition:
+    opacity 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+    transform 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+.reveal-delay-1 {
+  transition-delay: 0.1s;
+}
+.reveal-delay-2 {
+  transition-delay: 0.2s;
+}
+.reveal-delay-3 {
+  transition-delay: 0.3s;
+}
+.reveal-delay-4 {
+  transition-delay: 0.4s;
+}
+
+/* Step card graph art animations */
+.graph-line {
+  stroke-dasharray: 600;
+  stroke-dashoffset: 600;
+  transition: stroke-dashoffset 2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+.step-card-hover .graph-line {
+  stroke-dashoffset: 0;
+}
+.graph-fill {
+  opacity: 0;
+  transition: opacity 1.2s ease 0.6s;
+}
+.step-card-hover .graph-fill {
+  opacity: 1;
+}
+.graph-dot {
+  r: 0;
+  transition: r 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.step-card-hover .graph-dot {
+  r: 4;
+}
+.graph-dot-glow {
+  r: 0;
+  transition: r 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s;
+}
+.step-card-hover .graph-dot-glow {
+  r: 12;
+}
+.graph-label {
+  opacity: 0;
+  transform: translateY(4px);
+  transition:
+    opacity 0.3s ease,
+    transform 0.3s ease;
+}
+.step-card-hover .graph-label {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Calendar build-in */
+.cal-cell {
+  opacity: 0.15;
+  transition:
+    opacity 0.3s ease,
+    transform 0.3s ease;
+  transform: translateY(4px);
+}
+.step-card-hover .cal-cell {
+  opacity: 1;
+  transform: translateY(0);
+}
+.step-card-hover .cal-cell:nth-child(1) {
+  transition-delay: 0.05s;
+}
+.step-card-hover .cal-cell:nth-child(2) {
+  transition-delay: 0.12s;
+}
+.step-card-hover .cal-cell:nth-child(3) {
+  transition-delay: 0.19s;
+}
+.step-card-hover .cal-cell:nth-child(4) {
+  transition-delay: 0.26s;
+}
+.step-card-hover .cal-cell:nth-child(5) {
+  transition-delay: 0.33s;
+}
+.step-card-hover .cal-cell:nth-child(6) {
+  transition-delay: 0.4s;
+}
+.step-card-hover .cal-cell:nth-child(7) {
+  transition-delay: 0.47s;
+}
+
+/* FAQ animation */
+.faq-answer {
+  max-height: 0;
+  overflow: hidden;
+  transition:
+    max-height 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+    padding 0.3s;
+  padding: 0;
+}
+.faq-open .faq-answer {
+  max-height: 300px;
+  padding-bottom: 24px;
+}
+.faq-arrow-icon {
+  transition:
+    transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+    color 0.3s,
+    background 0.3s;
+}
+.faq-open .faq-arrow-icon {
+  transform: rotate(45deg);
+  color: #c8ff00;
+  background: rgba(200, 255, 0, 0.12);
 }
