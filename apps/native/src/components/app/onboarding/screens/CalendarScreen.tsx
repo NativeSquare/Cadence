@@ -117,7 +117,7 @@ export function CalendarScreen({
   // Streaming intro text
   const stream = useStream(
     "Here's what a typical training week looks like.",
-    28,
+    14,
     300,
     true
   );

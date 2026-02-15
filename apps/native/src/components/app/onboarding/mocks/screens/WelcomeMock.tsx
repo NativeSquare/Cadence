@@ -4,7 +4,7 @@
  * Source: cadence-v3.jsx lines 376-394
  */
 
-import { useEffect, useState, useRef, useCallback, memo } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import {
   View,
   StyleSheet,
@@ -113,6 +113,25 @@ function NameInputView({ initialName, onConfirm }: NameInputViewProps) {
   );
 }
 
+// Helper to render text with "cadence" styled in bold (matching logo)
+function renderWithCadenceBold(text: string) {
+  const cadenceIndex = text.indexOf("cadence");
+  if (cadenceIndex === -1) {
+    return <Text style={styles.headline}>{text}</Text>;
+  }
+
+  const before = text.slice(0, cadenceIndex);
+  const after = text.slice(cadenceIndex + 7); // "cadence".length = 7
+
+  return (
+    <>
+      {before}
+      <Text style={styles.cadenceBold}>cadence</Text>
+      {after}
+    </>
+  );
+}
+
 export function WelcomeMock({
   userName = "Alex",
   onNext,
@@ -124,32 +143,51 @@ export function WelcomeMock({
 
   const confirmName = useMutation(api.table.runners.confirmName);
 
+  // Phrase 1: Welcome greeting (2s delay to create moment of entry)
   const s1 = useStream({
-    text: `${displayName}, every runner's different.`,
+    text: `Welcome to the team, ${displayName}.`,
     speed: 32,
-    delay: 500,
+    delay: 2000,
     active: !showNameInput,
   });
 
+  // Phrase 2: Identity - "I'm cadence."
   const s2 = useStream({
-    text: "Before I coach you, I need to know who I'm working with.",
+    text: "I'm cadence.",
     speed: 32,
-    delay: 400,
+    delay: 800,
     active: s1.done && !showNameInput,
   });
 
+  // Phrase 3: Not a training plan
   const s3 = useStream({
-    text: "Mind a few questions?",
+    text: "Not a training plan app.",
     speed: 32,
-    delay: 600,
+    delay: 700,
     active: s2.done && !showNameInput,
   });
 
+  // Phrase 4: Not a calendar
+  const s4 = useStream({
+    text: "Not a calendar.",
+    speed: 32,
+    delay: 600,
+    active: s3.done && !showNameInput,
+  });
+
+  // Phrase 5: Your running coach
+  const s5 = useStream({
+    text: "Your running coach.",
+    speed: 32,
+    delay: 800,
+    active: s4.done && !showNameInput,
+  });
+
   useEffect(() => {
-    if (s3.done) {
+    if (s5.done) {
       setTimeout(() => setReady(true), 400);
     }
-  }, [s3.done]);
+  }, [s5.done]);
 
   const handleChangeName = () => {
     selectionFeedback();
@@ -176,22 +214,41 @@ export function WelcomeMock({
   return (
     <View style={styles.container}>
       <View style={styles.textArea}>
+        {/* Phrase 1: Welcome greeting */}
         <Text style={styles.headlineBold}>
           {s1.displayed}
           {!s1.done && s1.started && <Cursor visible height={36} />}
         </Text>
 
+        {/* Phrase 2: I'm cadence */}
         {s2.started && (
           <Text style={[styles.headline, styles.marginTop]}>
-            {s2.displayed}
+            {renderWithCadenceBold(s2.displayed)}
             {!s2.done && <Cursor visible height={36} />}
           </Text>
         )}
 
+        {/* Phrase 3: Not a training plan app */}
         {s3.started && (
-          <Text style={[styles.subheadline, styles.marginTopLarge]}>
+          <Text style={[styles.headline, styles.marginTopSmall]}>
             {s3.displayed}
             {!s3.done && <Cursor visible height={36} />}
+          </Text>
+        )}
+
+        {/* Phrase 4: Not a calendar */}
+        {s4.started && (
+          <Text style={[styles.headline, styles.marginTopSmall]}>
+            {s4.displayed}
+            {!s4.done && <Cursor visible height={36} />}
+          </Text>
+        )}
+
+        {/* Phrase 5: Your running coach */}
+        {s5.started && (
+          <Text style={[styles.subheadline, styles.marginTopLarge]}>
+            {s5.displayed}
+            {!s5.done && <Cursor visible height={36} />}
           </Text>
         )}
       </View>
@@ -238,6 +295,11 @@ const styles = StyleSheet.create({
     lineHeight: 50,
     letterSpacing: -1.26,
   },
+  cadenceBold: {
+    fontFamily: "Outfit-Bold",
+    fontSize: 32,
+    letterSpacing: -1.28,
+  },
   subheadline: {
     fontSize: 42,
     fontFamily: "Outfit-Light",
@@ -248,6 +310,9 @@ const styles = StyleSheet.create({
   },
   marginTop: {
     marginTop: 8,
+  },
+  marginTopSmall: {
+    marginTop: 4,
   },
   marginTopLarge: {
     marginTop: 24,

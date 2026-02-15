@@ -38,12 +38,12 @@ export function GoalsMock({ hasData, onNext }: GoalsMockProps) {
   const scrollRef = useRef<ScrollView>(null);
 
   const promptText = hasData
-    ? "Your training data tells me a lot — but not what you're actually working toward. What's the goal?"
-    : "Now the big one — what are you working toward?";
+    ? "Sweet. Your training data tells me a lot — but not what you're actually working toward. What's the goal?"
+    : "Alright. Now the big one — what are you working toward?";
 
   const intro = useStream({
     text: promptText,
-    speed: 28,
+    speed: 14,
     delay: 300,
   });
 

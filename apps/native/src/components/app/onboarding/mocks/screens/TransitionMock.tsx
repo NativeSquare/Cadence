@@ -46,13 +46,13 @@ export function TransitionMock({ onDone }: TransitionMockProps) {
 
   const s1 = useStream({
     text: "Okay. I believe I have what I need to draft your game plan.",
-    speed: 30,
+    speed: 15,
     delay: 500,
   });
 
   const s2 = useStream({
     text: "Give me a second to put this together...",
-    speed: 30,
+    speed: 15,
     delay: 400,
     active: s1.done,
   });

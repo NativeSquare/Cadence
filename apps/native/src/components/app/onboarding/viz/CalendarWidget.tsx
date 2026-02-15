@@ -328,7 +328,6 @@ export function CalendarWidget({
   onAnimationComplete,
 }: CalendarWidgetProps) {
   const [expanded, setExpanded] = useState<number | null>(null);
-  const [showSummary, setShowSummary] = useState(!animate);
 
   // Calculate counts
   const keyCount = schedule.filter((s) => s.key).length;
@@ -338,18 +337,12 @@ export function CalendarWidget({
   // Trigger animation complete callback
   useEffect(() => {
     if (animate) {
-      // Show summary after cards animate in
-      const summaryTimer = setTimeout(() => {
-        setShowSummary(true);
-      }, schedule.length * 50 + 400);
-
-      // Call completion callback
+      // Call completion callback after cards animate in
       const completeTimer = setTimeout(() => {
         onAnimationComplete?.();
       }, schedule.length * 50 + 600);
 
       return () => {
-        clearTimeout(summaryTimer);
         clearTimeout(completeTimer);
       };
     }
@@ -366,10 +359,8 @@ export function CalendarWidget({
         <Text style={styles.header}>Typical Week — {phaseLabel}</Text>
       </View>
 
-      {/* Summary strip */}
-      {showSummary && (
-        <SummaryStrip keyCount={keyCount} easyCount={easyCount} restCount={restCount} />
-      )}
+      {/* Summary strip - shown immediately before cards */}
+      <SummaryStrip keyCount={keyCount} easyCount={easyCount} restCount={restCount} />
 
       {/* Day cards */}
       <View style={styles.cardsList}>

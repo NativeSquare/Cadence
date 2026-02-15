@@ -41,12 +41,12 @@ export function HealthMock({ hasData, onNext }: HealthMockProps) {
   const scrollRef = useRef<ScrollView>(null);
 
   const promptText = hasData
-    ? "Your data looks clean — no big injury gaps. But I want to hear it from you. Any past injuries?"
-    : "Now the less fun stuff. Any past injuries that have affected your running?";
+    ? "Nice. Your data looks clean — no big injury gaps. But I want to hear it from you. Any past injuries?"
+    : "Okay. Now the less fun stuff. Any past injuries that have affected your running?";
 
   const intro = useStream({
     text: promptText,
-    speed: 28,
+    speed: 14,
     delay: 300,
   });
 
