@@ -1,27 +1,29 @@
 /**
  * CalendarScreen Component - Weekly calendar visualization with coach commentary.
  *
- * Layout per prototype (cadence-v3.jsx lines 823-858):
+ * Layout per cadence-calendar-v2.jsx prototype:
  * 1. Header with phase label
- * 2. Calendar widget with 7-column grid
- * 3. Streaming coach text (appears after calendar animation)
- * 4. Continue button
+ * 2. Streaming coach intro text
+ * 3. Summary strip (key sessions, easy runs, rest days)
+ * 4. Expandable day cards
+ * 5. Delayed coach comment (appears after 8s)
+ * 6. Continue button
  *
- * Source: Story 3.3 - AC#6
+ * Source: cadence-calendar-v2.jsx prototype
  */
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { View, StyleSheet, ScrollView } from "react-native";
 import Animated, { FadeIn } from "react-native-reanimated";
-import { StreamingText } from "../streaming-text";
+import { Text } from "@/components/ui/text";
+import { Cursor } from "../Cursor";
 import {
   CalendarWidget,
   CALENDAR_MOCK_SCHEDULE,
   type SessionData,
 } from "../viz/CalendarWidget";
 import { Btn } from "../generative/Choice";
-import { COLORS } from "@/lib/design-tokens";
-import type { StreamPhrase } from "@/hooks/use-streaming-text";
+import { COLORS, GRAYS, SURFACES } from "@/lib/design-tokens";
 
 // =============================================================================
 // Types
@@ -39,24 +41,64 @@ export interface CalendarScreenProps {
 }
 
 // =============================================================================
-// Coach Phrases (per prototype lines 853)
+// Streaming Text Hook (from prototype)
 // =============================================================================
 
-const COACH_PHRASES: StreamPhrase[] = [
-  {
-    text: "Three key sessions: Monday tempo, Wednesday intervals, Sunday long run.",
-    pauseAfter: 400,
-    haptic: "insight",
-  },
-  {
-    text: "The rest is recovery.",
-    pauseAfter: 300,
-  },
-  {
-    text: "And yes — two actual rest days. Non-negotiable.",
-    haptic: "arrival",
-  },
-];
+function useStream(text: string, speed: number = 28, delay: number = 0, active: boolean = true) {
+  const [displayed, setDisplayed] = useState("");
+  const [done, setDone] = useState(false);
+  const [started, setStarted] = useState(false);
+
+  useEffect(() => {
+    if (!active) {
+      setDisplayed("");
+      setDone(false);
+      setStarted(false);
+      return;
+    }
+    setDisplayed("");
+    setDone(false);
+
+    const startTimer = setTimeout(() => setStarted(true), delay);
+    return () => clearTimeout(startTimer);
+  }, [active, text, delay]);
+
+  useEffect(() => {
+    if (!started || !active) return;
+
+    let i = 0;
+    const interval = setInterval(() => {
+      if (i < text.length) {
+        setDisplayed(text.slice(0, i + 1));
+        i++;
+      } else {
+        clearInterval(interval);
+        setDone(true);
+      }
+    }, speed);
+
+    return () => clearInterval(interval);
+  }, [started, active, text, speed]);
+
+  return { displayed, done, started };
+}
+
+// =============================================================================
+// Coach Comment Component
+// =============================================================================
+
+function CoachComment() {
+  return (
+    <Animated.View entering={FadeIn.duration(500)} style={styles.coachComment}>
+      <Text style={styles.coachCommentText}>
+        <Text style={styles.coachCommentHighlight}>
+          3 key sessions, 2 easy runs, 2 rest days.
+        </Text>
+        {" That's the structure. The key sessions do the building — everything else is recovery. Tap any day to see the reasoning."}
+      </Text>
+    </Animated.View>
+  );
+}
 
 // =============================================================================
 // Main Component
@@ -68,16 +110,36 @@ export function CalendarScreen({
   phaseLabel = "Build Phase",
   onComplete,
 }: CalendarScreenProps) {
-  const [showCoachText, setShowCoachText] = useState(false);
+  const [showCalendar, setShowCalendar] = useState(false);
+  const [showCoachComment, setShowCoachComment] = useState(false);
   const [showButton, setShowButton] = useState(false);
 
-  // Show coach text after calendar animation completes
-  const handleCalendarAnimationComplete = useCallback(() => {
-    setShowCoachText(true);
+  // Streaming intro text
+  const stream = useStream(
+    "Here's what a typical training week looks like.",
+    28,
+    300,
+    true
+  );
+
+  // Show calendar after streaming completes
+  useEffect(() => {
+    if (stream.done) {
+      const timer = setTimeout(() => setShowCalendar(true), 400);
+      return () => clearTimeout(timer);
+    }
+  }, [stream.done]);
+
+  // Show coach comment after 8 seconds (per prototype)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowCoachComment(true);
+    }, 8000);
+    return () => clearTimeout(timer);
   }, []);
 
-  // Show button after streaming text completes
-  const handleStreamingComplete = useCallback(() => {
+  // Show button after calendar animation completes
+  const handleCalendarAnimationComplete = useCallback(() => {
     setShowButton(true);
   }, []);
 
@@ -88,31 +150,33 @@ export function CalendarScreen({
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Calendar widget - shows first */}
-        <View style={styles.calendarSection}>
-          <CalendarWidget
-            schedule={schedule}
-            phaseLabel={phaseLabel}
-            animate={true}
-            onAnimationComplete={handleCalendarAnimationComplete}
-          />
+        {/* Streaming intro text */}
+        <View style={styles.introSection}>
+          <View style={styles.introTextRow}>
+            <Text style={styles.introText}>
+              {stream.displayed}
+            </Text>
+            <Cursor visible={!stream.done && stream.started} height={22} />
+          </View>
         </View>
 
-        {/* Coach streaming text - appears after calendar animation */}
-        {showCoachText && (
-          <Animated.View
-            entering={FadeIn.duration(400)}
-            style={styles.coachSection}
-          >
-            <StreamingText
-              phrases={COACH_PHRASES}
-              charDelay={18}
-              defaultPause={300}
-              initialDelay={200}
-              onComplete={handleStreamingComplete}
+        {/* Calendar widget - shows after streaming completes */}
+        {showCalendar && (
+          <View style={styles.calendarSection}>
+            <CalendarWidget
+              schedule={schedule}
+              phaseLabel={phaseLabel}
+              animate={true}
+              onAnimationComplete={handleCalendarAnimationComplete}
             />
-          </Animated.View>
+          </View>
         )}
+
+        {/* Coach comment - appears after 8s */}
+        {showCoachComment && <CoachComment />}
+
+        {/* Bottom spacer for button */}
+        <View style={styles.bottomSpacer} />
       </ScrollView>
 
       {/* Continue button */}
@@ -121,7 +185,11 @@ export function CalendarScreen({
           entering={FadeIn.duration(300)}
           style={styles.buttonContainer}
         >
-          <Btn label="See projections" onPress={onComplete} />
+          {/* Gradient fade */}
+          <View style={styles.buttonGradient} />
+          <View style={styles.buttonWrapper}>
+            <Btn label="See projections" onPress={onComplete} />
+          </View>
         </Animated.View>
       )}
     </View>
@@ -141,23 +209,76 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: 24,
-    paddingBottom: 120,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
   },
-  calendarSection: {
-    marginBottom: 24,
-  },
-  coachSection: {
+  // Intro section
+  introSection: {
     paddingHorizontal: 8,
+    marginBottom: 20,
   },
+  introTextRow: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+  },
+  introText: {
+    fontFamily: "Outfit-Light",
+    fontSize: 22,
+    color: GRAYS.g1,
+    lineHeight: 31,
+    letterSpacing: -0.44,
+  },
+  // Calendar section
+  calendarSection: {
+    marginBottom: 0,
+  },
+  // Coach comment
+  coachComment: {
+    marginTop: 20,
+    marginHorizontal: 8,
+    padding: 14,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(200,255,0,0.1)",
+    backgroundColor: COLORS.limeGlow,
+  },
+  coachCommentText: {
+    fontFamily: "Outfit-Light",
+    fontSize: 14,
+    color: GRAYS.g2,
+    lineHeight: 22,
+  },
+  coachCommentHighlight: {
+    fontFamily: "Outfit-Medium",
+    color: COLORS.lime,
+  },
+  // Bottom spacer
+  bottomSpacer: {
+    height: 20,
+  },
+  // Button container
   buttonContainer: {
     position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
-    paddingHorizontal: 32,
+    paddingHorizontal: 28,
     paddingBottom: 48,
-    backgroundColor: COLORS.black,
+  },
+  buttonGradient: {
+    position: "absolute",
+    top: -60,
+    left: 0,
+    right: 0,
+    height: 60,
+    // Note: Linear gradient needs expo-linear-gradient or similar
+    // For now using solid black which matches the background
+    backgroundColor: "transparent",
+  },
+  buttonWrapper: {
+    position: "relative",
+    zIndex: 2,
   },
 });
 
