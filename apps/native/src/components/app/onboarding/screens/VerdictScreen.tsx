@@ -10,13 +10,12 @@
 
 import { useEffect, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
-import Animated from "react-native-reanimated";
+import Animated, { FadeIn } from "react-native-reanimated";
 import { Text } from "@/components/ui/text";
-import { Button } from "@/components/ui/button";
+import { COLORS, GRAYS } from "@/lib/design-tokens";
 import { Cursor } from "../Cursor";
 import { useStream } from "@/hooks/use-stream";
-import { useFadeUp } from "@/lib/use-animations";
-import { GRAYS } from "@/lib/design-tokens";
+import { Btn } from "../generative/Choice";
 import {
   ProjectionCard,
   PROJECTION_MOCK_DATA,
@@ -56,6 +55,7 @@ const PHASE_INTRO_START = 400;
 const PHASE_CARD_START = 2200;
 const PHASE_FOLLOWUP_START = 3800;
 const PHASE_AUDIT_START = 5000;
+const PHASE_BUTTON_START = 6200;
 
 // =============================================================================
 // Coach Messages
@@ -117,6 +117,7 @@ export function VerdictScreen({
 
   // Phase state
   const [phase, setPhase] = useState(0);
+  const [showButton, setShowButton] = useState(false);
 
   // Phase progression
   useEffect(() => {
@@ -126,6 +127,7 @@ export function VerdictScreen({
     timers.push(setTimeout(() => setPhase(2), PHASE_CARD_START));
     timers.push(setTimeout(() => setPhase(3), PHASE_FOLLOWUP_START));
     timers.push(setTimeout(() => setPhase(4), PHASE_AUDIT_START));
+    timers.push(setTimeout(() => setShowButton(true), PHASE_BUTTON_START));
 
     return () => timers.forEach(clearTimeout);
   }, []);
@@ -137,13 +139,9 @@ export function VerdictScreen({
   const introText = hasData ? COACH_INTRO_DATA : COACH_INTRO_NO_DATA;
   const followupText = hasData ? COACH_FOLLOWUP_DATA : COACH_FOLLOWUP_NO_DATA;
 
-  // Button animation
-  const buttonStyle = useFadeUp(phase >= 4, 400);
-
   return (
     <View style={styles.container}>
       <ScrollView
-        style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
@@ -185,20 +183,15 @@ export function VerdictScreen({
             delay={0}
           />
         )}
-
-        {/* Spacer for button */}
-        <View style={styles.bottomSpacer} />
       </ScrollView>
 
-      {/* Continue Button */}
-      {phase >= 4 && (
-        <Animated.View style={[styles.buttonContainer, buttonStyle]}>
-          <Button
-            onPress={onComplete}
-            className="bg-lime h-14 rounded-xl"
-          >
-            <Text className="text-black font-semibold text-base">Continue</Text>
-          </Button>
+      {/* Continue Button — same pattern as CalendarScreen */}
+      {showButton && onComplete && (
+        <Animated.View
+          entering={FadeIn.duration(300)}
+          style={styles.buttonContainer}
+        >
+          <Btn label="Continue" onPress={onComplete} />
         </Animated.View>
       )}
     </View>
@@ -212,14 +205,11 @@ export function VerdictScreen({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  scrollView: {
-    flex: 1,
+    paddingTop: 70,
   },
   scrollContent: {
-    paddingHorizontal: 32, // Per prototype padding: "0 32px"
-    paddingTop: 70,
-    paddingBottom: 100,
+    paddingHorizontal: 32,
+    paddingBottom: 120,
   },
   coachMessage: {
     flexDirection: "row",
@@ -248,18 +238,31 @@ const styles = StyleSheet.create({
   followupSection: {
     marginTop: 24,
   },
-  bottomSpacer: {
-    height: 24,
-  },
   buttonContainer: {
     position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
-    paddingHorizontal: 32, // Per prototype
-    paddingBottom: 48, // Per prototype padding: "16px 32px 48px"
-    paddingTop: 16,
-    backgroundColor: "rgba(0,0,0,0.9)",
+    paddingHorizontal: 32,
+    paddingBottom: 48,
+    backgroundColor: COLORS.black,
+  },
+  primaryButton: {
+    backgroundColor: COLORS.lime,
+    paddingVertical: 18,
+    paddingHorizontal: 24,
+    borderRadius: 14,
+    alignItems: "center",
+  },
+  buttonPressed: {
+    transform: [{ scale: 0.975 }],
+  },
+  primaryButtonText: {
+    fontFamily: "Outfit-SemiBold",
+    fontSize: 17,
+    fontWeight: "600",
+    color: COLORS.black,
+    letterSpacing: -0.17, // -.01em
   },
 });
 

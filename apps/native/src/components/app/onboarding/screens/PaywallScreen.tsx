@@ -1,17 +1,21 @@
 /**
- * PaywallScreen - Trial activation paywall stub.
+ * PaywallScreen - Trial activation paywall.
  *
- * Stub implementation for OnboardingFlowMock testing.
- * Displays trial offer with start/decline options.
+ * Matches cadence-v3.jsx PaywallScr design:
+ * - Streaming intro text
+ * - Feature card with icons and gradient
+ * - Phase-based reveal animation
  *
  * Source: Story 3.5 - Task 9 (AC#1, #10)
- * Reference: cadence-v3.jsx Paywall section
+ * Reference: cadence-v3.jsx PaywallScr (lines 917-944)
  */
 
 import { useCallback, useEffect, useState } from "react";
-import { View, StyleSheet, Pressable } from "react-native";
-import Animated, { FadeIn, FadeInUp } from "react-native-reanimated";
+import { ScrollView, View, StyleSheet } from "react-native";
+import Animated, { FadeIn, FadeInRight, ZoomIn } from "react-native-reanimated";
 import { Text } from "@/components/ui/text";
+import { StreamBlock } from "../StreamBlock";
+import { Btn } from "../generative/Choice";
 import { COLORS, GRAYS, SURFACES } from "@/lib/design-tokens";
 
 // =============================================================================
@@ -31,15 +35,19 @@ export interface PaywallScreenProps {
 // Constants
 // =============================================================================
 
-const FEATURES = [
-  "Personalized 10-week training plan",
-  "Adaptive coaching that learns from you",
-  "Smart recovery recommendations",
-  "Weekly plan adjustments",
+const FEATURES_DATA = [
+  { icon: "📋", text: "Full plan through race day" },
+  { icon: "🔄", text: "Daily adaptive sessions" },
+  { icon: "🧠", text: "Visible reasoning for every decision" },
+  { icon: "⚙️", text: "Unlimited plan adjustments" },
 ];
 
-const PRICE = "$9.99/month";
-const TRIAL_PERIOD = "7-day free trial";
+const FEATURES_NO_DATA = [
+  { icon: "📋", text: "Full plan through race day" },
+  { icon: "🔄", text: "Sessions that adapt as you log runs" },
+  { icon: "📡", text: "Connect wearable for deeper insights" },
+  { icon: "🧠", text: "See why every decision was made" },
+];
 
 // =============================================================================
 // Component
@@ -50,11 +58,30 @@ export function PaywallScreen({
   onComplete,
   testID,
 }: PaywallScreenProps) {
-  const [showContent, setShowContent] = useState(false);
+  const hasData = mockPath === "data";
+  const features = hasData ? FEATURES_DATA : FEATURES_NO_DATA;
 
+  // Phase-based reveal matching reference
+  const [phase, setPhase] = useState(0);
+  const [text1Done, setText1Done] = useState(false);
+  const [text2Done, setText2Done] = useState(false);
+  const [showButtons, setShowButtons] = useState(false);
+
+  // Phase 1: Show card after text2 completes
   useEffect(() => {
-    setTimeout(() => setShowContent(true), 300);
-  }, []);
+    if (text2Done) {
+      const timer = setTimeout(() => setPhase(1), 500);
+      return () => clearTimeout(timer);
+    }
+  }, [text2Done]);
+
+  // Show buttons after card appears
+  useEffect(() => {
+    if (phase >= 1) {
+      const timer = setTimeout(() => setShowButtons(true), 600);
+      return () => clearTimeout(timer);
+    }
+  }, [phase]);
 
   const handleStartTrial = useCallback(() => {
     onComplete(true);
@@ -64,70 +91,80 @@ export function PaywallScreen({
     onComplete(false);
   }, [onComplete]);
 
-  if (!showContent) {
-    return <View style={styles.container} testID={testID} />;
-  }
-
   return (
     <View style={styles.container} testID={testID}>
-      {/* Header */}
-      <Animated.View entering={FadeIn.duration(400)} style={styles.header}>
-        <Text style={styles.headerLabel}>YOUR PLAN IS READY</Text>
-        <Text style={styles.headerTitle}>Start Training</Text>
-      </Animated.View>
-
-      {/* Features list */}
-      <Animated.View
-        entering={FadeInUp.delay(200).duration(400)}
-        style={styles.featuresSection}
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
       >
-        {FEATURES.map((feature, index) => (
-          <Animated.View
-            key={feature}
-            entering={FadeIn.delay(300 + index * 100)}
-            style={styles.featureRow}
-          >
-            <View style={styles.checkmark}>
-              <Text style={styles.checkmarkText}>✓</Text>
+        {/* Streaming intro text */}
+        <View style={styles.introSection}>
+          <StreamBlock
+            text="The plan's ready. The coaching is ready."
+            size={26}
+            color={GRAYS.g1}
+            delay={300}
+            onDone={() => setText1Done(true)}
+          />
+          {text1Done && (
+            <View style={styles.introText2Wrapper}>
+              <StreamBlock
+                text="To unlock everything, start your free trial."
+                size={26}
+                color={GRAYS.g2}
+                delay={400}
+                onDone={() => setText2Done(true)}
+              />
             </View>
-            <Text style={styles.featureText}>{feature}</Text>
-          </Animated.View>
-        ))}
-      </Animated.View>
-
-      {/* Pricing */}
-      <Animated.View
-        entering={FadeIn.delay(700)}
-        style={styles.pricingSection}
-      >
-        <View style={styles.pricingCard}>
-          <Text style={styles.trialText}>{TRIAL_PERIOD}</Text>
-          <Text style={styles.priceText}>
-            Then {PRICE} • Cancel anytime
-          </Text>
+          )}
         </View>
-      </Animated.View>
 
-      {/* CTAs */}
-      <Animated.View
-        entering={FadeIn.delay(900)}
-        style={styles.ctaSection}
-      >
-        <Pressable onPress={handleStartTrial} style={styles.primaryButton}>
-          <Text style={styles.primaryButtonText}>Start Free Trial</Text>
-        </Pressable>
+        {/* Feature card with gradient */}
+        {phase >= 1 && (
+          <Animated.View entering={ZoomIn.duration(500)} style={styles.cardWrapper}>
+            <View style={styles.featureCard}>
+              {/* Trial badge */}
+              <View style={styles.trialBadge}>
+                <Text style={styles.trialBadgeText}>7-DAY FREE TRIAL</Text>
+              </View>
 
-        <Pressable onPress={handleMaybeLater} style={styles.secondaryButton}>
-          <Text style={styles.secondaryButtonText}>Maybe later</Text>
-        </Pressable>
-      </Animated.View>
+              {/* Features list */}
+              <View style={styles.featuresList}>
+                {features.map((feature, index) => (
+                  <Animated.View
+                    key={feature.text}
+                    entering={FadeInRight.delay(100 + index * 60).duration(350)}
+                    style={styles.featureRow}
+                  >
+                    <View style={styles.featureIcon}>
+                      <Text style={styles.featureIconText}>{feature.icon}</Text>
+                    </View>
+                    <Text style={styles.featureText}>{feature.text}</Text>
+                  </Animated.View>
+                ))}
+              </View>
 
-      {/* Legal footnote */}
-      <Animated.View entering={FadeIn.delay(1000)} style={styles.footnoteSection}>
-        <Text style={styles.footnoteText}>
-          Payment will be charged after trial ends. Cancel anytime in Settings.
-        </Text>
-      </Animated.View>
+              {/* Pricing */}
+              <View style={styles.pricingRow}>
+                <Text style={styles.priceAmount}>€9.99</Text>
+                <Text style={styles.pricePeriod}>/month after trial</Text>
+              </View>
+              <Text style={styles.cancelText}>Cancel anytime.</Text>
+            </View>
+          </Animated.View>
+        )}
+      </ScrollView>
+
+      {/* CTAs — same pattern as CalendarScreen: conditional + FadeIn + absolute */}
+      {showButtons && (
+        <Animated.View
+          entering={FadeIn.duration(300)}
+          style={styles.ctaSection}
+        >
+          <Btn label="Start Free Trial" onPress={handleStartTrial} />
+          <Btn label="Maybe later" onPress={handleMaybeLater} ghost />
+        </Animated.View>
+      )}
     </View>
   );
 }
@@ -139,110 +176,102 @@ export function PaywallScreen({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingHorizontal: 24,
-    paddingTop: 40,
-    backgroundColor: COLORS.black,
+    paddingTop: 70,
   },
-  header: {
-    marginBottom: 32,
+  scrollContent: {
+    paddingHorizontal: 32,
+    paddingBottom: 120,
   },
-  headerLabel: {
-    fontFamily: "JetBrainsMono-Medium",
-    fontSize: 10,
-    fontWeight: "500",
-    color: COLORS.lime,
-    letterSpacing: 0.8,
-    textTransform: "uppercase",
+  introSection: {
+    marginBottom: 8,
   },
-  headerTitle: {
-    fontFamily: "Outfit-Light",
-    fontSize: 32,
-    fontWeight: "300",
-    color: GRAYS.g1,
+  introText2Wrapper: {
     marginTop: 8,
   },
-  featuresSection: {
-    marginBottom: 32,
+  cardWrapper: {
+    marginTop: 32,
+  },
+  featureCard: {
+    padding: 28,
+    paddingHorizontal: 24,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: SURFACES.sb,
+    backgroundColor: SURFACES.sg,
+  },
+  trialBadge: {
+    alignSelf: "flex-start",
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+    backgroundColor: COLORS.limeDim,
+    marginBottom: 20,
+  },
+  trialBadgeText: {
+    fontFamily: "JetBrainsMono-Medium",
+    fontSize: 11,
+    fontWeight: "500",
+    color: COLORS.lime,
+    letterSpacing: 0.4,
+  },
+  featuresList: {
+    gap: 14,
+    marginBottom: 24,
   },
   featureRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 12,
+    gap: 14,
   },
-  checkmark: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: COLORS.limeDim,
+  featureIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: GRAYS.g6,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 14,
   },
-  checkmarkText: {
-    color: COLORS.lime,
-    fontSize: 14,
-    fontWeight: "600",
+  featureIconText: {
+    fontSize: 16,
   },
   featureText: {
     fontFamily: "Outfit-Regular",
-    fontSize: 16,
+    fontSize: 15,
+    fontWeight: "400",
     color: GRAYS.g1,
     flex: 1,
   },
-  pricingSection: {
-    marginBottom: 32,
-  },
-  pricingCard: {
-    padding: 20,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: SURFACES.sb,
-    backgroundColor: SURFACES.sg,
-    alignItems: "center",
-  },
-  trialText: {
-    fontFamily: "Outfit-SemiBold",
-    fontSize: 20,
-    color: COLORS.lime,
+  pricingRow: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    gap: 4,
     marginBottom: 4,
   },
-  priceText: {
+  priceAmount: {
+    fontFamily: "JetBrainsMono-Medium",
+    fontSize: 32,
+    fontWeight: "500",
+    color: GRAYS.g1,
+    letterSpacing: -0.5,
+  },
+  pricePeriod: {
     fontFamily: "Outfit-Regular",
     fontSize: 14,
-    color: GRAYS.g2,
+    color: GRAYS.g4,
   },
-  ctaSection: {
-    gap: 12,
-  },
-  primaryButton: {
-    backgroundColor: COLORS.lime,
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: "center",
-  },
-  primaryButtonText: {
-    fontFamily: "Outfit-SemiBold",
-    fontSize: 17,
-    color: COLORS.black,
-  },
-  secondaryButton: {
-    paddingVertical: 14,
-    alignItems: "center",
-  },
-  secondaryButtonText: {
+  cancelText: {
     fontFamily: "Outfit-Regular",
-    fontSize: 15,
-    color: GRAYS.g3,
-  },
-  footnoteSection: {
-    marginTop: 24,
-    paddingHorizontal: 16,
-  },
-  footnoteText: {
-    fontFamily: "Outfit-Light",
     fontSize: 12,
     color: GRAYS.g4,
-    textAlign: "center",
-    lineHeight: 16,
+  },
+  ctaSection: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 32,
+    paddingBottom: 48,
+    backgroundColor: COLORS.black,
+    gap: 8,
   },
 });
