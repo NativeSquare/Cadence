@@ -48,6 +48,8 @@ export interface OnboardingFlowMockProps {
   onComplete?: (result: { startedTrial: boolean }) => void;
   /** Initial screen index */
   initialScreenIndex?: number;
+  /** User name from database (runner.identity.name or fallback to user.name) */
+  userName?: string;
   /** Test ID for visual regression */
   testID?: string;
 }
@@ -99,11 +101,12 @@ const SCREENS: ScreenConfig[] = [
 function OnboardingFlowMockInner({
   onComplete,
   initialScreenIndex = 0,
+  userName: initialUserName = "",
   testID,
 }: Omit<OnboardingFlowMockProps, "initialPath">) {
   const { hasData, setPath } = useMockPath();
   const [currentScreenIndex, setCurrentScreenIndex] = useState(initialScreenIndex);
-  const [userName, setUserName] = useState("Alex");
+  const [userName, setUserName] = useState(initialUserName);
 
   const currentScreen = SCREENS[currentScreenIndex];
   const progress = screenProgressMap[currentScreenIndex] ?? 0;
@@ -274,11 +277,12 @@ function OnboardingFlowMockInner({
 
 export function OnboardingFlowMock({
   initialPath = "no-data",
+  userName,
   ...props
 }: OnboardingFlowMockProps) {
   return (
     <MockPathProvider initialPath={initialPath}>
-      <OnboardingFlowMockInner {...props} />
+      <OnboardingFlowMockInner userName={userName} {...props} />
     </MockPathProvider>
   );
 }

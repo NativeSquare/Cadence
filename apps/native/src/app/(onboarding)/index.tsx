@@ -22,9 +22,13 @@ export default function Onboarding() {
     patchUser({ id: user._id, data: { hasCompletedOnboarding: true } });
   };
 
+  // Runner name is source of truth, fallback to auth provider name
+  const userName = runner?.identity?.name || user?.name || "";
+
   return (
     <OnboardingFlowMock
       initialPath="no-data"
+      userName={userName}
       onComplete={handleComplete}
     />
   );
