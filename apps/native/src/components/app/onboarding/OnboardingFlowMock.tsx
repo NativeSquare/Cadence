@@ -5,25 +5,22 @@
  * - Path context (DATA vs NO DATA)
  * - Progress bar
  * - Screen transitions
- * - Dev controls (path toggle, screen jump)
  *
  * Source: Story 3.5 - Tasks 1, 3, 8 (AC#1-#10)
  */
 
 import { useState, useCallback, useMemo } from "react";
-import { View, StyleSheet, ScrollView, Pressable } from "react-native";
-import Animated, { FadeIn } from "react-native-reanimated";
-import { Text } from "@/components/ui/text";
+import { View, StyleSheet } from "react-native";
 import { MockPathProvider, useMockPath } from "./MockPathContext";
 import { FlowProgressBar } from "./FlowProgressBar";
-import { PathIndicator } from "./PathIndicator";
 import { ScreenTransition } from "./ScreenTransition";
 import { screenProgressMap } from "./mock-data";
-import { COLORS, GRAYS, SURFACES } from "@/lib/design-tokens";
+import { COLORS } from "@/lib/design-tokens";
 
 // Mock screens (matching cadence-v3.jsx prototype)
 import {
   WelcomeMock,
+  ThinkingDataMock,
   SelfReportMock,
   GoalsMock,
   HealthMock,
@@ -49,9 +46,7 @@ export interface OnboardingFlowMockProps {
   initialPath?: "data" | "no-data";
   /** Called when flow completes */
   onComplete?: (result: { startedTrial: boolean }) => void;
-  /** Show dev controls (default: __DEV__) */
-  devMode?: boolean;
-  /** Initial screen index (dev mode) */
+  /** Initial screen index */
   initialScreenIndex?: number;
   /** Test ID for visual regression */
   testID?: string;
@@ -103,15 +98,13 @@ const SCREENS: ScreenConfig[] = [
 
 function OnboardingFlowMockInner({
   onComplete,
-  devMode,
   initialScreenIndex = 0,
   testID,
 }: Omit<OnboardingFlowMockProps, "initialPath">) {
-  const { hasData, togglePath, setPath } = useMockPath();
+  const { hasData, setPath } = useMockPath();
   const [currentScreenIndex, setCurrentScreenIndex] = useState(initialScreenIndex);
-  const [userName] = useState("Alex");
+  const [userName, setUserName] = useState("Alex");
 
-  const showDevControls = devMode ?? __DEV__;
   const currentScreen = SCREENS[currentScreenIndex];
   const progress = screenProgressMap[currentScreenIndex] ?? 0;
 
@@ -122,10 +115,9 @@ function OnboardingFlowMockInner({
     }
   }, [currentScreenIndex]);
 
-  const jumpToScreen = useCallback((index: number) => {
-    if (index >= 0 && index < SCREENS.length) {
-      setCurrentScreenIndex(index);
-    }
+  // Handle name change from welcome screen
+  const handleNameChanged = useCallback((newName: string) => {
+    setUserName(newName);
   }, []);
 
   // Wearable screen handler - sets path based on choice
@@ -160,6 +152,7 @@ function OnboardingFlowMockInner({
           <WelcomeMock
             userName={userName}
             onNext={goToNext}
+            onNameChanged={handleNameChanged}
           />
         );
 
@@ -172,7 +165,12 @@ function OnboardingFlowMockInner({
         );
 
       case "selfReport":
-        return <SelfReportMock onNext={goToNext} />;
+        // Show data analysis for DATA path, self-report for NO DATA path
+        return hasData ? (
+          <ThinkingDataMock onNext={goToNext} />
+        ) : (
+          <SelfReportMock onNext={goToNext} />
+        );
 
       case "goals":
         return <GoalsMock hasData={hasData} onNext={goToNext} />;
@@ -238,6 +236,7 @@ function OnboardingFlowMockInner({
     hasData,
     userName,
     goToNext,
+    handleNameChanged,
     handleWearableComplete,
     handleScreenComplete,
     handlePaywallComplete,
@@ -250,14 +249,6 @@ function OnboardingFlowMockInner({
         <FlowProgressBar progress={progress} testID="flow-progress-bar" />
       )}
 
-      {/* Path indicator */}
-      <PathIndicator
-        hasData={hasData}
-        onToggle={togglePath}
-        forceShow={showDevControls}
-        testID="path-indicator"
-      />
-
       {/* Screen content with transition */}
       <ScreenTransition
         screenKey={currentScreen.name}
@@ -265,40 +256,6 @@ function OnboardingFlowMockInner({
       >
         {renderScreen}
       </ScreenTransition>
-
-      {/* Dev controls */}
-      {showDevControls && (
-        <Animated.View
-          entering={FadeIn.delay(500)}
-          style={styles.devControls}
-        >
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.devButtonsContainer}
-          >
-            {SCREENS.map((screen, index) => (
-              <Pressable
-                key={screen.name}
-                onPress={() => jumpToScreen(index)}
-                style={[
-                  styles.devButton,
-                  index === currentScreenIndex && styles.devButtonActive,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.devButtonText,
-                    index === currentScreenIndex && styles.devButtonTextActive,
-                  ]}
-                >
-                  {screen.label}
-                </Text>
-              </Pressable>
-            ))}
-          </ScrollView>
-        </Animated.View>
-      )}
     </View>
   );
 }
@@ -326,41 +283,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.black,
-  },
-  devControls: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: "rgba(0,0,0,0.95)",
-    borderTopWidth: 1,
-    borderTopColor: SURFACES.brd,
-    paddingVertical: 8,
-  },
-  devButtonsContainer: {
-    paddingHorizontal: 12,
-    gap: 6,
-  },
-  devButton: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 4,
-    borderWidth: 1,
-    borderColor: SURFACES.brd,
-    backgroundColor: SURFACES.card,
-  },
-  devButtonActive: {
-    borderColor: COLORS.lime,
-    backgroundColor: COLORS.limeDim,
-  },
-  devButtonText: {
-    fontFamily: "JetBrainsMono-Regular",
-    fontSize: 9,
-    color: GRAYS.g3,
-    textTransform: "uppercase",
-  },
-  devButtonTextActive: {
-    color: COLORS.lime,
   },
 });
 

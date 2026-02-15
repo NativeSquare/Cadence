@@ -1,18 +1,19 @@
 /**
  * WearableScreen - Wearable connection or skip path selection.
  *
- * Stub implementation for OnboardingFlowMock testing.
  * Presents wearable connection options with skip path.
+ * Uses streaming text pattern matching cadence-v3.jsx prototype.
  *
  * Source: Story 3.5 - Task 9 (AC#1)
  */
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { View, StyleSheet, Pressable } from "react-native";
 import Animated, { FadeIn } from "react-native-reanimated";
 import { Text } from "@/components/ui/text";
-import { StreamBlock } from "../StreamBlock";
-import { COLORS, GRAYS, SURFACES } from "@/lib/design-tokens";
+import { useStream } from "@/hooks/use-stream";
+import { Cursor } from "../Cursor";
+import { GRAYS, SURFACES } from "@/lib/design-tokens";
 
 // =============================================================================
 // Types
@@ -28,9 +29,6 @@ export interface WearableScreenProps {
 // =============================================================================
 // Constants
 // =============================================================================
-
-const COACH_INTRO =
-  "Do you track your runs with a watch or app? If so, I can pull your recent activity to build a more accurate picture.";
 
 const OPTIONS = [
   { id: "strava", label: "Connect Strava", icon: "⌚" },
@@ -48,9 +46,24 @@ export function WearableScreen({
 }: WearableScreenProps) {
   const [showOptions, setShowOptions] = useState(false);
 
-  const handleIntroComplete = useCallback(() => {
-    setTimeout(() => setShowOptions(true), 300);
-  }, []);
+  const s1 = useStream({
+    text: "I'm your running coach. I learn, I adapt, and I get better the more I know.",
+    speed: 32,
+    delay: 300,
+  });
+
+  const s2 = useStream({
+    text: "Fastest way to get started — connect your watch or running app.",
+    speed: 32,
+    delay: 400,
+    active: s1.done,
+  });
+
+  useEffect(() => {
+    if (s2.done) {
+      setTimeout(() => setShowOptions(true), 400);
+    }
+  }, [s2.done]);
 
   const handleConnect = useCallback(
     (id: string) => {
@@ -66,40 +79,40 @@ export function WearableScreen({
 
   return (
     <View style={styles.container} testID={testID}>
-      {/* Coach intro */}
-      <StreamBlock
-        text={COACH_INTRO}
-        delay={300}
-        onDone={handleIntroComplete}
-      />
+      {/* Text area */}
+      <View style={styles.textArea}>
+        <Text style={styles.headline}>
+          {s1.displayed}
+          {!s1.done && s1.started && <Cursor visible height={26} />}
+        </Text>
+
+        {s2.started && (
+          <Text style={[styles.subheadline, styles.marginTop]}>
+            {s2.displayed}
+            {!s2.done && <Cursor visible height={26} />}
+          </Text>
+        )}
+      </View>
 
       {/* Connection options */}
       {showOptions && (
-        <Animated.View entering={FadeIn.delay(200)} style={styles.optionsSection}>
-          {OPTIONS.map((option, index) => (
-            <Animated.View
+        <Animated.View entering={FadeIn.duration(400)} style={styles.optionsSection}>
+          {OPTIONS.map((option) => (
+            <Pressable
               key={option.id}
-              entering={FadeIn.delay(100 * index)}
+              onPress={() => handleConnect(option.id)}
+              style={styles.optionCard}
             >
-              <Pressable
-                onPress={() => handleConnect(option.id)}
-                style={styles.optionCard}
-              >
-                <Text style={styles.optionIcon}>{option.icon}</Text>
-                <Text style={styles.optionLabel}>{option.label}</Text>
-                <Text style={styles.chevron}>›</Text>
-              </Pressable>
-            </Animated.View>
+              <Text style={styles.optionIcon}>{option.icon}</Text>
+              <Text style={styles.optionLabel}>{option.label}</Text>
+              <Text style={styles.chevron}>›</Text>
+            </Pressable>
           ))}
 
           {/* Skip option */}
           <Pressable onPress={handleSkip} style={styles.skipButton}>
             <Text style={styles.skipText}>Skip for now</Text>
           </Pressable>
-
-          <Text style={styles.footnote}>
-            You can connect later in Settings. I'll work with what you tell me.
-          </Text>
         </Animated.View>
       )}
     </View>
@@ -113,11 +126,34 @@ export function WearableScreen({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingHorizontal: 24,
-    paddingTop: 32,
+    paddingHorizontal: 32,
+    paddingTop: 100,
+    paddingBottom: 48,
+    justifyContent: "space-between",
+  },
+  textArea: {
+    paddingTop: 4,
+  },
+  headline: {
+    fontSize: 26,
+    fontFamily: "Outfit-Light",
+    fontWeight: "300",
+    color: GRAYS.g1,
+    lineHeight: 36,
+    letterSpacing: -0.52,
+  },
+  subheadline: {
+    fontSize: 26,
+    fontFamily: "Outfit-Light",
+    fontWeight: "300",
+    color: GRAYS.g2,
+    lineHeight: 36,
+    letterSpacing: -0.52,
+  },
+  marginTop: {
+    marginTop: 12,
   },
   optionsSection: {
-    marginTop: 32,
     gap: 12,
   },
   optionCard: {
@@ -153,13 +189,5 @@ const styles = StyleSheet.create({
     fontFamily: "Outfit-Regular",
     fontSize: 15,
     color: GRAYS.g3,
-  },
-  footnote: {
-    marginTop: 16,
-    fontFamily: "Outfit-Light",
-    fontSize: 13,
-    color: GRAYS.g4,
-    textAlign: "center",
-    lineHeight: 18,
   },
 });

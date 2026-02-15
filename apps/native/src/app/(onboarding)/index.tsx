@@ -26,7 +26,6 @@ export default function Onboarding() {
     <OnboardingFlowMock
       initialPath="no-data"
       onComplete={handleComplete}
-      devMode={__DEV__}
     />
   );
 }

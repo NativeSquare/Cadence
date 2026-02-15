@@ -3,6 +3,7 @@
  */
 
 export { WelcomeMock } from "./WelcomeMock";
+export { ThinkingDataMock } from "./ThinkingDataMock";
 export { SelfReportMock } from "./SelfReportMock";
 export { GoalsMock } from "./GoalsMock";
 export { HealthMock } from "./HealthMock";

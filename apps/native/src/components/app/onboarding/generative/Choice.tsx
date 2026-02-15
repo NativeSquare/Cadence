@@ -143,11 +143,11 @@ export function Btn({
   const pressed = useSharedValue(0);
   const entrance = useSharedValue(0);
 
-  // Entrance animation
+  // Entrance animation - smooth fade in without bounce
   useEffect(() => {
     entrance.value = withDelay(
       delay * 1000,
-      withSpring(1, SPRING_CONFIG)
+      withTiming(1, { duration: 350, easing: Easing.out(Easing.cubic) })
     );
   }, [delay, entrance]);
 
@@ -171,8 +171,8 @@ export function Btn({
     return {
       opacity: entrance.value,
       transform: [
-        { translateY: (1 - entrance.value) * 24 },
-        { scale: entrance.value * scale },
+        { translateY: (1 - entrance.value) * 8 }, // Subtle slide
+        { scale: scale }, // Only apply press scale
       ],
     };
   });
@@ -199,12 +199,12 @@ export function Btn({
       ]}
     >
       <Text
-        className="font-coach"
         style={{
+          fontFamily: ghost ? "Outfit-Regular" : "Outfit-SemiBold",
           fontSize: ghost ? 14 : 17,
           fontWeight: ghost ? "400" : "600",
           color: ghost ? GRAYS.g3 : COLORS.black,
-          letterSpacing: -0.17, // -0.01em at 17px
+          letterSpacing: -0.17,
         }}
       >
         {label}
@@ -232,11 +232,11 @@ export function Choice({
   const entrance = useSharedValue(0);
   const selection = useSharedValue(selected ? 1 : 0);
 
-  // Entrance animation
+  // Entrance animation - smooth fade in without bounce
   useEffect(() => {
     entrance.value = withDelay(
       delay * 1000,
-      withSpring(1, SPRING_CONFIG)
+      withTiming(1, { duration: 350, easing: Easing.out(Easing.cubic) })
     );
   }, [delay, entrance]);
 
@@ -292,8 +292,8 @@ export function Choice({
     return {
       opacity: entrance.value,
       transform: [
-        { translateY: (1 - entrance.value) * 24 },
-        { scale: entrance.value * scale },
+        { translateY: (1 - entrance.value) * 8 }, // Subtle slide, not bouncy
+        { scale: scale }, // Only apply press scale, no entrance scale
       ],
       borderColor,
       backgroundColor,
@@ -358,8 +358,8 @@ export function Choice({
       {/* Content */}
       <View style={{ flex: 1 }}>
         <Text
-          className="font-coach"
           style={{
+            fontFamily: "Outfit-Medium",
             fontSize: 15,
             fontWeight: "500",
             color: selected ? GRAYS.g1 : GRAYS.g2,
@@ -369,8 +369,8 @@ export function Choice({
         </Text>
         {desc && (
           <Text
-            className="font-coach"
             style={{
+              fontFamily: "Outfit-Regular",
               fontSize: 12,
               color: flagged ? COLORS.red : GRAYS.g3,
               marginTop: 3,
