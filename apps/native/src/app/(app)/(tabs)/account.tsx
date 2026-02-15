@@ -7,9 +7,10 @@ import { useAuthActions } from "@convex-dev/auth/react";
 import { api } from "@packages/backend/convex/_generated/api";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { useMutation, useQuery } from "convex/react";
+import { LEGAL_URLS } from "@/lib/constants";
 import { useRouter } from "expo-router";
 import React from "react";
-import { ScrollView, View } from "react-native";
+import { Linking, ScrollView, View } from "react-native";
 
 export default function Account() {
   const router = useRouter();
@@ -123,12 +124,12 @@ export default function Account() {
               {
                 label: "Terms & Conditions",
                 icon: "document-text-outline",
-                onPress: () => {},
+                onPress: () => Linking.openURL(LEGAL_URLS.terms),
               },
               {
                 label: "Privacy Policy",
                 icon: "shield-checkmark-outline",
-                onPress: () => {},
+                onPress: () => Linking.openURL(LEGAL_URLS.privacy),
               },
               {
                 label: "Send Feedback",

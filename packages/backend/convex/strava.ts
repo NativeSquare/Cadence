@@ -16,7 +16,7 @@ import {
  * Get the authenticated user's ID. Used by actions that can't
  * call getAuthUserId directly.
  */
-const getAuthenticatedUserId = internalQuery({
+export const getAuthenticatedUserId = internalQuery({
   args: {},
   returns: v.union(v.id("users"), v.null()),
   handler: async (ctx) => {
@@ -28,7 +28,7 @@ const getAuthenticatedUserId = internalQuery({
  * Store or update a Strava connection for a user.
  * If the user already has a connection, it updates the existing one.
  */
-const storeConnectionInternal = internalMutation({
+export const storeConnectionInternal = internalMutation({
   args: {
     userId: v.id("users"),
     athleteId: v.number(),
@@ -69,7 +69,7 @@ const storeConnectionInternal = internalMutation({
  * Get the Strava connection for a given user.
  * Used by internalAction (refreshAccessToken).
  */
-const getConnectionInternal = internalQuery({
+export const getConnectionInternal = internalQuery({
   args: { userId: v.id("users") },
   returns: v.union(
     v.object({
@@ -98,7 +98,7 @@ const getConnectionInternal = internalQuery({
 /**
  * Update tokens for an existing Strava connection.
  */
-const updateTokensInternal = internalMutation({
+export const updateTokensInternal = internalMutation({
   args: {
     connectionId: v.id("stravaConnections"),
     accessToken: v.string(),

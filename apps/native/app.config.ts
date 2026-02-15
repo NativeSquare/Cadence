@@ -97,6 +97,15 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         },
       },
     ],
+    [
+      "@kingstinct/react-native-healthkit",
+      {
+        NSHealthShareUsageDescription:
+          "Cadence reads your running workouts, heart rate, and activity data to build your personalized training plan.",
+        NSHealthUpdateUsageDescription:
+          "Cadence saves your training plan workouts to Apple Health.",
+      },
+    ],
   ],
   experiments: {
     typedRoutes: true,

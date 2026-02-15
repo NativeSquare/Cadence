@@ -105,8 +105,8 @@ export default function PrivacyPage() {
 
         <LegalSection title="Cookies">
           <p>
-            We use essential cookies to maintain your session and preferences. We
-            do not use third-party tracking cookies.
+            We use essential cookies to maintain your session and preferences.
+            We do not use third-party tracking cookies.
           </p>
         </LegalSection>
 

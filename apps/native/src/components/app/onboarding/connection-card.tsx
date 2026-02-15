@@ -2,20 +2,31 @@ import { selectionFeedback } from "@/lib/haptics";
 import { cn } from "@/lib/utils";
 import { Text } from "@/components/ui/text";
 import { useRef, useEffect } from "react";
-import { Animated, Pressable, View, ActivityIndicator } from "react-native";
+import {
+  Animated,
+  Platform,
+  Pressable,
+  View,
+  ActivityIndicator,
+} from "react-native";
 
 type WearableProvider = {
   id: string;
   name: string;
   icon: string;
+  platforms?: ("ios" | "android")[];
 };
 
-const PROVIDERS: WearableProvider[] = [
+const ALL_PROVIDERS: WearableProvider[] = [
   { id: "garmin", name: "Garmin", icon: "⌚" },
   { id: "coros", name: "COROS", icon: "⌚" },
-  { id: "apple", name: "Apple Watch", icon: "⌚" },
+  { id: "apple", name: "Apple Health", icon: "⌚", platforms: ["ios"] },
   { id: "strava", name: "Strava", icon: "🏃" },
 ];
+
+const PROVIDERS = ALL_PROVIDERS.filter(
+  (p) => !p.platforms || p.platforms.includes(Platform.OS as "ios" | "android"),
+);
 
 type ConnectionCardProps = {
   onConnect: (providerId: string) => void;
