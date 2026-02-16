@@ -13,7 +13,7 @@ changelog:
   - "2026-02-16: Added AI Infrastructure Completion stories (server-side tool execution, agentic loop)"
   - "2026-02-16: Moved HealthKit/Wearables to Epic 4 (high priority)"
   - "2026-02-16: Split Backend Architecture (Epic 5) and Plan Generation (Epic 6)"
-  - "2026-02-16: Trial/Paywall moved to Epic 9 (lowest priority)"
+  - "2026-02-16: Trial/Paywall (Epic 9) removed from scope"
 implementationStatus:
   completed: "1.1-3.5"
   next: "3.6"
@@ -102,13 +102,7 @@ This document provides the complete epic and story breakdown for Cadence, decomp
 - FR50: User can resume onboarding from where they left off if interrupted
 - FR51: System can indicate which data fields are still needed
 
-**8. Monetization & Trial**
-- FR52: User can view the paywall screen after completing onboarding
-- FR53: User can see what they get with a trial subscription
-- FR54: User can start a free trial
-- FR55: User can see pricing and subscription options
-
-**9. Error Handling & Recovery**
+**8. Error Handling & Recovery**
 - FR56: User can see a friendly message when network is unavailable
 - FR57: User can see reconnection status when connection is restored
 - FR58: System can resume from last stable state after connection interruption
@@ -239,10 +233,6 @@ This document provides the complete epic and story breakdown for Cadence, decomp
 | FR49 | Epic 1 | Persist partial progress |
 | FR50 | Epic 1 | Resume onboarding |
 | FR51 | Epic 1 | Indicate missing fields |
-| FR52 | Epic 9 | View paywall screen |
-| FR53 | Epic 9 | See trial benefits |
-| FR54 | Epic 9 | Start free trial |
-| FR55 | Epic 9 | See pricing options |
 | FR56 | Epic 8 | Network unavailable message |
 | FR57 | Epic 8 | Reconnection status |
 | FR58 | Epic 8 | Resume from stable state |
@@ -282,10 +272,6 @@ User can connect Strava via OAuth, see Thinking Stream analysis, and sync data f
 ### Epic 8: Error Handling & Resilience 🟡 MEDIUM PRIORITY
 User experiences graceful handling of network issues, permission denials, and can always resume where they left off.
 **FRs covered:** FR56, FR57, FR58, FR59
-
-### Epic 9: Trial & Paywall ⚪ LOW PRIORITY (MVP non-essential)
-User can view the paywall, start a free trial, and transition to the home screen.
-**FRs covered:** FR52, FR53, FR54, FR55
 
 ---
 
@@ -2200,120 +2186,6 @@ So that I understand implications and can change my mind.
 
 ---
 
-## Epic 9: Trial & Paywall ⚪ LOW PRIORITY (MVP non-essential)
-
-User can view the paywall, start a free trial, and transition to the home screen.
-
-### Story 9.1: Paywall Screen UI ⚪ NOT STARTED
-
-*Reference: cadence-v3.jsx lines 918-944 (PaywallScr)*
-
-As a user,
-I want to see a compelling paywall after experiencing my plan,
-So that the value is clear before I commit.
-
-**Acceptance Criteria:**
-
-**Given** the Paywall screen renders
-**When** coach introduction streams
-**Then** "The plan's ready. The coaching is ready." displays
-**And** "To unlock everything, start your free trial." follows
-
-**Given** the trial badge displays
-**When** rendered
-**Then** "7-DAY FREE TRIAL" appears in lime pill badge
-
-**Given** feature list displays
-**When** rendered
-**Then** bullets show appropriate path-specific benefits
-
-**Given** pricing displays
-**When** rendered
-**Then** "€9.99/month after trial" shows clearly
-**And** "Cancel anytime." appears below
-
-**Given** CTAs display
-**When** rendered
-**Then** primary button: "Start Free Trial" (lime, full width)
-**And** secondary: "Maybe later" (ghost text button)
-
-**Files:** `apps/native/src/components/app/onboarding/screens/PaywallScreen.tsx`
-
----
-
-### Story 9.2: Plan Revision Option ⚪ NOT STARTED
-
-As a user,
-I want the option to adjust my plan before committing,
-So that I have ownership over my training.
-
-**Acceptance Criteria:**
-
-**Given** plan presentation is complete
-**When** the coach asks about adjustments
-**Then** options include: "Looks good to me", "I'd like to change something"
-
-**Given** the user wants to make changes
-**When** they describe the adjustment
-**Then** the coach discusses the change
-**And** the plan is modified if appropriate
-
-**Given** the user approves the plan
-**When** they confirm
-**Then** transition to paywall begins
-
----
-
-### Story 9.3: Trial Activation ⚪ NOT STARTED
-
-As a user,
-I want to start my free trial easily,
-So that I can begin training immediately.
-
-**Acceptance Criteria:**
-
-**Given** the user is on the paywall
-**When** they tap "Start Free Trial"
-**Then** the trial is activated (FR54)
-**And** a success confirmation is shown
-**And** transition to home screen begins
-
-**Given** the trial activates
-**When** the subscription is created
-**Then** trial end date is recorded
-**And** the user's subscription status is updated
-
-**Given** the user taps "Maybe later"
-**When** they choose to defer
-**Then** they still proceed to home screen
-**And** limited functionality is available
-
----
-
-### Story 9.4: Home Screen Transition ⚪ NOT STARTED
-
-As a user,
-I want to arrive at my home screen ready to train,
-So that the onboarding concludes with clear next steps.
-
-**Acceptance Criteria:**
-
-**Given** trial is started or skipped
-**When** onboarding completes
-**Then** a smooth transition to home screen occurs
-**And** tomorrow's session (or today's) is visible
-
-**Given** the user reaches home screen
-**When** they view it
-**Then** the plan is loaded
-**And** the first session is accessible
-
-**Given** the handoff happens
-**When** the coach delivers final message
-**Then** it's dynamic based on first session timing
-
----
-
 ## Implementation Sequence
 
 Based on dependencies and priorities:
@@ -2358,10 +2230,9 @@ Based on dependencies and priorities:
 3. Story 7.3: Health Connect
 4. Story 7.4: Thinking Stream
 
-### Phase 7: Polish (Epics 8-9)
-**Goal:** Error handling, paywall
+### Phase 7: Polish (Epic 8)
+**Goal:** Error handling
 1. Epic 8: Error Handling
-2. Epic 9: Trial & Paywall
 
 ---
 

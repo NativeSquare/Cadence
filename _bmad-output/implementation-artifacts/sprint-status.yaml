@@ -144,22 +144,11 @@ development_status:
   # ==========================================================================
   # Network handling, connection recovery, LLM fallbacks, permission guidance
   # FRs: FR56, FR57, FR58, FR59
-  epic-8: backlog
-  8-1-network-unavailable-handling: backlog
-  8-2-connection-lost-mid-flow: backlog
-  8-3-llm-failure-fallback: backlog
-  8-4-permission-denied-guidance: backlog
-
-  # ==========================================================================
-  # Epic 9: Trial & Paywall - LOW PRIORITY (MVP non-essential)
-  # ==========================================================================
-  # Paywall UI, plan revision, trial activation, home transition
-  # FRs: FR52, FR53, FR54, FR55
-  epic-9: backlog
-  9-1-paywall-screen-ui: backlog
-  9-2-plan-revision-option: backlog
-  9-3-trial-activation: backlog
-  9-4-home-screen-transition: backlog
+  epic-8: in-progress
+  8-1-network-unavailable-handling: ready-for-dev  # Story created 2026-02-16
+  8-2-connection-lost-mid-flow: ready-for-dev  # Story created 2026-02-16
+  8-3-llm-failure-fallback: ready-for-dev  # Story created 2026-02-16
+  8-4-permission-denied-guidance: ready-for-dev  # Story created 2026-02-16
 
 # ==========================================================================
 # IMPLEMENTATION SEQUENCE (from epics.md)
@@ -182,5 +171,5 @@ development_status:
 # Phase 6: Additional Wearables (Epic 7)
 #   Goal: Strava, Health Connect, Thinking Stream
 #
-# Phase 7: Polish (Epics 8-9)
-#   Goal: Error handling, paywall
+# Phase 7: Polish (Epic 8)
+#   Goal: Error handling
