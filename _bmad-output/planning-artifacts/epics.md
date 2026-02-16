@@ -9,7 +9,14 @@ inputDocuments:
   - data-model-comprehensive.md
 lastUpdated: 2026-02-16
 changelog:
-  - "2026-02-16: Added Epic 7 (Backend Data Architecture) with 9 stories covering Terra-aligned data model, multi-level plan zoom, Knowledge Base, and Safeguards"
+  - "2026-02-16: Major restructure - Reorganized epics by implementation priority"
+  - "2026-02-16: Added AI Infrastructure Completion stories (server-side tool execution, agentic loop)"
+  - "2026-02-16: Moved HealthKit/Wearables to Epic 4 (high priority)"
+  - "2026-02-16: Split Backend Architecture (Epic 5) and Plan Generation (Epic 6)"
+  - "2026-02-16: Trial/Paywall moved to Epic 9 (lowest priority)"
+implementationStatus:
+  completed: "1.1-3.5"
+  next: "3.6"
 ---
 
 # Cadence - Epic Breakdown
@@ -17,6 +24,15 @@ changelog:
 ## Overview
 
 This document provides the complete epic and story breakdown for Cadence, decomposing the requirements from the PRD, UX Design if it exists, and Architecture requirements into implementable stories.
+
+## Implementation Status
+
+| Stories | Status | Notes |
+|---------|--------|-------|
+| 1.1 - 3.5 | ✅ IMPLEMENTED | Auth, consent, UI components, mock flow working |
+| 3.6+ | 🔴 NOT STARTED | Backend wiring, AI infrastructure |
+
+**Current Gap:** The streaming UI works beautifully with mock data, but server-side tool execution is not implemented. Tool calls render in UI, user responds, but nothing saves to the database.
 
 ## Requirements Inventory
 
@@ -177,29 +193,29 @@ This document provides the complete epic and story breakdown for Cadence, decomp
 | FR2 | Epic 1 | Authentication |
 | FR4 | Epic 1 | Terms/privacy acceptance |
 | FR5 | Epic 1 | Health data consent |
-| FR6 | Epic 6 | Strava OAuth connection |
-| FR7 | Epic 6 | HealthKit access (iOS) |
-| FR8 | Epic 6 | Health Connect access (Android) |
-| FR9 | Epic 6 | Skip wearable connection |
-| FR10 | Epic 6 | Retrieve historical data |
-| FR11 | Epic 6 | Data sync status |
-| FR12 | Epic 6 | Retry data connection |
+| FR6 | Epic 7 | Strava OAuth connection |
+| FR7 | Epic 4 | HealthKit access (iOS) |
+| FR8 | Epic 7 | Health Connect access (Android) |
+| FR9 | Epic 4 | Skip wearable connection |
+| FR10 | Epic 4 | Retrieve historical data |
+| FR11 | Epic 4 | Data sync status |
+| FR12 | Epic 7 | Retry data connection |
 | FR13 | Epic 2 | Natural language conversation |
 | FR14 | Epic 2 | Multiple choice responses |
 | FR15 | Epic 2 | Free text responses |
 | FR16 | Epic 2 | Voice input responses |
 | FR17 | Epic 2 | Confirm/edit captured info |
-| FR18 | Epic 2 | Contextual follow-up questions |
-| FR19 | Epic 2 | Reference earlier conversation |
-| FR20 | Epic 2 | Adapt question flow |
+| FR18 | Epic 3 | Contextual follow-up questions |
+| FR19 | Epic 3 | Reference earlier conversation |
+| FR20 | Epic 3 | Adapt question flow |
 | FR21 | Epic 2 | Progress indicator |
-| FR22 | Epic 6 | Analyze wearable data patterns |
-| FR23 | Epic 6 | Detect training issues |
-| FR24 | Epic 6 | Estimate fitness level |
-| FR25 | Epic 2 | Build profile from conversation |
-| FR26 | Epic 6 | Thinking Stream display |
-| FR27 | Epic 6 | Collapse/expand Thinking Stream |
-| FR28 | Epic 2 | Surface personalized insights |
+| FR22 | Epic 5 | Analyze wearable data patterns |
+| FR23 | Epic 5 | Detect training issues |
+| FR24 | Epic 5 | Estimate fitness level |
+| FR25 | Epic 3 | Build profile from conversation |
+| FR26 | Epic 7 | Thinking Stream display |
+| FR27 | Epic 7 | Collapse/expand Thinking Stream |
+| FR28 | Epic 3 | Surface personalized insights |
 | FR29 | Epic 2 | Specify race goal |
 | FR30 | Epic 2 | Specify time target |
 | FR31 | Epic 2 | Open Training mode |
@@ -209,67 +225,75 @@ This document provides the complete epic and story breakdown for Cadence, decomp
 | FR35 | Epic 2 | Describe comeback situation |
 | FR36 | Epic 2 | Non-performance goals |
 | FR37 | Epic 2 | Preferred coaching style |
-| FR38 | Epic 3 | Generate personalized plan |
-| FR39 | Epic 3 | Trust-rebuilding protocol |
-| FR40 | Epic 3 | Open training cycle |
+| FR38 | Epic 6 | Generate personalized plan |
+| FR39 | Epic 6 | Trust-rebuilding protocol |
+| FR40 | Epic 6 | Open training cycle |
 | FR41 | Epic 3 | RadarChart visualization |
 | FR42 | Epic 3 | ProgressChart visualization |
 | FR43 | Epic 3 | CalendarWidget visualization |
-| FR44 | Epic 3 | Projected outcomes |
-| FR45 | Epic 3 | Decision Audit Trail |
+| FR44 | Epic 6 | Projected outcomes |
+| FR45 | Epic 6 | Decision Audit Trail |
 | FR46 | Epic 3 | Expandable decision details |
 | FR47 | Epic 3 | Appropriate coaching language |
 | FR48 | Epic 1 | Track data completeness |
 | FR49 | Epic 1 | Persist partial progress |
 | FR50 | Epic 1 | Resume onboarding |
 | FR51 | Epic 1 | Indicate missing fields |
-| FR52 | Epic 4 | View paywall screen |
-| FR53 | Epic 4 | See trial benefits |
-| FR54 | Epic 4 | Start free trial |
-| FR55 | Epic 4 | See pricing options |
-| FR56 | Epic 5 | Network unavailable message |
-| FR57 | Epic 5 | Reconnection status |
-| FR58 | Epic 5 | Resume from stable state |
-| FR59 | Epic 5 | Permission denied guidance |
+| FR52 | Epic 9 | View paywall screen |
+| FR53 | Epic 9 | See trial benefits |
+| FR54 | Epic 9 | Start free trial |
+| FR55 | Epic 9 | See pricing options |
+| FR56 | Epic 8 | Network unavailable message |
+| FR57 | Epic 8 | Reconnection status |
+| FR58 | Epic 8 | Resume from stable state |
+| FR59 | Epic 8 | Permission denied guidance |
 
-## Epic List
+## Epic List (Priority Order)
 
-### Epic 1: Foundation & Runner Object Setup
+### Epic 1: Foundation & Runner Object Setup ✅ IMPLEMENTED
 User can sign up/login via social login, confirm their identity, and the system can track their onboarding progress.
 **FRs covered:** FR1, FR2, FR4, FR5, FR48, FR49, FR50, FR51
 
-### Epic 2: Conversational Profile Building
+### Epic 2: Conversational Profile Building ✅ IMPLEMENTED
 User can engage in natural conversation with the coach, answer questions via multiple modes, and build their complete runner profile (no-wearable path initially with mock buttons).
 **FRs covered:** FR13, FR14, FR15, FR16, FR17, FR18, FR19, FR20, FR21, FR25, FR28, FR29, FR30, FR31, FR32, FR33, FR34, FR35, FR36, FR37
 
-### Epic 3: Plan Generation & Visualization
-User sees their personalized training plan with RadarChart, ProgressChart, CalendarWidget, and can explore the reasoning behind every decision.
+### Epic 3: Plan Generation & Visualization 🔶 PARTIAL (3.1-3.5 done, 3.6+ pending)
+User sees their personalized training plan with RadarChart, ProgressChart, CalendarWidget, and can explore the reasoning behind every decision. **UI components built with mock data first, then wired to backend.**
 **FRs covered:** FR38, FR39, FR40, FR41, FR42, FR43, FR44, FR45, FR46, FR47
 
-### Epic 4: Onboarding Completion & Trial Conversion
-User can review/adjust their plan, view the paywall, start a free trial, and transition to the home screen.
-**FRs covered:** FR52, FR53, FR54, FR55
+### Epic 4: Wearable Data Integration 🔴 HIGH PRIORITY
+User can connect HealthKit (iOS), see their running data synced, and the backend stores it in Terra-aligned tables.
+**FRs covered:** FR7, FR9, FR10, FR11
 
-### Epic 5: Error Handling & Resilience
+### Epic 5: Backend Data Architecture 🔴 HIGH PRIORITY
+Backend infrastructure for storing historical data (Terra-aligned), calculating current state, and preparing data for plan generation.
+**FRs covered:** FR22, FR23, FR24 (backend implementation)
+**Architecture docs:** data-model-comprehensive.md, architecture-backend-v2.md
+
+### Epic 6: Plan Generation Engine 🔴 HIGH PRIORITY
+The AI-powered plan generator that uses Knowledge Base + Safeguards to create personalized, justified, safe training plans.
+**FRs covered:** FR38, FR39, FR40, FR44, FR45 (backend implementation)
+
+### Epic 7: Strava & Additional Wearable Connections 🟡 MEDIUM PRIORITY
+User can connect Strava via OAuth, see Thinking Stream analysis, and sync data from additional providers.
+**FRs covered:** FR6, FR8, FR12, FR26, FR27
+
+### Epic 8: Error Handling & Resilience 🟡 MEDIUM PRIORITY
 User experiences graceful handling of network issues, permission denials, and can always resume where they left off.
 **FRs covered:** FR56, FR57, FR58, FR59
 
-### Epic 6: Wearable Data Connection & Analysis
-User can connect Strava/HealthKit, see their running data synced, and watch the coach analyze it in real-time via Thinking Stream. (Deferred until licenses obtained)
-**FRs covered:** FR6, FR7, FR8, FR9, FR10, FR11, FR12, FR22, FR23, FR24, FR26, FR27
-
-### Epic 7: Backend Data Architecture & Plan Generation
-Backend infrastructure for storing historical data (Terra-aligned), generating plans with multi-level justifications (Season/Weekly/Daily), and ensuring safe recommendations via Knowledge Base and Safeguards.
-**FRs covered:** FR38, FR39, FR40, FR44, FR45 (backend implementation)
-**Architecture docs:** data-model-comprehensive.md, architecture-backend-v2.md
+### Epic 9: Trial & Paywall ⚪ LOW PRIORITY (MVP non-essential)
+User can view the paywall, start a free trial, and transition to the home screen.
+**FRs covered:** FR52, FR53, FR54, FR55
 
 ---
 
-## Epic 1: Foundation & Runner Object Setup
+## Epic 1: Foundation & Runner Object Setup ✅ IMPLEMENTED
 
 User can sign up/login via social login, confirm their identity, and the system can track their onboarding progress.
 
-### Story 1.1: Runner Object Schema & CRUD
+### Story 1.1: Runner Object Schema & CRUD ✅
 
 As a developer,
 I want the Runner Object data model created in Convex,
@@ -285,7 +309,7 @@ So that all onboarding data can be stored and tracked consistently.
 
 ---
 
-### Story 1.2: Social Login Integration
+### Story 1.2: Social Login Integration ✅
 
 As a new user,
 I want to sign up using Apple or Google,
@@ -313,7 +337,7 @@ So that I can quickly create an account without managing another password.
 
 ---
 
-### Story 1.3: Onboarding Consent Flow
+### Story 1.3: Onboarding Consent Flow ✅
 
 As a new user,
 I want to review and accept terms of service and privacy policy,
@@ -340,7 +364,7 @@ So that I understand my rights and obligations before using the app.
 
 ---
 
-### Story 1.4: Health Data Consent
+### Story 1.4: Health Data Consent ✅
 
 As a new user,
 I want to explicitly consent to health data collection,
@@ -365,7 +389,7 @@ So that I understand how my running and fitness data will be used.
 
 ---
 
-### Story 1.5: Name Confirmation Screen
+### Story 1.5: Name Confirmation Screen ✅
 
 As a new user,
 I want the coach to confirm my name from OAuth,
@@ -392,7 +416,7 @@ So that the experience feels personal from the first moment.
 
 ---
 
-### Story 1.6: Progress Tracking & Persistence
+### Story 1.6: Progress Tracking & Persistence ✅
 
 As a user going through onboarding,
 I want my progress to be saved automatically,
@@ -422,11 +446,11 @@ So that I can resume where I left off if I close the app.
 
 ---
 
-## Epic 2: Conversational Profile Building
+## Epic 2: Conversational Profile Building ✅ IMPLEMENTED
 
 User can engage in natural conversation with the coach, answer questions via multiple modes, and build their complete runner profile (no-wearable path initially with mock buttons).
 
-### Story 2.1: AI SDK Integration & Streaming Infrastructure
+### Story 2.1: AI SDK Integration & Streaming Infrastructure ✅
 
 As a developer,
 I want the LLM integration set up with Vercel AI SDK via Convex HTTP Actions,
@@ -453,7 +477,7 @@ So that the coach can have streaming conversations with tool-calling capabilitie
 
 ---
 
-### Story 2.2: Generative UI Tool Renderer
+### Story 2.2: Generative UI Tool Renderer ✅
 
 As a user,
 I want to see dynamic UI components rendered based on the coach's responses,
@@ -482,7 +506,7 @@ So that I can interact naturally through the conversation.
 
 ---
 
-### Story 2.3: Multiple Choice Input Tool
+### Story 2.3: Multiple Choice Input Tool ✅
 
 As a user,
 I want to respond to coach questions by tapping options,
@@ -519,7 +543,7 @@ So that I can quickly answer structured questions.
 
 ---
 
-### Story 2.4: Open Text Input Tool
+### Story 2.4: Open Text Input Tool ✅
 
 As a user,
 I want to type free-form responses to the coach,
@@ -549,7 +573,7 @@ So that I can share details that don't fit predefined options.
 
 ---
 
-### Story 2.5: Voice Input Capability
+### Story 2.5: Voice Input Capability ✅
 
 As a user,
 I want to speak my responses to the coach,
@@ -580,7 +604,7 @@ So that I can interact hands-free or express myself more naturally.
 
 ---
 
-### Story 2.6: Confirmation Card Tool
+### Story 2.6: Confirmation Card Tool ✅
 
 As a user,
 I want to confirm or correct information the coach captured,
@@ -606,7 +630,7 @@ So that my profile accurately reflects my situation.
 
 ---
 
-### Story 2.7: Wearable Connection Mock (Skip Path)
+### Story 2.7: Wearable Connection Mock (Skip Path) ✅
 
 As a user without wearable data,
 I want to skip the wearable connection and proceed conversationally,
@@ -632,7 +656,7 @@ So that I can still use the app without connected devices.
 
 ---
 
-### Story 2.8: Design Tokens & Animation Alignment
+### Story 2.8: Design Tokens & Animation Alignment ✅
 
 *REVISED 2026-02-14: UI-first approach per sprint-change-proposal-2026-02-14.md*
 *Reference: cadence-v3.jsx lines 4-35*
@@ -661,7 +685,7 @@ So that all UI components match the target visual design.
 
 ---
 
-### Story 2.9: Streaming Text & Cursor Polish
+### Story 2.9: Streaming Text & Cursor Polish ✅
 
 *REVISED 2026-02-14: UI-first approach per sprint-change-proposal-2026-02-14.md*
 *Reference: cadence-v3.jsx lines 41-93 (useStream hook, StreamBlock component)*
@@ -695,7 +719,7 @@ So that the coach feels like it's speaking, not appearing.
 
 ---
 
-### Story 2.10: FreeformInput Enhancement & MiniAnalysis Component
+### Story 2.10: FreeformInput Enhancement & MiniAnalysis Component ✅
 
 *REVISED 2026-02-14: UI-first approach per sprint-change-proposal-2026-02-14.md*
 *Reference: cadence-v3.jsx lines 165-352 (MiniAnalysis, FreeformInput)*
@@ -748,7 +772,7 @@ So that I trust the AI is actually analyzing what I said.
 
 ---
 
-### Story 2.11: Choice Cards & Confidence Badge
+### Story 2.11: Choice Cards & Confidence Badge ✅
 
 *REVISED 2026-02-14: UI-first approach per sprint-change-proposal-2026-02-14.md*
 *Reference: cadence-v3.jsx lines 128-160 (Choice, Badge)*
@@ -807,7 +831,7 @@ So that interactions feel premium and data quality is clear.
 
 ---
 
-### Story 2.12: Conversation Screen Flow (Mock Data)
+### Story 2.12: Conversation Screen Flow (Mock Data) ✅
 
 *REVISED 2026-02-14: UI-first approach per sprint-change-proposal-2026-02-14.md*
 *Reference: cadence-v3.jsx lines 473-678 (SelfReport, Goals, Health, StyleScr, OpenQuestion)*
@@ -869,7 +893,7 @@ So that the UX can be validated before backend wiring.
 
 ---
 
-### Story 2.13: Transition & Loading States
+### Story 2.13: Transition & Loading States ✅
 
 *REVISED 2026-02-14: UI-first approach per sprint-change-proposal-2026-02-14.md*
 *Reference: cadence-v3.jsx lines 683-699 (TransitionScr)*
@@ -906,7 +930,7 @@ So that the plan generation feels intentional and exciting.
 
 User sees their personalized training plan with RadarChart, ProgressChart, CalendarWidget, and can explore the reasoning behind every decision. **UI components built with mock data first, then wired to backend.**
 
-### Story 3.1: RadarChart Component
+### Story 3.1: RadarChart Component ✅
 
 *Reference: cadence-v3.jsx lines 704-750 (RadarSVG, RadarScreen)*
 
@@ -941,7 +965,7 @@ So that I understand my strengths and areas for improvement.
 
 ---
 
-### Story 3.2: ProgressionChart Component
+### Story 3.2: ProgressionChart Component ✅
 
 *Reference: cadence-v3.jsx lines 755-818 (ProgressionScreen)*
 
@@ -983,7 +1007,7 @@ So that I understand how my training will build.
 
 ---
 
-### Story 3.3: CalendarWidget Component
+### Story 3.3: CalendarWidget Component ✅
 
 *Reference: cadence-v3.jsx lines 823-858 (CalendarScreen)*
 
@@ -1024,7 +1048,7 @@ So that I understand what each day looks like.
 
 ---
 
-### Story 3.4: Verdict Screen with DecisionAudit
+### Story 3.4: Verdict Screen with DecisionAudit ✅
 
 *Reference: cadence-v3.jsx lines 864-913 (Verdict)*
 
@@ -1071,7 +1095,7 @@ So that I trust and own my training plan.
 
 ---
 
-### Story 3.5: Full Screen Flow Integration (Mock Data)
+### Story 3.5: Full Screen Flow Integration (Mock Data) ✅
 
 *NEW STORY - validates complete UX before backend wiring*
 
@@ -1103,75 +1127,187 @@ So that UX can be validated before backend integration.
 
 ---
 
-### Story 3.6: Backend Wiring - Conversation Phases
+### Story 3.6: Server-Side Tool Execution & Agentic Loop 🔴 NOT STARTED
 
-*NEW STORY - connects polished UI to existing AI infrastructure*
-*Absorbs conversation phase content from original stories 2-8 to 2-13*
+*CRITICAL: This is the main gap preventing the onboarding from working*
 
-As a user,
-I want the conversation screens to work with real AI responses,
-So that my profile is actually captured and personalized.
+As a developer,
+I want tool calls to execute server-side and results to flow back to the LLM,
+So that the conversation actually persists data and continues intelligently.
 
 **Acceptance Criteria:**
 
-**Given** SelfReport screen is wired
-**When** user makes selections
-**Then** AI tool calls render the UI components
-**And** selections update Runner Object via Convex mutations
-**And** coach responses reflect actual user data
+**Given** the LLM makes a tool call (e.g., renderMultipleChoice)
+**When** the user submits their response
+**Then** the frontend POSTs the tool result to `/api/ai/tool-result` endpoint
+**And** the backend receives: { conversationId, toolCallId, toolName, targetField, value }
 
-**Given** Goals, Health, Style, OpenQuestion screens are wired
-**When** user completes each
-**Then** corresponding Runner Object fields populate
-**And** phase transitions work correctly
-**And** progress bar reflects real data_completeness
+**Given** a tool result is received
+**When** the backend processes it
+**Then** the tool handler executes the appropriate logic:
+  - For data-collecting tools: update Runner Object via Convex mutation
+  - For confirmation tools: mark field as confirmed
+  - For connection tools: trigger OAuth flow or skip
 
-**Given** MiniAnalysis is wired
-**When** user submits freeform text
-**Then** AI actually parses and extracts information
-**And** extracted fields update Runner Object
-**And** coach acknowledges specific extractions
+**Given** tool execution completes
+**When** the result is ready
+**Then** the result is formatted according to Vercel AI SDK expectations
+**And** the result is sent back through the SSE stream
+**And** the AI SDK re-invokes the LLM with the tool result in context
 
-**Depends on:** Story 3.5 (UI validated with mock data)
+**Given** the LLM receives the tool result
+**When** it generates the next response
+**Then** the agentic loop continues (either more text, more tools, or finish)
+**And** up to 5 rounds of tool calling are supported (per existing stepCountIs(5))
 
-**Files:** Modify screen components to accept AI tool props, connect to tool-renderer infrastructure
+**Given** a tool execution fails
+**When** an error occurs
+**Then** the error is logged
+**And** a graceful error response is sent to the client
+**And** the conversation can recover
+
+**Files:**
+- `packages/backend/convex/ai/http_action.ts` (enhance with tool execution)
+- `packages/backend/convex/ai/tool-handlers.ts` (NEW - tool execution logic)
+- `apps/native/src/hooks/use-ai-chat.ts` (ensure tool result submission)
 
 ---
 
-### Story 3.7: Backend Wiring - Plan Generation & Visualization
+### Story 3.7: Tool Result Handler & Runner Object Updates 🔴 NOT STARTED
 
-*NEW STORY - connects visualization UI to real plan data*
+As a developer,
+I want tool results to update the Runner Object with proper field mapping,
+So that user responses are persisted to their profile.
+
+**Acceptance Criteria:**
+
+**Given** a tool result with targetField is received
+**When** the handler processes it
+**Then** the targetField path is mapped to the Runner Object schema:
+  - `running.experienceLevel` → runners.running.experienceLevel
+  - `goals.goalType` → runners.goals.goalType
+  - `schedule.availableDays` → runners.schedule.availableDays
+  - etc.
+
+**Given** a value needs transformation
+**When** the handler processes it
+**Then** values are transformed appropriately:
+  - Numeric strings → numbers
+  - Pace strings → seconds per km
+  - Date strings → timestamps
+  - Arrays → validated arrays
+
+**Given** the Runner Object is updated
+**When** the mutation completes
+**Then** `conversationState.dataCompleteness` is recalculated
+**And** `conversationState.fieldsMissing` is updated
+**And** `conversationState.currentPhase` advances if requirements met
+
+**Given** provenance tracking is needed
+**When** a field is updated
+**Then** the source is recorded: "user_input"
+**And** the inputMethod is recorded: "selection" | "text" | "voice"
+**And** the questionAsked is recorded for justification tracing
+**And** timestamp is recorded
+
+**Given** validation fails
+**When** an invalid value is received
+**Then** the error is handled gracefully
+**And** the user is prompted to correct
+
+**Files:**
+- `packages/backend/convex/ai/tool-handlers.ts`
+- `packages/backend/convex/runners/mutations.ts` (updateRunnerField mutation)
+- `packages/backend/convex/ai/field-mappings.ts` (NEW - field mapping registry)
+
+---
+
+### Story 3.8: Conversation Phase Management 🔴 NOT STARTED
+
+As a developer,
+I want the conversation to progress through phases based on data completeness,
+So that the coach knows what to ask next and when to generate the plan.
+
+**Acceptance Criteria:**
+
+**Given** phase requirements are defined
+**When** the system evaluates progress
+**Then** phases are: intro → data_bridge → profile → goals → schedule → health → coaching → analysis → complete
+
+**Given** the intro phase
+**When** identity.nameConfirmed is true
+**Then** phase advances to data_bridge
+
+**Given** the data_bridge phase
+**When** wearable decision is made (connected OR skipped)
+**Then** phase advances to profile
+
+**Given** the profile phase (NO DATA path)
+**When** required fields are filled: experienceLevel, currentFrequency, currentVolume
+**Then** phase advances to goals
+
+**Given** the profile phase (DATA path)
+**When** wearable data is synced AND user confirms inferred values
+**Then** phase advances to goals
+
+**Given** subsequent phases
+**When** their required fields are complete
+**Then** phases advance automatically
+
+**Given** analysis phase is reached
+**When** all required fields are filled
+**Then** readyForPlan becomes true
+**And** plan generation is triggered
+
+**Given** the system prompt is assembled
+**When** the coach generates responses
+**Then** phase-specific instructions guide the conversation
+**And** the coach knows which fields to collect next
+
+**Files:**
+- `packages/backend/convex/ai/phase-manager.ts` (NEW)
+- `packages/backend/convex/ai/prompts/onboarding_coach.ts` (enhance with phase context)
+
+---
+
+### Story 3.9: Backend Wiring - Visualization Data 🔴 NOT STARTED
 
 As a user,
-I want the visualization screens to show my actual plan,
+I want the visualization screens to show my actual profile and plan data,
 So that the charts and projections are personalized to me.
 
 **Acceptance Criteria:**
 
-**Given** RadarChart is wired
-**When** plan data is available
-**Then** chart shows actual runner profile metrics from Runner Object
+**Given** RadarChart needs real data
+**When** plan generation completes
+**Then** runnerSnapshot.profileRadar provides the 6 axis values
+**And** uncertain flag is set based on data source (inferred vs confirmed)
 
-**Given** ProgressionChart is wired
-**When** plan data is available
-**Then** chart shows actual weekly volume and intensity from generated plan
+**Given** ProgressionChart needs real data
+**When** plan generation completes
+**Then** weeklyPlan array provides volumeKm and intensityScore for each week
+**And** isRecoveryWeek and weekLabel are populated
 
-**Given** CalendarWidget is wired
-**When** plan data is available
-**Then** calendar shows actual session structure from generated plan
+**Given** CalendarWidget needs real data
+**When** plan generation completes
+**Then** plannedSessions for week 1 are queried
+**And** each session has sessionTypeDisplay, targetDurationDisplay, isKeySession
 
-**Given** Verdict/DecisionAudit is wired
-**When** plan data is available
-**Then** projections show actual calculated outcomes
-**And** audit trail shows actual reasoning from plan generation
+**Given** DecisionAudit needs real data
+**When** plan generation completes
+**Then** decisions array provides the audit trail
+**And** safeguardApplications shows what limits were applied
+**And** seasonView.expectedOutcomes provides confidence and reasoning
 
-**Depends on:** Story 3.6 (conversation phases wired)
+**Depends on:** Epic 6 (Plan Generation Engine)
 
-**Files:** Modify visualization components to accept real data props
+**Files:**
+- Modify visualization components to accept real data props
+- Connect to Convex queries for plan data
 
 ---
 
-### Story 3.8: Adaptive Coaching Language
+### Story 3.10: Adaptive Coaching Language 🔴 NOT STARTED
 
 As a user,
 I want the coach to explain the plan in language that matches my situation,
@@ -1199,144 +1335,756 @@ So that the advice feels relevant and personal.
 **Then** explanations are concise
 **And** only essential information is shared
 
-**Depends on:** Story 3.7 (visualizations wired)
+**Given** the user prefers "tough love" style
+**When** the coach explains
+**Then** direct, no-nonsense language is used
+**And** accountability is emphasized
+
+**Depends on:** Story 3.9 (visualization data wired)
+
+**Files:**
+- `packages/backend/convex/ai/prompts/coaching-voice.ts` (NEW)
+- Enhance system prompt with voice modulation
 
 ---
 
-## Epic 4: Onboarding Completion & Trial Conversion
+## Epic 4: Wearable Data Integration 🔴 HIGH PRIORITY
 
-*REVISED 2026-02-14: Paywall UI story added per sprint-change-proposal-2026-02-14.md*
+User can connect HealthKit (iOS), see their running data synced, and the backend stores it in normalized tables.
 
-User can review/adjust their plan, view the paywall, start a free trial, and transition to the home screen.
+### Story 4.1: HealthKit Integration (iOS) 🔴 NOT STARTED
 
-### Story 4.1: Paywall Screen UI
-
-*NEW STORY - UI with mock data first*
-*Reference: cadence-v3.jsx lines 918-944 (PaywallScr)*
-
-As a user,
-I want to see a compelling paywall after experiencing my plan,
-So that the value is clear before I commit.
+As an iOS user,
+I want to grant HealthKit access,
+So that the coach can analyze my Apple Watch running data.
 
 **Acceptance Criteria:**
 
-**Given** the Paywall screen renders
-**When** coach introduction streams
-**Then** "The plan's ready. The coaching is ready." displays
-**And** "To unlock everything, start your free trial." follows
+**Given** the user taps "Connect Apple Watch" on iOS
+**When** HealthKit permission is requested
+**Then** the native iOS permission dialog appears (FR7)
+**And** requested data types include: running workouts, distance, duration, heart rate, HRV
 
-**Given** the trial badge displays
-**When** rendered
-**Then** "7-DAY FREE TRIAL" appears in lime pill badge
+**Given** permission is granted
+**When** HealthKit access is confirmed
+**Then** connections.healthkitConnected is set to true
+**And** data fetch is triggered immediately
+**And** sync status is shown to the user
 
-**Given** feature list displays
-**When** DATA path active
-**Then** bullets show: Full plan through race day, Daily adaptive sessions, Visible reasoning for every decision, Unlimited plan adjustments
+**Given** historical data is fetched
+**When** workouts are retrieved
+**Then** last 90 days of running workouts are fetched
+**And** each workout is normalized to our schema
+**And** activities are stored in the activities table
 
-**Given** feature list displays
-**When** NO DATA path active
-**Then** bullets show: Full plan through race day, Sessions that adapt as you log runs, Connect wearable for deeper insights, See why every decision was made
+**Given** permission is denied
+**When** the user declines
+**Then** graceful fallback to skip path
+**And** guidance for enabling later is provided
 
-**Given** pricing displays
-**When** rendered
-**Then** "€9.99/month after trial" shows clearly
-**And** "Cancel anytime." appears below
+**Note:** HealthKit requires EAS Build (custom dev client, no Expo Go)
 
-**Given** CTAs display
-**When** rendered
-**Then** primary button: "Start Free Trial" (lime, full width)
-**And** secondary: "Maybe later" (ghost text button)
-
-**Uses MOCK initially - trial activation wired in Story 4.3**
-
-**Files:** `apps/native/src/components/app/onboarding/screens/PaywallScreen.tsx`
+**Files:**
+- `apps/native/src/lib/healthkit.ts` (HealthKit client)
+- `apps/native/src/hooks/use-healthkit-sync.ts` (sync hook)
+- `packages/backend/convex/integrations/healthkit/sync.ts` (batch upsert action)
 
 ---
 
-### Story 4.2: Plan Revision Option
+### Story 4.2: Mock Data Providers for Development 🔴 NOT STARTED
 
-As a user,
-I want the option to adjust my plan before committing,
-So that I have ownership over my training.
+As a developer,
+I want mock data providers that simulate wearable data,
+So that I can test the full flow without real devices.
 
 **Acceptance Criteria:**
 
-**Given** plan presentation is complete
-**When** the coach asks about adjustments
-**Then** an OpenInput is shown with suggestedResponses
-**And** options include: "Looks good to me", "I'd like to change something", "Can I see the first week in detail?"
+**Given** the app is in development mode
+**When** mock mode is enabled
+**Then** a mock data provider can be selected: "Mock Garmin", "Mock Apple Watch", "Mock Strava"
 
-**Given** the user wants to make changes
-**When** they describe the adjustment
-**Then** the coach discusses the change
-**And** the plan is modified if appropriate
-**And** the user is shown the updated element
+**Given** mock HealthKit is selected
+**When** sync is triggered
+**Then** realistic mock activities are generated:
+  - 12 weeks of running history
+  - 3-5 runs per week
+  - Variable distances (5-20km)
+  - Realistic paces (5:00-7:00/km)
+  - Heart rate data
+  - Occasional rest weeks
 
-**Given** the user approves the plan
-**When** they confirm
-**Then** the plan is finalized
-**And** transition to paywall begins
+**Given** mock Strava is selected
+**When** sync is triggered
+**Then** similar realistic mock activities are generated
+**And** Strava-specific fields are populated (suffer_score, segment_efforts)
+
+**Given** mock data is generated
+**When** stored in the database
+**Then** source is set to "mock_healthkit" or "mock_strava"
+**And** data is indistinguishable from real data for testing
+
+**Given** the user's exported HealthKit JSON is available
+**When** imported as mock data
+**Then** real historical patterns can be used for testing
+
+**Files:**
+- `packages/backend/convex/seeds/mock-activities.ts`
+- `packages/backend/convex/lib/mock-data-generator.ts`
+- `apps/native/src/lib/mock-providers.ts`
 
 ---
 
-### Story 4.3: Trial Activation
+### Story 4.3: Data Normalization & Sync Pipeline 🔴 NOT STARTED
 
-As a user,
-I want to start my free trial easily,
-So that I can begin training immediately.
+As a developer,
+I want a consistent data normalization pipeline,
+So that data from any provider is stored in a unified format.
 
 **Acceptance Criteria:**
 
-**Given** the user is on the paywall
-**When** they tap "Start Free Trial"
-**Then** the trial is activated (FR54)
-**And** a success confirmation is shown
-**And** transition to home screen begins
+**Given** HealthKit workout data is received
+**When** normalization runs
+**Then** fields are mapped:
+  - workoutActivityType → activityType ("running")
+  - duration → durationSeconds
+  - totalDistance → distanceMeters
+  - totalEnergyBurned → calories
+  - metadata.HKAverageHeartRate → avgHeartRate
+  - startDate/endDate → startTime/endTime (Unix ms)
 
-**Given** the trial activates
-**When** the subscription is created
-**Then** trial end date is recorded
-**And** the user's subscription status is updated
+**Given** pace needs to be calculated
+**When** distance and duration are available
+**Then** avgPaceSecondsPerKm = durationSeconds / (distanceMeters / 1000)
 
-**Given** the user taps "Maybe later" / skip
-**When** they choose to defer
-**Then** they still proceed to home screen
-**And** limited functionality is available
-**And** they can start trial later from settings
+**Given** the sync pipeline runs
+**When** activities are processed
+**Then** duplicates are detected by externalId
+**And** existing records are updated (upsert behavior)
+**And** new records are inserted
+**And** rawPayload is preserved for debugging
+
+**Given** sync completes
+**When** Runner Object is updated
+**Then** connections.healthkitLastSync is set to current timestamp
+**And** inference engine is triggered to recalculate currentState
+
+**Files:**
+- `packages/backend/convex/lib/normalizers/healthkit.ts`
+- `packages/backend/convex/integrations/sync-pipeline.ts`
 
 ---
 
-### Story 4.4: Home Screen Transition
+## Epic 5: Backend Data Architecture 🔴 HIGH PRIORITY
 
-As a user,
-I want to arrive at my home screen ready to train,
-So that the onboarding concludes with clear next steps.
+Backend infrastructure for storing historical data (Terra-aligned), calculating current state, and preparing data for plan generation.
+
+### Story 5.1: Historical Data Tables Schema 🔴 NOT STARTED
+
+As a developer,
+I want the complete historical data schema implemented in Convex,
+So that wearable data from any provider can be stored in a unified format.
 
 **Acceptance Criteria:**
 
-**Given** trial is started or skipped
-**When** onboarding completes
-**Then** a smooth transition to home screen occurs
-**And** tomorrow's session (or today's) is visible
+**Given** the Convex backend is deployed
+**When** the schema is created
+**Then** `activities` table exists with Terra-aligned fields:
+- Core: runnerId, userId, externalId, source
+- Time: startTime, endTime, timezone
+- Distance & Movement: distanceMeters, durationSeconds, elevationGainMeters, steps
+- Pace & Speed: avgPaceSecondsPerKm, maxPaceSecondsPerKm, avgSpeedKmh
+- Heart Rate: avgHeartRate, maxHeartRate, restingHeartRate, hrvMs
+- Zones: hrZone1-5 minutes
+- Training Load: calories, trainingLoad (TSS/suffer), perceivedExertion
+- Power/Running: avgPower, avgCadence, groundContactTime, strideLength
+- Cadence-specific: sessionType, planAdherence, userFeedback
+- Samples: heartRateSamples, paceSamples (JSON for MVP)
+- Metadata: rawPayload, importedAt, lastSyncedAt
 
-**Given** the user reaches home screen
-**When** they view it
-**Then** the plan is loaded
-**And** the first session is accessible
-**And** the coach is quiet but present
+**And** `sleepSessions` table exists with:
+- Duration stages: totalSleepMinutes, deepSleepMinutes, lightSleepMinutes, remSleepMinutes, awakeMinutes
+- Heart rate: avgHeartRate, lowestHeartRate, hrvMs
+- Recovery: readinessScore, recoveryScore
+- Respiration: avgBreathingRate
 
-**Given** the handoff happens
-**When** the coach delivers final message
-**Then** it's dynamic based on first session timing
-**And** examples: "Your first session is tomorrow morning" or "You could start today if you're feeling it"
+**And** `dailySummaries` table exists with:
+- Aggregates: totalDistanceMeters, totalSteps, totalCalories, activityCount
+- Heart: restingHeartRate, avgHeartRate, hrvMs
+- Sleep summary: sleepDurationMinutes, sleepQuality
+- Readiness: readinessScore, stressLevel
+- Training load: acuteTrainingLoad, chronicTrainingLoad, trainingStressBalance
+
+**And** `bodyMeasurements` table exists with:
+- Weight, bodyFatPercent, muscleMass
+- Blood pressure, glucose, temperature
+
+**And** all tables have indexes for:
+- Queries by runnerId
+- Queries by date range (startTime)
+- Queries by source provider
+
+**Files:** `packages/backend/convex/schema/activities.ts`, `sleepSessions.ts`, `dailySummaries.ts`, `bodyMeasurements.ts`
 
 ---
 
-## Epic 5: Error Handling & Resilience
+### Story 5.2: Enhanced Runner Object with Provenance 🔴 NOT STARTED
+
+As a developer,
+I want the Runner Object schema enhanced with provenance tracking,
+So that every field can be traced back to its source for justifications.
+
+**Acceptance Criteria:**
+
+**Given** the existing runners table
+**When** the schema is enhanced
+**Then** each field can optionally store provenance:
+```typescript
+{
+  value: T,
+  provenance: {
+    source: "user_input" | "wearable" | "inferred" | "default",
+    inputMethod?: "slider" | "selection" | "text" | "confirmation",
+    questionAsked?: string,
+    toolName?: string,
+    collectedAt: number,
+    confidence?: number,
+    inferredFrom?: string[]
+  }
+}
+```
+
+**And** the `currentState` section is fully implemented:
+- acuteTrainingLoad (ATL)
+- chronicTrainingLoad (CTL)
+- trainingStressBalance (TSB)
+- trainingLoadTrend
+- readinessScore, readinessFactors
+- last7Days/last28Days volume and run count
+- injuryRiskLevel, injuryRiskFactors
+- latestRestingHr, latestHrv, latestWeight, latestSleepScore
+- lastCalculatedAt
+
+**And** helper functions exist:
+- `getFieldValue(runner, path)` - returns value without provenance
+- `getFieldWithProvenance(runner, path)` - returns full object
+- `buildJustification(runner, decision)` - traces provenance for explanations
+
+**Files:**
+- `packages/backend/convex/schema/runners.ts` (enhance)
+- `packages/backend/convex/lib/provenance-helpers.ts` (NEW)
+
+---
+
+### Story 5.3: Data Adapters Pattern 🔴 NOT STARTED
+
+As a developer,
+I want data adapters for each provider,
+So that the system is source-agnostic and extensible.
+
+**Acceptance Criteria:**
+
+**Given** a data adapter interface exists
+**When** adapters are implemented
+**Then** each adapter provides:
+```typescript
+interface DataAdapter {
+  source: string; // "healthkit" | "strava" | "garmin" | "manual"
+  normalizeActivity(raw: any): Partial<Activity>;
+  normalizeSleep?(raw: any): Partial<SleepSession>;
+  normalizeBody?(raw: any): Partial<BodyMeasurement>;
+  fetchActivities?(userId: string, dateRange: DateRange): Promise<Activity[]>;
+}
+```
+
+**And** adapters exist for:
+- HealthKit (iOS native)
+- Manual entry (user-logged activities)
+- (Future: Strava, Garmin, COROS, Terra)
+
+**And** all adapters:
+- Set `source` field to provider name
+- Handle missing fields gracefully (optional fields)
+- Preserve `rawPayload` for debugging
+- Calculate derived fields (pace from distance/duration)
+
+**And** adapter registry exists:
+- `getAdapter(source: string): DataAdapter`
+- `normalizeAndStore(source, rawData, runnerId)`
+
+**Files:**
+- `packages/backend/convex/lib/adapters/types.ts`
+- `packages/backend/convex/lib/adapters/healthkit.ts`
+- `packages/backend/convex/lib/adapters/manual.ts`
+- `packages/backend/convex/lib/adapters/registry.ts`
+
+---
+
+### Story 5.4: Inference Engine for Current State 🔴 NOT STARTED
+
+As a developer,
+I want an inference engine that calculates the runner's current state from historical data,
+So that the Runner Object's `currentState` is always up-to-date.
+
+**Acceptance Criteria:**
+
+**Given** the inference engine runs
+**When** it processes a runner's history
+**Then** it calculates training load metrics:
+- ATL (Acute Training Load): 7-day exponentially weighted average
+- CTL (Chronic Training Load): 42-day exponentially weighted average
+- TSB (Training Stress Balance): CTL - ATL
+- Training load trend: "building" | "maintaining" | "declining" | "erratic"
+
+**And** it calculates injury risk:
+- Ramp rate = (current week volume - 4 week avg) / 4 week avg
+- Risk level based on: ramp rate + injury history + age
+- Risk factors array populated
+
+**And** it calculates recent patterns:
+- last7DaysVolume, last7DaysRunCount
+- last28DaysVolume, last28DaysRunCount
+- Average pace by effort zone
+- Consistency score (0-100)
+
+**And** it pulls latest biometrics from daily summaries:
+- latestRestingHr, latestHrv
+- latestWeight, latestSleepScore
+
+**Given** inference completes
+**When** Runner Object is updated
+**Then** only `currentState` section is modified
+**And** lastCalculatedAt is set
+**And** user-provided fields are NEVER overwritten
+
+**Given** inference should run
+**When** triggered:
+- After each new activity import
+- Daily via scheduled job
+- On demand before plan generation
+
+**Files:**
+- `packages/backend/convex/lib/inference-engine.ts`
+- `packages/backend/convex/scheduled/daily-inference.ts`
+
+---
+
+## Epic 6: Plan Generation Engine 🔴 HIGH PRIORITY
+
+The AI-powered plan generator that uses Knowledge Base + Safeguards to create personalized, justified, safe training plans.
+
+### Story 6.1: Training Plans with Multi-Level Zoom Schema 🔴 NOT STARTED
+
+As a developer,
+I want training plans to store data for Season/Weekly/Daily zoom levels,
+So that the UI can show justifications at each level.
+
+**Acceptance Criteria:**
+
+**Given** a training plan is generated
+**When** it is stored
+**Then** `seasonView` contains:
+- `coachSummary`: 2-3 sentence overview
+- `periodizationJustification`: why this approach
+- `volumeStrategyJustification`: why these numbers
+- `keyMilestones`: array of { weekNumber, milestone, significance }
+- `identifiedRisks`: array of { risk, mitigation, monitoringSignals }
+- `expectedOutcomes`: { primaryGoal, confidenceLevel, confidenceReason, secondaryOutcomes }
+
+**And** `weeklyPlan` contains array of weeks:
+- weekNumber, weekStartDate, weekEndDate
+- phaseName, phaseWeekNumber
+- volumeKm, intensityScore (for ProgressionChart)
+- isRecoveryWeek, weekLabel
+- keySessions, easyRuns, restDays counts
+- weekFocus, weekJustification, coachNotes
+- volumeChangePercent, warningSignals
+
+**And** `runnerSnapshot` contains:
+- capturedAt timestamp
+- profileRadar: array for RadarChart
+- fitnessIndicators: VDOT, volume, consistency
+- planInfluencers: factors that shaped the plan
+
+**Files:** `packages/backend/convex/schema/trainingPlans.ts`
+
+---
+
+### Story 6.2: Planned Sessions Schema 🔴 NOT STARTED
+
+As a developer,
+I want planned sessions to include all UI-required fields plus justifications,
+So that CalendarWidget can render with full coach reasoning.
+
+**Acceptance Criteria:**
+
+**Given** a session is planned
+**When** it is stored
+**Then** display fields exist:
+- sessionTypeDisplay: "Tempo" | "Easy" | "Intervals" | "Long Run" | "Rest"
+- targetDurationDisplay: "50 min" format
+- effortDisplay: "7/10" format
+- targetPaceDisplay: "4:55–5:05/km" format
+- structureDisplay: "10 min warm-up → 30 min tempo → 10 min cool-down"
+
+**And** justification fields exist:
+- justification: WHY this session is placed here
+- physiologicalTarget: what system we're training
+- placementRationale: why THIS day
+- keyPoints: what to focus on
+- relatedKnowledgeIds: KB entries that informed this
+- relatedSafeguardIds: safeguards that were checked
+
+**And** flexibility fields exist:
+- isMoveable, canBeSplit
+- alternatives: array of backup options
+
+**And** execution tracking fields exist:
+- status: "scheduled" | "completed" | "skipped" | "modified"
+- completedActivityId, adherenceScore
+
+**Files:** `packages/backend/convex/schema/plannedSessions.ts`
+
+---
+
+### Story 6.3: Knowledge Base Infrastructure 🔴 NOT STARTED
+
+As a developer,
+I want a knowledge base storing training science,
+So that the AI coach can ground recommendations in established principles.
+
+**Acceptance Criteria:**
+
+**Given** the knowledge base table is created
+**When** entries are added
+**Then** each entry contains:
+- category, subcategory, tags
+- title, content, summary
+- applicableGoals, applicableExperience, applicablePhases
+- source, sourceReference, confidence
+- usageContext, isActive
+- embedding (optional, for future RAG)
+
+**And** query function exists:
+```typescript
+queryRelevant({
+  tags?: string[],
+  category?: string,
+  runnerContext?: { experience, goalType, injuries }
+}): KnowledgeEntry[]
+```
+
+**And** initial seed data includes (minimum 15 entries):
+- 10% volume increase rule (established)
+- Easy running heart rate 65-75% (established)
+- Managing shin splints (well_supported)
+- Managing IT band (well_supported)
+- Polarized training distribution (established)
+- Periodization principles (established)
+- Taper guidelines (established)
+- Recovery requirements by age (well_supported)
+- Long run percentage guidelines (established)
+- Speed work introduction timing (well_supported)
+
+**Files:**
+- `packages/backend/convex/schema/knowledgeBase.ts`
+- `packages/backend/convex/knowledge/query.ts`
+- `packages/backend/convex/seeds/knowledge-base.seed.ts`
+
+---
+
+### Story 6.4: Safeguards System 🔴 NOT STARTED
+
+As a developer,
+I want a safeguards system that validates all plan decisions,
+So that generated plans cannot violate safety rules.
+
+**Acceptance Criteria:**
+
+**Given** the safeguards table is created
+**When** rules are defined
+**Then** each safeguard contains:
+- name, description, category
+- ruleType: "hard_limit" | "soft_limit" | "warning"
+- condition: { field, operator, threshold, applicableWhen }
+- action: { type, adjustment, message, severity }
+- priority, isActive
+
+**And** check function exists:
+```typescript
+checkSafeguards(
+  decisions: Decision[],
+  runnerContext: RunnerContext
+): {
+  violations: Violation[],
+  adjustments: Adjustment[],
+  warnings: Warning[]
+}
+```
+
+**And** initial safeguards include (minimum 10):
+- Max 10% volume increase (hard_limit)
+- Max 7% for injury history (hard_limit, higher priority)
+- No consecutive hard days (hard_limit)
+- Long run max 30% of weekly volume (soft_limit)
+- Minimum 1 rest day per week (hard_limit)
+- Maximum 2 hard sessions per week for beginners (hard_limit)
+- Age 50+ extra recovery (soft_limit)
+- No speed work before base phase (soft_limit)
+- Taper minimum 10 days for marathon (soft_limit)
+- No volume increase after injury return for 4 weeks (hard_limit)
+
+**And** all checks are logged to plan's safeguardApplications
+
+**Files:**
+- `packages/backend/convex/schema/safeguards.ts`
+- `packages/backend/convex/safeguards/check.ts`
+- `packages/backend/convex/seeds/safeguards.seed.ts`
+
+---
+
+### Story 6.5: Plan Generator Core 🔴 NOT STARTED
+
+As a developer,
+I want the plan generator to combine Runner Object + Knowledge Base + Safeguards,
+So that plans are personalized, grounded, and safe.
+
+**Acceptance Criteria:**
+
+**Given** plan generation is triggered
+**When** the generator runs
+**Then** it follows these steps:
+
+1. **Template Selection**
+   - Match goal type + duration to template
+   - Log decision: why this template
+
+2. **Load Parameter Calculation**
+   - Query KB for volume/pace principles
+   - Calculate baseVolume, peakVolume, weeklyIncrease
+   - Log decision: why these numbers
+
+3. **Modifier Application**
+   - Query KB for injury-specific rules
+   - Apply age modifiers
+   - Apply experience modifiers
+   - Log each modification with reasoning
+
+4. **Safeguard Validation**
+   - Check every parameter against safeguards
+   - Auto-adjust violations
+   - Log all applications
+
+5. **Week-by-Week Generation**
+   - Generate weeklyPlan array
+   - Include weekJustification for each week
+   - Mark recovery weeks
+
+6. **Session Generation**
+   - Generate plannedSessions for each week
+   - Include justification for each session
+   - Link to KB entries
+
+7. **Season View Synthesis**
+   - Use LLM to generate coachSummary
+   - Compile keyMilestones
+   - Calculate expectedOutcomes
+
+8. **Runner Snapshot**
+   - Capture profileRadar values
+   - Record planInfluencers
+
+**And** the complete plan is stored with:
+- All decisions in audit trail
+- All safeguard applications logged
+- Multi-level justifications populated
+
+**Files:**
+- `packages/backend/convex/training/plan-generator.ts`
+- `packages/backend/convex/training/templates/` (plan templates)
+
+---
+
+### Story 6.6: Plan-to-UI Data Queries 🔴 NOT STARTED
+
+As a developer,
+I want efficient queries to fetch plan data for visualization components,
+So that the UI can render quickly without over-fetching.
+
+**Acceptance Criteria:**
+
+**Given** RadarChart needs data
+**When** queried
+**Then** returns runnerSnapshot.profileRadar array only
+
+**Given** ProgressionChart needs data
+**When** queried
+**Then** returns weeklyPlan with only: weekNumber, volumeKm, intensityScore, isRecoveryWeek, weekLabel
+
+**Given** CalendarWidget needs data
+**When** queried
+**Then** returns plannedSessions for specified week with display fields only
+
+**Given** DecisionAudit needs data
+**When** queried
+**Then** returns decisions array and safeguardApplications
+
+**Given** Verdict needs data
+**When** queried
+**Then** returns seasonView.expectedOutcomes
+
+**And** all queries are optimized:
+- Use Convex indexes
+- Return only required fields
+- Support pagination for sessions
+
+**Files:**
+- `packages/backend/convex/training/queries.ts`
+
+---
+
+## Epic 7: Strava & Additional Wearable Connections 🟡 MEDIUM PRIORITY
+
+User can connect Strava via OAuth, see Thinking Stream analysis, and sync data from additional providers.
+
+### Story 7.1: Strava OAuth Integration 🟡 NOT STARTED
+
+As a user,
+I want to connect my Strava account,
+So that the coach can analyze my running history.
+
+**Acceptance Criteria:**
+
+**Given** the user taps "Connect Strava"
+**When** the OAuth flow initiates
+**Then** expo-auth-session handles the OAuth redirect (FR6)
+**And** the user authenticates with Strava
+**And** tokens are securely stored in Convex (not on device)
+
+**Given** OAuth completes successfully
+**When** tokens are received
+**Then** stravaConnections table is updated:
+  - athleteId, accessToken, refreshToken, expiresAt
+**And** connections.stravaConnected is set to true
+**And** data fetch is scheduled
+
+**Given** token refresh is needed
+**When** accessToken is expired
+**Then** refreshToken is used to get new tokens
+**And** user is NOT interrupted
+
+**Given** OAuth fails or is cancelled
+**When** the flow returns
+**Then** a helpful error message is shown
+**And** retry option is available (FR12)
+
+**Files:**
+- `packages/backend/convex/integrations/strava/oauth.ts`
+- `packages/backend/convex/schema/stravaConnections.ts`
+- `apps/native/src/lib/strava-auth.ts`
+
+---
+
+### Story 7.2: Strava Activity Sync 🟡 NOT STARTED
+
+As a user with Strava connected,
+I want my activities synced automatically,
+So that my profile stays current.
+
+**Acceptance Criteria:**
+
+**Given** Strava is connected
+**When** initial sync runs
+**Then** last 90 days of activities are fetched
+**And** activities are normalized via Strava adapter
+**And** activities are stored in activities table
+
+**Given** incremental sync runs
+**When** scheduled (daily)
+**Then** only new activities since last sync are fetched
+**And** stravaLastSync is updated
+
+**Given** activity data is normalized
+**When** Strava fields are mapped
+**Then** mapping includes:
+  - distance → distanceMeters
+  - moving_time → durationSeconds
+  - average_heartrate → avgHeartRate
+  - suffer_score → trainingLoad
+  - average_cadence * 2 → avgCadence
+
+**Files:**
+- `packages/backend/convex/integrations/strava/sync.ts`
+- `packages/backend/convex/lib/adapters/strava.ts`
+
+---
+
+### Story 7.3: Health Connect Integration (Android) 🟡 NOT STARTED
+
+As an Android user,
+I want to grant Health Connect access,
+So that the coach can analyze my wearable running data.
+
+**Acceptance Criteria:**
+
+**Given** the user taps wearable connection on Android
+**When** Health Connect permission is requested
+**Then** the Android Health Connect permission flow appears (FR8)
+**And** requested data types include: exercise sessions, distance, heart rate
+
+**Given** permission is granted
+**When** Health Connect access is confirmed
+**Then** connections.healthConnectConnected is set to true
+**And** data fetch is triggered
+
+**Given** Health Connect is not installed
+**When** the user tries to connect
+**Then** guidance is provided to install Health Connect from Play Store
+**And** skip path remains accessible
+
+**Files:**
+- `apps/native/src/lib/health-connect.ts`
+- `packages/backend/convex/lib/adapters/health-connect.ts`
+
+---
+
+### Story 7.4: Thinking Stream Analysis Display 🟡 NOT STARTED
+
+As a user with connected data,
+I want to see the coach analyze my running patterns in real-time,
+So that I get immediate value from connecting.
+
+**Acceptance Criteria:**
+
+**Given** historical data is synced
+**When** analysis begins
+**Then** a ThinkingStream displays with data-specific insights (FR26)
+**And** lines stream one by one (200ms per line)
+**And** insights reference actual metrics:
+  - "Weekly volume: 42-48km. Consistent. Nice."
+  - "Easy pace from recent runs: 5:35-5:45/km."
+  - "Rest days last month: 3. That's... not many."
+
+**Given** the Thinking Stream completes
+**When** user interaction resumes
+**Then** stream can be collapsed/expanded (FR27)
+**And** coach summarizes key findings conversationally
+
+**Given** patterns are identified
+**When** displayed
+**Then** positive patterns are in lime
+**And** concerning patterns are in orange with explanation
+
+**Files:**
+- `packages/backend/convex/ai/tools/thinkingStream.ts`
+- `apps/native/src/components/app/onboarding/generative/ThinkingStream.tsx`
+
+---
+
+## Epic 8: Error Handling & Resilience 🟡 MEDIUM PRIORITY
 
 User experiences graceful handling of network issues, permission denials, and can always resume where they left off.
 
-### Story 5.1: Network Unavailable Handling
+### Story 8.1: Network Unavailable Handling 🟡 NOT STARTED
 
 As a user,
 I want to see a friendly message when offline,
@@ -1355,9 +2103,13 @@ So that I understand what's happening and what to do.
 **Then** network-dependent features are disabled gracefully
 **And** local data remains accessible
 
+**Files:**
+- `apps/native/src/components/common/NetworkStatus.tsx`
+- `apps/native/src/hooks/use-network-status.ts`
+
 ---
 
-### Story 5.2: Connection Lost Mid-Flow
+### Story 8.2: Connection Lost Mid-Flow 🟡 NOT STARTED
 
 As a user,
 I want the app to handle connection drops gracefully,
@@ -1378,12 +2130,16 @@ So that I don't lose my progress.
 
 **Given** a slow or flaky connection exists
 **When** streaming is affected
-**Then** the Thinking Stream can pause/resume gracefully
+**Then** the SSE stream can pause/resume gracefully
 **And** partial responses are handled
+
+**Files:**
+- `apps/native/src/lib/ai-stream.ts` (enhance reconnection)
+- `apps/native/src/components/common/ReconnectingOverlay.tsx`
 
 ---
 
-### Story 5.3: LLM Failure Fallback
+### Story 8.3: LLM Failure Fallback 🟡 NOT STARTED
 
 As a user,
 I want the app to handle AI failures gracefully,
@@ -1398,19 +2154,23 @@ So that I can continue or retry without frustration.
 **And** the error is logged for debugging
 
 **Given** the LLM times out
-**When** no response is received
+**When** no response is received within 30 seconds
 **Then** the timeout is handled gracefully
 **And** the user can retry
 **And** their previous input is preserved
 
 **Given** multiple failures occur
-**When** retries are exhausted
+**When** 3 retries are exhausted
 **Then** a more detailed error with support contact is shown
 **And** the user's progress is saved locally
 
+**Files:**
+- `packages/backend/convex/ai/http_action.ts` (error handling)
+- `apps/native/src/hooks/use-ai-chat.ts` (retry logic)
+
 ---
 
-### Story 5.4: Permission Denied Guidance
+### Story 8.4: Permission Denied Guidance 🟡 NOT STARTED
 
 As a user,
 I want helpful guidance when I deny permissions,
@@ -1434,519 +2194,176 @@ So that I understand implications and can change my mind.
 **Then** clear instructions guide them to system settings
 **And** the feature becomes available after granting
 
+**Files:**
+- `apps/native/src/components/common/PermissionDeniedCard.tsx`
+- `apps/native/src/lib/permissions.ts`
+
 ---
 
-## Epic 6: Wearable Data Connection & Analysis
+## Epic 9: Trial & Paywall ⚪ LOW PRIORITY (MVP non-essential)
 
-User can connect Strava/HealthKit, see their running data synced, and watch the coach analyze it in real-time via Thinking Stream. (Deferred until licenses obtained)
+User can view the paywall, start a free trial, and transition to the home screen.
 
-### Story 6.1: Strava OAuth Integration
+### Story 9.1: Paywall Screen UI ⚪ NOT STARTED
+
+*Reference: cadence-v3.jsx lines 918-944 (PaywallScr)*
 
 As a user,
-I want to connect my Strava account,
-So that the coach can analyze my running history.
+I want to see a compelling paywall after experiencing my plan,
+So that the value is clear before I commit.
 
 **Acceptance Criteria:**
 
-**Given** the user taps "Connect Strava"
-**When** the OAuth flow initiates
-**Then** expo-auth-session handles the OAuth redirect (FR6)
-**And** the user authenticates with Strava
-**And** tokens are securely stored in Convex (not on device)
+**Given** the Paywall screen renders
+**When** coach introduction streams
+**Then** "The plan's ready. The coaching is ready." displays
+**And** "To unlock everything, start your free trial." follows
 
-**Given** OAuth completes successfully
-**When** tokens are received
-**Then** access token and refresh token are stored
-**And** connections.strava_connected is set to true
-**And** data fetch is triggered
+**Given** the trial badge displays
+**When** rendered
+**Then** "7-DAY FREE TRIAL" appears in lime pill badge
 
-**Given** OAuth fails or is cancelled
-**When** the flow returns
-**Then** a helpful error message is shown
-**And** retry option is available (FR12)
-**And** skip path remains accessible
+**Given** feature list displays
+**When** rendered
+**Then** bullets show appropriate path-specific benefits
+
+**Given** pricing displays
+**When** rendered
+**Then** "€9.99/month after trial" shows clearly
+**And** "Cancel anytime." appears below
+
+**Given** CTAs display
+**When** rendered
+**Then** primary button: "Start Free Trial" (lime, full width)
+**And** secondary: "Maybe later" (ghost text button)
+
+**Files:** `apps/native/src/components/app/onboarding/screens/PaywallScreen.tsx`
 
 ---
 
-### Story 6.2: HealthKit Integration (iOS)
+### Story 9.2: Plan Revision Option ⚪ NOT STARTED
 
-As an iOS user,
-I want to grant HealthKit access,
-So that the coach can analyze my Apple Watch running data.
+As a user,
+I want the option to adjust my plan before committing,
+So that I have ownership over my training.
 
 **Acceptance Criteria:**
 
-**Given** the user taps "Connect Apple Watch" on iOS
-**When** HealthKit permission is requested
-**Then** the native iOS permission dialog appears (FR7)
-**And** requested data types include: running workouts, distance, heart rate, HRV
+**Given** plan presentation is complete
+**When** the coach asks about adjustments
+**Then** options include: "Looks good to me", "I'd like to change something"
 
-**Given** permission is granted
-**When** HealthKit access is confirmed
-**Then** connections.wearable_connected is set to true
-**And** connections.wearable_type is set to "apple_watch"
-**And** data fetch is triggered
+**Given** the user wants to make changes
+**When** they describe the adjustment
+**Then** the coach discusses the change
+**And** the plan is modified if appropriate
 
-**Given** permission is denied
-**When** the user declines
-**Then** graceful fallback to skip path
-**And** guidance for enabling later is provided
+**Given** the user approves the plan
+**When** they confirm
+**Then** transition to paywall begins
 
 ---
 
-### Story 6.3: Health Connect Integration (Android)
+### Story 9.3: Trial Activation ⚪ NOT STARTED
 
-As an Android user,
-I want to grant Health Connect access,
-So that the coach can analyze my wearable running data.
+As a user,
+I want to start my free trial easily,
+So that I can begin training immediately.
 
 **Acceptance Criteria:**
 
-**Given** the user taps wearable connection on Android
-**When** Health Connect permission is requested
-**Then** the Android Health Connect permission flow appears (FR8)
-**And** requested data types include: exercise sessions, distance, heart rate
+**Given** the user is on the paywall
+**When** they tap "Start Free Trial"
+**Then** the trial is activated (FR54)
+**And** a success confirmation is shown
+**And** transition to home screen begins
 
-**Given** permission is granted
-**When** Health Connect access is confirmed
-**Then** connections.wearable_connected is set to true
-**And** data fetch is triggered
+**Given** the trial activates
+**When** the subscription is created
+**Then** trial end date is recorded
+**And** the user's subscription status is updated
 
-**Given** Health Connect is not installed
-**When** the user tries to connect
-**Then** guidance is provided to install Health Connect
-**And** skip path remains accessible
+**Given** the user taps "Maybe later"
+**When** they choose to defer
+**Then** they still proceed to home screen
+**And** limited functionality is available
 
 ---
 
-### Story 6.4: Historical Data Retrieval
+### Story 9.4: Home Screen Transition ⚪ NOT STARTED
 
-As a user with connected wearables,
-I want my historical running data imported,
-So that the coach has context about my training.
+As a user,
+I want to arrive at my home screen ready to train,
+So that the onboarding concludes with clear next steps.
 
 **Acceptance Criteria:**
 
-**Given** wearable connection is established
-**When** data retrieval begins
-**Then** historical running activities are fetched (FR10)
-**And** sync status is shown to the user (FR11)
-**And** fetch completes in <15 seconds for typical history (NFR-P3)
+**Given** trial is started or skipped
+**When** onboarding completes
+**Then** a smooth transition to home screen occurs
+**And** tomorrow's session (or today's) is visible
 
-**Given** Strava is connected
-**When** activities are fetched
-**Then** data is retrieved via Convex action (server-side)
-**And** activities include: date, distance, duration, pace, type
+**Given** the user reaches home screen
+**When** they view it
+**Then** the plan is loaded
+**And** the first session is accessible
 
-**Given** HealthKit/Health Connect is connected
-**When** workouts are fetched
-**Then** data is retrieved client-side per platform requirements
-**And** relevant metrics are extracted and normalized
+**Given** the handoff happens
+**When** the coach delivers final message
+**Then** it's dynamic based on first session timing
 
 ---
 
-### Story 6.5: Wearable Data Analysis Display
+## Implementation Sequence
 
-As a user with connected data,
-I want to see the coach analyze my running patterns,
-So that I get immediate value from connecting.
+Based on dependencies and priorities:
 
-**Acceptance Criteria:**
+### Phase 1: Complete the AI Loop (Stories 3.6-3.8)
+**Goal:** Tool calls actually save data and conversation continues
+1. Story 3.6: Server-Side Tool Execution
+2. Story 3.7: Tool Result Handler
+3. Story 3.8: Phase Management
 
-**Given** historical data is fetched
-**When** analysis begins
-**Then** a ThinkingStream displays with data-specific insights (FR26)
-**And** lines reference actual metrics: "Weekly volume: 42-48km. Consistent. Nice."
+### Phase 2: Wearable Foundation (Epic 4)
+**Goal:** HealthKit works, mock data available for testing
+1. Story 4.1: HealthKit Integration
+2. Story 4.2: Mock Data Providers
+3. Story 4.3: Normalization Pipeline
 
-**Given** the Thinking Stream is active
-**When** patterns are identified
-**Then** insights are surfaced: volume, frequency, easy pace, rest days, workout patterns (FR22)
-**And** potential issues are noted: "Rest days last month: 3. That's... not many." (FR23)
+### Phase 3: Backend Infrastructure (Epic 5)
+**Goal:** Historical data stored, current state calculated
+1. Story 5.1: Historical Tables Schema
+2. Story 5.2: Enhanced Runner Object
+3. Story 5.3: Data Adapters
+4. Story 5.4: Inference Engine
 
-**Given** analysis completes
-**When** the thinking collapses
-**Then** the user can expand/collapse to review (FR27)
-**And** the coach summarizes key findings conversationally
+### Phase 4: Plan Generation (Epic 6)
+**Goal:** Plans generated with full justifications
+1. Story 6.1: Plan Schema (multi-level)
+2. Story 6.2: Session Schema
+3. Story 6.3: Knowledge Base
+4. Story 6.4: Safeguards
+5. Story 6.5: Generator Core
+6. Story 6.6: UI Queries
 
----
+### Phase 5: Wire Visualizations (Stories 3.9-3.10)
+**Goal:** Charts show real data
+1. Story 3.9: Visualization Data
+2. Story 3.10: Adaptive Language
 
-### Story 6.6: Fitness Level Estimation
+### Phase 6: Additional Wearables (Epic 7)
+**Goal:** Strava, Health Connect, Thinking Stream
+1. Story 7.1: Strava OAuth
+2. Story 7.2: Strava Sync
+3. Story 7.3: Health Connect
+4. Story 7.4: Thinking Stream
 
-As a user with connected data,
-I want the coach to estimate my current fitness,
-So that my plan is calibrated correctly.
-
-**Acceptance Criteria:**
-
-**Given** sufficient historical data exists
-**When** fitness estimation runs
-**Then** estimated current race times are calculated (FR24)
-**And** training load trends are identified
-**And** inferred fields in Runner Object are populated
-
-**Given** fitness is estimated
-**When** the coach presents findings
-**Then** estimates are presented with appropriate confidence
-**And** the user can confirm or adjust
-**And** estimates inform plan generation
-
----
-
-### Story 6.7: Skip Wearable Option (Real Implementation)
-
-As a user who doesn't want to connect wearables,
-I want a clear skip option,
-So that I can proceed without feeling lesser.
-
-**Acceptance Criteria:**
-
-**Given** the wearable connection screen appears
-**When** the user sees the skip option
-**Then** "I'll do this later" is prominently displayed (FR9)
-**And** the skip feels like a choice, not a fallback
-
-**Given** the user taps skip
-**When** the skip is processed
-**Then** the coach responds warmly: "No problem. I'll learn as we go."
-**And** the no-wearable path begins
-**And** no negative messaging about missing data
+### Phase 7: Polish (Epics 8-9)
+**Goal:** Error handling, paywall
+1. Epic 8: Error Handling
+2. Epic 9: Trial & Paywall
 
 ---
 
-## Epic 7: Backend Data Architecture & Plan Generation
-
-*ADDED 2026-02-16: Reflects comprehensive data model from architecture-backend-v2.md and data-model-comprehensive.md*
-
-The backend infrastructure for storing historical data, generating plans with justifications at multiple zoom levels, and ensuring safe training recommendations via Knowledge Base and Safeguards.
-
-**FRs covered:** FR38 (personalized plan), FR39 (trust-rebuilding), FR40 (open training), FR44 (projected outcomes), FR45 (decision audit trail)
-**Architecture docs:** data-model-comprehensive.md, architecture-backend-v2.md
-
-### Story 7.1: Historical Data Tables Schema
-
-As a developer,
-I want the complete historical data schema implemented in Convex,
-So that wearable data from any provider can be stored in a unified format.
-
-**Acceptance Criteria:**
-
-**Given** the Convex backend is deployed
-**When** the schema is created
-**Then** `activities` table exists with Terra-aligned fields:
-- Distance, duration, pace data
-- Heart rate data (avg, max, HRV, zones)
-- Calories, power, oxygen data
-- Strain, TSS, training load
-- Lap data, samples (JSON)
-- Cadence-specific extensions (sessionType, planAdherence, userFeedback)
-
-**And** `sleepSessions` table exists with:
-- Sleep duration stages (deep, light, REM, awake)
-- Heart rate and HRV during sleep
-- Readiness/recovery scores
-- Respiration data
-
-**And** `dailySummaries` table exists with:
-- Daily aggregated metrics
-- Training load (ATL, CTL, TSB)
-- Stress data
-- Activity/sleep summaries
-
-**And** `bodyMeasurements` table exists with:
-- Weight, body composition
-- Blood pressure, glucose
-- Temperature, hydration
-
-**And** all tables have appropriate indexes for:
-- Queries by runnerId
-- Queries by date range
-- Queries by source provider
-
-**Files:** `packages/backend/convex/schema/activities.ts`, `sleepSessions.ts`, `dailySummaries.ts`, `bodyMeasurements.ts`
-
----
-
-### Story 7.2: Enhanced Runner Object Schema
-
-As a developer,
-I want the Runner Object schema enhanced with all sections from the data model,
-So that it serves as the canonical "current state" view for AI coaching.
-
-**Acceptance Criteria:**
-
-**Given** the existing runners table
-**When** the schema is enhanced
-**Then** the following sections exist:
-- `identity`: name, timezone, locale
-- `physical`: age, weight, HR zones, thresholds
-- `running`: experience, volume, pace zones, personal bests, VDOT
-- `goals`: race goal, target time, secondary goals, feasibility
-- `schedule`: available days, preferred times, constraints
-- `health`: injury history, recovery style, lifestyle factors
-- `coaching`: voice preference, data orientation, feedback frequency
-- `connections`: wearable status, Strava/HealthKit/Garmin tokens
-- `currentState`: training load, readiness, injury risk (derived)
-- `legal`: consent timestamps
-- `conversationState`: data completeness, onboarding phase
-
-**And** all fields track:
-- The value
-- The source ("manual" | "strava" | "healthkit" | "inferred")
-- Confidence level for inferred values
-- Last updated timestamp
-
-**Files:** `packages/backend/convex/schema/runners.ts`
-
----
-
-### Story 7.3: Training Plans with Multi-Level Zoom
-
-As a developer,
-I want training plans to store data for Season/Weekly/Daily zoom levels,
-So that the UI can show justifications at each level.
-
-**Acceptance Criteria:**
-
-**Given** a training plan is generated
-**When** it is stored
-**Then** `seasonView` contains:
-- `coachSummary`: 2-3 sentence overview of the plan
-- `periodizationJustification`: why this approach
-- `volumeStrategyJustification`: why these numbers
-- `keyMilestones`: array of week/milestone/significance
-- `identifiedRisks`: array of risk/mitigation/signals
-- `expectedOutcomes`: primary goal, confidence, reasons
-
-**And** `weeklyPlan` contains array of weeks with:
-- Week number, dates, phase context
-- `volumeKm`, `intensityScore` for ProgressionChart
-- `isRecoveryWeek`, `weekLabel`
-- `keySessions`, `easyRuns`, `restDays` counts
-- `weekFocus`: main goal for the week
-- `weekJustification`: why this week looks this way
-- `coachNotes`: special considerations
-- `volumeChangePercent`: comparison to previous week
-- `warningSignals`: what to watch for
-
-**And** `runnerSnapshot` contains:
-- `capturedAt`: timestamp
-- `profileRadar`: array for RadarChart (label, value, uncertain)
-- `fitnessIndicators`: VDOT, volume, consistency, injury count
-- `planInfluencers`: factors that shaped the plan
-
-**And** `phases` array enhanced with:
-- `phaseJustification`: why this phase matters
-
-**Files:** `packages/backend/convex/schema/trainingPlans.ts`
-
----
-
-### Story 7.4: Planned Sessions Schema
-
-As a developer,
-I want planned sessions to include all UI-required fields plus justifications,
-So that CalendarWidget can render with full coach reasoning.
-
-**Acceptance Criteria:**
-
-**Given** a session is planned
-**When** it is stored
-**Then** display fields exist:
-- `sessionTypeDisplay`: "Tempo" | "Easy" | "Intervals" | "Long Run" | "Rest"
-- `targetDurationDisplay`: "50 min" format
-- `effortDisplay`: "7/10" format
-- `targetPaceDisplay`: "4:55–5:05/km" format
-- `structureDisplay`: "10 min warm-up → 30 min tempo → 10 min cool-down"
-
-**And** `isKeySession` and `isRestDay` booleans exist
-
-**And** justification fields exist:
-- `justification`: WHY this session is placed here (trust-building)
-- `physiologicalTarget`: what system we're training
-- `placementRationale`: why THIS day specifically
-- `keyPoints`: what to focus on during the session
-- `relatedKnowledgeIds`: KB entries that informed this
-- `relatedSafeguardIds`: safeguards that were checked
-
-**And** flexibility fields exist:
-- `isMoveable`: can be rescheduled
-- `alternatives`: array of backup session options
-
-**And** execution tracking fields exist:
-- `status`: "scheduled" | "completed" | "skipped" | "modified"
-- `completedActivityId`: link to actual activity
-- `adherenceScore`: how well execution matched plan
-
-**Files:** `packages/backend/convex/schema/plannedSessions.ts`
-
----
-
-### Story 7.5: Knowledge Base Infrastructure (Tier 5)
-
-As a developer,
-I want a knowledge base storing training science,
-So that the AI coach can ground recommendations in established principles.
-
-**Acceptance Criteria:**
-
-**Given** the knowledge base table is created
-**When** entries are added
-**Then** each entry contains:
-- `category`: "physiology" | "training_principles" | "periodization" | "recovery" | "injury_prevention"
-- `title`, `content`, `summary`
-- `applicableGoals`, `applicableExperience`, `applicablePhases`
-- `source`: "daniels_running_formula" | "pfitzinger" | "research_paper"
-- `confidence`: "established" | "well_supported" | "emerging"
-- `usageContext`: "plan_generation" | "coaching_advice" | "explanation"
-
-**And** vector embedding support exists:
-- `embedding`: array of floats for RAG retrieval
-- `embeddingModel`: model used
-
-**And** initial seed data includes:
-- 10% volume increase rule
-- Easy running heart rate (65-75% max)
-- Managing specific injury histories (shin splints, IT band, etc.)
-- Periodization principles (base, build, peak, taper)
-- Recovery requirements
-
-**And** admin can add/edit entries via:
-- Convex dashboard (MVP)
-- Future: admin UI
-
-**Files:** `packages/backend/convex/schema/knowledgeBase.ts`, `packages/backend/convex/seeds/knowledgeBase.seed.ts`
-
----
-
-### Story 7.6: Safeguards System Implementation
-
-As a developer,
-I want a safeguards system that validates all plan decisions,
-So that generated plans cannot violate safety rules.
-
-**Acceptance Criteria:**
-
-**Given** the safeguards table is created
-**When** rules are defined
-**Then** each safeguard contains:
-- `name`, `description`, `category`
-- `ruleType`: "hard_limit" | "soft_limit" | "warning"
-- `condition`: field, operator, threshold, applicableWhen
-- `action`: type (cap/reduce/block/warn), adjustment, message, severity
-- `priority`: lower = higher priority
-- `isActive`: boolean
-
-**And** initial seed safeguards include:
-- Max 10% volume increase (hard limit)
-- Max 7% for runners with injury history (hard limit, higher priority)
-- No consecutive hard days (hard limit)
-- Long run max 30% of weekly volume (soft limit)
-- Minimum 1 rest day per week (hard limit)
-- Age 50+ recovery considerations (soft limit)
-
-**And** safeguard validator function exists:
-- Takes proposed plan + runner profile
-- Evaluates all active safeguards by priority
-- Returns violations and auto-adjustments
-- Logs all applications to plan's `safeguardApplications`
-
-**Files:** `packages/backend/convex/schema/safeguards.ts`, `packages/backend/convex/seeds/safeguards.seed.ts`, `packages/backend/convex/lib/safeguardValidator.ts`
-
----
-
-### Story 7.7: Plan Generator Integration
-
-As a developer,
-I want the plan generator to use Runner Object + Knowledge Base + Safeguards,
-So that plans are personalized, grounded, and safe.
-
-**Acceptance Criteria:**
-
-**Given** plan generation is triggered
-**When** the generator runs
-**Then** it:
-1. Loads the Runner Object (current state)
-2. Queries Knowledge Base for relevant entries (by goal, experience, injuries)
-3. Generates plan structure using templates + KB principles
-4. Validates every decision through Safeguards
-5. Auto-adjusts any violations
-6. Logs all decisions with reasoning to `decisions` array
-7. Generates justifications at Season/Weekly/Daily levels
-8. Captures runner snapshot for RadarChart
-
-**And** the plan includes:
-- Full `seasonView` with coach summary
-- Complete `weeklyPlan` for ProgressionChart
-- All `plannedSessions` with justifications for CalendarWidget
-
-**And** the generator respects:
-- All hard limits (no violations allowed)
-- Soft limits (logged as warnings)
-- Knowledge base principles (cited in decisions)
-
-**Depends on:** Stories 7.3, 7.4, 7.5, 7.6
-
-**Files:** `packages/backend/convex/lib/planGenerator.ts`
-
----
-
-### Story 7.8: Data Adapter Pattern
-
-As a developer,
-I want data adapters for each provider,
-So that the system is source-agnostic and can add providers easily.
-
-**Acceptance Criteria:**
-
-**Given** a data adapter interface exists
-**When** adapters are implemented
-**Then** each adapter provides:
-- `fetchActivities(userId, dateRange)`: returns normalized activities
-- `fetchSleep(userId, dateRange)`: returns normalized sleep sessions
-- `normalizeActivity(rawData)`: converts provider format to our schema
-- `normalizeSleep(rawData)`: converts provider format to our schema
-
-**And** adapters exist for:
-- Strava (activities only)
-- HealthKit (activities, sleep)
-- Manual entry (activities, sleep, body)
-- (Future: Garmin, COROS, Terra)
-
-**And** all adapters:
-- Set `source` field to provider name
-- Handle missing fields gracefully (optional)
-- Preserve `rawPayload` for debugging
-
-**Files:** `packages/backend/convex/lib/adapters/types.ts`, `adapters/strava.ts`, `adapters/healthkit.ts`, `adapters/manual.ts`
-
----
-
-### Story 7.9: Inference Engine for Current State
-
-As a developer,
-I want an inference engine that calculates runner's current state from historical data,
-So that the Runner Object's `currentState` is always up-to-date.
-
-**Acceptance Criteria:**
-
-**Given** the inference engine runs (triggered by new data or schedule)
-**When** it processes a runner's history
-**Then** it calculates:
-- Acute Training Load (ATL): 7-day exponential weighted
-- Chronic Training Load (CTL): 42-day exponential weighted
-- Training Stress Balance (TSB): CTL - ATL
-- Injury risk level based on ramp rate + history
-- Latest biometrics (resting HR, HRV, weight, sleep)
-
-**And** it updates Runner Object's `currentState` section with:
-- All calculated metrics
-- Trend analysis (building/maintaining/declining)
-- Risk factors identified
-- `lastCalculatedAt` timestamp
-
-**And** inference can run:
-- After each new activity import
-- On schedule (daily)
-- On demand (before plan generation)
-
-**Files:** `packages/backend/convex/lib/inferenceEngine.ts`
+*Document generated by BMAD workflow*
+*Last updated: 2026-02-16*
