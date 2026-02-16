@@ -169,6 +169,110 @@ const inferredSchema = v.optional(
   })
 );
 
+// =============================================================================
+// Current State (Story 5.2)
+// =============================================================================
+// Calculated by Inference Engine from historical data tables.
+// NEVER directly written by user input tools - only by inference engine.
+// Read by Plan Generator for decision-making.
+
+const currentStateSchema = v.optional(
+  v.object({
+    // Training load metrics (PMC - Performance Management Chart)
+    acuteTrainingLoad: v.optional(v.number()), // ATL - 7 day exponentially weighted
+    chronicTrainingLoad: v.optional(v.number()), // CTL - 42 day exponentially weighted
+    trainingStressBalance: v.optional(v.number()), // TSB = CTL - ATL (form/freshness)
+    trainingLoadTrend: v.optional(
+      v.union(
+        v.literal("building"), // ATL > CTL, fitness building
+        v.literal("maintaining"), // ATL ≈ CTL
+        v.literal("declining"), // ATL < CTL, detraining
+        v.literal("erratic") // High variance
+      )
+    ),
+
+    // Freshness/readiness assessment
+    readinessScore: v.optional(v.number()), // 0-100 composite score
+    readinessFactors: v.optional(v.array(v.string())), // ["good_sleep", "low_hrv", "high_tsb"]
+
+    // Recent training patterns (rolling windows)
+    last7DaysVolume: v.optional(v.number()), // km
+    last7DaysRunCount: v.optional(v.number()),
+    last7DaysTrainingLoad: v.optional(v.number()),
+    last28DaysVolume: v.optional(v.number()), // km
+    last28DaysRunCount: v.optional(v.number()),
+    last28DaysAvgVolume: v.optional(v.number()), // Weekly average over 4 weeks
+
+    // Risk assessment
+    injuryRiskLevel: v.optional(
+      v.union(
+        v.literal("low"),
+        v.literal("moderate"),
+        v.literal("elevated"),
+        v.literal("high")
+      )
+    ),
+    injuryRiskFactors: v.optional(v.array(v.string())), // ["volume_spike", "low_recovery", "injury_history"]
+    overtrainingRisk: v.optional(
+      v.union(
+        v.literal("none"),
+        v.literal("watch"),
+        v.literal("caution"),
+        v.literal("high")
+      )
+    ),
+
+    // Volume progression safety
+    volumeChangePercent: v.optional(v.number()), // % change week over week
+    volumeWithinSafeRange: v.optional(v.boolean()),
+
+    // Latest biometrics (pulled from dailySummaries/sleepSessions)
+    latestRestingHr: v.optional(v.number()),
+    latestHrv: v.optional(v.number()),
+    latestWeight: v.optional(v.number()), // kg
+    latestSleepScore: v.optional(v.number()), // 0-100
+    latestReadinessScore: v.optional(v.number()), // 0-100 from wearable
+
+    // Fitness estimates
+    estimatedVdot: v.optional(v.number()), // VDOT score
+    estimatedMaxHr: v.optional(v.number()),
+    estimatedRestingHr: v.optional(v.number()),
+
+    // HR zones (calculated from max HR or lactate threshold)
+    hrZones: v.optional(
+      v.object({
+        zone1: v.optional(v.object({ min: v.number(), max: v.number() })),
+        zone2: v.optional(v.object({ min: v.number(), max: v.number() })),
+        zone3: v.optional(v.object({ min: v.number(), max: v.number() })),
+        zone4: v.optional(v.object({ min: v.number(), max: v.number() })),
+        zone5: v.optional(v.object({ min: v.number(), max: v.number() })),
+      })
+    ),
+
+    // Pace zones (calculated from VDOT or recent performances)
+    paceZones: v.optional(
+      v.object({
+        easy: v.optional(v.string()), // "5:30-6:00/km"
+        marathon: v.optional(v.string()),
+        threshold: v.optional(v.string()),
+        interval: v.optional(v.string()),
+        repetition: v.optional(v.string()),
+      })
+    ),
+
+    // Metadata
+    lastCalculatedAt: v.optional(v.number()), // When inference engine last ran
+    dataQuality: v.optional(
+      v.union(
+        v.literal("high"), // 4+ weeks data, consistent
+        v.literal("medium"), // 2-4 weeks or gaps
+        v.literal("low"), // <2 weeks or sparse
+        v.literal("insufficient") // Not enough to calculate
+      )
+    ),
+  })
+);
+
 // Legal Consent (Story 1.3, 1.4)
 const legalSchema = v.optional(
   v.object({
@@ -407,6 +511,7 @@ const documentSchema = {
   coaching: coachingSchema,
   connections: connectionsSchema,
   inferred: inferredSchema,
+  currentState: currentStateSchema,
   legal: legalSchema,
   conversationState: conversationStateSchema,
 };
@@ -423,6 +528,7 @@ const partialSchema = {
   coaching: coachingSchema,
   connections: v.optional(connectionsSchema),
   inferred: inferredSchema,
+  currentState: currentStateSchema,
   legal: legalSchema,
   conversationState: v.optional(conversationStateSchema),
 };

@@ -88,10 +88,10 @@ development_status:
   3-4-verdict-screen-decision-audit: done
   3-5-full-screen-flow-integration-mock: done
   # --- AI INFRASTRUCTURE (CRITICAL GAP) ---
-  3-6-server-side-tool-execution-agentic-loop: backlog  # NEXT PRIORITY
-  3-7-tool-result-handler-runner-object-updates: backlog
-  3-8-conversation-phase-management: backlog
-  3-9-backend-wiring-visualization-data: backlog
+  3-6-server-side-tool-execution-agentic-loop: ready-for-dev  # Story created 2026-02-16
+  3-7-tool-result-handler-runner-object-updates: ready-for-dev  # Story created 2026-02-16
+  3-8-conversation-phase-management: ready-for-dev  # Story created 2026-02-16
+  3-9-backend-wiring-visualization-data: ready-for-dev  # Story created 2026-02-16
   3-10-adaptive-coaching-language: backlog
 
   # ==========================================================================
@@ -99,10 +99,10 @@ development_status:
   # ==========================================================================
   # HealthKit (iOS), mock data providers, normalization pipeline
   # FRs: FR7, FR9, FR10, FR11
-  epic-4: backlog
-  4-1-healthkit-integration-ios: backlog
-  4-2-mock-data-providers-development: backlog
-  4-3-data-normalization-sync-pipeline: backlog
+  epic-4: in-progress
+  4-1-healthkit-integration-ios: ready-for-dev
+  4-2-mock-data-providers-development: ready-for-dev
+  4-3-data-normalization-sync-pipeline: ready-for-dev
 
   # ==========================================================================
   # Epic 5: Backend Data Architecture - HIGH PRIORITY
@@ -110,11 +110,11 @@ development_status:
   # Historical data tables, enhanced Runner Object, inference engine
   # FRs: FR22, FR23, FR24 (backend implementation)
   # Reference: data-model-comprehensive.md, architecture-backend-v2.md
-  epic-5: backlog
-  5-1-historical-data-tables-schema: backlog
-  5-2-enhanced-runner-object-provenance: backlog
-  5-3-data-adapters-pattern: backlog
-  5-4-inference-engine-current-state: backlog
+  epic-5: in-progress
+  5-1-historical-data-tables-schema: ready-for-dev  # Story created 2026-02-16
+  5-2-enhanced-runner-object-provenance: ready-for-dev  # Story created 2026-02-16
+  5-3-data-adapters-pattern: ready-for-dev  # Story created 2026-02-16
+  5-4-inference-engine-current-state: ready-for-dev  # Story created 2026-02-16
 
   # ==========================================================================
   # Epic 6: Plan Generation Engine - HIGH PRIORITY
