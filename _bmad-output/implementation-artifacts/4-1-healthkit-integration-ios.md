@@ -1,6 +1,6 @@
 # Story 4.1: HealthKit Integration (iOS)
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -34,46 +34,41 @@ So that the coach can analyze my Apple Watch running data.
 
 ## Tasks / Subtasks
 
-- [ ] **Task 1: Create activities table schema** (AC: #3)
-  - [ ] Create `packages/backend/convex/schema/activities.ts` with Terra-aligned fields
-  - [ ] Add activities table to `packages/backend/convex/schema.ts`
-  - [ ] Create indexes for runnerId, startTime, source queries
+- [x] **Task 1: Request HealthKit permissions** (AC: #1)
+  - [x] Add HRV permission to READ_PERMISSIONS in `healthkit.ts`
+  - [x] Ensure all required data types are requested: running workouts, distance, duration, heart rate, HRV
+  - [x] Handle authorization flow properly (request before any data fetch)
 
-- [ ] **Task 2: Extend HealthKit data fetching** (AC: #1, #3)
-  - [ ] Add HRV permission to READ_PERMISSIONS in `healthkit.ts`
-  - [ ] Create function to fetch heart rate samples per workout
-  - [ ] Return raw workout data alongside aggregates from `importHealthKitData()`
+- [x] **Task 2: Fetch and dump raw HealthKit data** (AC: #3)
+  - [x] Query last 90 days of running workouts from HealthKit
+  - [x] Return raw workout data from `importHealthKitData()` (not just aggregates)
+  - [x] Include all available fields: duration, distance, energy burned, heart rate, HRV
 
-- [ ] **Task 3: Create normalization pipeline** (AC: #3)
-  - [ ] Create `packages/backend/convex/lib/normalizers/healthkit.ts`
-  - [ ] Map HealthKit fields to activities schema:
+- [x] **Task 3: Create normalization pipeline** (AC: #3)
+  - [x] Create `packages/backend/convex/lib/normalizers/healthkit.ts`
+  - [x] Map HealthKit fields to unified activities schema:
     - workoutActivityType -> activityType ("running")
     - duration -> durationSeconds
     - totalDistance -> distanceMeters
     - totalEnergyBurned -> calories
     - metadata.HKAverageHeartRate -> avgHeartRate
-  - [ ] Calculate avgPaceSecondsPerKm from distance/duration
+  - [x] Calculate avgPaceSecondsPerKm from distance/duration
 
-- [ ] **Task 4: Create batch upsert backend action** (AC: #3)
-  - [ ] Create `packages/backend/convex/integrations/healthkit/sync.ts`
-  - [ ] Implement `syncHealthKitActivities` mutation
-  - [ ] Handle upsert by externalId (prevent duplicates)
-  - [ ] Store rawPayload for debugging
+- [x] **Task 4: Create batch upsert backend action** (AC: #3)
+  - [x] Create `packages/backend/convex/integrations/healthkit/sync.ts`
+  - [x] Implement `syncHealthKitActivities` mutation
+  - [x] Handle upsert by externalId (prevent duplicates)
+  - [x] Store rawPayload for debugging
 
-- [ ] **Task 5: Update Runner Object on sync** (AC: #2)
-  - [ ] Set `connections.healthkitConnected = true`
-  - [ ] Set `connections.healthkitLastSync = Date.now()`
-  - [ ] Trigger inference engine to recalculate currentState (FUTURE - placeholder)
+- [x] **Task 5: Update useHealthKit hook** (AC: #2)
+  - [x] Return sync progress/status for UI feedback
+  - [x] Call batch upsert after data fetch
+  - [x] Handle partial sync failures gracefully
 
-- [ ] **Task 6: Update useHealthKit hook** (AC: #2)
-  - [ ] Return sync progress/status for UI feedback
-  - [ ] Call batch upsert after data fetch
-  - [ ] Handle partial sync failures gracefully
-
-- [ ] **Task 7: Add permission denied fallback** (AC: #4)
-  - [ ] Detect denial vs not-determined states
-  - [ ] Provide UI guidance for enabling via iOS Settings
-  - [ ] Allow retry flow from settings screen
+- [x] **Task 6: Add permission denied fallback** (AC: #4)
+  - [x] Detect denial vs not-determined states
+  - [x] Provide UI guidance for enabling via iOS Settings
+  - [x] Allow retry flow from settings screen
 
 ## Dev Notes
 
@@ -87,13 +82,17 @@ So that the coach can analyze my Apple Watch running data.
   - Calculate runner aggregates (weekly volume, consistency, pace, etc.)
 - `apps/native/src/hooks/use-healthkit.ts` - React hook for connecting
 - `packages/backend/convex/healthkit.ts` - Backend mutation storing aggregates in runner profile
+- **Activities table** - Already created in Epic 5
 
 **What's MISSING (this story must implement):**
-1. **Activities table** - Currently only stores aggregates in runner profile, NOT individual workouts
-2. **Per-workout storage** - Each workout needs to be normalized and stored separately
-3. **Heart rate & HRV data** - Not being fetched/stored per-workout
-4. **healthkitLastSync timestamp** - `connections.healthkitLastSync` not being set
+1. **Raw data dump** - Fetch raw HealthKit workouts and send to backend
+2. **Normalization pipeline** - Transform HealthKit data to match unified activities schema
+3. **Per-workout storage** - Each workout needs to be normalized and stored in activities table
+4. **Heart rate & HRV data** - Not being fetched/stored per-workout
 5. **Sync status UI feedback** - User needs visual confirmation of sync progress
+
+**Out of scope (backend handles separately):**
+- Runner Object sync (`connections.healthkitConnected`, `healthkitLastSync`)
 
 ### Architecture Compliance
 
@@ -138,8 +137,6 @@ const READ_PERMISSIONS = [
 **New files to create:**
 ```
 packages/backend/convex/
-  schema/
-    activities.ts          # Activities table definition
   lib/
     normalizers/
       healthkit.ts         # HealthKit -> activities mapping
@@ -150,15 +147,12 @@ packages/backend/convex/
 
 **Files to modify:**
 ```
-packages/backend/convex/
-  schema.ts               # Add activities import
-  healthkit.ts            # Add healthkitLastSync update
 apps/native/src/
   lib/healthkit.ts        # Add HRV permission, return raw workouts
   hooks/use-healthkit.ts  # Add sync progress, call batch upsert
 ```
 
-### Activities Table Schema (from data-model-comprehensive.md)
+### Activities Table Schema (REFERENCE ONLY - already implemented in Epic 5)
 
 ```typescript
 // packages/backend/convex/schema/activities.ts
@@ -272,10 +266,30 @@ This story extends that work to store individual activities.
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 ### Debug Log References
 
+- TypeScript type-check passed for both native app and backend
+
 ### Completion Notes List
 
+1. **Task 1**: Added `HKQuantityTypeIdentifierHeartRateVariabilitySDNN` to READ_PERMISSIONS array in healthkit.ts
+2. **Task 2**: Created `RawHealthKitWorkout` type and `importHealthKitDataWithRaw()` function that extracts raw workout data including uuid, timestamps, duration, distance, energy burned, heart rate stats, speed, and pace
+3. **Task 3**: Created normalization pipeline at `packages/backend/convex/lib/normalizers/healthkit.ts` with `normalizeHealthKitWorkout()` and `normalizeHealthKitWorkouts()` functions that transform raw HealthKit data to the activities schema
+4. **Task 4**: Created batch upsert mutation at `packages/backend/convex/integrations/healthkit/sync.ts` with `syncHealthKitActivities` that performs upsert by externalId and updates wearable connection status
+5. **Task 5**: Updated useHealthKit hook with `SyncStatus` type, sync progress tracking, and integration with syncHealthKitActivities mutation. Added phases: idle, authorizing, fetching, syncing, complete, error, permission_denied
+6. **Task 6**: Added authorization status checking (`getHealthKitAuthStatus`, `checkIfAuthorizationDenied`), `openHealthSettings()` for opening iOS Settings, and `PERMISSION_DENIED_GUIDANCE` constant. Updated hook with `permissionDenied` state, `openSettings()`, and `retryAfterSettings()` functions
+
 ### File List
+
+**New Files:**
+- `packages/backend/convex/lib/normalizers/healthkit.ts` - HealthKit normalization pipeline
+- `packages/backend/convex/integrations/healthkit/sync.ts` - Batch upsert mutation
+
+**Modified Files:**
+- `apps/native/src/lib/healthkit.ts` - Added HRV permission, RawHealthKitWorkout type, importHealthKitDataWithRaw(), auth status functions, permission denied guidance
+- `apps/native/src/hooks/use-healthkit.ts` - Added sync status, permission handling, settings integration
+
+**Regenerated Files:**
+- `packages/backend/convex/_generated/api.d.ts` - Updated with new integrations module

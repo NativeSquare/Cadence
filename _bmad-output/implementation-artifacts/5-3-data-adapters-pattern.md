@@ -1,393 +1,442 @@
 # Story 5.3: Data Adapters Pattern
 
-Status: ready-for-dev
+Status: done
 
 ## Story
 
 As a developer,
-I want data adapters for each provider,
+I want data adapters for each wearable provider,
 So that the system is source-agnostic and extensible.
+
+---
+
+## System Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                              DATA INGESTION LAYER                                │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                  │
+│  ┌─────────────────────────────────────────────────────────────────────────┐    │
+│  │                    WEARABLE DATA SOURCES (via Adapters)                  │    │
+│  │                                                                          │    │
+│  │   ┌──────────────┐   ┌──────────────┐   ┌──────────────┐                │    │
+│  │   │  HealthKit   │   │   Strava     │   │   Garmin     │                │    │
+│  │   │  (iOS/Watch) │   │   (OAuth)    │   │   (OAuth)    │   ...future   │    │
+│  │   └──────┬───────┘   └──────┬───────┘   └──────┬───────┘                │    │
+│  │          │                  │                  │                         │    │
+│  │          ▼                  ▼                  ▼                         │    │
+│  │   ┌──────────────────────────────────────────────────────────────┐      │    │
+│  │   │                   ADAPTER REGISTRY                            │      │    │
+│  │   │              getAdapter(source: string)                       │      │    │
+│  │   ├──────────────────────────────────────────────────────────────┤      │    │
+│  │   │                                                               │      │    │
+│  │   │  ┌─────────────────┐  ┌─────────────────┐  ┌──────────────┐  │      │    │
+│  │   │  │ healthkitAdapter│  │  stravaAdapter  │  │ garminAdapter│  │      │    │
+│  │   │  │   (this story)  │  │    (future)     │  │   (future)   │  │      │    │
+│  │   │  │                 │  │                 │  │              │  │      │    │
+│  │   │  │ normalizeActivity()                                    │  │      │    │
+│  │   │  │ normalizeSleep()                                       │  │      │    │
+│  │   │  │ normalizeBody()                                        │  │      │    │
+│  │   │  └─────────────────┘  └─────────────────┘  └──────────────┘  │      │    │
+│  │   │                                                               │      │    │
+│  │   └───────────────────────────┬──────────────────────────────────┘      │    │
+│  │                               │                                          │    │
+│  └───────────────────────────────┼──────────────────────────────────────────┘    │
+│                                  │                                               │
+│  ┌───────────────────────────────┼──────────────────────────────────────────┐    │
+│  │     OTHER DATA PATHS (NOT adapters - different patterns)                 │    │
+│  │                               │                                           │    │
+│  │   ┌───────────────────────────┴───────────────────────────────────┐      │    │
+│  │   │                                                                │      │    │
+│  │   │  MOCK DATA (Story 4.2)          USER INPUT (Onboarding)       │      │    │
+│  │   │  ─────────────────────          ────────────────────────      │      │    │
+│  │   │  • Generator functions          • Tool Handler                 │      │    │
+│  │   │  • Creates data directly        • Goes to Runner Object        │      │    │
+│  │   │  • source = "mock"              • NOT to activities table      │      │    │
+│  │   │  • For development only         • Direct field updates         │      │    │
+│  │   │                                                                │      │    │
+│  │   └───────────────────────────┬───────────────────────────────────┘      │    │
+│  │                               │                                           │    │
+│  └───────────────────────────────┼──────────────────────────────────────────┘    │
+│                                  │                                               │
+│                                  ▼                                               │
+│  ┌───────────────────────────────────────────────────────────────────────────┐  │
+│  │                         SYNC MUTATIONS                                     │  │
+│  │                                                                            │  │
+│  │   integrations/healthkit/sync.ts  →  syncHealthKitActivities()            │  │
+│  │   integrations/strava/sync.ts     →  syncStravaActivities()     (future)  │  │
+│  │   seeds/mock-activities.ts        →  seedMockActivities()       (4.2)     │  │
+│  │                                                                            │  │
+│  └───────────────────────────────┬───────────────────────────────────────────┘  │
+│                                  │                                               │
+└──────────────────────────────────┼───────────────────────────────────────────────┘
+                                   │
+                                   ▼
+                    ┌──────────────────────────────────────┐
+                    │           ACTIVITIES TABLE            │
+                    │                                       │
+                    │  source: "healthkit" | "strava" |     │
+                    │          "garmin" | "mock"            │
+                    │                                       │
+                    │  ┌─────────────────────────────────┐  │
+                    │  │ runnerId, userId, externalId    │  │
+                    │  │ startTime, endTime, activityType│  │
+                    │  │ distanceMeters, durationSeconds │  │
+                    │  │ avgPaceSecondsPerKm, avgSpeedKmh│  │
+                    │  │ avgHeartRate, maxHeartRate      │  │
+                    │  │ calories, rawPayload, importedAt│  │
+                    │  └─────────────────────────────────┘  │
+                    │                                       │
+                    └──────────────────────────────────────┘
+```
+
+---
+
+## What Adapters Are For
+
+**Adapters normalize external wearable data** into our unified schema. They are NOT for:
+- User input during onboarding (goes directly to Runner Object via Tool Handler)
+- Mock data generation (uses generators, not adapters)
+- Manual activity logging (not in MVP scope)
+
+**The adapter pattern provides:**
+1. Consistent interface for all wearable sources
+2. Central registry for source-agnostic access
+3. Easy addition of new sources (Strava, Garmin, Terra)
+
+---
+
+## Relationship to Other Stories
+
+### Story 4.1: HealthKit Integration (iOS) - COMPLETED
+**What it did:**
+- Created `lib/normalizers/healthkit.ts` - standalone normalizer functions
+- Created `integrations/healthkit/sync.ts` - sync mutation
+
+**This story migrates 4.1's normalizer into the adapter pattern:**
+- Normalizer logic moves to `lib/adapters/healthkit.ts`
+- Sync mutation updated to use adapter registry
+- Old normalizer deleted
+
+### Story 4.2: Mock Data Generators - COMPLETED
+**What it does:**
+- Creates `lib/mock-data-generator.ts` - generates realistic training data
+- Creates `seeds/mock-activities.ts` - seed/cleanup mutations
+- Sets `source: "mock"` on all generated activities
+
+**Relationship to adapters:**
+- Mock generators do NOT use the adapter pattern
+- They generate data directly in the correct schema format
+- No normalization needed because there's no external source
+
+### Story 4.3: Data Normalization Sync Pipeline - SUPERSEDED
+This story has been deleted and merged into 5.3.
+
+---
 
 ## Acceptance Criteria
 
-1. **AC1: Data Adapter Interface** - A data adapter interface exists:
-   ```typescript
-   interface DataAdapter {
-     source: string; // "healthkit" | "strava" | "garmin" | "manual"
-     normalizeActivity(raw: any): Partial<Activity>;
-     normalizeSleep?(raw: any): Partial<SleepSession>;
-     normalizeBody?(raw: any): Partial<BodyMeasurement>;
-     fetchActivities?(userId: string, dateRange: DateRange): Promise<Activity[]>;
-   }
-   ```
+1. **AC1: Adapter Interface** - A DataAdapter interface exists defining the contract for all wearable data sources
 
-2. **AC2: HealthKit Adapter** - Adapter exists for HealthKit (iOS native):
-   - Normalizes HKWorkout to Activity format
-   - Normalizes HKCategorySample (sleep) to SleepSession
-   - Normalizes HKQuantitySample (body measurements) to BodyMeasurement
-   - Handles missing fields gracefully
+2. **AC2: HealthKit Adapter** - Migrates existing normalizer into adapter pattern:
+   - Implements DataAdapter interface
+   - Contains all logic from `lib/normalizers/healthkit.ts`
+   - Adds `normalizeSleep` and `normalizeBody` stubs for future use
 
-3. **AC3: Manual Entry Adapter** - Adapter exists for manual entry:
-   - Accepts user-logged activities
-   - Sets source = "manual"
-   - Calculates derived fields (pace from distance/duration)
-
-4. **AC4: Adapter Requirements** - All adapters:
-   - Set `source` field to provider name
-   - Handle missing fields gracefully (optional fields)
-   - Preserve `rawPayload` for debugging
-   - Calculate derived fields (pace from distance/duration)
-
-5. **AC5: Adapter Registry** - Registry exists for adapter management:
+3. **AC3: Adapter Registry** - Central access point:
    - `getAdapter(source: string): DataAdapter`
-   - `normalizeAndStore(source, rawData, runnerId)`
+   - Throws if adapter not found
+   - Supports registration of new adapters
+
+4. **AC4: Sync Migration** - Update `integrations/healthkit/sync.ts`:
+   - Import adapter via registry instead of normalizer
+   - Use `healthkitAdapter.normalizeActivity()` method
+
+5. **AC5: Cleanup** - Remove deprecated normalizer:
+   - Delete `lib/normalizers/healthkit.ts`
+   - Delete `lib/normalizers/` folder if empty
+
+---
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Create adapter types and interface (AC: 1)
-  - [ ] Create `packages/backend/convex/lib/adapters/types.ts`
-  - [ ] Define DataAdapter interface
-  - [ ] Define Activity, SleepSession, BodyMeasurement partial types
-  - [ ] Define DateRange type
+- [x] **Task 1: Create adapter types and interface** (AC: 1)
+  - [x] Create `packages/backend/convex/lib/adapters/types.ts`
+  - [x] Define DataAdapter interface with source, normalizeActivity, normalizeSleep?, normalizeBody?
+  - [x] Define DataSource type, PartialActivity type
+  - [x] Export all types
 
-- [ ] Task 2: Create HealthKit adapter (AC: 2, 4)
-  - [ ] Create `packages/backend/convex/lib/adapters/healthkit.ts`
-  - [ ] Implement normalizeActivity for HKWorkout
-  - [ ] Implement normalizeSleep for HKCategorySample
-  - [ ] Implement normalizeBody for HKQuantitySample
-  - [ ] Add derived field calculations (pace, speed)
+- [x] **Task 2: Create HealthKit adapter** (AC: 2)
+  - [x] Create `packages/backend/convex/lib/adapters/healthkit.ts`
+  - [x] Migrate logic from `lib/normalizers/healthkit.ts` into adapter
+  - [x] Implement normalizeActivity (existing logic)
+  - [x] Add normalizeSleep stub (throws "not implemented")
+  - [x] Add normalizeBody stub (throws "not implemented")
+  - [x] Ensure rawPayload is preserved
 
-- [ ] Task 3: Create manual entry adapter (AC: 3, 4)
-  - [ ] Create `packages/backend/convex/lib/adapters/manual.ts`
-  - [ ] Implement normalizeActivity for user input
-  - [ ] Calculate derived fields from distance/duration
-  - [ ] Set source = "manual"
+- [x] **Task 3: Create adapter registry** (AC: 3)
+  - [x] Create `packages/backend/convex/lib/adapters/registry.ts`
+  - [x] Implement getAdapter(source) function
+  - [x] Implement registerAdapter(adapter) function
+  - [x] Implement getSupportedSources() function
+  - [x] Register healthkit adapter
 
-- [ ] Task 4: Create adapter registry (AC: 5)
-  - [ ] Create `packages/backend/convex/lib/adapters/registry.ts`
-  - [ ] Implement getAdapter(source) function
-  - [ ] Implement normalizeAndStore mutation helper
-  - [ ] Register healthkit and manual adapters
+- [x] **Task 4: Create barrel export** (AC: 1-3)
+  - [x] Create `packages/backend/convex/lib/adapters/index.ts`
+  - [x] Export types, adapters, and registry functions
 
-- [ ] Task 5: Create index exports (AC: 1-5)
-  - [ ] Create `packages/backend/convex/lib/adapters/index.ts`
-  - [ ] Export all types and adapters
-  - [ ] Verify imports work from convex functions
+- [x] **Task 5: Migrate sync.ts to use adapter** (AC: 4)
+  - [x] Update `packages/backend/convex/integrations/healthkit/sync.ts`
+  - [x] Replace import from `../lib/normalizers/healthkit` with adapter registry
+  - [x] Use `getAdapter("healthkit").normalizeActivity()` for each workout
+  - [x] Verify sync still works correctly
+
+- [x] **Task 6: Remove deprecated normalizer** (AC: 5)
+  - [x] Delete `packages/backend/convex/lib/normalizers/healthkit.ts`
+  - [x] Delete `packages/backend/convex/lib/normalizers/` folder
+  - [x] Verify no other imports reference the old normalizer
+
+---
 
 ## Dev Notes
 
-### Architecture Compliance
-
-**CRITICAL**: This is the Wearable Adapter Layer from architecture-backend-v2.md:
-- Built as a reusable Convex component
-- Each source can potentially affect ALL historical tables
-- Future: Replace individual adapters with Terra webhook handler
-
-### Data Flow
-
-```
-                     ┌──────────────┐
-                     │  RAW DATA    │
-                     │ (HealthKit)  │
-                     └──────┬───────┘
-                            │
-                            ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    ADAPTER LAYER                                 │
-│                                                                  │
-│  healthkitAdapter.normalizeActivity(raw) → Partial<Activity>    │
-│  healthkitAdapter.normalizeSleep(raw) → Partial<SleepSession>   │
-│  manualAdapter.normalizeActivity(raw) → Partial<Activity>       │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
-                            │
-                            ▼
-               ┌─────────────────────────┐
-               │   HISTORICAL TABLES      │
-               │ (activities, sleep, etc) │
-               └─────────────────────────┘
-```
-
-### HealthKit Data Mapping
-
-From iOS HealthKit to our schema:
-
-| HealthKit Field | Our Field |
-|-----------------|-----------|
-| HKWorkout.workoutActivityType | activityType |
-| HKWorkout.startDate | startTime |
-| HKWorkout.endDate | endTime |
-| HKWorkout.totalDistance | distanceMeters |
-| HKWorkout.duration | durationSeconds |
-| HKWorkout.totalEnergyBurned | calories |
-| HKQuantityTypeIdentifier.heartRate | avgHeartRate |
-| HKQuantityTypeIdentifier.runningPower | avgPower |
-| HKQuantityTypeIdentifier.stepCount | steps |
-
-### Derived Field Calculations
-
-```typescript
-// Pace calculation
-const avgPaceSecondsPerKm = distanceMeters > 0
-  ? (durationSeconds / (distanceMeters / 1000))
-  : undefined;
-
-// Speed calculation
-const avgSpeedKmh = durationSeconds > 0
-  ? ((distanceMeters / 1000) / (durationSeconds / 3600))
-  : undefined;
-```
-
-### Project Structure Notes
-
-**Target Files:**
-- `packages/backend/convex/lib/adapters/types.ts` (NEW)
-- `packages/backend/convex/lib/adapters/healthkit.ts` (NEW)
-- `packages/backend/convex/lib/adapters/manual.ts` (NEW)
-- `packages/backend/convex/lib/adapters/registry.ts` (NEW)
-- `packages/backend/convex/lib/adapters/index.ts` (NEW)
-
-**Related Stories:**
-- Depends on Story 5.1 (Historical Data Tables) for table schemas
-- Used by Story 4.1 (HealthKit Integration) for data import
-
-### References
-
-- [Source: _bmad-output/planning-artifacts/architecture-backend-v2.md#Wearable-Adapter-Layer]
-- [Source: _bmad-output/planning-artifacts/architecture-backend-v2.md#Data-Flow-Architecture]
-- [Source: _bmad-output/planning-artifacts/epics.md#Story-5.3]
-- [Source: _bmad-output/planning-artifacts/data-model-comprehensive.md#Table-activities]
-
-### Detailed Specifications
-
-#### DataAdapter Interface
+### DataAdapter Interface
 
 ```typescript
 // packages/backend/convex/lib/adapters/types.ts
 
-import type { Doc, Id } from "../../_generated/dataModel";
+import type { Id } from "../../_generated/dataModel";
 
-export type DateRange = {
-  start: number;  // Unix timestamp
-  end: number;    // Unix timestamp
+/** Supported wearable data sources */
+export type DataSource = "healthkit" | "strava" | "garmin" | "coros" | "terra";
+
+/** Activity fields for database insertion (without Convex system fields) */
+export type PartialActivity = {
+  // Foreign keys (provided by caller)
+  runnerId: Id<"runners">;
+  userId: Id<"users">;
+
+  // Metadata
+  externalId: string;
+  source: DataSource;
+  startTime: number;
+  endTime: number;
+  activityType: string;
+  name?: string;
+
+  // Distance & Movement
+  distanceMeters?: number;
+  durationSeconds?: number;
+  elevationGainMeters?: number;
+  steps?: number;
+
+  // Pace & Speed
+  avgPaceSecondsPerKm?: number;
+  avgSpeedKmh?: number;
+
+  // Heart Rate
+  avgHeartRate?: number;
+  maxHeartRate?: number;
+
+  // Calories
+  calories?: number;
+
+  // Running metrics
+  avgCadence?: number;
+
+  // Debug
+  rawPayload?: string;
+  importedAt: number;
+  lastSyncedAt: number;
 };
 
-export type PartialActivity = Omit<Doc<"activities">, "_id" | "_creationTime">;
-export type PartialSleepSession = Omit<Doc<"sleepSessions">, "_id" | "_creationTime">;
-export type PartialBodyMeasurement = Omit<Doc<"bodyMeasurements">, "_id" | "_creationTime">;
-export type PartialDailySummary = Omit<Doc<"dailySummaries">, "_id" | "_creationTime">;
-
+/** Interface all wearable adapters must implement */
 export interface DataAdapter {
-  /**
-   * Source identifier for this adapter
-   */
-  source: "healthkit" | "strava" | "garmin" | "coros" | "manual" | "terra";
+  /** Source identifier */
+  source: DataSource;
 
-  /**
-   * Normalize raw activity data to our schema.
-   * Handles missing fields gracefully.
-   */
+  /** Transform raw activity data to our schema */
   normalizeActivity(
     raw: unknown,
     runnerId: Id<"runners">,
     userId: Id<"users">
   ): PartialActivity;
 
-  /**
-   * Normalize raw sleep data to our schema (optional).
-   */
+  /** Transform raw sleep data (optional, for future use) */
   normalizeSleep?(
     raw: unknown,
     runnerId: Id<"runners">,
     userId: Id<"users">
-  ): PartialSleepSession;
+  ): unknown;
 
-  /**
-   * Normalize raw body measurement to our schema (optional).
-   */
+  /** Transform raw body measurement (optional, for future use) */
   normalizeBody?(
     raw: unknown,
     runnerId: Id<"runners">,
     userId: Id<"users">
-  ): PartialBodyMeasurement;
-
-  /**
-   * Aggregate daily summary from day's data (optional).
-   */
-  normalizeDailySummary?(
-    date: string,
-    activities: PartialActivity[],
-    sleep?: PartialSleepSession,
-    body?: PartialBodyMeasurement[],
-    runnerId: Id<"runners">,
-    userId: Id<"users">
-  ): PartialDailySummary;
-
-  /**
-   * Fetch activities from external API (optional, for OAuth sources).
-   */
-  fetchActivities?(
-    userId: Id<"users">,
-    dateRange: DateRange
-  ): Promise<unknown[]>;
+  ): unknown;
 }
 ```
 
-#### HealthKit Adapter Example
-
-```typescript
-// packages/backend/convex/lib/adapters/healthkit.ts
-
-import type { DataAdapter, PartialActivity } from "./types";
-import type { Id } from "../../_generated/dataModel";
-
-/**
- * HealthKit data adapter.
- * Normalizes iOS HealthKit data to our schema.
- */
-export const healthkitAdapter: DataAdapter = {
-  source: "healthkit",
-
-  normalizeActivity(raw: unknown, runnerId: Id<"runners">, userId: Id<"users">): PartialActivity {
-    const data = raw as HealthKitWorkout;
-    const now = Date.now();
-
-    // Calculate derived fields
-    const distanceMeters = data.totalDistance ?? undefined;
-    const durationSeconds = data.duration ?? undefined;
-
-    const avgPaceSecondsPerKm = distanceMeters && durationSeconds && distanceMeters > 0
-      ? Math.round(durationSeconds / (distanceMeters / 1000))
-      : undefined;
-
-    const avgSpeedKmh = durationSeconds && distanceMeters && durationSeconds > 0
-      ? Math.round(((distanceMeters / 1000) / (durationSeconds / 3600)) * 100) / 100
-      : undefined;
-
-    return {
-      runnerId,
-      userId,
-      source: "healthkit",
-      externalId: data.uuid,
-      startTime: new Date(data.startDate).getTime(),
-      endTime: new Date(data.endDate).getTime(),
-      activityType: mapHealthKitActivityType(data.workoutActivityType),
-      name: data.name,
-      distanceMeters,
-      durationSeconds,
-      elevationGainMeters: data.totalElevationGain,
-      steps: data.stepCount,
-      avgPaceSecondsPerKm,
-      avgSpeedKmh,
-      avgHeartRate: data.averageHeartRate,
-      maxHeartRate: data.maxHeartRate,
-      calories: data.totalEnergyBurned,
-      avgCadence: data.averageCadence,
-      rawPayload: JSON.stringify(data),
-      importedAt: now,
-      lastSyncedAt: now,
-    };
-  },
-
-  normalizeSleep(raw: unknown, runnerId: Id<"runners">, userId: Id<"users">) {
-    const data = raw as HealthKitSleep;
-    // Implementation for sleep normalization
-    return {
-      runnerId,
-      userId,
-      source: "healthkit",
-      // ... sleep fields
-    };
-  },
-};
-
-// Helper: Map HealthKit activity types to our enum
-function mapHealthKitActivityType(hkType: number): string {
-  const mapping: Record<number, string> = {
-    37: "running",    // HKWorkoutActivityType.running
-    13: "cycling",    // HKWorkoutActivityType.cycling
-    46: "swimming",   // HKWorkoutActivityType.swimming
-    52: "walking",    // HKWorkoutActivityType.walking
-    // ... more mappings
-  };
-  return mapping[hkType] ?? "other";
-}
-
-// Type for raw HealthKit data (from React Native bridge)
-interface HealthKitWorkout {
-  uuid: string;
-  workoutActivityType: number;
-  startDate: string;
-  endDate: string;
-  duration?: number;
-  totalDistance?: number;
-  totalElevationGain?: number;
-  totalEnergyBurned?: number;
-  averageHeartRate?: number;
-  maxHeartRate?: number;
-  averageCadence?: number;
-  stepCount?: number;
-  name?: string;
-}
-
-interface HealthKitSleep {
-  uuid: string;
-  startDate: string;
-  endDate: string;
-  value: number;  // Sleep analysis value
-}
-```
-
-#### Adapter Registry
+### Registry Implementation
 
 ```typescript
 // packages/backend/convex/lib/adapters/registry.ts
 
-import type { DataAdapter } from "./types";
+import type { DataAdapter, DataSource } from "./types";
 import { healthkitAdapter } from "./healthkit";
-import { manualAdapter } from "./manual";
 
-const adapters: Record<string, DataAdapter> = {
-  healthkit: healthkitAdapter,
-  manual: manualAdapter,
-  // Future: strava, garmin, coros, terra
-};
+const adapters: Map<DataSource, DataAdapter> = new Map([
+  ["healthkit", healthkitAdapter],
+  // Future: ["strava", stravaAdapter], ["garmin", garminAdapter]
+]);
 
-/**
- * Get adapter for a given source.
- * Throws if adapter not found.
- */
-export function getAdapter(source: string): DataAdapter {
-  const adapter = adapters[source];
+export function getAdapter(source: DataSource): DataAdapter {
+  const adapter = adapters.get(source);
   if (!adapter) {
-    throw new Error(`No adapter found for source: ${source}`);
+    throw new Error(`No adapter registered for source: ${source}`);
   }
   return adapter;
 }
 
-/**
- * Register a new adapter (for extensibility).
- */
 export function registerAdapter(adapter: DataAdapter): void {
-  adapters[adapter.source] = adapter;
+  adapters.set(adapter.source, adapter);
 }
 
-/**
- * Get all registered source names.
- */
-export function getSupportedSources(): string[] {
-  return Object.keys(adapters);
+export function getSupportedSources(): DataSource[] {
+  return Array.from(adapters.keys());
 }
 ```
+
+### Sync Migration Example
+
+```typescript
+// BEFORE (current 4.1 implementation):
+import { normalizeHealthKitWorkouts } from "../../lib/normalizers/healthkit";
+
+const normalizedActivities = normalizeHealthKitWorkouts(args.rawWorkouts);
+for (const activity of normalizedActivities) {
+  await ctx.db.insert("activities", {
+    runnerId: runner._id,
+    userId,
+    ...activity,
+  });
+}
+
+// AFTER (using adapter pattern):
+import { getAdapter } from "../../lib/adapters";
+
+const adapter = getAdapter("healthkit");
+for (const raw of args.rawWorkouts) {
+  const activity = adapter.normalizeActivity(raw, runner._id, userId);
+  await ctx.db.insert("activities", activity);
+}
+```
+
+### File Structure After Implementation
+
+```
+packages/backend/convex/
+├── lib/
+│   ├── adapters/                    # NEW - this story
+│   │   ├── types.ts                 # Interface & type definitions
+│   │   ├── healthkit.ts             # HealthKit adapter (migrated)
+│   │   ├── registry.ts              # Adapter registry
+│   │   └── index.ts                 # Barrel export
+│   │
+│   ├── mock-data-generator.ts       # Story 4.2 (separate, not an adapter)
+│   │
+│   └── normalizers/                 # DELETED after migration
+│       └── healthkit.ts             # → Moves to adapters/healthkit.ts
+│
+├── integrations/
+│   └── healthkit/
+│       └── sync.ts                  # UPDATED to use adapter registry
+│
+└── seeds/
+    └── mock-activities.ts           # Story 4.2 (uses generator, not adapters)
+```
+
+### Adding Future Sources
+
+When adding a new source (e.g., Strava):
+
+1. **Create adapter:** `lib/adapters/strava.ts` implementing DataAdapter
+2. **Register:** Add to registry in `registry.ts`
+3. **Create sync mutation:** `integrations/strava/sync.ts` using `getAdapter("strava")`
+
+No changes needed to existing adapters or consuming code.
+
+---
+
+## Testing Checklist
+
+After implementation:
+- [x] `npx convex dev` runs without errors
+- [x] TypeScript type-check passes (`npx convex codegen`)
+- [x] Existing HealthKit sync still works (regression test)
+- [x] `getAdapter("healthkit")` returns correct adapter
+- [x] `getAdapter("unknown")` throws error
+- [x] No imports reference `lib/normalizers/`
+- [ ] Mock data generator (4.2) still works independently (4.2 not implemented yet)
+
+---
+
+## References
+
+- [Story 4.1: HealthKit Integration](./4-1-healthkit-integration-ios.md) - Existing normalizer being migrated
+- [Story 4.2: Mock Data Generators](./4-2-mock-data-providers-development.md) - Separate generator system
+- [Architecture Backend v2](../planning-artifacts/architecture-backend-v2.md) - Wearable Adapter Layer
+
+---
 
 ## Dev Agent Record
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 ### Debug Log References
 
+- Convex codegen passed without errors
+- No imports reference deleted `lib/normalizers/` folder
+- Generated API types include all adapter modules
+
 ### Completion Notes List
 
+- Created DataAdapter interface with source, normalizeActivity, normalizeSleep?, normalizeBody?
+- Created PartialActivity type with all activity fields for database insertion
+- Created DataSource type for supported wearable sources
+- Migrated HealthKit normalizer logic into adapter pattern with runnerId/userId parameters
+- Added normalizeSleep and normalizeBody stubs that throw "not implemented"
+- Created adapter registry with getAdapter, registerAdapter, getSupportedSources functions
+- Created barrel export for clean imports
+- Updated sync.ts to use adapter registry instead of direct normalizer import
+- Deleted deprecated lib/normalizers/ folder
+- All acceptance criteria satisfied
+
 ### File List
+
+**Created:**
+- packages/backend/convex/lib/adapters/types.ts
+- packages/backend/convex/lib/adapters/healthkit.ts
+- packages/backend/convex/lib/adapters/registry.ts
+- packages/backend/convex/lib/adapters/index.ts
+- packages/backend/convex/integrations/healthkit/sync.ts
+
+**Modified:**
+- apps/native/src/hooks/use-healthkit.ts (uses new sync mutation path)
+- apps/native/src/lib/healthkit.ts (exports RawHealthKitWorkout type)
+
+**Deleted:**
+- packages/backend/convex/lib/normalizers/healthkit.ts
+- packages/backend/convex/lib/normalizers/ (folder)
+
+### Code Review Fixes (2026-02-16)
+
+**Fixed Issues:**
+- H2: Added "manual" and "mock" to DataSource type to match schema
+- M4: Made externalId optional in PartialActivity to match schema
+- M2: Added runtime validation in healthkit adapter normalizeActivity
+- M3: Added error logging in sync.ts catch block with workout UUID

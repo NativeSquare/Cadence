@@ -40,6 +40,8 @@ So that I can test the inference engine, visualizations, and full flow without r
    **Then** all activities with source="mock" are deleted
    **And** real data (source="healthkit", "strava") is preserved
 
+6. **Given** User selects HealthKit integration **Then** no mock data is used **And** the real integration pipeline is used instead (see story 4.1)
+
 ## Tasks / Subtasks
 
 - [ ] **Task 1: Create mock activity generator** (AC: #1, #2)
@@ -80,6 +82,7 @@ So that I can test the inference engine, visualizations, and full flow without r
 All generated activities MUST follow the `activities` table schema from [data-model-comprehensive.md](_bmad-output/planning-artifacts/data-model-comprehensive.md).
 
 **Required fields for every mock activity:**
+
 ```typescript
 {
   // Foreign keys
@@ -157,14 +160,16 @@ const PROFILES = {
 ### Realistic Data Correlations
 
 **Pace -> Heart Rate:**
+
 ```typescript
 // Faster pace = higher HR
 const paceMinPerKm = durationSeconds / 60 / (distanceMeters / 1000);
-const hrBase = 200 - (paceMinPerKm * 10); // ~140 at 6:00/km, ~150 at 5:00/km
+const hrBase = 200 - paceMinPerKm * 10; // ~140 at 6:00/km, ~150 at 5:00/km
 const avgHeartRateBpm = hrBase + random(-5, 5);
 ```
 
 **Distance -> Calories:**
+
 ```typescript
 // ~70 cal/km average, varies by pace
 const caloriesPerKm = 60 + (7 - paceMinPerKm) * 5; // Faster = more cal
@@ -172,6 +177,7 @@ const totalBurnedCalories = (distanceMeters / 1000) * caloriesPerKm;
 ```
 
 **Distance -> Steps:**
+
 ```typescript
 // ~1400 steps/km average
 const stepsPerKm = 1300 + random(0, 200);
@@ -179,9 +185,10 @@ const steps = Math.round((distanceMeters / 1000) * stepsPerKm);
 ```
 
 **Duration -> HR Zones:**
+
 ```typescript
 // Easy run distribution
-const hrZone2Seconds = durationSeconds * 0.7;  // 70% in Zone 2
+const hrZone2Seconds = durationSeconds * 0.7; // 70% in Zone 2
 const hrZone3Seconds = durationSeconds * 0.25; // 25% in Zone 3
 const hrZone1Seconds = durationSeconds * 0.05; // 5% warm-up
 ```
@@ -225,12 +232,14 @@ function generateTrainingWeek(profile: TrainingProfile, weekNumber: number) {
 ### Testing Requirements
 
 **Verification:**
+
 - Seed 12 weeks, verify 36-72 activities created (profile dependent)
 - Verify all schema fields populated with valid values
 - Verify pace/HR/calories correlations are realistic
 - Verify cleanup removes only mock data
 
 **Integration:**
+
 - Verify mock data works with inference engine (Story 5.4)
 - Verify mock data renders correctly in visualization components
 

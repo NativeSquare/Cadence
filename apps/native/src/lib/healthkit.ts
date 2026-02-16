@@ -1,12 +1,16 @@
-import { Platform } from "react-native";
+import { Platform, Linking } from "react-native";
 import {
   isHealthDataAvailable,
   requestAuthorization,
   queryWorkoutSamples,
   queryQuantitySamples,
   WorkoutActivityType,
+  getRequestStatusForAuthorization,
+  AuthorizationRequestStatus,
 } from "@kingstinct/react-native-healthkit";
-import type { WorkoutProxy } from "@kingstinct/react-native-healthkit";
+
+// Infer WorkoutProxy type from the library's return type
+type WorkoutProxy = Awaited<ReturnType<typeof queryWorkoutSamples>>[number];
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -28,6 +32,20 @@ export type HealthKitImportResult = {
   summary: string; // Human-readable, e.g. "47 runs imported"
 };
 
+/** Raw workout data for backend storage and normalization. */
+export type RawHealthKitWorkout = {
+  uuid: string; // HealthKit UUID - use as externalId
+  startDate: number; // Unix timestamp ms
+  endDate: number; // Unix timestamp ms
+  durationSeconds: number;
+  distanceMeters: number;
+  activeEnergyBurnedKcal: number | undefined;
+  avgHeartRate: number | undefined;
+  maxHeartRate: number | undefined;
+  avgSpeedMps: number | undefined;
+  avgPaceSecondsPerKm: number | undefined;
+};
+
 // ─── HealthKit Availability ──────────────────────────────────────────────────
 
 /** Check if HealthKit is available on this device (iOS only). */
@@ -40,11 +58,113 @@ export function checkHealthKitAvailable(): boolean {
   }
 }
 
+// ─── Authorization Status ─────────────────────────────────────────────────────
+
+/** Authorization status for HealthKit permissions. */
+export type HealthKitAuthStatus =
+  | "unknown" // Status not yet determined
+  | "shouldRequest" // Should request authorization (not yet asked)
+  | "unnecessary" // Authorization unnecessary (already granted)
+  | "denied" // User has denied access
+  | "unavailable"; // HealthKit not available on device
+
+/** Check the current authorization status for HealthKit. */
+export async function getHealthKitAuthStatus(): Promise<HealthKitAuthStatus> {
+  if (Platform.OS !== "ios") {
+    return "unavailable";
+  }
+
+  if (!isHealthDataAvailable()) {
+    return "unavailable";
+  }
+
+  try {
+    const status = await getRequestStatusForAuthorization({
+      toRead: [...READ_PERMISSIONS],
+    });
+
+    switch (status) {
+      case AuthorizationRequestStatus.unknown:
+        return "unknown";
+      case AuthorizationRequestStatus.shouldRequest:
+        return "shouldRequest";
+      case AuthorizationRequestStatus.unnecessary:
+        return "unnecessary";
+      default:
+        return "unknown";
+    }
+  } catch {
+    // If we can't get status, assume unknown
+    return "unknown";
+  }
+}
+
+/**
+ * Check if authorization was likely denied.
+ * Note: iOS HealthKit doesn't expose a direct "denied" state.
+ * We infer denial when:
+ * - Status is "unnecessary" (request was made before)
+ * - But we can't read any workout data
+ */
+export async function checkIfAuthorizationDenied(): Promise<boolean> {
+  const status = await getHealthKitAuthStatus();
+
+  // If status is "unnecessary", authorization was requested before.
+  // Try to query data - if we get nothing and status is unnecessary,
+  // it's likely denied.
+  if (status === "unnecessary") {
+    try {
+      // Try a minimal query to check access
+      const workouts = await queryWorkoutSamples({
+        limit: 1,
+        ascending: false,
+        filter: {
+          workoutActivityType: WorkoutActivityType.running,
+          date: {
+            startDate: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000),
+            endDate: new Date(),
+          },
+        },
+      });
+      // If we can query (even empty results), we have access
+      return false;
+    } catch {
+      // Query failed - likely denied
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Open iOS Settings app to allow user to grant HealthKit permissions.
+ * Users need to navigate to Privacy & Security > Health > [App Name]
+ */
+export function openHealthSettings(): void {
+  // This opens the app's settings page in iOS Settings
+  Linking.openURL("app-settings:");
+}
+
+/** Guidance message for users who denied permissions. */
+export const PERMISSION_DENIED_GUIDANCE = {
+  title: "Apple Health Access Required",
+  message:
+    "To sync your running data, please enable Apple Health access in Settings.",
+  instructions: [
+    "Open Settings",
+    "Scroll down and tap on this app",
+    "Tap Health",
+    "Enable the data types you want to share",
+  ],
+};
+
 // ─── Authorization ───────────────────────────────────────────────────────────
 
 const READ_PERMISSIONS = [
   "HKWorkoutTypeIdentifier",
   "HKQuantityTypeIdentifierHeartRate",
+  "HKQuantityTypeIdentifierHeartRateVariabilitySDNN",
   "HKQuantityTypeIdentifierVO2Max",
   "HKQuantityTypeIdentifierActiveEnergyBurned",
   "HKQuantityTypeIdentifierDistanceWalkingRunning",
@@ -390,6 +510,103 @@ function detectTrainingLoadTrend(
   return "maintaining";
 }
 
+// ─── Raw Workout Extraction ──────────────────────────────────────────────────
+
+/** Get heart rate statistics for a workout. */
+async function getWorkoutHeartRateStats(
+  workout: WorkoutProxy,
+): Promise<{ avg: number | undefined; max: number | undefined }> {
+  try {
+    const stat = await workout.getStatistic(
+      "HKQuantityTypeIdentifierHeartRate",
+      "count/min",
+    );
+    return {
+      avg: stat?.averageQuantity?.quantity,
+      max: stat?.maximumQuantity?.quantity,
+    };
+  } catch {
+    return { avg: undefined, max: undefined };
+  }
+}
+
+/** Get energy burned for a workout in kcal. */
+async function getWorkoutEnergyBurned(
+  workout: WorkoutProxy,
+): Promise<number | undefined> {
+  try {
+    const stat = await workout.getStatistic(
+      "HKQuantityTypeIdentifierActiveEnergyBurned",
+      "kcal",
+    );
+    return stat?.sumQuantity?.quantity;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Extract raw workout data from a WorkoutProxy.
+ * Fetches distance, heart rate, and energy burned statistics.
+ */
+async function extractRawWorkout(
+  workout: WorkoutProxy,
+): Promise<RawHealthKitWorkout> {
+  // Fetch statistics in parallel
+  const [distanceKm, hrStats, energyKcal] = await Promise.all([
+    getWorkoutDistanceKmAsync(workout),
+    getWorkoutHeartRateStats(workout),
+    getWorkoutEnergyBurned(workout),
+  ]);
+
+  const durationSeconds = workout.duration?.quantity ?? 0;
+  const distanceMeters = distanceKm * 1000;
+
+  // Calculate pace: seconds per km
+  let avgPaceSecondsPerKm: number | undefined;
+  if (distanceKm > 0 && durationSeconds > 0) {
+    avgPaceSecondsPerKm = durationSeconds / distanceKm;
+  }
+
+  // Get average speed in m/s from metadata or calculate
+  let avgSpeedMps: number | undefined = workout.metadataAverageSpeed?.quantity;
+  if (!avgSpeedMps && distanceMeters > 0 && durationSeconds > 0) {
+    avgSpeedMps = distanceMeters / durationSeconds;
+  }
+
+  return {
+    uuid: workout.uuid,
+    startDate: new Date(workout.startDate).getTime(),
+    endDate: new Date(workout.endDate).getTime(),
+    durationSeconds,
+    distanceMeters,
+    activeEnergyBurnedKcal: energyKcal,
+    avgHeartRate: hrStats.avg,
+    maxHeartRate: hrStats.max,
+    avgSpeedMps,
+    avgPaceSecondsPerKm,
+  };
+}
+
+/**
+ * Extract raw data from all workouts in batches.
+ */
+async function extractRawWorkouts(
+  workouts: WorkoutProxy[],
+): Promise<RawHealthKitWorkout[]> {
+  const rawWorkouts: RawHealthKitWorkout[] = [];
+
+  // Process in batches of 10 to avoid overwhelming the system
+  const batchSize = 10;
+  for (let i = 0; i < workouts.length; i += batchSize) {
+    const batch = workouts.slice(i, i + batchSize);
+    const results = await Promise.all(batch.map(extractRawWorkout));
+    rawWorkouts.push(...results);
+  }
+
+  return rawWorkouts;
+}
+
 // ─── Main Import Function ────────────────────────────────────────────────────
 
 /**
@@ -434,5 +651,54 @@ export async function importHealthKitData(): Promise<HealthKitImportResult> {
     dateRange,
     aggregates,
     summary,
+  };
+}
+
+export type HealthKitImportWithRawResult = HealthKitImportResult & {
+  rawWorkouts: RawHealthKitWorkout[];
+};
+
+/**
+ * Extended HealthKit import that returns raw workout data for backend sync.
+ * Use this when you need to store individual activities in the database.
+ */
+export async function importHealthKitDataWithRaw(): Promise<HealthKitImportWithRawResult> {
+  // Request authorization
+  await requestHealthKitAuthorization();
+
+  // Query data in parallel
+  const [workouts, vo2max] = await Promise.all([
+    queryRunningWorkouts(90),
+    queryVO2Max(),
+  ]);
+
+  // Extract raw workouts and calculate aggregates in parallel
+  const [rawWorkouts, aggregates] = await Promise.all([
+    extractRawWorkouts(workouts),
+    calculateRunnerAggregates(workouts, vo2max),
+  ]);
+
+  // Build date range
+  let dateRange: { from: Date; to: Date } | null = null;
+  if (workouts.length > 0) {
+    const dates = workouts.map((w) => new Date(w.startDate).getTime());
+    dateRange = {
+      from: new Date(Math.min(...dates)),
+      to: new Date(Math.max(...dates)),
+    };
+  }
+
+  // Human-readable summary
+  const summary =
+    workouts.length > 0
+      ? `${workouts.length} run${workouts.length === 1 ? "" : "s"} imported`
+      : "No recent runs found";
+
+  return {
+    totalRuns: workouts.length,
+    dateRange,
+    aggregates,
+    summary,
+    rawWorkouts,
   };
 }

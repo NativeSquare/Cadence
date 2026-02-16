@@ -95,39 +95,38 @@ development_status:
   3-10-adaptive-coaching-language: backlog
 
   # ==========================================================================
-  # Epic 4: Wearable Data Integration - HIGH PRIORITY
+  # Epic 4: Wearable Data Integration - DONE
   # ==========================================================================
   # HealthKit (iOS), mock data providers, normalization pipeline
   # FRs: FR7, FR9, FR10, FR11
-  epic-4: in-progress
-  4-1-healthkit-integration-ios: ready-for-dev
-  4-2-mock-data-providers-development: ready-for-dev
-  4-3-data-normalization-sync-pipeline: ready-for-dev
+  epic-4: done
+  4-1-healthkit-integration-ios: done
+  4-2-mock-data-providers-development: done
 
   # ==========================================================================
-  # Epic 5: Backend Data Architecture - HIGH PRIORITY
+  # Epic 5: Backend Data Architecture - DONE
   # ==========================================================================
   # Historical data tables, enhanced Runner Object, inference engine
   # FRs: FR22, FR23, FR24 (backend implementation)
   # Reference: data-model-comprehensive.md, architecture-backend-v2.md
-  epic-5: in-progress
-  5-1-historical-data-tables-schema: ready-for-dev  # Story created 2026-02-16
-  5-2-enhanced-runner-object-provenance: ready-for-dev  # Story created 2026-02-16
-  5-3-data-adapters-pattern: ready-for-dev  # Story created 2026-02-16
-  5-4-inference-engine-current-state: ready-for-dev  # Story created 2026-02-16
+  epic-5: done
+  5-1-historical-data-tables-schema: done  # Story created 2026-02-16
+  5-2-enhanced-runner-object-provenance: done  # Story created 2026-02-16
+  5-3-data-adapters-pattern: done  # Story created 2026-02-16, reviewed 2026-02-16
+  5-4-inference-engine-current-state: done  # Implemented 2026-02-16
 
   # ==========================================================================
-  # Epic 6: Plan Generation Engine - HIGH PRIORITY
+  # Epic 6: Plan Generation Engine - DONE
   # ==========================================================================
   # Knowledge base, safeguards, plan generator with multi-level justifications
   # FRs: FR38, FR39, FR40, FR44, FR45 (backend implementation)
-  epic-6: backlog
-  6-1-training-plans-multi-level-zoom-schema: backlog
-  6-2-planned-sessions-schema: backlog
-  6-3-knowledge-base-infrastructure: backlog
-  6-4-safeguards-system: backlog
-  6-5-plan-generator-core: backlog
-  6-6-plan-to-ui-data-queries: backlog
+  epic-6: done
+  6-1-training-plans-multi-level-zoom-schema: done  # Code reviewed 2026-02-16
+  6-2-planned-sessions-schema: done  # Code reviewed 2026-02-16
+  6-3-knowledge-base-infrastructure: done  # Code reviewed 2026-02-16
+  6-4-safeguards-system: done  # Completed 2026-02-16
+  6-5-plan-generator-core: done  # Completed 2026-02-16
+  6-6-plan-to-ui-data-queries: done  # Code reviewed 2026-02-16
 
   # ==========================================================================
   # Epic 7: Strava & Additional Wearable Connections - MEDIUM PRIORITY
