@@ -5,6 +5,11 @@ inputDocuments:
   - prd-onboarding-mvp.md
   - architecture.md
   - ux-onboarding-flow-v6-2026-02-13.md
+  - architecture-backend-v2.md
+  - data-model-comprehensive.md
+lastUpdated: 2026-02-16
+changelog:
+  - "2026-02-16: Added Epic 7 (Backend Data Architecture) with 9 stories covering Terra-aligned data model, multi-level plan zoom, Knowledge Base, and Safeguards"
 ---
 
 # Cadence - Epic Breakdown
@@ -252,6 +257,11 @@ User experiences graceful handling of network issues, permission denials, and ca
 ### Epic 6: Wearable Data Connection & Analysis
 User can connect Strava/HealthKit, see their running data synced, and watch the coach analyze it in real-time via Thinking Stream. (Deferred until licenses obtained)
 **FRs covered:** FR6, FR7, FR8, FR9, FR10, FR11, FR12, FR22, FR23, FR24, FR26, FR27
+
+### Epic 7: Backend Data Architecture & Plan Generation
+Backend infrastructure for storing historical data (Terra-aligned), generating plans with multi-level justifications (Season/Weekly/Daily), and ensuring safe recommendations via Knowledge Base and Safeguards.
+**FRs covered:** FR38, FR39, FR40, FR44, FR45 (backend implementation)
+**Architecture docs:** data-model-comprehensive.md, architecture-backend-v2.md
 
 ---
 
@@ -1600,3 +1610,343 @@ So that I can proceed without feeling lesser.
 **Then** the coach responds warmly: "No problem. I'll learn as we go."
 **And** the no-wearable path begins
 **And** no negative messaging about missing data
+
+---
+
+## Epic 7: Backend Data Architecture & Plan Generation
+
+*ADDED 2026-02-16: Reflects comprehensive data model from architecture-backend-v2.md and data-model-comprehensive.md*
+
+The backend infrastructure for storing historical data, generating plans with justifications at multiple zoom levels, and ensuring safe training recommendations via Knowledge Base and Safeguards.
+
+**FRs covered:** FR38 (personalized plan), FR39 (trust-rebuilding), FR40 (open training), FR44 (projected outcomes), FR45 (decision audit trail)
+**Architecture docs:** data-model-comprehensive.md, architecture-backend-v2.md
+
+### Story 7.1: Historical Data Tables Schema
+
+As a developer,
+I want the complete historical data schema implemented in Convex,
+So that wearable data from any provider can be stored in a unified format.
+
+**Acceptance Criteria:**
+
+**Given** the Convex backend is deployed
+**When** the schema is created
+**Then** `activities` table exists with Terra-aligned fields:
+- Distance, duration, pace data
+- Heart rate data (avg, max, HRV, zones)
+- Calories, power, oxygen data
+- Strain, TSS, training load
+- Lap data, samples (JSON)
+- Cadence-specific extensions (sessionType, planAdherence, userFeedback)
+
+**And** `sleepSessions` table exists with:
+- Sleep duration stages (deep, light, REM, awake)
+- Heart rate and HRV during sleep
+- Readiness/recovery scores
+- Respiration data
+
+**And** `dailySummaries` table exists with:
+- Daily aggregated metrics
+- Training load (ATL, CTL, TSB)
+- Stress data
+- Activity/sleep summaries
+
+**And** `bodyMeasurements` table exists with:
+- Weight, body composition
+- Blood pressure, glucose
+- Temperature, hydration
+
+**And** all tables have appropriate indexes for:
+- Queries by runnerId
+- Queries by date range
+- Queries by source provider
+
+**Files:** `packages/backend/convex/schema/activities.ts`, `sleepSessions.ts`, `dailySummaries.ts`, `bodyMeasurements.ts`
+
+---
+
+### Story 7.2: Enhanced Runner Object Schema
+
+As a developer,
+I want the Runner Object schema enhanced with all sections from the data model,
+So that it serves as the canonical "current state" view for AI coaching.
+
+**Acceptance Criteria:**
+
+**Given** the existing runners table
+**When** the schema is enhanced
+**Then** the following sections exist:
+- `identity`: name, timezone, locale
+- `physical`: age, weight, HR zones, thresholds
+- `running`: experience, volume, pace zones, personal bests, VDOT
+- `goals`: race goal, target time, secondary goals, feasibility
+- `schedule`: available days, preferred times, constraints
+- `health`: injury history, recovery style, lifestyle factors
+- `coaching`: voice preference, data orientation, feedback frequency
+- `connections`: wearable status, Strava/HealthKit/Garmin tokens
+- `currentState`: training load, readiness, injury risk (derived)
+- `legal`: consent timestamps
+- `conversationState`: data completeness, onboarding phase
+
+**And** all fields track:
+- The value
+- The source ("manual" | "strava" | "healthkit" | "inferred")
+- Confidence level for inferred values
+- Last updated timestamp
+
+**Files:** `packages/backend/convex/schema/runners.ts`
+
+---
+
+### Story 7.3: Training Plans with Multi-Level Zoom
+
+As a developer,
+I want training plans to store data for Season/Weekly/Daily zoom levels,
+So that the UI can show justifications at each level.
+
+**Acceptance Criteria:**
+
+**Given** a training plan is generated
+**When** it is stored
+**Then** `seasonView` contains:
+- `coachSummary`: 2-3 sentence overview of the plan
+- `periodizationJustification`: why this approach
+- `volumeStrategyJustification`: why these numbers
+- `keyMilestones`: array of week/milestone/significance
+- `identifiedRisks`: array of risk/mitigation/signals
+- `expectedOutcomes`: primary goal, confidence, reasons
+
+**And** `weeklyPlan` contains array of weeks with:
+- Week number, dates, phase context
+- `volumeKm`, `intensityScore` for ProgressionChart
+- `isRecoveryWeek`, `weekLabel`
+- `keySessions`, `easyRuns`, `restDays` counts
+- `weekFocus`: main goal for the week
+- `weekJustification`: why this week looks this way
+- `coachNotes`: special considerations
+- `volumeChangePercent`: comparison to previous week
+- `warningSignals`: what to watch for
+
+**And** `runnerSnapshot` contains:
+- `capturedAt`: timestamp
+- `profileRadar`: array for RadarChart (label, value, uncertain)
+- `fitnessIndicators`: VDOT, volume, consistency, injury count
+- `planInfluencers`: factors that shaped the plan
+
+**And** `phases` array enhanced with:
+- `phaseJustification`: why this phase matters
+
+**Files:** `packages/backend/convex/schema/trainingPlans.ts`
+
+---
+
+### Story 7.4: Planned Sessions Schema
+
+As a developer,
+I want planned sessions to include all UI-required fields plus justifications,
+So that CalendarWidget can render with full coach reasoning.
+
+**Acceptance Criteria:**
+
+**Given** a session is planned
+**When** it is stored
+**Then** display fields exist:
+- `sessionTypeDisplay`: "Tempo" | "Easy" | "Intervals" | "Long Run" | "Rest"
+- `targetDurationDisplay`: "50 min" format
+- `effortDisplay`: "7/10" format
+- `targetPaceDisplay`: "4:55–5:05/km" format
+- `structureDisplay`: "10 min warm-up → 30 min tempo → 10 min cool-down"
+
+**And** `isKeySession` and `isRestDay` booleans exist
+
+**And** justification fields exist:
+- `justification`: WHY this session is placed here (trust-building)
+- `physiologicalTarget`: what system we're training
+- `placementRationale`: why THIS day specifically
+- `keyPoints`: what to focus on during the session
+- `relatedKnowledgeIds`: KB entries that informed this
+- `relatedSafeguardIds`: safeguards that were checked
+
+**And** flexibility fields exist:
+- `isMoveable`: can be rescheduled
+- `alternatives`: array of backup session options
+
+**And** execution tracking fields exist:
+- `status`: "scheduled" | "completed" | "skipped" | "modified"
+- `completedActivityId`: link to actual activity
+- `adherenceScore`: how well execution matched plan
+
+**Files:** `packages/backend/convex/schema/plannedSessions.ts`
+
+---
+
+### Story 7.5: Knowledge Base Infrastructure (Tier 5)
+
+As a developer,
+I want a knowledge base storing training science,
+So that the AI coach can ground recommendations in established principles.
+
+**Acceptance Criteria:**
+
+**Given** the knowledge base table is created
+**When** entries are added
+**Then** each entry contains:
+- `category`: "physiology" | "training_principles" | "periodization" | "recovery" | "injury_prevention"
+- `title`, `content`, `summary`
+- `applicableGoals`, `applicableExperience`, `applicablePhases`
+- `source`: "daniels_running_formula" | "pfitzinger" | "research_paper"
+- `confidence`: "established" | "well_supported" | "emerging"
+- `usageContext`: "plan_generation" | "coaching_advice" | "explanation"
+
+**And** vector embedding support exists:
+- `embedding`: array of floats for RAG retrieval
+- `embeddingModel`: model used
+
+**And** initial seed data includes:
+- 10% volume increase rule
+- Easy running heart rate (65-75% max)
+- Managing specific injury histories (shin splints, IT band, etc.)
+- Periodization principles (base, build, peak, taper)
+- Recovery requirements
+
+**And** admin can add/edit entries via:
+- Convex dashboard (MVP)
+- Future: admin UI
+
+**Files:** `packages/backend/convex/schema/knowledgeBase.ts`, `packages/backend/convex/seeds/knowledgeBase.seed.ts`
+
+---
+
+### Story 7.6: Safeguards System Implementation
+
+As a developer,
+I want a safeguards system that validates all plan decisions,
+So that generated plans cannot violate safety rules.
+
+**Acceptance Criteria:**
+
+**Given** the safeguards table is created
+**When** rules are defined
+**Then** each safeguard contains:
+- `name`, `description`, `category`
+- `ruleType`: "hard_limit" | "soft_limit" | "warning"
+- `condition`: field, operator, threshold, applicableWhen
+- `action`: type (cap/reduce/block/warn), adjustment, message, severity
+- `priority`: lower = higher priority
+- `isActive`: boolean
+
+**And** initial seed safeguards include:
+- Max 10% volume increase (hard limit)
+- Max 7% for runners with injury history (hard limit, higher priority)
+- No consecutive hard days (hard limit)
+- Long run max 30% of weekly volume (soft limit)
+- Minimum 1 rest day per week (hard limit)
+- Age 50+ recovery considerations (soft limit)
+
+**And** safeguard validator function exists:
+- Takes proposed plan + runner profile
+- Evaluates all active safeguards by priority
+- Returns violations and auto-adjustments
+- Logs all applications to plan's `safeguardApplications`
+
+**Files:** `packages/backend/convex/schema/safeguards.ts`, `packages/backend/convex/seeds/safeguards.seed.ts`, `packages/backend/convex/lib/safeguardValidator.ts`
+
+---
+
+### Story 7.7: Plan Generator Integration
+
+As a developer,
+I want the plan generator to use Runner Object + Knowledge Base + Safeguards,
+So that plans are personalized, grounded, and safe.
+
+**Acceptance Criteria:**
+
+**Given** plan generation is triggered
+**When** the generator runs
+**Then** it:
+1. Loads the Runner Object (current state)
+2. Queries Knowledge Base for relevant entries (by goal, experience, injuries)
+3. Generates plan structure using templates + KB principles
+4. Validates every decision through Safeguards
+5. Auto-adjusts any violations
+6. Logs all decisions with reasoning to `decisions` array
+7. Generates justifications at Season/Weekly/Daily levels
+8. Captures runner snapshot for RadarChart
+
+**And** the plan includes:
+- Full `seasonView` with coach summary
+- Complete `weeklyPlan` for ProgressionChart
+- All `plannedSessions` with justifications for CalendarWidget
+
+**And** the generator respects:
+- All hard limits (no violations allowed)
+- Soft limits (logged as warnings)
+- Knowledge base principles (cited in decisions)
+
+**Depends on:** Stories 7.3, 7.4, 7.5, 7.6
+
+**Files:** `packages/backend/convex/lib/planGenerator.ts`
+
+---
+
+### Story 7.8: Data Adapter Pattern
+
+As a developer,
+I want data adapters for each provider,
+So that the system is source-agnostic and can add providers easily.
+
+**Acceptance Criteria:**
+
+**Given** a data adapter interface exists
+**When** adapters are implemented
+**Then** each adapter provides:
+- `fetchActivities(userId, dateRange)`: returns normalized activities
+- `fetchSleep(userId, dateRange)`: returns normalized sleep sessions
+- `normalizeActivity(rawData)`: converts provider format to our schema
+- `normalizeSleep(rawData)`: converts provider format to our schema
+
+**And** adapters exist for:
+- Strava (activities only)
+- HealthKit (activities, sleep)
+- Manual entry (activities, sleep, body)
+- (Future: Garmin, COROS, Terra)
+
+**And** all adapters:
+- Set `source` field to provider name
+- Handle missing fields gracefully (optional)
+- Preserve `rawPayload` for debugging
+
+**Files:** `packages/backend/convex/lib/adapters/types.ts`, `adapters/strava.ts`, `adapters/healthkit.ts`, `adapters/manual.ts`
+
+---
+
+### Story 7.9: Inference Engine for Current State
+
+As a developer,
+I want an inference engine that calculates runner's current state from historical data,
+So that the Runner Object's `currentState` is always up-to-date.
+
+**Acceptance Criteria:**
+
+**Given** the inference engine runs (triggered by new data or schedule)
+**When** it processes a runner's history
+**Then** it calculates:
+- Acute Training Load (ATL): 7-day exponential weighted
+- Chronic Training Load (CTL): 42-day exponential weighted
+- Training Stress Balance (TSB): CTL - ATL
+- Injury risk level based on ramp rate + history
+- Latest biometrics (resting HR, HRV, weight, sleep)
+
+**And** it updates Runner Object's `currentState` section with:
+- All calculated metrics
+- Trend analysis (building/maintaining/declining)
+- Risk factors identified
+- `lastCalculatedAt` timestamp
+
+**And** inference can run:
+- After each new activity import
+- On schedule (daily)
+- On demand (before plan generation)
+
+**Files:** `packages/backend/convex/lib/inferenceEngine.ts`
