@@ -8,12 +8,19 @@
  */
 
 import { useState, useCallback, useEffect } from "react";
-import { View, StyleSheet, Pressable } from "react-native";
-import Animated, { FadeIn } from "react-native-reanimated";
+import {
+  View,
+  StyleSheet,
+  Pressable,
+  Platform,
+  ActivityIndicator,
+} from "react-native";
+import Animated, { FadeIn, FadeInUp } from "react-native-reanimated";
 import { Text } from "@/components/ui/text";
 import { useStream } from "@/hooks/use-stream";
+import { useHealthKit } from "@/hooks/use-healthkit";
 import { Cursor } from "../Cursor";
-import { GRAYS, SURFACES } from "@/lib/design-tokens";
+import { COLORS, GRAYS, SURFACES } from "@/lib/design-tokens";
 
 // =============================================================================
 // Types
@@ -40,11 +47,13 @@ const OPTIONS = [
 // Component
 // =============================================================================
 
-export function WearableScreen({
-  onComplete,
-  testID,
-}: WearableScreenProps) {
+export function WearableScreen({ onComplete, testID }: WearableScreenProps) {
   const [showOptions, setShowOptions] = useState(false);
+  const [connectingId, setConnectingId] = useState<string | null>(null);
+  const [connectedIds, setConnectedIds] = useState<string[]>([]);
+  const { connect: connectHealthKit, error: healthKitError } = useHealthKit();
+
+  const hasConnected = connectedIds.length > 0;
 
   const s1 = useStream({
     text: "I'm your running coach. I learn, I adapt, and I get better the more I know.",
@@ -66,16 +75,34 @@ export function WearableScreen({
   }, [s2.done]);
 
   const handleConnect = useCallback(
-    (id: string) => {
-      // Simulate connection - in mock mode, just complete with data
-      onComplete(true);
+    async (id: string) => {
+      if (connectedIds.includes(id) || connectingId) return;
+
+      if (id === "apple" && Platform.OS === "ios") {
+        setConnectingId("apple");
+        const result = await connectHealthKit();
+        setConnectingId(null);
+        if (result) {
+          setConnectedIds((prev) => [...prev, "apple"]);
+        }
+      } else {
+        // Other providers not yet implemented — mark as connected for now
+        setConnectingId(id);
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+        setConnectingId(null);
+        setConnectedIds((prev) => [...prev, id]);
+      }
     },
-    [onComplete]
+    [connectedIds, connectingId, connectHealthKit],
   );
 
-  const handleSkip = useCallback(() => {
-    onComplete(false);
+  const handleContinue = useCallback(() => {
+    onComplete(true);
   }, [onComplete]);
+
+  const handleSkip = useCallback(() => {
+    onComplete(hasConnected);
+  }, [onComplete, hasConnected]);
 
   return (
     <View style={styles.container} testID={testID}>
@@ -96,22 +123,70 @@ export function WearableScreen({
 
       {/* Connection options */}
       {showOptions && (
-        <Animated.View entering={FadeIn.duration(400)} style={styles.optionsSection}>
-          {OPTIONS.map((option) => (
-            <Pressable
-              key={option.id}
-              onPress={() => handleConnect(option.id)}
-              style={styles.optionCard}
-            >
-              <Text style={styles.optionIcon}>{option.icon}</Text>
-              <Text style={styles.optionLabel}>{option.label}</Text>
-              <Text style={styles.chevron}>›</Text>
-            </Pressable>
-          ))}
+        <Animated.View
+          entering={FadeIn.duration(400)}
+          style={styles.optionsSection}
+        >
+          {healthKitError && (
+            <Text style={styles.errorText}>{healthKitError}</Text>
+          )}
+          {OPTIONS.map((option) => {
+            const isConnected = connectedIds.includes(option.id);
+            const isThisConnecting = connectingId === option.id;
+            const isDisabled = isConnected || !!connectingId;
 
-          {/* Skip option */}
-          <Pressable onPress={handleSkip} style={styles.skipButton}>
-            <Text style={styles.skipText}>Skip for now</Text>
+            return (
+              <Pressable
+                key={option.id}
+                onPress={() => handleConnect(option.id)}
+                disabled={isDisabled}
+                style={[
+                  styles.optionCard,
+                  isConnected && styles.optionCardConnected,
+                  !isConnected &&
+                    !!connectingId &&
+                    !isThisConnecting &&
+                    styles.optionCardDisabled,
+                ]}
+              >
+                <Text style={styles.optionIcon}>{option.icon}</Text>
+                <Text style={styles.optionLabel}>{option.label}</Text>
+                {isThisConnecting ? (
+                  <ActivityIndicator size="small" color={GRAYS.g3} />
+                ) : isConnected ? (
+                  <Text style={styles.connectedLabel}>Connected</Text>
+                ) : (
+                  <Text style={styles.chevron}>›</Text>
+                )}
+              </Pressable>
+            );
+          })}
+
+          {/* Continue button - appears after at least one connection */}
+          {hasConnected && (
+            <Animated.View entering={FadeInUp.duration(300)}>
+              <Pressable
+                onPress={handleContinue}
+                disabled={!!connectingId}
+                style={[
+                  styles.continueButton,
+                  !!connectingId && styles.continueButtonDisabled,
+                ]}
+              >
+                <Text style={styles.continueText}>Continue</Text>
+              </Pressable>
+            </Animated.View>
+          )}
+
+          {/* Skip / done option */}
+          <Pressable
+            onPress={handleSkip}
+            disabled={!!connectingId}
+            style={styles.skipButton}
+          >
+            <Text style={styles.skipText}>
+              {hasConnected ? "That's all for now" : "Skip for now"}
+            </Text>
           </Pressable>
         </Animated.View>
       )}
@@ -153,6 +228,13 @@ const styles = StyleSheet.create({
   marginTop: {
     marginTop: 12,
   },
+  errorText: {
+    fontFamily: "Outfit-Regular",
+    fontSize: 14,
+    color: "#FF5A5A",
+    textAlign: "center",
+    marginBottom: 4,
+  },
   optionsSection: {
     gap: 12,
   },
@@ -165,6 +247,13 @@ const styles = StyleSheet.create({
     borderColor: SURFACES.brd,
     backgroundColor: SURFACES.card,
   },
+  optionCardConnected: {
+    borderColor: "rgba(52,211,153,0.3)",
+    backgroundColor: "rgba(52,211,153,0.08)",
+  },
+  optionCardDisabled: {
+    opacity: 0.5,
+  },
   optionIcon: {
     fontSize: 20,
     marginRight: 12,
@@ -175,13 +264,32 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: GRAYS.g1,
   },
+  connectedLabel: {
+    fontFamily: "Outfit-Medium",
+    fontSize: 13,
+    color: "rgb(52,211,153)",
+  },
   chevron: {
     fontFamily: "Outfit-Light",
     fontSize: 24,
     color: GRAYS.g3,
   },
+  continueButton: {
+    backgroundColor: COLORS.lime,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: "center",
+    marginTop: 4,
+  },
+  continueButtonDisabled: {
+    opacity: 0.5,
+  },
+  continueText: {
+    fontFamily: "Outfit-SemiBold",
+    fontSize: 16,
+    color: "#000",
+  },
   skipButton: {
-    marginTop: 8,
     paddingVertical: 14,
     alignItems: "center",
   },
