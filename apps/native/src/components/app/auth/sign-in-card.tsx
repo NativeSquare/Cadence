@@ -8,11 +8,8 @@ import { makeRedirectUri } from "expo-auth-session";
 import * as WebBrowser from "expo-web-browser";
 import { openAuthSessionAsync } from "expo-web-browser";
 import * as React from "react";
-import { Alert, Platform, StyleSheet, View } from "react-native";
-import Animated, {
-  FadeIn,
-  FadeInUp,
-} from "react-native-reanimated";
+import { Platform, StyleSheet, View } from "react-native";
+import Animated, { FadeIn, FadeInUp } from "react-native-reanimated";
 import { GoogleButton, AppleButton } from "./oauth-buttons";
 import { CommunityPulse } from "./community-pulse";
 
@@ -20,7 +17,7 @@ export function SignInCard() {
   const redirectTo = makeRedirectUri();
   const { signIn } = useAuthActions();
   const [loadingProvider, setLoadingProvider] = React.useState<string | null>(
-    null
+    null,
   );
   const [error, setError] = React.useState<string | null>(null);
 
@@ -32,7 +29,7 @@ export function SignInCard() {
       if (Platform.OS === "web") return;
       const result = await openAuthSessionAsync(
         redirect!.toString(),
-        redirectTo
+        redirectTo,
       );
       if (result.type === "success") {
         const { url } = result;
@@ -50,12 +47,28 @@ export function SignInCard() {
   }
 
   async function handleAppleSignIn() {
-    // Apple Sign-In deferred
-    Alert.alert(
-      "Coming Soon",
-      "Apple Sign-In will be available in a future update.",
-      [{ text: "OK" }]
-    );
+    setLoadingProvider("apple");
+    setError(null);
+    try {
+      const { redirect } = await signIn("apple", { redirectTo });
+      if (Platform.OS === "web") return;
+      const result = await openAuthSessionAsync(
+        redirect!.toString(),
+        redirectTo,
+      );
+      if (result.type === "success") {
+        const { url } = result;
+        const code = new URL(url).searchParams.get("code")!;
+        await signIn("apple", {
+          code,
+          redirectTo: `${APP_SLUG}://`,
+        });
+      }
+    } catch (err) {
+      setError(getConvexErrorMessage(err));
+    } finally {
+      setLoadingProvider(null);
+    }
   }
 
   const openTerms = () => WebBrowser.openBrowserAsync(LEGAL_URLS.terms);
@@ -64,7 +77,10 @@ export function SignInCard() {
   return (
     <View style={styles.container}>
       {/* Logo / wordmark */}
-      <Animated.View entering={FadeIn.duration(600)} style={styles.logoContainer}>
+      <Animated.View
+        entering={FadeIn.duration(600)}
+        style={styles.logoContainer}
+      >
         <Text style={styles.logo}>cadence</Text>
       </Animated.View>
 

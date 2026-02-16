@@ -1,6 +1,7 @@
 import { selectionFeedback } from "@/lib/haptics";
 import { cn } from "@/lib/utils";
 import { Text } from "@/components/ui/text";
+import { COLORS } from "@/lib/design-tokens";
 import { useRef, useEffect } from "react";
 import {
   Animated,
@@ -31,23 +32,24 @@ const PROVIDERS = ALL_PROVIDERS.filter(
 type ConnectionCardProps = {
   onConnect: (providerId: string) => void;
   onSkip: () => void;
+  onContinue?: () => void;
   isConnecting?: boolean;
   connectingProvider?: string | null;
-  connectedProvider?: string | null;
-  connectedAthleteName?: string | null;
+  connectedProviders?: string[];
   className?: string;
 };
 
 export function ConnectionCard({
   onConnect,
   onSkip,
+  onContinue,
   isConnecting = false,
   connectingProvider = null,
-  connectedProvider = null,
-  connectedAthleteName = null,
+  connectedProviders = [],
   className,
 }: ConnectionCardProps) {
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const hasConnected = connectedProviders.length > 0;
 
   useEffect(() => {
     Animated.timing(fadeAnim, {
@@ -63,42 +65,73 @@ export function ConnectionCard({
       className={cn("gap-4", className)}
     >
       <View className="rounded-xl bg-white/5 border border-white/10 p-4 gap-3">
-        {PROVIDERS.map((provider) => (
-          <Pressable
-            key={provider.id}
-            onPress={() => {
-              selectionFeedback();
-              onConnect(provider.id);
-            }}
-            disabled={isConnecting || !!connectedProvider}
-            className={cn(
-              "flex-row items-center gap-3 rounded-lg px-4 py-3",
-              connectedProvider === provider.id
-                ? "bg-emerald-500/15 border border-emerald-500/30"
-                : "bg-white/5 active:bg-white/10",
-            )}
-          >
-            <Text className="text-2xl">{provider.icon}</Text>
-            <Text className="text-base text-white font-medium flex-1">
-              {provider.name}
-            </Text>
-            {connectingProvider === provider.id && (
-              <ActivityIndicator size="small" color="rgba(255,255,255,0.4)" />
-            )}
-            {connectedProvider === provider.id && (
-              <Text className="text-emerald-400 text-sm font-medium">
-                {connectedAthleteName
-                  ? `Connected · ${connectedAthleteName}`
-                  : "Connected"}
+        {PROVIDERS.map((provider) => {
+          const isConnected = connectedProviders.includes(provider.id);
+          const isThisConnecting = connectingProvider === provider.id;
+
+          return (
+            <Pressable
+              key={provider.id}
+              onPress={() => {
+                selectionFeedback();
+                onConnect(provider.id);
+              }}
+              disabled={isConnecting || isConnected}
+              className={cn(
+                "flex-row items-center gap-3 rounded-lg px-4 py-3",
+                isConnected
+                  ? "bg-emerald-500/15 border border-emerald-500/30"
+                  : isConnecting && !isThisConnecting
+                    ? "bg-white/5 opacity-50"
+                    : "bg-white/5 active:bg-white/10",
+              )}
+            >
+              <Text className="text-2xl">{provider.icon}</Text>
+              <Text className="text-base text-white font-medium flex-1">
+                {provider.name}
               </Text>
-            )}
-          </Pressable>
-        ))}
+              {isThisConnecting && (
+                <ActivityIndicator size="small" color="rgba(255,255,255,0.4)" />
+              )}
+              {isConnected && (
+                <Text className="text-emerald-400 text-sm font-medium">
+                  Connected
+                </Text>
+              )}
+            </Pressable>
+          );
+        })}
       </View>
+
+      {hasConnected && onContinue ? (
+        <Pressable
+          onPress={onContinue}
+          disabled={isConnecting}
+          style={{
+            backgroundColor: COLORS.lime,
+            paddingVertical: 14,
+            borderRadius: 12,
+            alignItems: "center",
+            opacity: isConnecting ? 0.5 : 1,
+          }}
+        >
+          <Text
+            style={{
+              color: "#000",
+              fontFamily: "Outfit-SemiBold",
+              fontSize: 16,
+            }}
+          >
+            Continue
+          </Text>
+        </Pressable>
+      ) : null}
 
       <Pressable onPress={onSkip} disabled={isConnecting}>
         <Text className="text-white/40 text-sm text-center">
-          I don't have a wearable right now
+          {hasConnected
+            ? "That's all for now"
+            : "I don't have a wearable right now"}
         </Text>
       </Pressable>
     </Animated.View>
