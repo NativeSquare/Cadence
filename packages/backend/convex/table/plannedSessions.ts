@@ -119,7 +119,7 @@ export const plannedSessions = defineTable({
   // EXECUTION TRACKING (AC #4)
   // ═══════════════════════════════════════════════════════════════════════════
   status: sessionStatus,
-  completedActivityId: v.optional(v.id("activities")),
+  completedActivityId: v.optional(v.string()), // Soma activity ID (string, not Convex ID)
   completedAt: v.optional(v.number()),
   adherenceScore: v.optional(v.number()), // 0-1 how well did execution match plan
 

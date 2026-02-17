@@ -1,11 +1,13 @@
 // =============================================================================
-// Mock Data Generator for Development (Story 4.2)
+// Mock Data Generator for Development (Story 4.2, 4.6)
 // =============================================================================
 // Generates realistic running activity data for testing the inference engine,
 // visualizations, and full flow without real wearable devices.
 //
+// Story 4.6: Output is transformed to Terra/Soma schema in mockActivities.ts
+// before being ingested via soma.ingestActivity().
+//
 // IMPORTANT: This does NOT replace real HealthKit/Strava integrations.
-// Mock data is always tagged with source="mock" and can be cleaned up.
 
 import { Id } from "../_generated/dataModel";
 
@@ -32,9 +34,13 @@ export type MockActivityParams = {
   profile: TrainingProfile;
 };
 
-/** Generated mock activity matching the activities table schema */
+/**
+ * Generated mock activity data.
+ * This flat format is transformed to Terra schema by mockActivities.ts
+ * before ingestion via Soma component.
+ */
 export type MockActivity = {
-  // Foreign keys
+  // Foreign keys (legacy - included in output but not used by Soma)
   runnerId: Id<"runners">;
   userId: Id<"users">;
 

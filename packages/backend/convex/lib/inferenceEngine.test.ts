@@ -1,9 +1,12 @@
 /**
- * Inference Engine Tests (Story 5.4)
+ * Inference Engine Tests (Story 5.4, 4.6)
  *
  * NOTE: These tests require vitest to be installed.
  * Run: pnpm add -D vitest
  * Then add to package.json: "test": "vitest"
+ *
+ * Story 4.6: Updated to use InferenceActivity/InferenceDaily types
+ * from somaAdapter.ts instead of Doc<"activities">/Doc<"dailySummaries">.
  *
  * Tests cover all Acceptance Criteria:
  * - AC1: Training Load Metrics (ATL, CTL, TSB, trend)
@@ -23,6 +26,11 @@ import {
   type InjuryRiskLevel,
   type DataQualityMetrics,
 } from "./inferenceEngine";
+import {
+  type InferenceActivity,
+  type InferenceDaily,
+  type SessionType,
+} from "./somaAdapter";
 
 // =============================================================================
 // Test Fixtures
@@ -57,40 +65,35 @@ function createMockRunner(
 
 function createMockActivity(
   daysAgo: number,
-  overrides: Partial<Doc<"activities">> = {}
-): Doc<"activities"> {
+  overrides: Partial<InferenceActivity> = {}
+): InferenceActivity {
   const startTime = Date.now() - daysAgo * MS_PER_DAY;
   return {
-    _id: `activity_${daysAgo}_${Math.random()}` as Id<"activities">,
-    _creationTime: startTime,
-    runnerId: "runner_123" as Id<"runners">,
+    id: `activity_${daysAgo}_${Math.random()}`,
     startTime,
-    endTime: startTime + 3600000, // 1 hour later
     durationSeconds: 3600,
     distanceMeters: 10000, // 10km
-    activityType: "running",
-    source: "test",
+    avgHeartRate: 145,
+    maxHeartRate: 175,
+    sessionType: "easy",
     ...overrides,
-  } as Doc<"activities">;
+  };
 }
 
-function createMockDailySummary(
+function createMockDaily(
   daysAgo: number,
-  overrides: Partial<Doc<"dailySummaries">> = {}
-): Doc<"dailySummaries"> {
+  overrides: Partial<InferenceDaily> = {}
+): InferenceDaily {
   const date = new Date(Date.now() - daysAgo * MS_PER_DAY);
   const dateStr = date.toISOString().split("T")[0];
   return {
-    _id: `daily_${dateStr}` as Id<"dailySummaries">,
-    _creationTime: date.getTime(),
-    runnerId: "runner_123" as Id<"runners">,
     date: dateStr,
     restingHeartRate: 55,
     hrvMs: 45,
     weight: 70,
     sleepScore: 80,
     ...overrides,
-  } as Doc<"dailySummaries">;
+  };
 }
 
 /**
@@ -101,8 +104,8 @@ function generateWeeksOfActivities(
   weeks: number,
   runsPerWeek: number = 4,
   avgDistanceKm: number = 10
-): Doc<"activities">[] {
-  const activities: Doc<"activities">[] = [];
+): InferenceActivity[] {
+  const activities: InferenceActivity[] = [];
   const totalDays = weeks * 7;
 
   for (let day = 0; day < totalDays; day++) {
@@ -302,7 +305,7 @@ function getRiskLevel(rampRate: number): InjuryRiskLevel {
 
 describe("AC3: Recent Patterns", () => {
   it("should calculate last7DaysVolume correctly", () => {
-    const activities: Doc<"activities">[] = [
+    const activities: InferenceActivity[] = [
       createMockActivity(1, { distanceMeters: 10000 }),
       createMockActivity(3, { distanceMeters: 8000 }),
       createMockActivity(5, { distanceMeters: 12000 }),
@@ -322,7 +325,7 @@ describe("AC3: Recent Patterns", () => {
   });
 
   it("should calculate last7DaysRunCount correctly", () => {
-    const activities: Doc<"activities">[] = [
+    const activities: InferenceActivity[] = [
       createMockActivity(1),
       createMockActivity(3),
       createMockActivity(5),
@@ -338,7 +341,7 @@ describe("AC3: Recent Patterns", () => {
   });
 
   it("should calculate last28DaysVolume correctly", () => {
-    const activities: Doc<"activities">[] = [
+    const activities: InferenceActivity[] = [
       createMockActivity(5, { distanceMeters: 10000 }),
       createMockActivity(15, { distanceMeters: 12000 }),
       createMockActivity(25, { distanceMeters: 8000 }),
@@ -390,10 +393,10 @@ describe("AC3: Recent Patterns", () => {
 
 describe("AC4: Latest Biometrics", () => {
   it("should extract latestRestingHr from most recent daily summary", () => {
-    const summaries: Doc<"dailySummaries">[] = [
-      createMockDailySummary(0, { restingHeartRate: 52 }), // Today
-      createMockDailySummary(1, { restingHeartRate: 55 }), // Yesterday
-      createMockDailySummary(2, { restingHeartRate: 54 }),
+    const summaries: InferenceDaily[] = [
+      createMockDaily(0, { restingHeartRate: 52 }), // Today
+      createMockDaily(1, { restingHeartRate: 55 }), // Yesterday
+      createMockDaily(2, { restingHeartRate: 54 }),
     ];
 
     // Sort by date descending (most recent first)
@@ -405,9 +408,9 @@ describe("AC4: Latest Biometrics", () => {
   });
 
   it("should extract latestHrv from most recent daily summary", () => {
-    const summaries: Doc<"dailySummaries">[] = [
-      createMockDailySummary(0, { hrvMs: 48 }),
-      createMockDailySummary(1, { hrvMs: 45 }),
+    const summaries: InferenceDaily[] = [
+      createMockDaily(0, { hrvMs: 48 }),
+      createMockDaily(1, { hrvMs: 45 }),
     ];
 
     summaries.sort((a, b) => b.date.localeCompare(a.date));
@@ -416,9 +419,9 @@ describe("AC4: Latest Biometrics", () => {
   });
 
   it("should extract latestWeight from most recent daily summary", () => {
-    const summaries: Doc<"dailySummaries">[] = [
-      createMockDailySummary(0, { weight: 71.5 }),
-      createMockDailySummary(3, { weight: 72.0 }),
+    const summaries: InferenceDaily[] = [
+      createMockDaily(0, { weight: 71.5 }),
+      createMockDaily(3, { weight: 72.0 }),
     ];
 
     summaries.sort((a, b) => b.date.localeCompare(a.date));
@@ -427,9 +430,9 @@ describe("AC4: Latest Biometrics", () => {
   });
 
   it("should extract latestSleepScore from most recent daily summary", () => {
-    const summaries: Doc<"dailySummaries">[] = [
-      createMockDailySummary(0, { sleepScore: 85 }),
-      createMockDailySummary(1, { sleepScore: 78 }),
+    const summaries: InferenceDaily[] = [
+      createMockDaily(0, { sleepScore: 85 }),
+      createMockDaily(1, { sleepScore: 78 }),
     ];
 
     summaries.sort((a, b) => b.date.localeCompare(a.date));
@@ -454,8 +457,8 @@ describe("AC4: Latest Biometrics", () => {
   });
 
   it("should handle missing biometrics gracefully", () => {
-    const summaries: Doc<"dailySummaries">[] = [
-      createMockDailySummary(0, {
+    const summaries: InferenceDaily[] = [
+      createMockDaily(0, {
         restingHeartRate: undefined,
         hrvMs: undefined,
         weight: 70,
@@ -482,12 +485,12 @@ describe("AC5: Module Isolation", () => {
     // only uses it for reads, never writes
     // This is verified by code inspection - the function only calls:
     // - ctx.db.get() for runner
-    // - ctx.db.query() for activities and dailySummaries
+    // - ctx.runQuery() for Soma component queries
     // Never calls ctx.db.insert(), ctx.db.patch(), or ctx.db.replace()
 
     // We verify the signature expectations
     type ExpectedInputs = {
-      ctx: { db: { get: Function; query: Function } };
+      ctx: { db: { get: Function }; runQuery: Function };
       runnerId: Id<"runners">;
     };
 
@@ -502,28 +505,28 @@ describe("AC5: Module Isolation", () => {
     // Verify the structure of CurrentStateCalculation
     const mockCalculation: CurrentStateCalculation = {
       // Training load (AC1)
-      acuteTrainingLoad: { value: 45, confidence: 0.9, inferredFrom: ["activities.last60days"] },
-      chronicTrainingLoad: { value: 40, confidence: 0.85, inferredFrom: ["activities.last60days"] },
-      trainingStressBalance: { value: -5, confidence: 0.85, inferredFrom: ["activities.last60days"] },
-      trainingLoadTrend: { value: "building", confidence: 0.9, inferredFrom: ["activities.last60days"] },
+      acuteTrainingLoad: { value: 45, confidence: 0.9, inferredFrom: ["soma.activities.last60days"] },
+      chronicTrainingLoad: { value: 40, confidence: 0.85, inferredFrom: ["soma.activities.last60days"] },
+      trainingStressBalance: { value: -5, confidence: 0.85, inferredFrom: ["soma.activities.last60days"] },
+      trainingLoadTrend: { value: "building", confidence: 0.9, inferredFrom: ["soma.activities.last60days"] },
 
       // Readiness
-      readinessScore: { value: 75, confidence: 0.8, inferredFrom: ["trainingStressBalance", "dailySummaries.sleepScore"] },
+      readinessScore: { value: 75, confidence: 0.8, inferredFrom: ["trainingStressBalance", "soma.daily.sleepScore"] },
       readinessFactors: { value: ["good_recovery"], confidence: 0.8, inferredFrom: [] },
 
       // Recent patterns (AC3)
-      last7DaysVolume: { value: 35, confidence: 1, inferredFrom: ["activities.last7days"] },
-      last7DaysRunCount: { value: 4, confidence: 1, inferredFrom: ["activities.last7days"] },
-      last28DaysVolume: { value: 130, confidence: 0.95, inferredFrom: ["activities.last28days"] },
-      last28DaysRunCount: { value: 16, confidence: 1, inferredFrom: ["activities.last28days"] },
-      consistencyScore: { value: 85, confidence: 0.9, inferredFrom: ["activities.last28days"] },
+      last7DaysVolume: { value: 35, confidence: 1, inferredFrom: ["soma.activities.last7days"] },
+      last7DaysRunCount: { value: 4, confidence: 1, inferredFrom: ["soma.activities.last7days"] },
+      last28DaysVolume: { value: 130, confidence: 0.95, inferredFrom: ["soma.activities.last28days"] },
+      last28DaysRunCount: { value: 16, confidence: 1, inferredFrom: ["soma.activities.last28days"] },
+      consistencyScore: { value: 85, confidence: 0.9, inferredFrom: ["soma.activities.last28days"] },
 
       // Risk (AC2)
-      injuryRiskLevel: { value: "low", confidence: 0.9, inferredFrom: ["activities.last28days"] },
-      injuryRiskFactors: { value: [], confidence: 0.9, inferredFrom: ["activities.last28days"] },
-      overtrainingRisk: { value: "none", confidence: 0.9, inferredFrom: ["activities.last28days"] },
-      volumeChangePercent: { value: 5, confidence: 0.9, inferredFrom: ["activities.last5weeks"] },
-      volumeWithinSafeRange: { value: true, confidence: 0.9, inferredFrom: ["activities.last5weeks"] },
+      injuryRiskLevel: { value: "low", confidence: 0.9, inferredFrom: ["soma.activities.last28days"] },
+      injuryRiskFactors: { value: [], confidence: 0.9, inferredFrom: ["soma.activities.last28days"] },
+      overtrainingRisk: { value: "none", confidence: 0.9, inferredFrom: ["soma.activities.last28days"] },
+      volumeChangePercent: { value: 5, confidence: 0.9, inferredFrom: ["soma.activities.last5weeks"] },
+      volumeWithinSafeRange: { value: true, confidence: 0.9, inferredFrom: ["soma.activities.last5weeks"] },
 
       // Metadata
       calculatedAt: Date.now(),
@@ -556,9 +559,9 @@ describe("AC5: Module Isolation", () => {
     interface QueryCtxReadOnly {
       db: {
         get: Function;
-        query: Function;
-        // Note: NO insert, patch, delete, or replace methods
       };
+      runQuery: Function;
+      // Note: NO insert, patch, delete, or replace methods
     }
 
     // This compile-time check ensures the function is read-only
@@ -585,7 +588,7 @@ describe("AC6: Provenance Tracking", () => {
     const inferredValue: InferredValue<number> = {
       value: 45,
       confidence: 0.9,
-      inferredFrom: ["activities.last60days"],
+      inferredFrom: ["soma.activities.last60days"],
     };
 
     expect(inferredValue.confidence).toBeDefined();
@@ -597,7 +600,7 @@ describe("AC6: Provenance Tracking", () => {
     const inferredValue: InferredValue<string[]> = {
       value: ["high_volume_increase", "injury_history"],
       confidence: 0.85,
-      inferredFrom: ["activities.last28days", "runner.health.pastInjuries"],
+      inferredFrom: ["soma.activities.last28days", "runner.health.pastInjuries"],
     };
 
     expect(inferredValue.inferredFrom).toBeDefined();
@@ -606,25 +609,26 @@ describe("AC6: Provenance Tracking", () => {
   });
 
   it("should track training load sources", () => {
-    const trainingLoadSources = ["activities.last60days"];
-    expect(trainingLoadSources).toContain("activities.last60days");
+    const trainingLoadSources = ["soma.activities.last60days"];
+    expect(trainingLoadSources).toContain("soma.activities.last60days");
   });
 
   it("should track injury risk sources including runner profile", () => {
     const injuryRiskSources = [
-      "activities.last28days",
+      "soma.activities.last28days",
       "runner.health.pastInjuries",
       "runner.physical.age",
     ];
 
-    expect(injuryRiskSources).toContain("activities.last28days");
+    expect(injuryRiskSources).toContain("soma.activities.last28days");
     expect(injuryRiskSources).toContain("runner.health.pastInjuries");
     expect(injuryRiskSources).toContain("runner.physical.age");
   });
 
-  it("should track biometrics sources from daily summaries", () => {
-    const biometricsSources = ["dailySummaries.last7days"];
-    expect(biometricsSources).toContain("dailySummaries.last7days");
+  it("should track biometrics sources from Soma daily/body", () => {
+    const biometricsSources = ["soma.daily.last7days", "soma.body.last7days"];
+    expect(biometricsSources).toContain("soma.daily.last7days");
+    expect(biometricsSources).toContain("soma.body.last7days");
   });
 
   it("should allow Runner module to wrap with full provenance", () => {
@@ -632,7 +636,7 @@ describe("AC6: Provenance Tracking", () => {
     const inferred: InferredValue<number> = {
       value: 45,
       confidence: 0.9,
-      inferredFrom: ["activities.last60days"],
+      inferredFrom: ["soma.activities.last60days"],
     };
 
     // Example wrapper function (not implemented here, just interface)
@@ -658,7 +662,7 @@ describe("AC6: Provenance Tracking", () => {
 
     expect(wrapped.provenance.source).toBe("inferred");
     expect(wrapped.provenance.confidence).toBe(0.9);
-    expect(wrapped.provenance.inferredFrom).toEqual(["activities.last60days"]);
+    expect(wrapped.provenance.inferredFrom).toEqual(["soma.activities.last60days"]);
   });
 });
 
@@ -733,13 +737,15 @@ describe("TSS Estimation", () => {
   });
 
   it("should use session type as fallback intensity", () => {
-    const sessionIntensities: Record<string, number> = {
+    const sessionIntensities: Record<SessionType, number> = {
       recovery: 0.5,
       easy: 0.6,
       long_run: 0.65,
       tempo: 0.8,
       intervals: 0.9,
       race: 1.0,
+      cross_training: 0.7,
+      unstructured: 0.65,
     };
 
     expect(sessionIntensities.easy).toBe(0.6);
@@ -815,7 +821,7 @@ describe("Readiness Calculation", () => {
 
 describe("Edge Cases", () => {
   it("should handle empty activities array", () => {
-    const activities: Doc<"activities">[] = [];
+    const activities: InferenceActivity[] = [];
 
     const last7DaysVolume = activities.reduce(
       (sum, a) => sum + (a.distanceMeters ?? 0) / 1000,
@@ -826,7 +832,7 @@ describe("Edge Cases", () => {
   });
 
   it("should handle empty daily summaries array", () => {
-    const summaries: Doc<"dailySummaries">[] = [];
+    const summaries: InferenceDaily[] = [];
 
     const latestHrv = summaries.find((s) => s.hrvMs)?.hrvMs;
     expect(latestHrv).toBeUndefined();
@@ -870,25 +876,25 @@ describe("Integration: Complete Calculation Flow", () => {
   it("should produce a complete CurrentStateCalculation structure", () => {
     // This tests that all pieces fit together
     const calculation: CurrentStateCalculation = {
-      acuteTrainingLoad: { value: 50, confidence: 0.9, inferredFrom: ["activities.last60days"] },
-      chronicTrainingLoad: { value: 45, confidence: 0.85, inferredFrom: ["activities.last60days"] },
-      trainingStressBalance: { value: -5, confidence: 0.85, inferredFrom: ["activities.last60days"] },
-      trainingLoadTrend: { value: "maintaining", confidence: 0.8, inferredFrom: ["activities.last60days"] },
+      acuteTrainingLoad: { value: 50, confidence: 0.9, inferredFrom: ["soma.activities.last60days"] },
+      chronicTrainingLoad: { value: 45, confidence: 0.85, inferredFrom: ["soma.activities.last60days"] },
+      trainingStressBalance: { value: -5, confidence: 0.85, inferredFrom: ["soma.activities.last60days"] },
+      trainingLoadTrend: { value: "maintaining", confidence: 0.8, inferredFrom: ["soma.activities.last60days"] },
       readinessScore: { value: 72, confidence: 0.75, inferredFrom: ["trainingStressBalance"] },
       readinessFactors: { value: ["mild_fatigue"], confidence: 0.75, inferredFrom: [] },
-      last7DaysVolume: { value: 40, confidence: 1, inferredFrom: ["activities.last7days"] },
-      last7DaysRunCount: { value: 4, confidence: 1, inferredFrom: ["activities.last7days"] },
-      last28DaysVolume: { value: 150, confidence: 0.95, inferredFrom: ["activities.last28days"] },
-      last28DaysRunCount: { value: 16, confidence: 1, inferredFrom: ["activities.last28days"] },
-      consistencyScore: { value: 82, confidence: 0.9, inferredFrom: ["activities.last28days"] },
-      injuryRiskLevel: { value: "moderate", confidence: 0.85, inferredFrom: ["activities.last28days"] },
-      injuryRiskFactors: { value: ["Volume increased 10-25% this week"], confidence: 0.85, inferredFrom: ["activities.last28days"] },
-      overtrainingRisk: { value: "watch", confidence: 0.85, inferredFrom: ["activities.last28days"] },
-      volumeChangePercent: { value: 15, confidence: 0.85, inferredFrom: ["activities.last5weeks"] },
-      volumeWithinSafeRange: { value: false, confidence: 0.85, inferredFrom: ["activities.last5weeks"] },
-      latestRestingHr: { value: 52, confidence: 1, inferredFrom: ["dailySummaries.last7days"] },
-      latestHrv: { value: 48, confidence: 1, inferredFrom: ["dailySummaries.last7days"] },
-      latestSleepScore: { value: 78, confidence: 0.95, inferredFrom: ["dailySummaries.last7days"] },
+      last7DaysVolume: { value: 40, confidence: 1, inferredFrom: ["soma.activities.last7days"] },
+      last7DaysRunCount: { value: 4, confidence: 1, inferredFrom: ["soma.activities.last7days"] },
+      last28DaysVolume: { value: 150, confidence: 0.95, inferredFrom: ["soma.activities.last28days"] },
+      last28DaysRunCount: { value: 16, confidence: 1, inferredFrom: ["soma.activities.last28days"] },
+      consistencyScore: { value: 82, confidence: 0.9, inferredFrom: ["soma.activities.last28days"] },
+      injuryRiskLevel: { value: "moderate", confidence: 0.85, inferredFrom: ["soma.activities.last28days"] },
+      injuryRiskFactors: { value: ["Volume increased 10-25% this week"], confidence: 0.85, inferredFrom: ["soma.activities.last28days"] },
+      overtrainingRisk: { value: "watch", confidence: 0.85, inferredFrom: ["soma.activities.last28days"] },
+      volumeChangePercent: { value: 15, confidence: 0.85, inferredFrom: ["soma.activities.last5weeks"] },
+      volumeWithinSafeRange: { value: false, confidence: 0.85, inferredFrom: ["soma.activities.last5weeks"] },
+      latestRestingHr: { value: 52, confidence: 1, inferredFrom: ["soma.daily.last7days", "soma.body.last7days"] },
+      latestHrv: { value: 48, confidence: 1, inferredFrom: ["soma.daily.last7days", "soma.body.last7days"] },
+      latestSleepScore: { value: 78, confidence: 0.95, inferredFrom: ["soma.daily.last7days", "soma.body.last7days"] },
       calculatedAt: Date.now(),
       dataQuality: {
         activitiesCount: 18,

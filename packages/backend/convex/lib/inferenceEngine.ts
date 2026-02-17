@@ -1,15 +1,29 @@
 /**
- * Inference Engine for Current State (Story 5.4)
+ * Inference Engine for Current State (Story 5.4, 4.6)
  *
  * PURE CALCULATION MODULE - Does NOT write to database.
  * Returns CurrentStateCalculation with raw values + confidence + inferredFrom.
  * The Runner module is responsible for wrapping with full provenance and storing.
+ *
+ * Story 4.6: Refactored to use Soma component for activity/daily data.
  *
  * Reference: architecture-backend-v2.md#Module-2-Inference-Engine
  */
 
 import type { Doc, Id } from "../_generated/dataModel";
 import type { QueryCtx } from "../_generated/server";
+import { components } from "../_generated/api";
+import {
+  type InferenceActivity,
+  type InferenceDaily,
+  type SomaActivity,
+  type SomaDaily,
+  type SomaBody,
+  transformSomaActivity,
+  transformSomaDaily,
+  transformSomaBody,
+  mergeInferenceDaily,
+} from "./somaAdapter";
 
 // =============================================================================
 // Types (AC: 5, 6)
@@ -180,7 +194,7 @@ const FRESHNESS_CONFIDENCE = {
  *   1. Wrapping with full provenance
  *   2. Writing to runners.currentState
  *
- * @param ctx - Query context for database reads
+ * @param ctx - Query context for database reads and Soma component access
  * @param runnerId - The runner to calculate state for
  * @returns CurrentStateCalculation with all metrics and provenance info
  */
@@ -188,15 +202,18 @@ export async function calculateCurrentState(
   ctx: QueryCtx,
   runnerId: Id<"runners">
 ): Promise<CurrentStateCalculation> {
-  // Validate runner exists before loading data
+  // Validate runner exists and get userId for Soma queries
   const runner = await ctx.db.get(runnerId);
   if (!runner) {
     throw new Error(`Runner not found: ${runnerId}`);
   }
 
-  // Load historical data
-  const activities = await loadRecentActivities(ctx, runnerId, ACTIVITY_LOOKBACK_DAYS);
-  const dailySummaries = await loadRecentDailySummaries(ctx, runnerId, DAILY_SUMMARY_LOOKBACK_DAYS);
+  // Soma uses userId as string for queries
+  const userId = runner.userId as string;
+
+  // Load historical data from Soma
+  const activities = await loadRecentActivities(ctx, userId, ACTIVITY_LOOKBACK_DAYS);
+  const dailySummaries = await loadRecentDailySummaries(ctx, userId, DAILY_SUMMARY_LOOKBACK_DAYS);
 
   // Calculate data quality metrics (affects confidence)
   const dataQuality = calculateDataQuality(activities, dailySummaries);
@@ -231,51 +248,86 @@ export async function calculateCurrentState(
 }
 
 // =============================================================================
-// Data Loading
+// Data Loading (Story 4.6: Soma API)
 // =============================================================================
 
 /**
- * Load recent activities for a runner
+ * Load recent activities for a user from Soma component.
+ * Transforms Terra schema to flat InferenceActivity format.
  */
 async function loadRecentActivities(
   ctx: QueryCtx,
-  runnerId: Id<"runners">,
+  userId: string,
   days: number
-): Promise<Doc<"activities">[]> {
-  const cutoff = Date.now() - days * MS_PER_DAY;
+): Promise<InferenceActivity[]> {
+  const cutoffDate = new Date(Date.now() - days * MS_PER_DAY);
+  const startTime = cutoffDate.toISOString();
 
-  const activities = await ctx.db
-    .query("activities")
-    .withIndex("by_startTime", (q) =>
-      q.eq("runnerId", runnerId).gte("startTime", cutoff)
-    )
-    .collect();
+  // Query Soma component for activities
+  const somaActivities = await ctx.runQuery(
+    components.soma.public.listActivities,
+    {
+      userId,
+      startTime,
+      order: "asc",
+    }
+  ) as SomaActivity[];
 
-  // Sort by start time ascending for EWMA calculation
-  return activities.sort((a, b) => a.startTime - b.startTime);
+  // Transform to flat inference format
+  return somaActivities.map(transformSomaActivity);
 }
 
 /**
- * Load recent daily summaries for a runner
+ * Load recent daily summaries for a user from Soma component.
+ * Combines data from both daily and body endpoints.
  */
 async function loadRecentDailySummaries(
   ctx: QueryCtx,
-  runnerId: Id<"runners">,
+  userId: string,
   days: number
-): Promise<Doc<"dailySummaries">[]> {
-  // Calculate date string for cutoff (YYYY-MM-DD format)
+): Promise<InferenceDaily[]> {
   const cutoffDate = new Date(Date.now() - days * MS_PER_DAY);
-  const cutoffString = cutoffDate.toISOString().split("T")[0];
+  const startTime = cutoffDate.toISOString();
 
-  const summaries = await ctx.db
-    .query("dailySummaries")
-    .withIndex("by_runnerId_date", (q) =>
-      q.eq("runnerId", runnerId).gte("date", cutoffString)
-    )
-    .collect();
+  // Query both daily and body endpoints
+  const [somaDaily, somaBody] = await Promise.all([
+    ctx.runQuery(components.soma.public.listDaily, {
+      userId,
+      startTime,
+      order: "desc",
+    }) as Promise<SomaDaily[]>,
+    ctx.runQuery(components.soma.public.listBody, {
+      userId,
+      startTime,
+      order: "desc",
+    }) as Promise<SomaBody[]>,
+  ]);
 
-  // Sort by date descending (most recent first)
-  return summaries.sort((a, b) => b.date.localeCompare(a.date));
+  // Transform and merge by date
+  const dailyByDate = new Map<string, InferenceDaily>();
+
+  // Add daily summaries
+  for (const daily of somaDaily) {
+    const transformed = transformSomaDaily(daily);
+    dailyByDate.set(transformed.date, transformed);
+  }
+
+  // Merge body measurements
+  for (const body of somaBody) {
+    const transformed = transformSomaBody(body);
+    if (transformed.date) {
+      const existing = dailyByDate.get(transformed.date);
+      const merged = mergeInferenceDaily(existing, transformed);
+      if (merged) {
+        dailyByDate.set(transformed.date, merged);
+      }
+    }
+  }
+
+  // Return sorted by date descending (most recent first)
+  return Array.from(dailyByDate.values()).sort((a, b) =>
+    b.date.localeCompare(a.date)
+  );
 }
 
 // =============================================================================
@@ -286,8 +338,8 @@ async function loadRecentDailySummaries(
  * Calculate data quality metrics
  */
 function calculateDataQuality(
-  activities: Doc<"activities">[],
-  dailySummaries: Doc<"dailySummaries">[]
+  activities: InferenceActivity[],
+  dailySummaries: InferenceDaily[]
 ): DataQualityMetrics {
   const activitiesCount = activities.length;
   const dailySummariesCount = dailySummaries.length;
@@ -334,10 +386,10 @@ interface TrainingLoadResult {
  * Calculate training load metrics using EWMA
  */
 function calculateTrainingLoad(
-  activities: Doc<"activities">[],
+  activities: InferenceActivity[],
   dataQuality: DataQualityMetrics
 ): TrainingLoadResult {
-  const inferredFrom = ["activities.last60days"];
+  const inferredFrom = ["soma.activities.last60days"];
 
   // Handle insufficient data
   if (activities.length === 0) {
@@ -402,14 +454,14 @@ function calculateTrainingLoad(
 interface DayLoad {
   date: string;
   totalTSS: number;
-  activities: Doc<"activities">[];
+  activities: InferenceActivity[];
 }
 
 /**
  * Group activities by day and calculate daily TSS
  */
-function groupActivitiesByDay(activities: Doc<"activities">[]): DayLoad[] {
-  const dayMap = new Map<string, Doc<"activities">[]>();
+function groupActivitiesByDay(activities: InferenceActivity[]): DayLoad[] {
+  const dayMap = new Map<string, InferenceActivity[]>();
 
   for (const activity of activities) {
     const date = new Date(activity.startTime).toISOString().split("T")[0];
@@ -447,7 +499,7 @@ function groupActivitiesByDay(activities: Doc<"activities">[]): DayLoad[] {
 /**
  * Estimate Training Stress Score for an activity
  */
-function estimateTSS(activity: Doc<"activities">): number {
+function estimateTSS(activity: InferenceActivity): number {
   // Use provided training load if available
   if (activity.trainingLoad) {
     return activity.trainingLoad;
@@ -463,7 +515,7 @@ function estimateTSS(activity: Doc<"activities">): number {
 /**
  * Estimate intensity factor from available data
  */
-function getIntensityFactor(activity: Doc<"activities">): number {
+function getIntensityFactor(activity: InferenceActivity): number {
   // Use RPE if available (1-10 scale)
   if (activity.perceivedExertion) {
     return activity.perceivedExertion / 10;
@@ -550,12 +602,12 @@ interface InjuryRiskResult {
  * Calculate injury risk from activities and runner profile
  */
 function calculateInjuryRisk(
-  activities: Doc<"activities">[],
+  activities: InferenceActivity[],
   runner: Doc<"runners"> | null,
   dataQuality: DataQualityMetrics
 ): InjuryRiskResult {
   const riskFactors: string[] = [];
-  const inferredFrom: string[] = ["activities.last28days"];
+  const inferredFrom: string[] = ["soma.activities.last28days"];
 
   // Calculate weekly volumes
   const currentWeekVolume = getWeekVolume(activities, 0);
@@ -656,12 +708,12 @@ function calculateInjuryRisk(
     volumeChangePercent: {
       value: rampRatePercent,
       confidence,
-      inferredFrom: ["activities.last5weeks"],
+      inferredFrom: ["soma.activities.last5weeks"],
     },
     volumeWithinSafeRange: {
       value: volumeWithinSafe,
       confidence,
-      inferredFrom: ["activities.last5weeks"],
+      inferredFrom: ["soma.activities.last5weeks"],
     },
   };
 }
@@ -670,7 +722,7 @@ function calculateInjuryRisk(
  * Get weekly volume in km for a specific week ago
  * @param weeksAgo 0 = current week, 1 = last week, etc.
  */
-function getWeekVolume(activities: Doc<"activities">[], weeksAgo: number): number {
+function getWeekVolume(activities: InferenceActivity[], weeksAgo: number): number {
   const now = Date.now();
   const weekEnd = now - weeksAgo * MS_PER_WEEK;
   const weekStart = weekEnd - MS_PER_WEEK;
@@ -696,7 +748,7 @@ interface PatternResult {
  * Calculate recent training patterns
  */
 function calculateRecentPatterns(
-  activities: Doc<"activities">[],
+  activities: InferenceActivity[],
   dataQuality: DataQualityMetrics
 ): PatternResult {
   const now = Date.now();
@@ -725,7 +777,7 @@ function calculateRecentPatterns(
   // Based on variance in weekly volumes over 4 weeks
   const consistencyScore = calculateConsistencyScore(activities);
 
-  const inferredFrom = ["activities.last28days"];
+  const inferredFrom = ["soma.activities.last28days"];
   const confidence =
     dataQuality.quality === "high"
       ? 0.95
@@ -737,12 +789,12 @@ function calculateRecentPatterns(
     last7DaysVolume: {
       value: Math.round(last7DaysVolume * 10) / 10, // Round to 1 decimal
       confidence: Math.min(1, dataQuality.activitiesCount / 3), // Need at least 3 activities
-      inferredFrom: ["activities.last7days"],
+      inferredFrom: ["soma.activities.last7days"],
     },
     last7DaysRunCount: {
       value: last7DaysRunCount,
       confidence: 1, // Always confident about counts
-      inferredFrom: ["activities.last7days"],
+      inferredFrom: ["soma.activities.last7days"],
     },
     last28DaysVolume: {
       value: Math.round(last28DaysVolume * 10) / 10,
@@ -765,7 +817,7 @@ function calculateRecentPatterns(
 /**
  * Calculate consistency score based on weekly volume variance
  */
-function calculateConsistencyScore(activities: Doc<"activities">[]): number {
+function calculateConsistencyScore(activities: InferenceActivity[]): number {
   // Get weekly volumes for last 4 weeks
   const weeklyVolumes = [
     getWeekVolume(activities, 0),
@@ -805,10 +857,10 @@ interface BiometricsResult {
  * Extract latest biometrics from daily summaries
  */
 function extractLatestBiometrics(
-  dailySummaries: Doc<"dailySummaries">[]
+  dailySummaries: InferenceDaily[]
 ): BiometricsResult {
   const result: BiometricsResult = {};
-  const inferredFrom = ["dailySummaries.last7days"];
+  const inferredFrom = ["soma.daily.last7days", "soma.body.last7days"];
 
   // Summaries are already sorted by date descending (most recent first)
   for (const summary of dailySummaries) {
@@ -928,14 +980,14 @@ function calculateReadiness(
       score -= 10;
       factors.push("poor_sleep");
     }
-    inferredFrom.push("dailySummaries.sleepScore");
+    inferredFrom.push("soma.daily.sleepScore");
   }
 
   // Factor: HRV
   if (biometrics.latestHrv) {
     // Note: HRV interpretation requires baseline comparison
     // For now, just note that we have the data
-    inferredFrom.push("dailySummaries.hrv");
+    inferredFrom.push("soma.body.hrv");
   }
 
   // Factor: Injury risk

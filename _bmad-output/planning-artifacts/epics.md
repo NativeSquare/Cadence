@@ -9,6 +9,8 @@ inputDocuments:
   - data-model-comprehensive.md
 lastUpdated: 2026-02-17
 changelog:
+  - "2026-02-17: Epic 9 NEW - Testing Infrastructure & Coverage (framework setup + critical module tests)"
+  - "2026-02-17: Story 4.5 NEW - Soma Table Schema Cleanup (remove duplicate table files)"
   - "2026-02-17: Epic 6 marked DONE - All stories verified complete per implementation artifacts"
   - "2026-02-17: COURSE CORRECTION - Soma component integration reconciliation"
   - "2026-02-17: Story 4.1 REVISED - Scope reduced ~70%, Soma handles normalization/storage"
@@ -279,9 +281,14 @@ The AI-powered plan generator that uses Knowledge Base + Safeguards to create pe
 User can connect Strava via OAuth, see Thinking Stream analysis, and sync data from additional providers.
 **FRs covered:** FR6, FR8, FR12, FR26, FR27
 
-### Epic 8: Error Handling & Resilience 🟡 MEDIUM PRIORITY
+### Epic 8: Error Handling & Resilience ✅ DONE
 User experiences graceful handling of network issues, permission denials, and can always resume where they left off.
 **FRs covered:** FR56, FR57, FR58, FR59
+
+### Epic 9: Testing Infrastructure & Coverage 🔴 HIGH PRIORITY
+Complete testing framework setup and systematic test coverage for backend and native app. Enables CI/CD quality gates.
+**NFRs covered:** NFR-R1, NFR-R2, NFR-R3 (reliability validation)
+**Implementation artifact:** [9-0-testing-infrastructure-epic.md](../implementation-artifacts/9-0-testing-infrastructure-epic.md)
 
 ---
 
@@ -1477,6 +1484,54 @@ So that the codebase is clean and the data flow is clear.
 
 ---
 
+### Story 4.5: Soma Table Schema Cleanup 🔴 NOT STARTED
+
+*NEW 2026-02-17: Remove duplicate table schemas owned by Soma component*
+
+As a developer,
+I want to remove duplicate table schema files that are now owned by Soma component,
+So that the codebase has a single source of truth for Soma-managed tables.
+
+**Acceptance Criteria:**
+
+**Given** Soma component owns table schemas for wearable data
+**When** cleanup is performed
+**Then** the following table files are deleted:
+- `packages/backend/convex/table/activities.ts`
+- `packages/backend/convex/table/sleepSessions.ts`
+- `packages/backend/convex/table/dailySummaries.ts`
+- `packages/backend/convex/table/bodyMeasurements.ts`
+**And** corresponding imports in `schema.ts` are removed
+**And** table references in `schema.ts` are removed
+
+**Given** Soma handles Strava OAuth and sync
+**When** `stravaConnections.ts` ownership is evaluated
+**Then** determine if Soma owns this table or if Cadence needs it
+**And** delete if Soma-owned, keep if Cadence-specific
+
+**Given** files have been deleted
+**When** TypeScript compilation runs
+**Then** no import errors exist
+**And** `convex dev` generates new `_generated/api.d.ts` without errors
+
+**Given** the app queries Soma-owned tables
+**When** queries are executed
+**Then** they use Soma's component API (e.g., `ctx.runQuery(api.soma.activities.list)`)
+**And** NOT direct table access from deleted schemas
+
+**Files to delete:**
+- `packages/backend/convex/table/activities.ts`
+- `packages/backend/convex/table/sleepSessions.ts`
+- `packages/backend/convex/table/dailySummaries.ts`
+- `packages/backend/convex/table/bodyMeasurements.ts`
+- `packages/backend/convex/table/stravaConnections.ts` (if Soma-owned)
+
+**Files to modify:**
+- `packages/backend/convex/schema.ts`
+- Any files with direct queries to deleted tables
+
+---
+
 ### ~~Story 4.3: Data Normalization & Sync Pipeline~~ ✅ OBSOLETE
 
 *Superseded 2026-02-17 by Soma component*
@@ -2185,10 +2240,11 @@ Based on dependencies and priorities:
 
 ### Phase 2: Soma Cleanup & Wearable Foundation (Epic 4)
 **Goal:** Clean codebase, HealthKit works, mock data available
-1. **Story 4.4: Soma Integration Cleanup** ← Do first to avoid confusion with legacy code
-2. Story 4.1: HealthKit Integration *(REVISED - native extraction only, Soma handles storage)*
-3. Story 4.2: Mock Data Providers
-4. ~~Story 4.3: Normalization Pipeline~~ ← OBSOLETE (Soma provides)
+1. ~~**Story 4.4: Soma Integration Cleanup**~~ ← DONE (legacy adapter code removed)
+2. **Story 4.5: Soma Table Schema Cleanup** ← Do next (remove duplicate table schemas)
+3. Story 4.1: HealthKit Integration *(REVISED - native extraction only, Soma handles storage)*
+4. Story 4.2: Mock Data Providers
+5. ~~Story 4.3: Normalization Pipeline~~ ← OBSOLETE (Soma provides)
 
 ### Phase 3: Backend Infrastructure (Epic 5)
 **Goal:** Runner Object enhanced, current state calculated from Soma tables

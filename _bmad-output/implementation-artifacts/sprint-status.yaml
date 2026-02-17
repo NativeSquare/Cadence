@@ -127,6 +127,8 @@ development_status:
   4-2-mock-data-providers-development: review  # Mock data generator and seed mutations implemented 2026-02-17
   4-3-data-normalization-sync-pipeline: obsolete  # Superseded by Soma ingest methods
   4-4-soma-integration-cleanup: done  # Legacy code deleted, native app migrated to Soma endpoints, code review fixes applied 2026-02-17
+  4-5-soma-table-schema-cleanup: done  # Tables deleted, schema updated. 4.6 complete, no longer blocked.
+  4-6-inference-engine-soma-migration: done  # Completed 2026-02-17: Refactored inference engine to use Soma API
 
   # ==========================================================================
   # Epic 5: Backend Data Architecture - HIGH PRIORITY
