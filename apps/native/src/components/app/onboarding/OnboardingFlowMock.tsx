@@ -20,7 +20,6 @@ import { COLORS } from "@/lib/design-tokens";
 // Mock screens (matching cadence-v3.jsx prototype)
 import {
   WelcomeMock,
-  ThinkingDataMock,
   SelfReportMock,
   GoalsMock,
   HealthMock,
@@ -28,6 +27,9 @@ import {
   OpenQuestionMock,
   TransitionMock,
 } from "./mocks/screens";
+
+// Real data-driven screen
+import { DataInsightsScreen } from "./screens/DataInsightsScreen";
 
 // Regular screens (visualization/utility)
 import { WearableScreen } from "./screens/WearableScreen";
@@ -168,9 +170,15 @@ function OnboardingFlowMockInner({
         );
 
       case "selfReport":
-        // Show data analysis for DATA path, self-report for NO DATA path
+        // Show data insights for DATA path, self-report for NO DATA path
         return hasData ? (
-          <ThinkingDataMock onNext={goToNext} />
+          <DataInsightsScreen
+            onNext={goToNext}
+            onNoData={() => {
+              // User connected but has 0 activities - switch to NO DATA path
+              setPath("no-data");
+            }}
+          />
         ) : (
           <SelfReportMock onNext={goToNext} />
         );

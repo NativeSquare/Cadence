@@ -33,6 +33,7 @@ import type * as seeds_knowledgeBase from "../seeds/knowledgeBase.js";
 import type * as seeds_mockActivities from "../seeds/mockActivities.js";
 import type * as seeds_safeguards from "../seeds/safeguards.js";
 import type * as storage from "../storage.js";
+import type * as table_activities from "../table/activities.js";
 import type * as table_admin from "../table/admin.js";
 import type * as table_adminInvites from "../table/adminInvites.js";
 import type * as table_feedback from "../table/feedback.js";
@@ -85,6 +86,7 @@ declare const fullApi: ApiFromModules<{
   "seeds/mockActivities": typeof seeds_mockActivities;
   "seeds/safeguards": typeof seeds_safeguards;
   storage: typeof storage;
+  "table/activities": typeof table_activities;
   "table/admin": typeof table_admin;
   "table/adminInvites": typeof table_adminInvites;
   "table/feedback": typeof table_feedback;
