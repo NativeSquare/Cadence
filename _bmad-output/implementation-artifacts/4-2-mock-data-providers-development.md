@@ -293,3 +293,64 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 - `packages/backend/convex/lib/mock-data-generator.ts` - NEW: Core mock data generation logic
 - `packages/backend/convex/seeds/mock-activities.ts` - NEW: Seed/cleanup mutations
+
+---
+
+### 2026-02-17: Mock Strava Integration Fix
+
+**Issue:** During onboarding, clicking "Connect Strava" was calling the real Strava API via Soma component, causing 504 Gateway Timeout errors. Raw error stack traces were displayed in the UI.
+
+**Root Cause:**
+1. `use-strava.ts` was designed to use a mock Strava server (per comments), but no mock server existed
+2. The Soma component was calling the real Strava API with invalid mock auth codes
+3. Error messages from Convex actions included full stack traces, breaking UX
+
+**Fix Applied:**
+
+1. **Backend:** Added `seedMockStravaData` mutation to [sync.ts](packages/backend/convex/integrations/strava/sync.ts)
+   - Creates "mock-strava" connection via Soma
+   - Seeds 12 weeks of intermediate training data using existing mock data generator
+   - Marks runner as stravaConnected and wearableConnected
+   - Returns result compatible with real OAuth flow
+
+2. **Frontend:** Updated [use-strava.ts](apps/native/src/hooks/use-strava.ts)
+   - In `__DEV__` mode: calls `seedMockStravaData` mutation (no real API calls)
+   - In production: uses `useStravaAuth` hook for real OAuth flow
+   - Added `extractErrorMessage()` helper to strip stack traces from Convex errors
+
+3. **Export:** Made `toSomaActivity` helper public in [mockActivities.ts](packages/backend/convex/seeds/mockActivities.ts)
+
+**Files Modified:**
+- `packages/backend/convex/integrations/strava/sync.ts` - Added seedMockStravaData mutation
+- `packages/backend/convex/seeds/mockActivities.ts` - Exported toSomaActivity helper
+- `apps/native/src/hooks/use-strava.ts` - Dev mode mock flow + graceful error handling
+
+---
+
+### 2026-02-17: Platform Filtering & Generic Mock Wearable Seeder
+
+**Issues:**
+1. Apple HealthKit showing on Android devices (should be iOS only)
+2. Garmin (and other unimplemented providers) faking connection without seeding data
+
+**Fixes Applied:**
+
+1. **WearableScreen:** Platform-filtered options ([WearableScreen.tsx:41-52](apps/native/src/components/app/onboarding/screens/WearableScreen.tsx#L41-L52))
+   - Added `iosOnly: true` flag to Apple Health option
+   - Filter `OPTIONS` array based on `Platform.OS`
+   - Apple Health only shows on iOS
+
+2. **Backend:** Added `seedMockWearableData` generic mutation ([mockActivities.ts:238-330](packages/backend/convex/seeds/mockActivities.ts#L238-L330))
+   - Accepts `provider` parameter (e.g., "garmin", "polar", "coros")
+   - Creates `mock-{provider}` connection via Soma
+   - Seeds 12 weeks of training data
+   - Marks runner as wearableConnected
+
+3. **WearableScreen:** Updated else block for unimplemented providers ([WearableScreen.tsx:105-127](apps/native/src/components/app/onboarding/screens/WearableScreen.tsx#L105-L127))
+   - In `__DEV__` mode: calls `seedMockWearableData` mutation
+   - In production: shows "coming soon" message
+   - Proper error handling
+
+**Files Modified:**
+- `apps/native/src/components/app/onboarding/screens/WearableScreen.tsx`
+- `packages/backend/convex/seeds/mockActivities.ts`

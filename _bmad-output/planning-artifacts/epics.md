@@ -9,7 +9,7 @@ inputDocuments:
   - data-model-comprehensive.md
 lastUpdated: 2026-02-17
 changelog:
-  - "2026-02-17: Epic 9 NEW - Testing Infrastructure & Coverage (framework setup + critical module tests)"
+  - "2026-02-17: Epic 9 NEW - Testing Infrastructure & Coverage (9 stories: convex-test for backend, jest for native)"
   - "2026-02-17: Story 4.5 NEW - Soma Table Schema Cleanup (remove duplicate table files)"
   - "2026-02-17: Epic 6 marked DONE - All stories verified complete per implementation artifacts"
   - "2026-02-17: COURSE CORRECTION - Soma component integration reconciliation"

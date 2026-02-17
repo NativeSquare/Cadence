@@ -20,6 +20,8 @@ import { Text } from "@/components/ui/text";
 import { useStream } from "@/hooks/use-stream";
 import { useHealthKit } from "@/hooks/use-healthkit";
 import { useStrava } from "@/hooks/use-strava";
+import { useMutation } from "convex/react";
+import { api } from "@packages/backend/convex/_generated/api";
 import { Cursor } from "../Cursor";
 import { COLORS, GRAYS, SURFACES } from "@/lib/design-tokens";
 
@@ -38,11 +40,16 @@ export interface WearableScreenProps {
 // Constants
 // =============================================================================
 
-const OPTIONS = [
+const ALL_OPTIONS = [
   { id: "strava", label: "Connect Strava", icon: "⌚" },
-  { id: "apple", label: "Apple Health", icon: "❤️" },
+  { id: "apple", label: "Apple Health", icon: "❤️", iosOnly: true },
   { id: "garmin", label: "Garmin Connect", icon: "📍" },
 ];
+
+// Filter options based on platform - Apple Health only available on iOS
+const OPTIONS = ALL_OPTIONS.filter(
+  (opt) => !opt.iosOnly || Platform.OS === "ios"
+);
 
 // =============================================================================
 // Component
@@ -52,11 +59,15 @@ export function WearableScreen({ onComplete, testID }: WearableScreenProps) {
   const [showOptions, setShowOptions] = useState(false);
   const [connectingId, setConnectingId] = useState<string | null>(null);
   const [connectedIds, setConnectedIds] = useState<string[]>([]);
+  const [mockError, setMockError] = useState<string | null>(null);
   const { connect: connectHealthKit, error: healthKitError } = useHealthKit();
   const { connect: connectStrava, error: stravaError } = useStrava();
 
+  // Mock wearable seeder for dev mode (Story 4.2)
+  const seedMockWearable = useMutation(api.seeds.mockActivities.seedMockWearableData);
+
   const hasConnected = connectedIds.length > 0;
-  const connectionError = healthKitError || stravaError;
+  const connectionError = healthKitError || stravaError || mockError;
 
   const s1 = useStream({
     text: "I'm your running coach. I learn, I adapt, and I get better the more I know.",
@@ -96,14 +107,31 @@ export function WearableScreen({ onComplete, testID }: WearableScreenProps) {
           setConnectedIds((prev) => [...prev, "strava"]);
         }
       } else {
-        // Other providers not yet implemented — mark as connected for now
+        // Other providers (Garmin, etc.) - seed mock data in dev mode (Story 4.2)
         setConnectingId(id);
-        await new Promise((resolve) => setTimeout(resolve, 1500));
-        setConnectingId(null);
-        setConnectedIds((prev) => [...prev, id]);
+        setMockError(null);
+        try {
+          if (__DEV__) {
+            // Dev mode: seed mock activity data
+            await seedMockWearable({
+              provider: id,
+              profile: "intermediate",
+              weeks: 12,
+            });
+            setConnectedIds((prev) => [...prev, id]);
+          } else {
+            // Production: provider not implemented yet
+            setMockError(`${id} integration coming soon`);
+          }
+        } catch (err) {
+          const message = err instanceof Error ? err.message : `Failed to connect ${id}`;
+          setMockError(message);
+        } finally {
+          setConnectingId(null);
+        }
       }
     },
-    [connectedIds, connectingId, connectHealthKit, connectStrava],
+    [connectedIds, connectingId, connectHealthKit, connectStrava, seedMockWearable],
   );
 
   const handleContinue = useCallback(() => {

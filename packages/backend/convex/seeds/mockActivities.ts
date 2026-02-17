@@ -23,8 +23,9 @@ import {
 /**
  * Transform flat MockActivity to Soma/Terra ingestActivity format.
  * Maps the flat generator output to nested Terra schema.
+ * Exported for reuse in mock Strava seeding (sync.ts).
  */
-function toSomaActivity(
+export function toSomaActivity(
   mock: MockActivity,
   connectionId: string,
   userId: string
@@ -230,6 +231,112 @@ export const clearMockActivities = mutation({
     return {
       deleted: true,
       message: "Mock data connection removed. Data will no longer be accessible.",
+    };
+  },
+});
+
+// ─── Generic Mock Wearable Seeder ─────────────────────────────────────────────
+
+/**
+ * Seed mock wearable data for any provider (dev mode).
+ *
+ * This is a generic mutation that seeds mock activity data for providers
+ * that don't have real API integrations yet (e.g., Garmin).
+ * Used by the frontend in __DEV__ mode for non-HealthKit providers.
+ *
+ * Story 4.2 AC: "Mock Garmin", "Mock Strava" etc. should generate realistic data.
+ */
+export const seedMockWearableData = mutation({
+  args: {
+    provider: v.string(), // e.g., "garmin", "polar", "coros"
+    profile: v.optional(
+      v.union(
+        v.literal("beginner"),
+        v.literal("intermediate"),
+        v.literal("advanced")
+      )
+    ),
+    weeks: v.optional(v.number()),
+  },
+  returns: v.object({
+    connectionId: v.string(),
+    synced: v.number(),
+    provider: v.string(),
+  }),
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      throw new ConvexError({
+        code: "UNAUTHORIZED",
+        message: "Not authenticated",
+      });
+    }
+
+    const profile: TrainingProfile = args.profile ?? "intermediate";
+    const weeks = args.weeks ?? 12;
+    const providerName = `mock-${args.provider}`; // e.g., "mock-garmin"
+
+    // Get runner
+    const runner = await ctx.db
+      .query("runners")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .first();
+
+    if (!runner) {
+      throw new ConvexError({
+        code: "RUNNER_NOT_FOUND",
+        message: "Runner not found. Complete onboarding first.",
+      });
+    }
+
+    // Create or get mock connection for this provider
+    const existingConnection = await ctx.runQuery(
+      components.soma.public.getConnectionByProvider,
+      { userId: userId as string, provider: providerName }
+    );
+
+    let connectionId: string;
+    if (!existingConnection) {
+      connectionId = await ctx.runMutation(components.soma.public.connect, {
+        userId: userId as string,
+        provider: providerName,
+      });
+    } else {
+      connectionId = existingConnection._id;
+    }
+
+    // Generate training block
+    const activities = generateTrainingBlock(runner._id, userId, profile, weeks);
+
+    // Insert via Soma
+    let synced = 0;
+    for (const activity of activities) {
+      const somaData = toSomaActivity(activity, connectionId, userId as string);
+      await ctx.runMutation(components.soma.public.ingestActivity, somaData);
+      synced++;
+    }
+
+    // Mark runner as wearable-connected with provider type
+    // Schema uses wearableType enum: "garmin" | "coros" | "apple_watch" | "polar" | "none"
+    const wearableTypeMap: Record<string, "garmin" | "coros" | "apple_watch" | "polar"> = {
+      garmin: "garmin",
+      coros: "coros",
+      polar: "polar",
+      apple: "apple_watch",
+    };
+
+    await ctx.db.patch(runner._id, {
+      connections: {
+        ...runner.connections,
+        wearableConnected: true,
+        wearableType: wearableTypeMap[args.provider] ?? undefined,
+      },
+    });
+
+    return {
+      connectionId,
+      synced,
+      provider: providerName,
     };
   },
 });

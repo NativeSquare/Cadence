@@ -1,18 +1,19 @@
 /**
  * useStrava - Hook for connecting to Strava via the Soma component.
  *
- * Since we're using a mock Strava server during development, the hook
- * generates a random mock authorization code and sends it to the backend.
- * The mock server's `/oauth/token` endpoint accepts any code and returns
- * one of the 3 mock athletes (token-athlete1, token-athlete2, token-athlete3).
+ * Development mode (__DEV__):
+ * - Bypasses real Strava OAuth entirely
+ * - Seeds mock activity data using the mock data generator (Story 4.2)
+ * - Marks runner as Strava-connected
  *
- * In production, this would be replaced with a real OAuth flow using
- * expo-auth-session to open the Strava authorization page in the browser.
+ * Production mode:
+ * - Uses real Strava OAuth flow via useStravaAuth hook
  */
 
 import { api } from "@packages/backend/convex/_generated/api";
-import { useAction } from "convex/react";
+import { useMutation } from "convex/react";
 import { useState, useCallback } from "react";
+import { useStravaAuth } from "./use-strava-auth";
 
 export type StravaSyncStatus = {
   phase: "idle" | "connecting" | "syncing" | "complete" | "error";
@@ -26,22 +27,50 @@ export type StravaResult = {
   errors: Array<{ activityId: number; error: string }>;
 };
 
-/** Mock auth codes that correspond to different test athletes on the mock server. */
-const MOCK_AUTH_CODES = [
-  "mock-code-athlete1",
-  "mock-code-athlete2",
-  "mock-code-athlete3",
-];
+/**
+ * Extract user-friendly error message from Convex errors.
+ * Strips stack traces and technical details.
+ */
+function extractErrorMessage(err: unknown): string {
+  if (!(err instanceof Error)) {
+    return "Failed to connect to Strava";
+  }
 
-function getRandomMockCode(): string {
-  const index = Math.floor(Math.random() * MOCK_AUTH_CODES.length);
-  return MOCK_AUTH_CODES[index];
+  const message = err.message;
+
+  // Handle Convex action errors which include "Uncaught" prefix and stack traces
+  if (message.includes("Uncaught")) {
+    // Extract just the error type and message
+    const match = message.match(/Uncaught (\w+Error): (.+?)(?:\n|$)/);
+    if (match) {
+      return match[2].trim();
+    }
+  }
+
+  // Handle ConvexError with code/message structure
+  if (message.includes("code") && message.includes("message")) {
+    try {
+      const parsed = JSON.parse(message);
+      if (parsed.message) return parsed.message;
+    } catch {
+      // Not JSON, continue
+    }
+  }
+
+  // Return first line only (before any stack trace)
+  const firstLine = message.split("\n")[0];
+  return firstLine || "Failed to connect to Strava";
 }
 
 export function useStrava() {
-  const connectStravaAction = useAction(
-    api.integrations.strava.sync.connectStravaOAuth,
+  // Mock mutation for development
+  const seedMockStrava = useMutation(
+    api.integrations.strava.sync.seedMockStravaData,
   );
+
+  // Real auth for production
+  const stravaAuth = useStravaAuth();
+
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [syncStatus, setSyncStatus] = useState<StravaSyncStatus>({
@@ -58,16 +87,43 @@ export function useStrava() {
     });
 
     try {
-      // Generate a random mock auth code — the mock server will return
-      // one of the 3 test athletes and their activities
-      const mockCode = getRandomMockCode();
+      // In development, use mock data instead of real Strava API
+      if (__DEV__) {
+        setSyncStatus({
+          phase: "syncing",
+          message: "Generating mock Strava data...",
+        });
 
+        const result = await seedMockStrava({
+          profile: "intermediate",
+          weeks: 12,
+        });
+
+        setSyncStatus({
+          phase: "complete",
+          message: `Synced ${result.synced} mock activities`,
+          synced: result.synced,
+        });
+
+        return result;
+      }
+
+      // Production: use real Strava OAuth
       setSyncStatus({
         phase: "syncing",
         message: "Syncing activities from Strava...",
       });
 
-      const result = await connectStravaAction({ code: mockCode });
+      const result = await stravaAuth.connect();
+
+      if (!result) {
+        // User cancelled or auth failed
+        if (stravaAuth.error) {
+          throw new Error(stravaAuth.error);
+        }
+        setSyncStatus({ phase: "idle", message: "" });
+        return null;
+      }
 
       setSyncStatus({
         phase: "complete",
@@ -75,17 +131,20 @@ export function useStrava() {
         synced: result.synced,
       });
 
-      return result;
+      return {
+        connectionId: result.connectionId,
+        synced: result.synced,
+        errors: [],
+      };
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Failed to connect to Strava";
+      const message = extractErrorMessage(err);
       setError(message);
       setSyncStatus({ phase: "error", message });
       return null;
     } finally {
       setIsConnecting(false);
     }
-  }, [connectStravaAction]);
+  }, [seedMockStrava, stravaAuth]);
 
   return {
     connect,

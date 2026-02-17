@@ -25,11 +25,11 @@ The Cadence codebase has **minimal testing infrastructure**. Despite 40+ impleme
 
 | Location | File | Lines | Status |
 |----------|------|-------|--------|
-| Backend | `inferenceEngine.test.ts` | 350+ | vitest not installed |
-| Backend | `planGenerator.test.ts` | ~100 | vitest not installed |
-| Backend | `queries.test.ts` | ~50 | vitest not installed |
-| Backend | `sync.test.ts` (HealthKit) | ~80 | vitest not installed |
-| Backend | `http_action.test.ts` | ~60 | vitest not installed |
+| Backend | `inferenceEngine.test.ts` | 350+ | convex-test not configured |
+| Backend | `planGenerator.test.ts` | ~100 | convex-test not configured |
+| Backend | `queries.test.ts` | ~50 | convex-test not configured |
+| Backend | `sync.test.ts` (HealthKit) | ~80 | convex-test not configured |
+| Backend | `http_action.test.ts` | ~60 | convex-test not configured |
 | Native | `use-network-status.test.ts` | ~40 | jest not installed |
 | Native | `PermissionDeniedCard.test.ts` | ~30 | jest not installed |
 
@@ -37,10 +37,9 @@ The Cadence codebase has **minimal testing infrastructure**. Despite 40+ impleme
 
 | Category | Gap | Impact |
 |----------|-----|--------|
-| Framework Setup | vitest not configured for backend | All backend tests dead |
+| Framework Setup | convex-test not configured | All backend tests dead |
 | Framework Setup | jest not configured for native | All native tests dead |
 | Root Scripts | No turbo test tasks | Can't run tests from monorepo root |
-| convex-test | No Convex testing setup | Can't test mutations/queries against DB |
 | Coverage | No coverage reporting | No visibility into what's tested |
 | CI/CD | No test automation | No quality gates |
 
@@ -83,87 +82,106 @@ The Cadence codebase has **minimal testing infrastructure**. Despite 40+ impleme
 
 ## Story Breakdown
 
-### Story 9.1: Backend Test Framework Setup
+### Story 9.1: Convex Backend Test Setup
 
 As a developer,
-I want vitest configured for the backend package,
-So that existing tests can run and new tests can be written.
+I want `convex-test` configured for the backend package,
+So that existing tests can run and Convex functions can be tested with real database state.
 
 **Acceptance Criteria:**
 
-1. vitest installed and configured in `packages/backend`
+1. `convex-test` installed in `packages/backend`
 2. `pnpm test` runs all `*.test.ts` files in backend
 3. `pnpm test:watch` available for development
-4. `pnpm test:coverage` generates coverage report
-5. Existing `inferenceEngine.test.ts` passes (all 50+ tests)
-6. TypeScript paths resolve correctly (no import errors)
+4. Can create test contexts with seeded data
+5. Can test mutations with transaction semantics
+6. Can test queries with indexes
+7. Existing `inferenceEngine.test.ts` passes (update imports from vitest to convex-test)
+8. Test utilities for common patterns (create runner, create activity)
 
 **Technical Notes:**
 
 ```typescript
-// packages/backend/vitest.config.ts
-import { defineConfig } from 'vitest/config'
-
-export default defineConfig({
-  test: {
-    globals: true,
-    environment: 'node',
-    include: ['convex/**/*.test.ts'],
-    coverage: {
-      provider: 'v8',
-      reporter: ['text', 'json', 'html'],
-      exclude: ['convex/_generated/**']
-    }
-  }
-})
-```
-
-**Estimated Effort:** 2-3 hours
-
----
-
-### Story 9.2: Convex Test Integration
-
-As a developer,
-I want to test Convex mutations and queries with realistic database state,
-So that I can verify data operations work correctly.
-
-**Acceptance Criteria:**
-
-1. convex-test (or equivalent) installed and configured
-2. Can create test contexts with seeded data
-3. Can test mutations with transaction semantics
-4. Can test queries with indexes
-5. Test utilities for common patterns (create runner, create activity)
-6. Example tests for runners.ts CRUD operations
-
-**Technical Notes:**
-
-```typescript
-// packages/backend/convex/test-utils.ts
+// packages/backend/convex/test/setup.ts
 import { convexTest } from "convex-test";
-import schema from "./schema";
+import schema from "../schema";
 
-export const createTestContext = () => {
+// Create a test instance with our schema
+export function createTestCtx() {
   return convexTest(schema);
-};
+}
 
-export const seedRunner = async (ctx, overrides = {}) => {
-  return ctx.run(async (ctx) => {
+// Seed utilities
+export async function seedRunner(t: ReturnType<typeof convexTest>, overrides = {}) {
+  return await t.run(async (ctx) => {
     return await ctx.db.insert("runners", {
-      userId: "test-user",
-      ...defaultRunnerData,
+      userId: "test-user-id",
+      identity: { name: "Test Runner", nameConfirmed: true },
+      // ... default runner data
       ...overrides,
     });
   });
-};
+}
+
+export async function seedActivity(t: ReturnType<typeof convexTest>, runnerId: Id<"runners">, overrides = {}) {
+  return await t.run(async (ctx) => {
+    return await ctx.db.insert("activities", {
+      runnerId,
+      source: "mock",
+      startTime: Date.now(),
+      activityType: "running",
+      // ... default activity data
+      ...overrides,
+    });
+  });
+}
 ```
+
+```typescript
+// packages/backend/convex/lib/inferenceEngine.test.ts (updated)
+import { convexTest } from "convex-test";
+import { expect, test, describe, beforeEach } from "vitest"; // convex-test uses vitest internally
+import schema from "../schema";
+import { seedRunner, seedActivity } from "../test/setup";
+
+describe("InferenceEngine", () => {
+  let t: ReturnType<typeof convexTest>;
+
+  beforeEach(() => {
+    t = convexTest(schema);
+  });
+
+  test("calculates ATL from last 7 days", async () => {
+    const runnerId = await seedRunner(t);
+    // seed activities...
+
+    const result = await t.run(async (ctx) => {
+      return await calculateCurrentState(ctx, runnerId);
+    });
+
+    expect(result.acuteTrainingLoad).toBeGreaterThan(0);
+  });
+});
+```
+
+**Package.json scripts:**
+```json
+{
+  "scripts": {
+    "test": "vitest",
+    "test:watch": "vitest --watch",
+    "test:coverage": "vitest --coverage"
+  }
+}
+```
+
+**Note:** `convex-test` uses vitest internally for the test runner, but provides Convex-specific test utilities for database operations.
 
 **Estimated Effort:** 4-6 hours
 
 ---
 
-### Story 9.3: Native App Test Framework Setup
+### Story 9.2: Native App Test Framework Setup
 
 As a developer,
 I want jest configured for the native app,
@@ -199,7 +217,7 @@ module.exports = {
 
 ---
 
-### Story 9.4: Monorepo Test Integration
+### Story 9.3: Monorepo Test Integration
 
 As a developer,
 I want to run all tests from the monorepo root,
@@ -247,7 +265,7 @@ So that CI/CD can execute tests across all packages.
 
 ---
 
-### Story 9.5: AI Streaming Test Suite
+### Story 9.4: AI Streaming Test Suite
 
 As a developer,
 I want comprehensive tests for the AI streaming infrastructure,
@@ -297,7 +315,7 @@ describe('AI Streaming', () => {
 
 ---
 
-### Story 9.6: Tool Execution Test Suite
+### Story 9.5: Tool Execution Test Suite
 
 As a developer,
 I want tests for all tool handlers and result processing,
@@ -340,7 +358,7 @@ describe('Tool Result Handler', () => {
 
 ---
 
-### Story 9.7: Inference Engine Test Validation
+### Story 9.6: Inference Engine Test Validation
 
 As a developer,
 I want the existing inference engine tests to pass,
@@ -360,7 +378,7 @@ So that training load calculations are validated.
 
 ---
 
-### Story 9.8: Onboarding Flow Test Suite (Native)
+### Story 9.7: Onboarding Flow Test Suite (Native)
 
 As a developer,
 I want tests for all onboarding screens,
@@ -410,7 +428,7 @@ describe('Onboarding Flow', () => {
 
 ---
 
-### Story 9.9: Generative UI Component Tests
+### Story 9.8: Generative UI Component Tests
 
 As a developer,
 I want tests for all generative UI tool components,
@@ -455,7 +473,7 @@ describe('Generative UI Components', () => {
 
 ---
 
-### Story 9.10: Mock Utilities & Test Fixtures
+### Story 9.9: Mock Utilities & Test Fixtures
 
 As a developer,
 I want shared mock utilities and fixtures,
@@ -493,23 +511,22 @@ export { onboardingConversation } from './conversation.fixture';
 ## Implementation Sequence
 
 ```
-Phase 1: Framework Setup (Stories 9.1-9.4)
-├── 9.1 Backend vitest setup (unblocks all backend tests)
-├── 9.2 convex-test integration (enables DB testing)
-├── 9.3 Native jest setup (unblocks all native tests)
-└── 9.4 Monorepo integration (enables CI/CD)
+Phase 1: Framework Setup (Stories 9.1-9.3)
+├── 9.1 Convex backend test setup (convex-test + vitest)
+├── 9.2 Native jest setup (unblocks all native tests)
+└── 9.3 Monorepo turbo integration (enables CI/CD)
 
-Phase 2: Critical Path Tests (Stories 9.5-9.7)
-├── 9.5 AI streaming tests (highest risk module)
-├── 9.6 Tool execution tests (critical for onboarding)
-└── 9.7 Inference engine validation (existing tests)
+Phase 2: Critical Path Tests (Stories 9.4-9.6)
+├── 9.4 AI streaming tests (highest risk module)
+├── 9.5 Tool execution tests (critical for onboarding)
+└── 9.6 Inference engine validation (existing tests)
 
-Phase 3: UI Coverage (Stories 9.8-9.9)
-├── 9.8 Onboarding flow tests
-└── 9.9 Generative UI tests
+Phase 3: UI Coverage (Stories 9.7-9.8)
+├── 9.7 Onboarding flow tests
+└── 9.8 Generative UI tests
 
-Phase 4: Infrastructure (Story 9.10)
-└── 9.10 Mock utilities
+Phase 4: Infrastructure (Story 9.9)
+└── 9.9 Mock utilities
 ```
 
 ---
@@ -530,28 +547,27 @@ Phase 4: Infrastructure (Story 9.10)
 
 | Story | Depends On | Blocks |
 |-------|-----------|--------|
-| 9.1 | None | 9.2, 9.5, 9.6, 9.7 |
-| 9.2 | 9.1 | 9.5, 9.6 |
-| 9.3 | None | 9.8, 9.9 |
-| 9.4 | 9.1, 9.3 | CI/CD setup |
-| 9.5 | 9.1, 9.2 | None |
-| 9.6 | 9.1, 9.2 | None |
-| 9.7 | 9.1 | None |
-| 9.8 | 9.3 | None |
-| 9.9 | 9.3 | None |
-| 9.10 | 9.1, 9.3 | None |
+| 9.1 | None | 9.4, 9.5, 9.6 |
+| 9.2 | None | 9.7, 9.8 |
+| 9.3 | 9.1, 9.2 | CI/CD setup |
+| 9.4 | 9.1 | None |
+| 9.5 | 9.1 | None |
+| 9.6 | 9.1 | None |
+| 9.7 | 9.2 | None |
+| 9.8 | 9.2 | None |
+| 9.9 | 9.1, 9.2 | None |
 
 ---
 
 ## Technical Decisions
 
-### Why vitest for Backend?
+### Why convex-test for Convex Backend?
 
-1. Native TypeScript support (no transpilation config)
-2. Fast execution with watch mode
-3. Compatible with Convex patterns
-4. Already referenced in existing tests
-5. Jest-compatible API (easy migration)
+1. **Official Convex testing library** - purpose-built for testing Convex functions
+2. Provides real database context for mutations and queries
+3. Uses vitest internally as the test runner (no separate config needed)
+4. Supports transaction testing and index testing
+5. Type-safe test contexts from your schema
 
 ### Why jest for Native?
 
@@ -560,14 +576,6 @@ Phase 4: Infrastructure (Story 9.10)
 3. Excellent snapshot testing
 4. Large ecosystem of matchers
 5. @testing-library/react-native integration
-
-### Why convex-test?
-
-1. Official Convex testing solution
-2. Realistic database behavior
-3. Transaction semantics preserved
-4. Index testing support
-5. No need for external test database
 
 ---
 

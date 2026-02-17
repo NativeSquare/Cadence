@@ -22,6 +22,8 @@ import {
   internalQuery,
   mutation,
 } from "../../_generated/server";
+import { generateTrainingBlock } from "../../lib/mockDataGenerator";
+import { toSomaActivity } from "../../seeds/mockActivities";
 
 const soma = new Soma(components.soma);
 
@@ -248,6 +250,108 @@ export const getStravaStatus = mutation({
     return {
       connected: true,
       connectionId: connection._id,
+    };
+  },
+});
+
+// ─── Mock Strava for Development ──────────────────────────────────────────────
+
+/**
+ * Seed mock Strava data for development/testing.
+ *
+ * This mutation bypasses the real Strava OAuth flow and seeds mock activities
+ * using the mock data generator (Story 4.2). Used by the frontend in __DEV__ mode.
+ *
+ * - Seeds 12 weeks of intermediate training data
+ * - Marks the runner as Strava-connected
+ * - Returns a result compatible with the real connectStravaOAuth action
+ */
+export const seedMockStravaData = mutation({
+  args: {
+    profile: v.optional(
+      v.union(
+        v.literal("beginner"),
+        v.literal("intermediate"),
+        v.literal("advanced"),
+      ),
+    ),
+    weeks: v.optional(v.number()),
+  },
+  returns: v.object({
+    connectionId: v.string(),
+    synced: v.number(),
+    errors: v.array(
+      v.object({
+        activityId: v.number(),
+        error: v.string(),
+      }),
+    ),
+  }),
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      throw new ConvexError({
+        code: "UNAUTHORIZED",
+        message: "Not authenticated",
+      });
+    }
+
+    const profile = args.profile ?? "intermediate";
+    const weeks = args.weeks ?? 12;
+
+    // Get runner
+    const runner = await ctx.db
+      .query("runners")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .first();
+
+    if (!runner) {
+      throw new ConvexError({
+        code: "RUNNER_NOT_FOUND",
+        message: "Runner not found. Complete initial onboarding first.",
+      });
+    }
+
+    // Create or get mock-strava connection (use "mock-strava" to distinguish from pure mock)
+    const existingConnection = await ctx.runQuery(
+      components.soma.public.getConnectionByProvider,
+      { userId: userId as string, provider: "mock-strava" },
+    );
+
+    let connectionId: string;
+    if (!existingConnection) {
+      connectionId = await ctx.runMutation(components.soma.public.connect, {
+        userId: userId as string,
+        provider: "mock-strava",
+      });
+    } else {
+      connectionId = existingConnection._id;
+    }
+
+    // Generate training block
+    const activities = generateTrainingBlock(runner._id, userId, profile, weeks);
+
+    // Insert via Soma
+    let synced = 0;
+    for (const activity of activities) {
+      const somaData = toSomaActivity(activity, connectionId, userId as string);
+      await ctx.runMutation(components.soma.public.ingestActivity, somaData);
+      synced++;
+    }
+
+    // Mark runner as Strava-connected
+    await ctx.db.patch(runner._id, {
+      connections: {
+        ...runner.connections,
+        stravaConnected: true,
+        wearableConnected: true,
+      },
+    });
+
+    return {
+      connectionId,
+      synced,
+      errors: [],
     };
   },
 });
