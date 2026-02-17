@@ -2,9 +2,9 @@
  * AI Stream Library
  *
  * SSE parser utilities for Vercel AI SDK streaming format.
- * Handles text chunks, tool calls, and reconnection.
+ * Handles text chunks, tool calls, reconnection, and structured error handling.
  *
- * Source: Story 2.1 - AC#2, AC#4
+ * Source: Story 2.1 - AC#2, AC#4, Story 8.3 - AC#1, AC#2
  */
 
 // =============================================================================
@@ -47,12 +47,78 @@ export type MessagePart =
   | { type: "tool-call"; toolCallId: string; toolName: string; args: unknown }
   | { type: "tool-result"; toolCallId: string; toolName: string; result: unknown };
 
+export type StreamCompletionReason = "complete" | "aborted" | "network-error" | "error";
+
+// =============================================================================
+// LLM Error Types (Story 8.3 Task 5.3)
+// =============================================================================
+
+/**
+ * Structured LLM error codes for categorization.
+ * Source: Story 8.3 Task 5.2
+ */
+export type LLMErrorCode =
+  | "LLM_TIMEOUT"
+  | "LLM_RATE_LIMITED"
+  | "LLM_MODEL_ERROR"
+  | "LLM_NETWORK_ERROR"
+  | "LLM_ERROR";
+
+/**
+ * Structured error response from the AI backend.
+ * Source: Story 8.3 Task 5.3
+ */
+export interface LLMErrorResponse {
+  code: LLMErrorCode;
+  message: string;
+  debugInfo?: {
+    requestId: string;
+    timestamp: number;
+    details?: string;
+  };
+  isRetryable: boolean;
+}
+
+/**
+ * Extended Error class with LLM-specific error information.
+ * Source: Story 8.3 Task 5.3
+ */
+export class LLMError extends Error {
+  readonly code: LLMErrorCode;
+  readonly debugInfo?: LLMErrorResponse["debugInfo"];
+  readonly isRetryable: boolean;
+  readonly httpStatus?: number;
+
+  constructor(
+    message: string,
+    code: LLMErrorCode,
+    options?: {
+      debugInfo?: LLMErrorResponse["debugInfo"];
+      isRetryable?: boolean;
+      httpStatus?: number;
+      cause?: Error;
+    }
+  ) {
+    super(message);
+    this.name = "LLMError";
+    this.code = code;
+    this.debugInfo = options?.debugInfo;
+    this.isRetryable = options?.isRetryable ?? true;
+    this.httpStatus = options?.httpStatus;
+    if (options?.cause) {
+      this.cause = options.cause;
+    }
+  }
+}
+
 export interface StreamMessage {
   id: string;
   role: "user" | "assistant";
   content: string;
   parts: MessagePart[];
   isComplete: boolean;
+  /** How the stream ended - useful for resume logic */
+  completionReason?: StreamCompletionReason;
 }
 
 export interface StreamOptions {
@@ -196,11 +262,11 @@ export async function streamAIResponse(options: StreamOptions): Promise<StreamMe
     signal,
   });
 
+  // Handle HTTP errors with structured error parsing (Story 8.3 Task 5.2)
   if (!response.ok) {
-    const errorBody = await response.json().catch(() => ({ message: "Unknown error" }));
-    const error = new Error(errorBody.message || `HTTP ${response.status}`);
-    onError?.(error);
-    throw error;
+    const llmError = await parseErrorResponse(response);
+    onError?.(llmError);
+    throw llmError;
   }
 
   // Initialize message state
@@ -234,6 +300,7 @@ export async function streamAIResponse(options: StreamOptions): Promise<StreamMe
           message.parts.push(currentTextPart);
         }
         message.isComplete = true;
+        message.completionReason = "complete";
         onFinish?.("stop");
         break;
       }
@@ -314,11 +381,16 @@ export async function streamAIResponse(options: StreamOptions): Promise<StreamMe
     }
   } catch (error) {
     if (signal?.aborted) {
-      // Clean abort, not an error
+      // Clean abort, not an error - could be paused for network loss
       message.isComplete = true;
+      message.completionReason = "aborted";
     } else {
-      onError?.(error instanceof Error ? error : new Error(String(error)));
-      throw error;
+      // Convert to structured LLMError (Story 8.3 Task 5.3)
+      const llmError = createLLMErrorFromException(error);
+      // Check if this is a network-related error
+      message.completionReason = llmError.code === "LLM_NETWORK_ERROR" ? "network-error" : "error";
+      onError?.(llmError);
+      throw llmError;
     }
   } finally {
     reader.releaseLock();
@@ -339,9 +411,141 @@ function generateMessageId(): string {
 }
 
 /**
- * Check if we should attempt reconnection
+ * Classify HTTP status code into LLM error code.
+ * Source: Story 8.3 Task 5.2
+ */
+function classifyHttpStatus(status: number): LLMErrorCode {
+  switch (status) {
+    case 408:
+    case 504:
+      return "LLM_TIMEOUT";
+    case 429:
+      return "LLM_RATE_LIMITED";
+    case 502:
+    case 503:
+      return "LLM_MODEL_ERROR";
+    default:
+      if (status >= 500) return "LLM_MODEL_ERROR";
+      return "LLM_ERROR";
+  }
+}
+
+/**
+ * Parse error response body from the AI backend.
+ * Source: Story 8.3 Task 5.2
+ */
+async function parseErrorResponse(response: Response): Promise<LLMError> {
+  const status = response.status;
+  let errorBody: Partial<LLMErrorResponse> = {};
+
+  try {
+    errorBody = await response.json();
+  } catch {
+    // Non-JSON response body
+    errorBody = {
+      message: `HTTP ${status}: ${response.statusText || "Request failed"}`,
+    };
+  }
+
+  // Use the error code from the response or classify from HTTP status
+  const code = (errorBody.code as LLMErrorCode) || classifyHttpStatus(status);
+  const message = errorBody.message || `HTTP ${status}`;
+
+  return new LLMError(message, code, {
+    debugInfo: errorBody.debugInfo,
+    isRetryable: errorBody.isRetryable ?? code !== "LLM_MODEL_ERROR",
+    httpStatus: status,
+  });
+}
+
+/**
+ * Create LLMError from a caught exception.
+ * Source: Story 8.3 Task 5.2
+ */
+function createLLMErrorFromException(error: unknown): LLMError {
+  if (error instanceof LLMError) {
+    return error;
+  }
+
+  const message = error instanceof Error ? error.message : String(error);
+  const lowerMessage = message.toLowerCase();
+
+  // Classify based on error message
+  let code: LLMErrorCode = "LLM_ERROR";
+
+  if (lowerMessage.includes("timeout") || lowerMessage.includes("timed out") || lowerMessage.includes("deadline")) {
+    code = "LLM_TIMEOUT";
+  } else if (lowerMessage.includes("rate") || lowerMessage.includes("429") || lowerMessage.includes("too many")) {
+    code = "LLM_RATE_LIMITED";
+  } else if (lowerMessage.includes("network") || lowerMessage.includes("fetch") || lowerMessage.includes("connection") || lowerMessage.includes("offline") || (error instanceof TypeError)) {
+    code = "LLM_NETWORK_ERROR";
+  } else if (lowerMessage.includes("model") || lowerMessage.includes("500") || lowerMessage.includes("502") || lowerMessage.includes("503")) {
+    code = "LLM_MODEL_ERROR";
+  }
+
+  // Determine if error is retryable (Story 8.3 fix - smarter model error handling)
+  // Most errors are retryable except:
+  // - Rate limits (need to wait)
+  // - Permanent model errors (invalid key, quota, policy, context length)
+  let isRetryable = true;
+  if (code === "LLM_RATE_LIMITED") {
+    isRetryable = false; // Need to wait, not immediate retry
+  } else if (code === "LLM_MODEL_ERROR") {
+    // 5xx errors are transient server errors - retryable
+    // Other model errors (invalid_api_key, quota, policy) are permanent - not retryable
+    const isTransientServerError =
+      lowerMessage.includes("500") ||
+      lowerMessage.includes("502") ||
+      lowerMessage.includes("503") ||
+      lowerMessage.includes("server_error");
+    const isPermanentError =
+      lowerMessage.includes("invalid_api_key") ||
+      lowerMessage.includes("insufficient_quota") ||
+      lowerMessage.includes("content_policy") ||
+      lowerMessage.includes("context_length");
+    isRetryable = isTransientServerError && !isPermanentError;
+  }
+
+  return new LLMError(message, code, {
+    isRetryable,
+    cause: error instanceof Error ? error : undefined,
+  });
+}
+
+/**
+ * Check if error is network-related
+ */
+export function isNetworkError(error: Error): boolean {
+  if (error instanceof LLMError) {
+    return error.code === "LLM_NETWORK_ERROR";
+  }
+
+  const message = error.message.toLowerCase();
+  return (
+    message.includes("network") ||
+    message.includes("fetch") ||
+    message.includes("timeout") ||
+    message.includes("connection") ||
+    message.includes("offline") ||
+    message.includes("internet") ||
+    error.name === "TypeError" // fetch fails with TypeError on network errors
+  );
+}
+
+/**
+ * Check if we should attempt reconnection based on error type.
+ * Source: Story 8.3 Task 5.2
  */
 export function shouldReconnect(error: Error): boolean {
+  // Use isRetryable from LLMError if available
+  if (error instanceof LLMError) {
+    // Don't retry rate limits immediately (need to wait)
+    if (error.code === "LLM_RATE_LIMITED") {
+      return false;
+    }
+    return error.isRetryable;
+  }
+
   const message = error.message.toLowerCase();
 
   // Don't retry auth errors
@@ -354,7 +558,7 @@ export function shouldReconnect(error: Error): boolean {
     return false;
   }
 
-  // Retry network errors
+  // Retry network errors and timeouts
   if (
     message.includes("network") ||
     message.includes("fetch") ||
@@ -368,19 +572,23 @@ export function shouldReconnect(error: Error): boolean {
 }
 
 /**
- * Create a reconnecting stream with exponential backoff
+ * Create a reconnecting stream with exponential backoff.
+ * Source: Story 8.3 - AC#2
  */
 export async function streamWithReconnect(
   options: StreamOptions & { maxRetries?: number }
 ): Promise<StreamMessage> {
   const { maxRetries = 3, ...streamOptions } = options;
-  let lastError: Error | null = null;
+  let lastError: LLMError | null = null;
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       return await streamAIResponse(streamOptions);
     } catch (error) {
-      lastError = error instanceof Error ? error : new Error(String(error));
+      // Convert to LLMError for consistent handling (Story 8.3 Task 5.3)
+      lastError = error instanceof LLMError
+        ? error
+        : createLLMErrorFromException(error);
 
       if (!shouldReconnect(lastError) || attempt === maxRetries) {
         throw lastError;
@@ -392,5 +600,5 @@ export async function streamWithReconnect(
     }
   }
 
-  throw lastError || new Error("Stream failed");
+  throw lastError || new LLMError("Stream failed after max retries", "LLM_ERROR");
 }

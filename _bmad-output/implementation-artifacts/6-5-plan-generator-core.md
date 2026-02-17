@@ -1,6 +1,6 @@
 # Story 6.5: Plan Generator Core
 
-Status: in-progress
+Status: done
 
 ## Story
 

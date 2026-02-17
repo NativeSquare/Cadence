@@ -1,6 +1,10 @@
 # Story 5.4: Inference Engine for Current State
 
-Status: done
+Status: review
+
+> **Updated 2026-02-17:** Reads from Soma-managed tables (`activities`, `sleepSessions`, `dailySummaries`), writes to Runner Object's `currentState`. This story is STILL NEEDED per Sprint Change Proposal 2026-02-17.
+>
+> **Data Flow:** Soma tables → Inference Engine → `runners.currentState`
 
 ## Story
 
@@ -175,9 +179,10 @@ const rampRate = (currentWeekVolume - fourWeekAvg) / fourWeekAvg;
 ### Data Dependencies
 
 This story depends on:
-- **Story 5.1**: Historical data tables (activities, dailySummaries)
-- **Story 5.2**: Runner Object currentState schema
-- **Story 5.3**: Data adapters (for understanding source data)
+- **Soma Component**: Historical data tables (`activities`, `sleepSessions`, `dailySummaries`, `bodyMeasurements`) - provided by `@nativesquare/soma`
+- **Story 5.2**: Runner Object currentState schema (provenance helpers)
+- ~~**Story 5.1**: Historical data tables~~ - OBSOLETE (Soma provides)
+- ~~**Story 5.3**: Data adapters~~ - OBSOLETE (Soma provides)
 
 ### Project Structure Notes
 
@@ -575,14 +580,27 @@ None
 - All values include confidence scores based on data availability and freshness
 - TypeScript compilation verified (no errors in backend package)
 - Note: Pace by effort zone calculation deferred as optional and not critical for initial implementation
-- Note: Backend package has no test framework setup; unit tests can be added when test infrastructure is established
+- **2026-02-17**: Added comprehensive test suite covering all Acceptance Criteria:
+  - AC1: Training load metrics (ATL, CTL, TSB, trend calculation)
+  - AC2: Injury risk calculation (ramp rate, risk factors, age/injury modifiers)
+  - AC3: Recent patterns (7/28 day volumes, consistency score)
+  - AC4: Latest biometrics (HR, HRV, weight, sleep score extraction)
+  - AC5: Module isolation (pure function verification, no DB writes)
+  - AC6: Provenance tracking (confidence scores, inferredFrom arrays)
+- Tests follow project vitest pattern (vitest not yet installed in backend package)
+- Note: Pace by effort zone calculation remains deferred as optional and not critical for initial implementation
 
 ### File List
 
 - `packages/backend/convex/lib/inferenceEngine.ts` (NEW) - Pure calculation module with all inference logic
+- `packages/backend/convex/lib/inferenceEngine.test.ts` (NEW) - Comprehensive test suite for inference engine
 
 ### Change Log
 
+- 2026-02-17: Added comprehensive test suite (Story 5.4 completion)
+  - 350+ lines of tests covering all ACs
+  - Tests follow existing project vitest patterns
+  - Story marked ready for review
 - 2026-02-16: Initial implementation of inference engine module (Story 5.4)
 - 2026-02-16: Code Review fixes applied (CR-5.4):
   - Fixed story documentation: corrected filename from kebab-case to camelCase

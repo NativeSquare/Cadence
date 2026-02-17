@@ -148,6 +148,11 @@ export async function checkIfAuthorizationDenied(): Promise<boolean> {
   return false;
 }
 
+/**
+ * Open iOS Settings for this app.
+ * Note: iOS doesn't support deep linking directly to Health data sharing settings.
+ * The user must navigate: Settings → [App Name] → Health → Enable data types.
+ */
 export function openHealthSettings(): void {
   Linking.openURL("app-settings:");
 }
@@ -157,9 +162,15 @@ export const PERMISSION_DENIED_GUIDANCE = {
   message:
     "To sync your health data, please enable Apple Health access in Settings.",
   instructions: [
-    "Open Settings",
-    "Scroll down and tap on this app",
-    "Tap Health",
+    "Tap 'Open Settings' below",
+    "Tap 'Health' in the app settings",
+    "Turn on all data types you want to share",
+    "Return to this app and tap 'Try Again'",
+  ],
+  alternativeInstructions: [
+    "Open the Health app",
+    "Tap your profile picture → Apps",
+    "Find and tap 'Cadence'",
     "Enable the data types you want to share",
   ],
 };
@@ -290,6 +301,7 @@ function toSomaQuantitySample(sample: {
       ? {
           name: sample.device.name ?? undefined,
           manufacturer: sample.device.manufacturer ?? undefined,
+          model: sample.device.model ?? undefined,
           hardwareVersion: sample.device.hardwareVersion ?? undefined,
           softwareVersion: sample.device.softwareVersion ?? undefined,
         }

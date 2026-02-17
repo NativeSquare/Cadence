@@ -1,6 +1,8 @@
 # Story 5.2: Enhanced Runner Object with Provenance
 
-Status: complete
+Status: done
+
+> **Note:** This is Cadence-specific functionality. Soma stores raw historical data but doesn't track justification metadata. This story is STILL NEEDED per Sprint Change Proposal 2026-02-17.
 
 ## Story
 

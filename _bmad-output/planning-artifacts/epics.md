@@ -7,8 +7,17 @@ inputDocuments:
   - ux-onboarding-flow-v6-2026-02-13.md
   - architecture-backend-v2.md
   - data-model-comprehensive.md
-lastUpdated: 2026-02-16
+lastUpdated: 2026-02-17
 changelog:
+  - "2026-02-17: Epic 6 marked DONE - All stories verified complete per implementation artifacts"
+  - "2026-02-17: COURSE CORRECTION - Soma component integration reconciliation"
+  - "2026-02-17: Story 4.1 REVISED - Scope reduced ~70%, Soma handles normalization/storage"
+  - "2026-02-17: Story 4.3 OBSOLETE - Superseded by Soma ingest methods"
+  - "2026-02-17: Story 4.4 NEW - Soma Integration Cleanup (delete legacy code)"
+  - "2026-02-17: Story 5.1 OBSOLETE - Soma provides all historical data tables"
+  - "2026-02-17: Story 5.3 OBSOLETE - Soma replaces adapter pattern"
+  - "2026-02-17: Story 5.4 UPDATED - Now reads from Soma tables"
+  - "2026-02-17: Implementation Sequence updated for Soma integration"
   - "2026-02-16: Major restructure - Reorganized epics by implementation priority"
   - "2026-02-16: Added AI Infrastructure Completion stories (server-side tool execution, agentic loop)"
   - "2026-02-16: Moved HealthKit/Wearables to Epic 4 (high priority)"
@@ -30,6 +39,7 @@ This document provides the complete epic and story breakdown for Cadence, decomp
 | Stories | Status | Notes |
 |---------|--------|-------|
 | 1.1 - 3.5 | ✅ IMPLEMENTED | Auth, consent, UI components, mock flow working |
+| 6.1 - 6.6 | ✅ IMPLEMENTED | Plan Generation Engine complete |
 | 3.6+ | 🔴 NOT STARTED | Backend wiring, AI infrastructure |
 
 **Current Gap:** The streaming UI works beautifully with mock data, but server-side tool execution is not implemented. Tool calls render in UI, user responds, but nothing saves to the database.
@@ -1338,7 +1348,11 @@ So that the advice feels relevant and personal.
 
 User can connect HealthKit (iOS), see their running data synced, and the backend stores it in normalized tables.
 
+> **Soma Integration Note (2026-02-17):** The Soma component (`@nativesquare/soma`) now provides historical data tables and ingestion pipelines. Story 4.1 revised (scope reduced ~70%), Story 4.3 obsolete, new Story 4.4 added for cleanup.
+
 ### Story 4.1: HealthKit Integration (iOS) 🔴 NOT STARTED
+
+*REVISED 2026-02-17: Scope reduced ~70% - Soma handles normalization and storage*
 
 As an iOS user,
 I want to grant HealthKit access,
@@ -1349,31 +1363,31 @@ So that the coach can analyze my Apple Watch running data.
 **Given** the user taps "Connect Apple Watch" on iOS
 **When** HealthKit permission is requested
 **Then** the native iOS permission dialog appears (FR7)
-**And** requested data types include: running workouts, distance, duration, heart rate, HRV
+**And** requested data types include: running workouts, distance, duration, heart rate, HRV, sleep
 
 **Given** permission is granted
 **When** HealthKit access is confirmed
-**Then** connections.healthkitConnected is set to true
-**And** data fetch is triggered immediately
-**And** sync status is shown to the user
+**Then** data is extracted using `react-native-health` library
+**And** data is transformed using Soma's on-device HealthKit transformers
+**And** transformed data is sent to existing `syncHealthKitData()` mutation
+**And** Soma ingests data into `activities`, `sleepSessions`, `dailySummaries`, `bodyMeasurements` tables automatically
 
-**Given** historical data is fetched
-**When** workouts are retrieved
-**Then** last 90 days of running workouts are fetched
-**And** each workout is normalized to our schema
-**And** activities are stored in the activities table
+**Given** sync completes successfully
+**When** runner status is updated
+**Then** `connections.wearableConnected` = true, `connections.wearableType` = "apple_watch"
+**And** sync statistics are returned (ingested/failed counts per type)
 
 **Given** permission is denied
 **When** the user declines
 **Then** graceful fallback to skip path
 **And** guidance for enabling later is provided
 
-**Note:** HealthKit requires EAS Build (custom dev client, no Expo Go)
+**Note:** HealthKit requires EAS Build (custom dev client, no Expo Go). Soma component handles normalization, deduplication, and storage - this story focuses on native permission UI and data extraction only.
 
 **Files:**
-- `apps/native/src/lib/healthkit.ts` (HealthKit client)
-- `apps/native/src/hooks/use-healthkit-sync.ts` (sync hook)
-- `packages/backend/convex/integrations/healthkit/sync.ts` (batch upsert action)
+- `apps/native/src/lib/healthkit.ts` (HealthKit extraction + Soma transformers)
+- `apps/native/src/hooks/use-healthkit-sync.ts` (sync orchestration)
+- ~~`packages/backend/convex/integrations/healthkit/sync.ts`~~ → Already exists via Soma
 
 ---
 
@@ -1420,43 +1434,63 @@ So that I can test the full flow without real devices.
 
 ---
 
-### Story 4.3: Data Normalization & Sync Pipeline 🔴 NOT STARTED
+### Story 4.4: Soma Integration Cleanup 🔴 HIGH PRIORITY
+
+*NEW 2026-02-17: Cleanup legacy code superseded by Soma*
 
 As a developer,
-I want a consistent data normalization pipeline,
-So that data from any provider is stored in a unified format.
+I want to remove legacy adapter code and document Soma integration,
+So that the codebase is clean and the data flow is clear.
 
 **Acceptance Criteria:**
 
-**Given** HealthKit workout data is received
-**When** normalization runs
-**Then** fields are mapped:
-  - workoutActivityType → activityType ("running")
-  - duration → durationSeconds
-  - totalDistance → distanceMeters
-  - totalEnergyBurned → calories
-  - metadata.HKAverageHeartRate → avgHeartRate
-  - startDate/endDate → startTime/endTime (Unix ms)
+**Given** Soma now handles wearable data ingestion
+**When** cleanup is performed
+**Then** the following files are deleted:
+- `packages/backend/convex/lib/adapters/index.ts` (empty exports)
+- `packages/backend/convex/lib/adapters/registry.ts` (empty adapter map)
+- `packages/backend/convex/lib/adapters/types.ts` (unused interfaces)
+- `packages/backend/convex/strava.ts` (old OAuth handlers, replaced by Soma)
+- `packages/backend/convex/healthkit.ts` (old aggregates storage, replaced by Soma)
 
-**Given** pace needs to be calculated
-**When** distance and duration are available
-**Then** avgPaceSecondsPerKm = durationSeconds / (distanceMeters / 1000)
+**And** the `/lib/adapters/` directory is removed entirely
 
-**Given** the sync pipeline runs
-**When** activities are processed
-**Then** duplicates are detected by externalId
-**And** existing records are updated (upsert behavior)
-**And** new records are inserted
-**And** rawPayload is preserved for debugging
+**And** any imports referencing deleted files are updated/removed
 
-**Given** sync completes
-**When** Runner Object is updated
-**Then** connections.healthkitLastSync is set to current timestamp
-**And** inference engine is triggered to recalculate currentState
+**Given** files have been deleted
+**When** TypeScript compilation runs
+**Then** no import errors exist
+**And** `pnpm build` succeeds in packages/backend
 
-**Files:**
-- `packages/backend/convex/lib/normalizers/healthkit.ts`
-- `packages/backend/convex/integrations/sync-pipeline.ts`
+**Given** architecture documentation needs updating
+**When** documentation is complete
+**Then** architecture-backend-v2.md "Wearable Adapter Layer" section references Soma
+**And** Data flow diagram shows: Wearable APIs → Soma Component → Historical Tables → Inference Engine → Runner Object
+
+**Files to delete:**
+- `packages/backend/convex/lib/adapters/*` (3 files)
+- `packages/backend/convex/strava.ts`
+- `packages/backend/convex/healthkit.ts`
+
+**Files to modify:**
+- `_bmad-output/planning-artifacts/architecture-backend-v2.md`
+
+---
+
+### ~~Story 4.3: Data Normalization & Sync Pipeline~~ ✅ OBSOLETE
+
+*Superseded 2026-02-17 by Soma component*
+
+**Soma provides all of this functionality:**
+- `soma.ingestActivity()` - Normalizes and stores activity data with field mapping
+- `soma.ingestSleep()` - Normalizes and stores sleep data
+- `soma.ingestBody()` - Normalizes and stores body measurements
+- `soma.ingestDaily()` - Normalizes and stores daily summaries
+- Automatic deduplication via `externalId`
+- Source tracking via `source` field
+- Raw payload preservation for debugging
+
+**No implementation needed.** See [integrations/healthkit/sync.ts](packages/backend/convex/integrations/healthkit/sync.ts) and [integrations/strava/sync.ts](packages/backend/convex/integrations/strava/sync.ts) for existing Soma integration.
 
 ---
 
@@ -1464,52 +1498,27 @@ So that data from any provider is stored in a unified format.
 
 Backend infrastructure for storing historical data (Terra-aligned), calculating current state, and preparing data for plan generation.
 
-### Story 5.1: Historical Data Tables Schema 🔴 NOT STARTED
+> **Soma Integration Note (2026-02-17):** The Soma component provides all historical data tables (`activities`, `sleepSessions`, `dailySummaries`, `bodyMeasurements`). Stories 5.1 and 5.3 are obsolete. Stories 5.2 (provenance) and 5.4 (inference engine) remain needed - they extend Soma's data with Cadence-specific logic.
 
-As a developer,
-I want the complete historical data schema implemented in Convex,
-So that wearable data from any provider can be stored in a unified format.
+### ~~Story 5.1: Historical Data Tables Schema~~ ✅ OBSOLETE
 
-**Acceptance Criteria:**
+*Superseded 2026-02-17 by Soma component*
 
-**Given** the Convex backend is deployed
-**When** the schema is created
-**Then** `activities` table exists with Terra-aligned fields:
-- Core: runnerId, userId, externalId, source
-- Time: startTime, endTime, timezone
-- Distance & Movement: distanceMeters, durationSeconds, elevationGainMeters, steps
-- Pace & Speed: avgPaceSecondsPerKm, maxPaceSecondsPerKm, avgSpeedKmh
-- Heart Rate: avgHeartRate, maxHeartRate, restingHeartRate, hrvMs
-- Zones: hrZone1-5 minutes
-- Training Load: calories, trainingLoad (TSS/suffer), perceivedExertion
-- Power/Running: avgPower, avgCadence, groundContactTime, strideLength
-- Cadence-specific: sessionType, planAdherence, userFeedback
-- Samples: heartRateSamples, paceSamples (JSON for MVP)
-- Metadata: rawPayload, importedAt, lastSyncedAt
+**Soma provides these tables (already deployed and operational):**
 
-**And** `sleepSessions` table exists with:
-- Duration stages: totalSleepMinutes, deepSleepMinutes, lightSleepMinutes, remSleepMinutes, awakeMinutes
-- Heart rate: avgHeartRate, lowestHeartRate, hrvMs
-- Recovery: readinessScore, recoveryScore
-- Respiration: avgBreathingRate
+| Table | Location | Status |
+|-------|----------|--------|
+| `activities` | [table/activities.ts](packages/backend/convex/table/activities.ts) | ✅ Complete with Terra-aligned fields |
+| `sleepSessions` | [table/sleepSessions.ts](packages/backend/convex/table/sleepSessions.ts) | ✅ Complete with sleep stages, HRV |
+| `dailySummaries` | [table/dailySummaries.ts](packages/backend/convex/table/dailySummaries.ts) | ✅ Complete with ATL/CTL, readiness |
+| `bodyMeasurements` | [table/bodyMeasurements.ts](packages/backend/convex/table/bodyMeasurements.ts) | ✅ Complete with body composition |
 
-**And** `dailySummaries` table exists with:
-- Aggregates: totalDistanceMeters, totalSteps, totalCalories, activityCount
-- Heart: restingHeartRate, avgHeartRate, hrvMs
-- Sleep summary: sleepDurationMinutes, sleepQuality
-- Readiness: readinessScore, stressLevel
-- Training load: acuteTrainingLoad, chronicTrainingLoad, trainingStressBalance
+All tables include:
+- Proper indexes (by_runnerId, by_userId, by_startTime, by_source, by_externalId)
+- Terra-aligned field structure
+- Source tracking and raw payload storage
 
-**And** `bodyMeasurements` table exists with:
-- Weight, bodyFatPercent, muscleMass
-- Blood pressure, glucose, temperature
-
-**And** all tables have indexes for:
-- Queries by runnerId
-- Queries by date range (startTime)
-- Queries by source provider
-
-**Files:** `packages/backend/convex/schema/activities.ts`, `sleepSessions.ts`, `dailySummaries.ts`, `bodyMeasurements.ts`
+**No implementation needed.** Tables are populated via Soma's `ingest*()` methods called from [integrations/healthkit/sync.ts](packages/backend/convex/integrations/healthkit/sync.ts) and [integrations/strava/sync.ts](packages/backend/convex/integrations/strava/sync.ts).
 
 ---
 
@@ -1561,60 +1570,36 @@ So that every field can be traced back to its source for justifications.
 
 ---
 
-### Story 5.3: Data Adapters Pattern 🔴 NOT STARTED
+### ~~Story 5.3: Data Adapters Pattern~~ ✅ OBSOLETE
 
-As a developer,
-I want data adapters for each provider,
-So that the system is source-agnostic and extensible.
+*Superseded 2026-02-17 by Soma component*
 
-**Acceptance Criteria:**
+**Soma replaces the adapter pattern entirely with:**
+- `soma.connect(ctx, { userId, provider })` - Establish provider connection
+- `soma.ingestActivity/Sleep/Body/Daily()` - Type-safe ingestion methods
+- `soma.connectStrava()` / `soma.syncStrava()` - Strava-specific integration
+- Internal normalization per source type
 
-**Given** a data adapter interface exists
-**When** adapters are implemented
-**Then** each adapter provides:
-```typescript
-interface DataAdapter {
-  source: string; // "healthkit" | "strava" | "garmin" | "manual"
-  normalizeActivity(raw: any): Partial<Activity>;
-  normalizeSleep?(raw: any): Partial<SleepSession>;
-  normalizeBody?(raw: any): Partial<BodyMeasurement>;
-  fetchActivities?(userId: string, dateRange: DateRange): Promise<Activity[]>;
-}
-```
+**Evidence:** The existing adapter registry in [lib/adapters/registry.ts](packages/backend/convex/lib/adapters/registry.ts) is empty with comment: "HealthKit: migrated to @nativesquare/soma component"
 
-**And** adapters exist for:
-- HealthKit (iOS native)
-- Manual entry (user-logged activities)
-- (Future: Strava, Garmin, COROS, Terra)
-
-**And** all adapters:
-- Set `source` field to provider name
-- Handle missing fields gracefully (optional fields)
-- Preserve `rawPayload` for debugging
-- Calculate derived fields (pace from distance/duration)
-
-**And** adapter registry exists:
-- `getAdapter(source: string): DataAdapter`
-- `normalizeAndStore(source, rawData, runnerId)`
-
-**Files:**
-- `packages/backend/convex/lib/adapters/types.ts`
-- `packages/backend/convex/lib/adapters/healthkit.ts`
-- `packages/backend/convex/lib/adapters/manual.ts`
-- `packages/backend/convex/lib/adapters/registry.ts`
+**No implementation needed.** Legacy `/lib/adapters/` directory will be deleted in Story 4.4 (Soma Integration Cleanup).
 
 ---
 
 ### Story 5.4: Inference Engine for Current State 🔴 NOT STARTED
 
+*Updated 2026-02-17: Reads from Soma-managed tables, writes to Runner Object*
+
 As a developer,
 I want an inference engine that calculates the runner's current state from historical data,
 So that the Runner Object's `currentState` is always up-to-date.
 
+**Data Flow:** Soma tables (`activities`, `sleepSessions`, `dailySummaries`) → Inference Engine → `runners.currentState`
+
 **Acceptance Criteria:**
 
 **Given** the inference engine runs
-**When** it processes a runner's history
+**When** it processes a runner's history (from Soma-managed tables)
 **Then** it calculates training load metrics:
 - ATL (Acute Training Load): 7-day exponentially weighted average
 - CTL (Chronic Training Load): 42-day exponentially weighted average
@@ -1654,11 +1639,11 @@ So that the Runner Object's `currentState` is always up-to-date.
 
 ---
 
-## Epic 6: Plan Generation Engine 🔴 HIGH PRIORITY
+## Epic 6: Plan Generation Engine ✅ IMPLEMENTED
 
 The AI-powered plan generator that uses Knowledge Base + Safeguards to create personalized, justified, safe training plans.
 
-### Story 6.1: Training Plans with Multi-Level Zoom Schema 🔴 NOT STARTED
+### Story 6.1: Training Plans with Multi-Level Zoom Schema ✅
 
 As a developer,
 I want training plans to store data for Season/Weekly/Daily zoom levels,
@@ -1695,7 +1680,7 @@ So that the UI can show justifications at each level.
 
 ---
 
-### Story 6.2: Planned Sessions Schema 🔴 NOT STARTED
+### Story 6.2: Planned Sessions Schema ✅
 
 As a developer,
 I want planned sessions to include all UI-required fields plus justifications,
@@ -1732,7 +1717,7 @@ So that CalendarWidget can render with full coach reasoning.
 
 ---
 
-### Story 6.3: Knowledge Base Infrastructure 🔴 NOT STARTED
+### Story 6.3: Knowledge Base Infrastructure ✅
 
 As a developer,
 I want a knowledge base storing training science,
@@ -1778,7 +1763,7 @@ queryRelevant({
 
 ---
 
-### Story 6.4: Safeguards System 🔴 NOT STARTED
+### Story 6.4: Safeguards System ✅
 
 As a developer,
 I want a safeguards system that validates all plan decisions,
@@ -1828,7 +1813,7 @@ checkSafeguards(
 
 ---
 
-### Story 6.5: Plan Generator Core 🔴 NOT STARTED
+### Story 6.5: Plan Generator Core ✅
 
 As a developer,
 I want the plan generator to combine Runner Object + Knowledge Base + Safeguards,
@@ -1890,7 +1875,7 @@ So that plans are personalized, grounded, and safe.
 
 ---
 
-### Story 6.6: Plan-to-UI Data Queries 🔴 NOT STARTED
+### Story 6.6: Plan-to-UI Data Queries ✅
 
 As a developer,
 I want efficient queries to fetch plan data for visualization components,
@@ -2190,24 +2175,27 @@ So that I understand implications and can change my mind.
 
 Based on dependencies and priorities:
 
+> **Updated 2026-02-17:** Sequence revised to account for Soma component integration. Obsolete stories removed, cleanup story added.
+
 ### Phase 1: Complete the AI Loop (Stories 3.6-3.8)
 **Goal:** Tool calls actually save data and conversation continues
 1. Story 3.6: Server-Side Tool Execution
 2. Story 3.7: Tool Result Handler
 3. Story 3.8: Phase Management
 
-### Phase 2: Wearable Foundation (Epic 4)
-**Goal:** HealthKit works, mock data available for testing
-1. Story 4.1: HealthKit Integration
-2. Story 4.2: Mock Data Providers
-3. Story 4.3: Normalization Pipeline
+### Phase 2: Soma Cleanup & Wearable Foundation (Epic 4)
+**Goal:** Clean codebase, HealthKit works, mock data available
+1. **Story 4.4: Soma Integration Cleanup** ← Do first to avoid confusion with legacy code
+2. Story 4.1: HealthKit Integration *(REVISED - native extraction only, Soma handles storage)*
+3. Story 4.2: Mock Data Providers
+4. ~~Story 4.3: Normalization Pipeline~~ ← OBSOLETE (Soma provides)
 
 ### Phase 3: Backend Infrastructure (Epic 5)
-**Goal:** Historical data stored, current state calculated
-1. Story 5.1: Historical Tables Schema
-2. Story 5.2: Enhanced Runner Object
-3. Story 5.3: Data Adapters
-4. Story 5.4: Inference Engine
+**Goal:** Runner Object enhanced, current state calculated from Soma tables
+1. ~~Story 5.1: Historical Tables Schema~~ ← OBSOLETE (Soma provides)
+2. Story 5.2: Enhanced Runner Object with Provenance
+3. ~~Story 5.3: Data Adapters~~ ← OBSOLETE (Soma provides)
+4. Story 5.4: Inference Engine *(reads Soma tables → writes runners.currentState)*
 
 ### Phase 4: Plan Generation (Epic 6)
 **Goal:** Plans generated with full justifications
@@ -2225,8 +2213,8 @@ Based on dependencies and priorities:
 
 ### Phase 6: Additional Wearables (Epic 7)
 **Goal:** Strava, Health Connect, Thinking Stream
-1. Story 7.1: Strava OAuth
-2. Story 7.2: Strava Sync
+1. Story 7.1: Strava OAuth *(Note: Soma already handles OAuth - verify scope)*
+2. Story 7.2: Strava Sync *(Note: Soma already handles sync - verify scope)*
 3. Story 7.3: Health Connect
 4. Story 7.4: Thinking Stream
 
@@ -2237,4 +2225,4 @@ Based on dependencies and priorities:
 ---
 
 *Document generated by BMAD workflow*
-*Last updated: 2026-02-16*
+*Last updated: 2026-02-17 (Soma integration course correction)*

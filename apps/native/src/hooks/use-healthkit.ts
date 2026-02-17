@@ -9,6 +9,7 @@ import {
   openHealthSettings,
   PERMISSION_DENIED_GUIDANCE,
 } from "@/lib/healthkit";
+import { useNetworkOptional } from "@/contexts/network-context";
 
 export type SyncStatus = {
   phase:
@@ -48,7 +49,6 @@ export type HealthKitResult = {
 };
 
 export function useHealthKit() {
-  const storeHealthData = useMutation(api.healthkit.storeHealthData);
   const syncHealthKit = useMutation(
     api.integrations.healthkit.sync.syncHealthKitData,
   );
@@ -60,7 +60,23 @@ export function useHealthKit() {
     message: "",
   });
 
-  const connect = async (): Promise<HealthKitResult | null> => {
+  // Get network status (optional - works outside NetworkProvider too)
+  const network = useNetworkOptional();
+  const isOffline = network?.isOffline ?? false;
+
+  const connect = useCallback(async (): Promise<HealthKitResult | null> => {
+    // Guard against concurrent syncs
+    if (isConnecting) {
+      return null;
+    }
+
+    // Check network before API calls (Story 8.1 AC#2)
+    if (isOffline) {
+      setError("No network connection. Please check your internet and try again.");
+      setSyncStatus({ phase: "error", message: "No network connection" });
+      return null;
+    }
+
     if (!checkHealthKitAvailable()) {
       setError("HealthKit is not available on this device");
       setSyncStatus({ phase: "error", message: "HealthKit not available" });
@@ -101,21 +117,8 @@ export function useHealthKit() {
         }
       }
 
-      // Store aggregates in the runner profile (unchanged)
-      await storeHealthData({
-        aggregates: {
-          avgWeeklyVolume: result.aggregates.avgWeeklyVolume,
-          volumeConsistency: result.aggregates.volumeConsistency,
-          easyPaceActual: result.aggregates.easyPaceActual,
-          longRunPattern: result.aggregates.longRunPattern,
-          restDayFrequency: result.aggregates.restDayFrequency,
-          trainingLoadTrend: result.aggregates.trainingLoadTrend,
-          estimatedFitness: result.aggregates.estimatedFitness,
-        },
-        totalRuns: result.totalRuns,
-      });
-
-      // Sync all health data to the Soma component
+      // Sync all health data to the Soma component FIRST
+      // This ensures we don't store aggregates if sync fails (atomic operation)
       const totalRecords =
         result.activities.length +
         result.sleep.length +
@@ -130,6 +133,8 @@ export function useHealthKit() {
         message: `Syncing ${totalRecords} health records...`,
       });
 
+      // Sync all health data AND aggregates to Soma in a single call
+      // This ensures atomicity - aggregates only stored if raw data sync succeeds
       const syncStats = await syncHealthKit({
         activities: result.activities,
         sleep: result.sleep,
@@ -138,6 +143,16 @@ export function useHealthKit() {
         nutrition: result.nutrition,
         menstruation: result.menstruation,
         athlete: result.athlete ?? undefined,
+        aggregates: {
+          avgWeeklyVolume: result.aggregates.avgWeeklyVolume,
+          volumeConsistency: result.aggregates.volumeConsistency,
+          easyPaceActual: result.aggregates.easyPaceActual,
+          longRunPattern: result.aggregates.longRunPattern,
+          restDayFrequency: result.aggregates.restDayFrequency,
+          trainingLoadTrend: result.aggregates.trainingLoadTrend,
+          estimatedFitness: result.aggregates.estimatedFitness,
+        },
+        totalRuns: result.totalRuns,
       });
 
       setSyncStatus({
@@ -182,7 +197,7 @@ export function useHealthKit() {
     } finally {
       setIsConnecting(false);
     }
-  };
+  }, [isConnecting, isOffline, syncHealthKit]);
 
   const checkAuthStatus = useCallback(async () => {
     return getHealthKitAuthStatus();
@@ -192,12 +207,16 @@ export function useHealthKit() {
     openHealthSettings();
   }, []);
 
-  const retryAfterSettings = useCallback(async () => {
+  const retryAfterSettings = useCallback(async (): Promise<HealthKitResult | null> => {
+    // Guard against concurrent syncs - early return if already syncing
+    if (isConnecting) {
+      return null;
+    }
     setPermissionDenied(false);
     setSyncStatus({ phase: "idle", message: "" });
     setError(null);
     return connect();
-  }, [connect]);
+  }, [isConnecting, connect]);
 
   return {
     connect,
@@ -209,5 +228,7 @@ export function useHealthKit() {
     checkAuthStatus,
     openSettings,
     retryAfterSettings,
+    /** Whether network is offline (cannot sync) */
+    isOffline,
   };
 }

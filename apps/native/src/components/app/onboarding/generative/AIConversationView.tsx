@@ -5,12 +5,16 @@
  * Integrates with useAIChat hook for streaming responses.
  *
  * Source: Story 2.2 - AC#1, AC#4
+ * Updated: Story 8.2 - Network reconnection overlay
+ * Updated: Story 8.3 - LLM error card integration
  */
 
 import { useCallback, useRef, useEffect } from "react";
 import { ScrollView, View } from "react-native";
 import { MessageParts } from "./MessageParts";
 import { ToolStateProvider } from "./tool-state-context";
+import { ReconnectingOverlay } from "@/components/common/ReconnectingOverlay";
+import { LLMErrorCard } from "./LLMErrorCard";
 import { cn } from "@/lib/utils";
 import type { ChatMessage } from "@/hooks/use-ai-chat";
 import type { MessagePart as GenMessagePart } from "./types";
@@ -32,6 +36,20 @@ interface AIConversationViewProps {
   className?: string;
   /** Whether to auto-scroll to bottom */
   autoScroll?: boolean;
+  /** Whether currently reconnecting (from useAIChat) */
+  isReconnecting?: boolean;
+  /** Callback to retry after reconnection failure */
+  onRetry?: () => void;
+  /** Callback when reconnection succeeds */
+  onReconnected?: () => void;
+  /** Error from useAIChat (Story 8.3) */
+  error?: Error | null;
+  /** Current retry count (Story 8.3) */
+  retryCount?: number;
+  /** Maximum retries allowed (Story 8.3) */
+  maxRetries?: number;
+  /** Callback when user wants to try later (Story 8.3) */
+  onTryLater?: () => void;
 }
 
 // =============================================================================
@@ -112,6 +130,13 @@ export function AIConversationView({
   onTextComplete,
   className,
   autoScroll = true,
+  isReconnecting = false,
+  onRetry,
+  onReconnected,
+  error,
+  retryCount = 0,
+  maxRetries = 3,
+  onTryLater,
 }: AIConversationViewProps) {
   const scrollRef = useRef<ScrollView>(null);
 
@@ -137,35 +162,59 @@ export function AIConversationView({
     [onToolSubmit]
   );
 
+  const handleRetry = useCallback(() => {
+    onRetry?.();
+  }, [onRetry]);
+
   return (
     <ToolStateProvider>
-      <ScrollView
-        ref={scrollRef}
-        contentContainerStyle={{ flexGrow: 1 }}
-        contentContainerClassName="px-6 pt-safe pb-12"
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="interactive"
-        showsVerticalScrollIndicator={false}
-        className={cn("flex-1", className)}
-      >
-        <View className="flex-1 justify-end min-h-full pt-20 gap-6">
-          {messages
-            .filter((m) => m.role === "assistant" && m.parts.length > 0)
-            .map((message, index) => (
-              <MessageRow
-                key={message.id}
-                message={message}
-                isStreaming={isStreaming && message.id === lastAssistantMessage?.id}
-                onToolSubmit={handleToolSubmit}
-                onTextComplete={
-                  message.id === lastAssistantMessage?.id
-                    ? onTextComplete
-                    : undefined
-                }
+      <View className="flex-1">
+        <ScrollView
+          ref={scrollRef}
+          contentContainerStyle={{ flexGrow: 1 }}
+          contentContainerClassName="px-6 pt-safe pb-12"
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+          showsVerticalScrollIndicator={false}
+          className={cn("flex-1", className)}
+        >
+          <View className="flex-1 justify-end min-h-full pt-20 gap-6">
+            {messages
+              .filter((m) => m.role === "assistant" && m.parts.length > 0)
+              .map((message, index) => (
+                <MessageRow
+                  key={message.id}
+                  message={message}
+                  isStreaming={isStreaming && message.id === lastAssistantMessage?.id}
+                  onToolSubmit={handleToolSubmit}
+                  onTextComplete={
+                    message.id === lastAssistantMessage?.id
+                      ? onTextComplete
+                      : undefined
+                  }
+                />
+              ))}
+
+            {/* LLM Error Card (Story 8.3) - show when error and not streaming */}
+            {error && !isStreaming && !isReconnecting && (
+              <LLMErrorCard
+                error={error}
+                retryCount={retryCount}
+                maxRetries={maxRetries}
+                onRetry={handleRetry}
+                onTryLater={onTryLater}
+                isRetrying={isStreaming}
               />
-            ))}
-        </View>
-      </ScrollView>
+            )}
+          </View>
+        </ScrollView>
+
+        <ReconnectingOverlay
+          isVisible={isReconnecting}
+          onRetry={handleRetry}
+          onReconnected={onReconnected}
+        />
+      </View>
     </ToolStateProvider>
   );
 }

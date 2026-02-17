@@ -2,6 +2,7 @@ import "@/lib/nativewind-interop";
 import { fontAssets } from "@/lib/fonts";
 import { ThemeStatusBar } from "@/lib/theme-status-bar";
 import { checkForUpdates } from "@/utils/expo/check-for-updates";
+import { NetworkProvider } from "@/contexts/network-context";
 import { ConvexAuthProvider, useAuthActions } from "@convex-dev/auth/react";
 import { api } from "@packages/backend/convex/_generated/api";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
@@ -65,13 +66,15 @@ export default function RootLayout() {
         }
       >
         <GestureHandlerRootView>
-          <BottomSheetModalProvider>
-            <SafeAreaProvider>
-              <ThemeStatusBar />
-              <RootStack />
-              <PortalHost />
-            </SafeAreaProvider>
-          </BottomSheetModalProvider>
+          <NetworkProvider>
+            <BottomSheetModalProvider>
+              <SafeAreaProvider>
+                <ThemeStatusBar />
+                <RootStack />
+                <PortalHost />
+              </SafeAreaProvider>
+            </BottomSheetModalProvider>
+          </NetworkProvider>
         </GestureHandlerRootView>
       </ConvexAuthProvider>
     </KeyboardProvider>

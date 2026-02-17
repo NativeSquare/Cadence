@@ -14,13 +14,12 @@ const STRAVA_SCOPES = "activity:read_all,profile:read_all";
 const REDIRECT_URI = `${APP_SLUG}://localhost/oauth`;
 
 type StravaAuthResult = {
-  athleteFirstName?: string;
-  athleteLastName?: string;
-  athleteProfileImage?: string;
+  connectionId: string;
+  synced: number;
 };
 
 export function useStravaAuth() {
-  const exchangeCode = useAction(api.strava.exchangeCode);
+  const connectStrava = useAction(api.integrations.strava.sync.connectStravaOAuth);
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -70,10 +69,13 @@ export function useStravaAuth() {
         return null;
       }
 
-      // Exchange the code for tokens via the Convex backend
-      const profile = await exchangeCode({ code, scopes });
+      // Exchange the code for tokens and sync activities via Soma
+      const connectResult = await connectStrava({ code });
 
-      return profile;
+      return {
+        connectionId: connectResult.connectionId,
+        synced: connectResult.synced,
+      };
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Failed to connect to Strava";

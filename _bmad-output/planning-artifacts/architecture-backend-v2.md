@@ -253,7 +253,10 @@ This document defines the complete backend architecture for Cadence's AI running
 | Table | Owner Module | Writers |
 |-------|--------------|---------|
 | `runners` | Runner Data Model | Tool Handler, Inference Engine (via interface) |
-| `activities` | Historical Data | Wearable Adapter only |
+| `activities` | Soma Component (@nativesquare/soma) | Soma ingest methods only |
+| `sleepSessions` | Soma Component | Soma ingest methods only |
+| `dailySummaries` | Soma Component | Soma ingest methods only |
+| `bodyMeasurements` | Soma Component | Soma ingest methods only |
 | `trainingPlans` | Plan Generator | Plan Generator only |
 | `knowledgeBase` | Knowledge Base | Admin/seeder only |
 | `safeguards` | Safeguards | Admin/seeder only |
@@ -295,8 +298,8 @@ This document defines the complete backend architecture for Cadence's AI running
 | Component | Status | Required For |
 |-----------|--------|--------------|
 | Tool Result → Runner Object | ❌ Not Implemented | Saving user responses to profile |
-| Strava OAuth Flow | ❌ Not Implemented | Wearable data import |
-| HealthKit Integration | ❌ Not Implemented | iOS health data import |
+| Strava OAuth Flow | ✅ Done (Soma) | Wearable data import |
+| HealthKit Integration | ✅ Done (Soma) | iOS health data import |
 | Wearable Data → Runner Object | ❌ Not Implemented | Populating inferred fields |
 | Plan Generation | ❌ Not Implemented | Creating training plans |
 | Backend → Frontend Tool Wiring | ❌ Not Implemented | Real AI conversation |
@@ -456,7 +459,9 @@ dailySummaries: defineTable({
 The system has **TWO distinct data input paths** that feed into the Runner Object:
 
 1. **User Input Path**: Onboarding conversation → Tool Handler → Runner Object (direct fields)
-2. **Wearable Data Path**: APIs → Adapter Layer → Historical Tables → Inference Engine → Runner Object (inferred fields)
+2. **Wearable Data Path**: APIs → **Soma Component** → Historical Tables → Inference Engine → Runner Object (inferred fields)
+
+> **Implementation Note (2026-02-17):** The Wearable Adapter Layer and Historical Data Tables are now implemented by the **Soma component** (`@nativesquare/soma`). See `packages/backend/convex/integrations/healthkit/sync.ts` and `packages/backend/convex/integrations/strava/sync.ts` for integration points.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────────┐
@@ -523,25 +528,25 @@ The system has **TWO distinct data input paths** that feed into the Runner Objec
 │          │                  │                  │                  │                 │
 │          ▼                  ▼                  ▼                  ▼                 │
 │   ┌─────────────────────────────────────────────────────────────────────────────┐   │
-│   │                    WEARABLE ADAPTER LAYER (Convex Component)                 │   │
+│   │           SOMA COMPONENT (@nativesquare/soma) - Wearable Data Layer          │   │
 │   │                                                                              │   │
-│   │   Built as a reusable Convex component, enhanced as sources are added.      │   │
+│   │   ✅ IMPLEMENTED: Handles all wearable data normalization and storage.       │   │
 │   │                                                                              │   │
-│   │   normalizeActivity(stravaActivity) → Activity (affects activities table)   │   │
-│   │   normalizeActivity(healthKitWorkout) → Activity                            │   │
-│   │   normalizeSleep(healthKitSleep) → SleepSession (affects sleepSessions)     │   │
-│   │   normalizeDailySummary(garminDaily) → DailySummary (affects dailySummaries)│   │
-│   │   normalizeBody(healthKitWeight) → BodyMeasurement (affects bodyMeasurements)│   │
+│   │   soma.ingestActivity() → activities table                                  │   │
+│   │   soma.ingestSleep() → sleepSessions table                                  │   │
+│   │   soma.ingestDaily() → dailySummaries table                                 │   │
+│   │   soma.ingestBody() → bodyMeasurements table                                │   │
+│   │   soma.connectStrava() → OAuth + full activity sync                         │   │
 │   │                                                                              │   │
-│   │   KEY: Each source can potentially affect ALL historical tables.            │   │
-│   │   Future: Replace individual adapters with Terra webhook handler.           │   │
+│   │   Integration: packages/backend/convex/integrations/{healthkit,strava}/     │   │
+│   │   See sync.ts files for HealthKit batch ingest and Strava OAuth flows.      │   │
 │   └────────────────────────────────┬────────────────────────────────────────────┘   │
 │                                    │                                                 │
 │                                    ▼                                                 │
 │   ┌─────────────────────────────────────────────────────────────────────────────┐   │
-│   │                  HISTORICAL DATA TABLES (Convex Components)                  │   │
+│   │           HISTORICAL DATA TABLES (Soma Component Tables)                     │   │
 │   │                                                                              │   │
-│   │   Built as reusable Convex components matching Terra data models 1-1.       │   │
+│   │   ✅ IMPLEMENTED by Soma: Tables managed by @nativesquare/soma component.    │   │
 │   │                                                                              │   │
 │   │   ┌────────────────┐  ┌────────────────┐  ┌────────────────┐                │   │
 │   │   │  activities    │  │ sleepSessions  │  │dailySummaries  │                │   │
@@ -2450,10 +2455,10 @@ Justifications are stored WITH their source data for auditability:
 |-----------|-------------|----------|--------|
 | Tool Result Handler | Map tool submissions to runner profile | P0 | To implement |
 | Strava OAuth | Connect account, fetch activities | P0 | To implement |
-| **HealthKit Integration** | iOS health data (activities, sleep, HR) | **P0** | **Ready to merge** |
-| Activity Storage | Save activities to Convex | P0 | To implement |
-| Historical Tables (Convex Components) | Terra-aligned schemas for activities, sleep, daily, body | P0 | To implement |
-| Wearable Adapter Layer (Convex Component) | Normalize data from any source | P0 | To implement |
+| **HealthKit Integration** | iOS health data (activities, sleep, HR) | **P0** | **✅ Done (Soma)** |
+| Activity Storage | Save activities to Convex | P0 | **✅ Done (Soma)** |
+| Historical Tables (Convex Components) | Terra-aligned schemas for activities, sleep, daily, body | P0 | **✅ Done (Soma)** |
+| Wearable Adapter Layer (Convex Component) | Normalize data from any source | P0 | **✅ Done (Soma)** |
 | Runner Inferred Recalc | Update inferred fields from activities | P0 | To implement |
 | Context Assembly | Build AI prompt with runner + activity data | P0 | To implement |
 | AI Streaming (wired) | Connect UI to real AI endpoint | P0 | Partially done |
@@ -2478,9 +2483,17 @@ Justifications are stored WITH their source data for auditability:
 
 ### Design Principle: Build as Reusable Components
 
-Both the **Historical Data Tables** and the **Wearable Adapter Layer** are built as Convex components that can be enhanced incrementally.
+Both the **Historical Data Tables** and the **Wearable Adapter Layer** are implemented by the **Soma component** (`@nativesquare/soma`).
 
-### Historical Data Tables (Terra-Aligned)
+> **✅ IMPLEMENTED (2026-02-17):** The sections below describe the original design. These are now provided by Soma:
+> - `activities`, `sleepSessions`, `dailySummaries`, `bodyMeasurements` tables
+> - `ingestActivity()`, `ingestSleep()`, `ingestDaily()`, `ingestBody()` methods
+> - Strava OAuth via `connectStrava()`, `syncStrava()`, `disconnectStrava()`
+> - HealthKit data transformers (`transformWorkout`, `transformSleep`, etc.)
+>
+> See: `packages/backend/convex/integrations/healthkit/sync.ts`, `packages/backend/convex/integrations/strava/sync.ts`
+
+### Historical Data Tables (Terra-Aligned) — *Implemented by Soma*
 
 These tables are a **1-1 match with Terra data models** for future migration:
 
@@ -2514,7 +2527,7 @@ export { upsertActivity } from "./functions/upsertActivity";
 export { aggregateToDailySummary } from "./functions/aggregateToDailySummary";
 ```
 
-### Wearable Adapter Layer (Convex Component)
+### Wearable Adapter Layer (Convex Component) — *Implemented by Soma*
 
 ```typescript
 // packages/backend/convex/components/wearableAdapter/index.ts

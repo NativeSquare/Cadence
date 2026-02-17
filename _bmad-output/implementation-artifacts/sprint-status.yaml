@@ -1,4 +1,4 @@
-# generated: 2026-02-16
+# generated: 2026-02-17
 # project: Cadence
 # project_key: NOKEY
 # tracking_system: file-system
@@ -17,9 +17,23 @@
 #   - in-progress: Developer actively working on implementation
 #   - review: Ready for code review
 #   - done: Story completed
+#   - obsolete: Story superseded by external component (no implementation needed)
 #
 # CHANGE LOG:
 # ===========
+# 2026-02-17: STATUS CORRECTION - Aligned with epics.md implementationStatus
+#   - epics.md shows: completed="1.1-3.5", next="3.6"
+#   - Epics 4, 5, 6 corrected from "done" to actual status (backlog/in-progress)
+#   - OBSOLETE stories marked distinctly (no implementation needed)
+# 2026-02-17: COURSE CORRECTION - Soma component integration reconciliation
+#   - Soma component (@nativesquare/soma) supersedes planned Epic 4/5 functionality
+#   - Story 4.1: REVISED - Scope reduced ~70%, Soma handles normalization/storage
+#   - Story 4.3: OBSOLETE - Superseded by Soma ingest methods
+#   - Story 4.4: NEW - Soma Integration Cleanup (delete legacy code)
+#   - Story 5.1: OBSOLETE - Soma provides all historical data tables
+#   - Story 5.3: OBSOLETE - Soma replaces adapter pattern
+#   - Story 5.4: UPDATED - Now reads from Soma tables
+#   - Reference: Sprint Change Proposal 2026-02-17
 # 2026-02-16: Major epic restructure per epics.md reorganization
 #   - Epics reordered by implementation priority
 #   - Epic 4: Wearable Data Integration (was Epic 6 partial)
@@ -34,11 +48,16 @@
 #   - Epic 3 REVISED: visualization UI first, then backend wiring
 #   - Reference: sprint-change-proposal-2026-02-14.md
 
-generated: 2026-02-16
+generated: 2026-02-17
 project: Cadence
 project_key: NOKEY
 tracking_system: file-system
 story_location: "{project-root}/_bmad-output/implementation-artifacts"
+
+# CURRENT IMPLEMENTATION STATUS (per epics.md):
+# completed: Stories 1.1 - 3.5
+# next: Story 3.6 (Server-Side Tool Execution)
+# current_gap: Streaming UI works with mock data, but server-side tool execution not implemented
 
 development_status:
   # ==========================================================================
@@ -95,38 +114,50 @@ development_status:
   3-10-adaptive-coaching-language: backlog
 
   # ==========================================================================
-  # Epic 4: Wearable Data Integration - DONE
+  # Epic 4: Wearable Data Integration - HIGH PRIORITY
   # ==========================================================================
-  # HealthKit (iOS), mock data providers, normalization pipeline
+  # HealthKit (iOS), mock data providers
   # FRs: FR7, FR9, FR10, FR11
-  epic-4: done
-  4-1-healthkit-integration-ios: done
-  4-2-mock-data-providers-development: done
+  # NOTE (2026-02-17): Soma component handles normalization/storage
+  #   - Story 4.1: REVISED - native extraction only, Soma handles rest
+  #   - Story 4.3: OBSOLETE - superseded by Soma ingest methods
+  #   - Story 4.4: NEW - cleanup legacy code (HIGH PRIORITY)
+  epic-4: backlog
+  4-1-healthkit-integration-ios: done  # REVISED: Native extraction only, Soma handles rest. Code review fixes applied 2026-02-17.
+  4-2-mock-data-providers-development: review  # Mock data generator and seed mutations implemented 2026-02-17
+  4-3-data-normalization-sync-pipeline: obsolete  # Superseded by Soma ingest methods
+  4-4-soma-integration-cleanup: done  # Legacy code deleted, native app migrated to Soma endpoints, code review fixes applied 2026-02-17
 
   # ==========================================================================
-  # Epic 5: Backend Data Architecture - DONE
+  # Epic 5: Backend Data Architecture - HIGH PRIORITY
   # ==========================================================================
-  # Historical data tables, enhanced Runner Object, inference engine
+  # Historical data tables (Soma), enhanced Runner Object, inference engine
   # FRs: FR22, FR23, FR24 (backend implementation)
   # Reference: data-model-comprehensive.md, architecture-backend-v2.md
-  epic-5: done
-  5-1-historical-data-tables-schema: done  # Story created 2026-02-16
-  5-2-enhanced-runner-object-provenance: done  # Story created 2026-02-16
-  5-3-data-adapters-pattern: done  # Story created 2026-02-16, reviewed 2026-02-16
-  5-4-inference-engine-current-state: done  # Implemented 2026-02-16
+  # NOTE (2026-02-17): Soma provides historical data tables and adapter functionality
+  #   - Story 5.1: OBSOLETE - Soma provides activities, sleepSessions, dailySummaries, bodyMeasurements
+  #   - Story 5.3: OBSOLETE - Soma replaces adapter pattern with ingest methods
+  epic-5: backlog
+  5-1-historical-data-tables-schema: obsolete  # Provided by Soma component
+  5-2-enhanced-runner-object-provenance: ready-for-dev  # Cadence-specific, STILL NEEDED
+  5-3-data-adapters-pattern: obsolete  # Superseded by Soma ingest methods
+  5-4-inference-engine-current-state: review  # Tests added 2026-02-17, ready for code review
 
   # ==========================================================================
   # Epic 6: Plan Generation Engine - DONE
   # ==========================================================================
   # Knowledge base, safeguards, plan generator with multi-level justifications
   # FRs: FR38, FR39, FR40, FR44, FR45 (backend implementation)
+  # NOTE (2026-02-17): All stories verified complete per implementation artifacts
+  #   - Not impacted by Soma integration (separate concerns)
+  #   - Plan Generator receives Runner Object, generates plans
   epic-6: done
-  6-1-training-plans-multi-level-zoom-schema: done  # Code reviewed 2026-02-16
-  6-2-planned-sessions-schema: done  # Code reviewed 2026-02-16
-  6-3-knowledge-base-infrastructure: done  # Code reviewed 2026-02-16
-  6-4-safeguards-system: done  # Completed 2026-02-16
-  6-5-plan-generator-core: done  # Completed 2026-02-16
-  6-6-plan-to-ui-data-queries: done  # Code reviewed 2026-02-16
+  6-1-training-plans-multi-level-zoom-schema: done
+  6-2-planned-sessions-schema: done
+  6-3-knowledge-base-infrastructure: done
+  6-4-safeguards-system: done
+  6-5-plan-generator-core: done
+  6-6-plan-to-ui-data-queries: done
 
   # ==========================================================================
   # Epic 7: Strava & Additional Wearable Connections - MEDIUM PRIORITY
@@ -140,27 +171,41 @@ development_status:
   7-4-thinking-stream-analysis-display: backlog
 
   # ==========================================================================
-  # Epic 8: Error Handling & Resilience - MEDIUM PRIORITY
+  # Epic 8: Error Handling & Resilience - DONE
   # ==========================================================================
   # Network handling, connection recovery, LLM fallbacks, permission guidance
   # FRs: FR56, FR57, FR58, FR59
-  epic-8: in-progress
-  8-1-network-unavailable-handling: ready-for-dev  # Story created 2026-02-16
-  8-2-connection-lost-mid-flow: ready-for-dev  # Story created 2026-02-16
-  8-3-llm-failure-fallback: ready-for-dev  # Story created 2026-02-16
-  8-4-permission-denied-guidance: ready-for-dev  # Story created 2026-02-16
+  epic-8: done
+  8-1-network-unavailable-handling: done  # Completed 2026-02-17
+  8-2-connection-lost-mid-flow: done  # Completed 2026-02-17
+  8-3-llm-failure-fallback: done  # Completed 2026-02-17: Error classification, retry UI, exhausted retries handling
+  8-4-permission-denied-guidance: done  # Completed 2026-02-17: PermissionDeniedCard, HealthKit/mic integration
 
 # ==========================================================================
-# IMPLEMENTATION SEQUENCE (from epics.md)
+# IMPLEMENTATION SEQUENCE (from epics.md, updated 2026-02-17)
 # ==========================================================================
-# Phase 1: Complete the AI Loop (Stories 3.6-3.8)
+# SOMA INTEGRATION IMPACT (Sprint Change Proposal 2026-02-17):
+#   Stories obsoleted: 3 (4.3, 5.1, 5.3)
+#   Stories revised: 1 (4.1 - scope reduced ~70%)
+#   New stories: 1 (4.4 Cleanup)
+#   Net effort savings: ~4 days
+#
+# Phase 1: Complete the AI Loop (Stories 3.6-3.8) ← CURRENT PRIORITY
 #   Goal: Tool calls actually save data and conversation continues
 #
-# Phase 2: Wearable Foundation (Epic 4)
-#   Goal: HealthKit works, mock data available for testing
+# Phase 2: Soma Cleanup & Wearable Foundation (Epic 4)
+#   Goal: Clean codebase, HealthKit works, mock data available
+#   - Story 4.4: Soma Integration Cleanup (delete legacy code) ← DO FIRST
+#   - Story 4.1: HealthKit Integration (REVISED - native extraction only)
+#   - Story 4.2: Mock Data Providers
+#   - Story 4.3: OBSOLETE (Soma provides)
 #
 # Phase 3: Backend Infrastructure (Epic 5)
-#   Goal: Historical data stored, current state calculated
+#   Goal: Runner Object enhanced, current state calculated from Soma tables
+#   - Story 5.1: OBSOLETE (Soma provides tables)
+#   - Story 5.2: Enhanced Runner Object with Provenance
+#   - Story 5.3: OBSOLETE (Soma provides adapters)
+#   - Story 5.4: Inference Engine (reads Soma tables → writes runners.currentState)
 #
 # Phase 4: Plan Generation (Epic 6)
 #   Goal: Plans generated with full justifications
@@ -170,6 +215,7 @@ development_status:
 #
 # Phase 6: Additional Wearables (Epic 7)
 #   Goal: Strava, Health Connect, Thinking Stream
+#   NOTE: Soma already handles Strava OAuth/sync - verify scope of 7.1/7.2
 #
 # Phase 7: Polish (Epic 8)
 #   Goal: Error handling

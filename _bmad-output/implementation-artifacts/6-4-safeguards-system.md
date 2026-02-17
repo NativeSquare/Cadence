@@ -1,6 +1,6 @@
 # Story 6.4: Safeguards System
 
-Status: review
+Status: done
 
 ## Story
 

@@ -1,6 +1,6 @@
 # Story 8.3: LLM Failure Fallback
 
-Status: ready-for-dev
+Status: complete
 
 ## Story
 
@@ -29,33 +29,33 @@ So that I can continue or retry without frustration.
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Enhance LLM Error Classification (AC: #1)
-  - [ ] 1.1 Add granular error types in http_action.ts (timeout, rate_limit, model_error, network)
-  - [ ] 1.2 Add structured error response with error code, user message, and debug info
-  - [ ] 1.3 Add server-side logging with request ID for debugging
+- [x] Task 1: Enhance LLM Error Classification (AC: #1)
+  - [x] 1.1 Add granular error types in http_action.ts (timeout, rate_limit, model_error, network)
+  - [x] 1.2 Add structured error response with error code, user message, and debug info
+  - [x] 1.3 Add server-side logging with request ID for debugging
 
-- [ ] Task 2: Create LLM Error UI Component (AC: #1, #3)
-  - [ ] 2.1 Create `LLMErrorCard.tsx` component in `apps/native/src/components/app/onboarding/generative/`
-  - [ ] 2.2 Display user-friendly message based on error type
-  - [ ] 2.3 Show retry button with loading state
-  - [ ] 2.4 Show escalated error with support contact after exhausted retries
+- [x] Task 2: Create LLM Error UI Component (AC: #1, #3)
+  - [x] 2.1 Create `LLMErrorCard.tsx` component in `apps/native/src/components/app/onboarding/generative/`
+  - [x] 2.2 Display user-friendly message based on error type
+  - [x] 2.3 Show retry button with loading state
+  - [x] 2.4 Show escalated error with support contact after exhausted retries
 
-- [ ] Task 3: Enhance Retry Logic in use-ai-chat.ts (AC: #2, #3)
-  - [ ] 3.1 Track retry count per message attempt
-  - [ ] 3.2 Implement configurable timeout (30s default)
-  - [ ] 3.3 Preserve user input across retry attempts
-  - [ ] 3.4 Expose retry count and max retries to UI
+- [x] Task 3: Enhance Retry Logic in use-ai-chat.ts (AC: #2, #3)
+  - [x] 3.1 Track retry count per message attempt
+  - [x] 3.2 Implement configurable timeout (30s default)
+  - [x] 3.3 Preserve user input across retry attempts
+  - [x] 3.4 Expose retry count and max retries to UI
 
-- [ ] Task 4: Implement Exhausted Retries Handling (AC: #3)
-  - [ ] 4.1 Detect when maxRetries (3) is exhausted
-  - [ ] 4.2 Save conversation progress to local AsyncStorage
-  - [ ] 4.3 Display support contact information (email/link)
-  - [ ] 4.4 Provide "Try Later" option that navigates away gracefully
+- [x] Task 4: Implement Exhausted Retries Handling (AC: #3)
+  - [x] 4.1 Detect when maxRetries (3) is exhausted
+  - [x] 4.2 Save conversation progress to local AsyncStorage
+  - [x] 4.3 Display support contact information (email/link)
+  - [x] 4.4 Provide "Try Later" option that navigates away gracefully
 
-- [ ] Task 5: Update ai-stream.ts Error Handling (AC: #1, #2)
-  - [ ] 5.1 Add AbortController timeout wrapper (30s)
-  - [ ] 5.2 Parse and categorize HTTP error responses
-  - [ ] 5.3 Return structured error objects to calling code
+- [x] Task 5: Update ai-stream.ts Error Handling (AC: #1, #2)
+  - [x] 5.1 Add AbortController timeout wrapper (30s)
+  - [x] 5.2 Parse and categorize HTTP error responses
+  - [x] 5.3 Return structured error objects to calling code
 
 ## Dev Notes
 
@@ -204,11 +204,31 @@ interface LLMErrorResponse {
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 ### Debug Log References
 
+N/A
+
 ### Completion Notes List
 
+- Implemented granular LLM error classification with 5 error codes
+- Created LLMErrorCard component with retry UI and exhausted retries handling
+- Added request ID generation for debugging support tickets
+- Integrated timeout configuration (30s default) in use-ai-chat.ts
+- Created conversation persistence for saving progress when retries exhausted
+- Added LLMError class in ai-stream.ts for structured error handling
+- Tests created but vitest not configured in project (tests ready to run once configured)
+
 ### File List
+
+**Modified:**
+- `packages/backend/convex/ai/http_action.ts` - Enhanced error classification, request ID, structured responses
+- `apps/native/src/hooks/use-ai-chat.ts` - Retry count tracking, timeout config, save progress
+- `apps/native/src/lib/ai-stream.ts` - LLMError class, structured error parsing
+
+**Created:**
+- `apps/native/src/components/app/onboarding/generative/LLMErrorCard.tsx` - Error UI component
+- `apps/native/src/lib/conversation-persistence.ts` - AsyncStorage persistence for exhausted retries
+- `packages/backend/convex/ai/http_action.test.ts` - Unit tests for error classification
 

@@ -1,6 +1,6 @@
 # Story 8.2: Connection Lost Mid-Flow
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -38,56 +38,56 @@ so that I don't lose my progress.
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Create Reconnecting Overlay Component (AC: #1, #2)
-  - [ ] 1.1 Create `apps/native/src/components/common/ReconnectingOverlay.tsx`
-  - [ ] 1.2 Semi-transparent overlay with centered content
-  - [ ] 1.3 Animated loading indicator (pulsing wifi icon or spinner)
-  - [ ] 1.4 "Reconnecting..." text message
-  - [ ] 1.5 Auto-dismiss with fade when connection restored
-  - [ ] 1.6 Show "Back online" confirmation briefly (2s)
+- [x] Task 1: Create Reconnecting Overlay Component (AC: #1, #2)
+  - [x] 1.1 Create `apps/native/src/components/common/ReconnectingOverlay.tsx`
+  - [x] 1.2 Semi-transparent overlay with centered content
+  - [x] 1.3 Animated loading indicator (pulsing wifi icon or spinner)
+  - [x] 1.4 "Reconnecting..." text message
+  - [x] 1.5 Auto-dismiss with fade when connection restored
+  - [x] 1.6 Show "Back online" confirmation briefly (2s)
 
-- [ ] Task 2: Implement Progressive Timeout Messages (AC: #4)
-  - [ ] 2.1 Track disconnection duration in state
-  - [ ] 2.2 Show "Reconnecting..." for first 10 seconds
-  - [ ] 2.3 Show "Still trying to reconnect..." after 10s
-  - [ ] 2.4 Show "This is taking longer than expected" after 20s
-  - [ ] 2.5 Show "Try Again" button after 30s
-  - [ ] 2.6 Optionally show "Continue Offline" if applicable
+- [x] Task 2: Implement Progressive Timeout Messages (AC: #4)
+  - [x] 2.1 Track disconnection duration in state
+  - [x] 2.2 Show "Reconnecting..." for first 10 seconds
+  - [x] 2.3 Show "Still trying to reconnect..." after 10s
+  - [x] 2.4 Show "This is taking longer than expected" after 20s
+  - [x] 2.5 Show "Try Again" button after 30s
+  - [x] 2.6 Optionally show "Continue Offline" if applicable
 
-- [ ] Task 3: Enhance AI Stream Pause/Resume (AC: #3, #5)
-  - [ ] 3.1 Update `apps/native/src/lib/ai-stream.ts` with network-aware streaming
-  - [ ] 3.2 On network loss: abort current stream cleanly (not error)
-  - [ ] 3.3 Store last stable conversation state before abort
-  - [ ] 3.4 On network restore: detect if stream was interrupted
-  - [ ] 3.5 Resume from last user message (not resend entire history)
-  - [ ] 3.6 Prevent duplicate submissions during reconnection
+- [x] Task 3: Enhance AI Stream Pause/Resume (AC: #3, #5)
+  - [x] 3.1 Update `apps/native/src/lib/ai-stream.ts` with network-aware streaming
+  - [x] 3.2 On network loss: abort current stream cleanly (not error)
+  - [x] 3.3 Store last stable conversation state before abort
+  - [x] 3.4 On network restore: detect if stream was interrupted
+  - [x] 3.5 Resume from last user message (not resend entire history)
+  - [x] 3.6 Prevent duplicate submissions during reconnection
 
-- [ ] Task 4: Integrate Network Status with AI Chat Hook (AC: #1, #3, #5)
-  - [ ] 4.1 Update `apps/native/src/hooks/use-ai-chat.ts` to subscribe to network context
-  - [ ] 4.2 Add `isReconnecting` state to hook return
-  - [ ] 4.3 Pause sending when offline (queue or block)
-  - [ ] 4.4 Auto-resume pending send when back online
-  - [ ] 4.5 Clear any error state on successful reconnection
+- [x] Task 4: Integrate Network Status with AI Chat Hook (AC: #1, #3, #5)
+  - [x] 4.1 Update `apps/native/src/hooks/use-ai-chat.ts` to subscribe to network context
+  - [x] 4.2 Add `isReconnecting` state to hook return
+  - [x] 4.3 Pause sending when offline (queue or block)
+  - [x] 4.4 Auto-resume pending send when back online
+  - [x] 4.5 Clear any error state on successful reconnection
 
-- [ ] Task 5: Handle Partial Stream Recovery (AC: #3)
-  - [ ] 5.1 Track last received chunk/token in stream
-  - [ ] 5.2 On reconnect, check if partial response exists
-  - [ ] 5.3 If partial: mark as incomplete, request continuation
-  - [ ] 5.4 If complete: no action needed
-  - [ ] 5.5 Never show truncated AI message without indicator
+- [x] Task 5: Handle Partial Stream Recovery (AC: #3)
+  - [x] 5.1 Track last received chunk/token in stream
+  - [x] 5.2 On reconnect, check if partial response exists
+  - [ ] 5.3 If partial: mark as incomplete, request continuation *(partial - marks isInterrupted but no LLM continuation request)*
+  - [x] 5.4 If complete: no action needed
+  - [x] 5.5 Never show truncated AI message without indicator
 
-- [ ] Task 6: Integrate Overlay in Conversation View (AC: #1, #2)
-  - [ ] 6.1 Update `AIConversationView.tsx` to show ReconnectingOverlay
-  - [ ] 6.2 Overlay appears when `isReconnecting` is true
-  - [ ] 6.3 Conversation UI remains visible but non-interactive behind overlay
-  - [ ] 6.4 Input field disabled during reconnection
-  - [ ] 6.5 Haptic feedback when connection lost and restored
+- [x] Task 6: Integrate Overlay in Conversation View (AC: #1, #2)
+  - [x] 6.1 Update `AIConversationView.tsx` to show ReconnectingOverlay
+  - [x] 6.2 Overlay appears when `isReconnecting` is true
+  - [x] 6.3 Conversation UI remains visible but non-interactive behind overlay
+  - [x] 6.4 Input field disabled during reconnection
+  - [x] 6.5 Haptic feedback when connection lost and restored
 
-- [ ] Task 7: Local Progress Persistence (AC: #5)
-  - [ ] 7.1 Verify conversation state is saved to Convex before network loss
-  - [ ] 7.2 Ensure Runner Object updates are queued if offline
-  - [ ] 7.3 On reconnect: sync any pending mutations
-  - [ ] 7.4 Handle Convex offline behavior (already has optimistic updates)
+- [ ] Task 7: Local Progress Persistence (AC: #5) *(partial - see limitation below)*
+  - [ ] 7.1 Verify conversation state is saved to Convex before network loss *(not implemented - React state only)*
+  - [x] 7.2 Ensure Runner Object updates are queued if offline *(Convex handles)*
+  - [x] 7.3 On reconnect: sync any pending mutations *(Convex handles)*
+  - [x] 7.4 Handle Convex offline behavior (already has optimistic updates)
 
 ## Dev Notes
 
@@ -347,11 +347,56 @@ if (partialState && !partialState.isComplete) {
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 ### Debug Log References
 
+- Pre-existing TypeScript errors in healthkit.ts persist (unrelated to Story 8.2)
+
 ### Completion Notes List
 
+1. **Task 1-2**: Created ReconnectingOverlay component with progressive messages built-in (0-10s, 10-20s, 20-30s, 30s+). Includes pulsing animation, haptic feedback, and "Back online" confirmation.
+
+2. **Task 3**: Enhanced ai-stream.ts with `StreamCompletionReason` type ("complete" | "aborted" | "network-error" | "error") and `isNetworkError()` helper to classify errors.
+
+3. **Task 4**: Major enhancement to use-ai-chat.ts:
+   - Added `isReconnecting` and `disconnectionDuration` state
+   - Added pending send queue (`pendingSendRef`)
+   - Auto-resume on network restore (retries interrupted streams or pending sends)
+   - Clean abort handling (not error) on network loss
+
+4. **Task 5**: Added `isInterrupted` flag to ChatMessage interface. Partial responses are preserved (not replaced with "[Error]"). Aborted streams keep their content.
+
+5. **Task 6**: Integrated ReconnectingOverlay into AIConversationView.tsx with new props (`isReconnecting`, `onRetry`).
+
+6. **Task 7**: Verified Convex handles persistence:
+   - Mutations auto-queue when offline
+   - React state survives app backgrounding
+   - Limitation: Full app restart loses React state (requires backend message storage for true persistence)
+
+7. **Code Review Fix**: Added `onReconnected` prop to AIConversationView to properly wire haptic feedback on reconnection success.
+
+### ⚠️ Testing Required
+
+**TODO:** Create test files for Story 8.2 components:
+- `apps/native/src/hooks/__tests__/use-ai-chat.test.ts` - Test reconnecting state, pending queue, auto-resume
+- `apps/native/src/components/common/__tests__/ReconnectingOverlay.test.tsx` - Test progressive messages, haptics
+
+Testing dependencies also need to be installed (see Story 8.1 notes).
+
+### ⚠️ Known Limitations
+
+1. **Task 5.3 - LLM Continuation**: Partial responses are marked with `isInterrupted` flag but no automatic LLM continuation request is sent. User must manually retry to continue.
+
+2. **Task 7.1 - Persistence**: Conversation messages are stored in React state only. Full app restart/kill loses conversation progress. True persistence requires Story 8.3's `saveConversationProgress` to local storage and backend sync.
+
 ### File List
+
+**Created:**
+- apps/native/src/components/common/ReconnectingOverlay.tsx
+
+**Modified:**
+- apps/native/src/lib/ai-stream.ts (added completionReason, isNetworkError, LLMError class)
+- apps/native/src/hooks/use-ai-chat.ts (reconnecting state, pending queue, auto-resume, isInterrupted, saveProgress)
+- apps/native/src/components/app/onboarding/generative/AIConversationView.tsx (overlay integration, onReconnected prop)
 

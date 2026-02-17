@@ -5,16 +5,17 @@
  * Implements mock provider flow for MVP - all connections simulate
  * then fall through to skip path.
  *
- * Source: Story 2.7 - AC#1, AC#2, AC#3, AC#5
+ * Source: Story 2.7 - AC#1, AC#2, AC#3, AC#5, Story 8.4 - AC#3
  */
 
 import { useState, useCallback } from "react";
-import { Platform } from "react-native";
+import { Platform, View } from "react-native";
 import { useMutation } from "convex/react";
 import { api } from "@packages/backend/convex/_generated/api";
 import { selectionFeedback, questionPause } from "@/lib/haptics";
 import { useHealthKit } from "@/hooks/use-healthkit";
 import { ConnectionCard } from "../connection-card";
+import { PermissionDeniedCard } from "./PermissionDeniedCard";
 
 // =============================================================================
 // Types
@@ -53,7 +54,13 @@ export function ConnectionCardTool({
   const [hasSubmitted, setHasSubmitted] = useState(false);
 
   const skipWearable = useMutation(api.table.runners.skipWearableConnection);
-  const { connect: connectHealthKit } = useHealthKit();
+  // Use full HealthKit hook to access permission denied state (Story 8.4 AC#3)
+  const {
+    connect: connectHealthKit,
+    permissionDenied,
+    retryAfterSettings,
+    isConnecting: isHealthKitConnecting,
+  } = useHealthKit();
 
   /**
    * Handle provider connection tap.
@@ -154,6 +161,31 @@ export function ConnectionCardTool({
     skipWearable,
     onSubmit,
   ]);
+
+  // Handle retry after permission denied (Story 8.4 AC#3)
+  const handleRetryPermission = useCallback(async () => {
+    const result = await retryAfterSettings();
+    if (result) {
+      setConnectedProviders((prev) => [...prev, "apple"]);
+    }
+  }, [retryAfterSettings]);
+
+  // Handle skip after permission denied
+  const handleSkipPermission = useCallback(() => {
+    handleSkip();
+  }, [handleSkip]);
+
+  // Show PermissionDeniedCard when HealthKit permission is denied (Story 8.4 AC#3)
+  if (permissionDenied) {
+    return (
+      <PermissionDeniedCard
+        permissionType="healthkit"
+        onRetry={handleRetryPermission}
+        onSkip={handleSkipPermission}
+        isRetrying={isHealthKitConnecting}
+      />
+    );
+  }
 
   return (
     <ConnectionCard
