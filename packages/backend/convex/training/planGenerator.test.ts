@@ -25,7 +25,7 @@ import {
   type PlanGeneratorInput,
   type KBEntry,
   type GoalType,
-} from "./plan-generator";
+} from "./planGenerator";
 import { selectTemplate, isValidDuration, getRecommendedDuration } from "./templates";
 
 // =============================================================================

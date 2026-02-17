@@ -3,14 +3,17 @@
  *
  * Central registry for wearable data adapters.
  * Provides source-agnostic access to adapters via getAdapter().
+ *
+ * NOTE: HealthKit data is now ingested through the @nativesquare/soma
+ * Convex component. This registry remains for any future non-Soma adapters
+ * (e.g., Strava direct integration, manual entry).
  */
 
 import type { DataAdapter, DataSource } from "./types";
-import { healthkitAdapter } from "./healthkit";
 
 /** Registry of all registered adapters */
 const adapters: Map<DataSource, DataAdapter> = new Map([
-  ["healthkit", healthkitAdapter],
+  // HealthKit: migrated to @nativesquare/soma component
   // Future: ["strava", stravaAdapter], ["garmin", garminAdapter]
 ]);
 

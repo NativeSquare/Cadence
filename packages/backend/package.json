@@ -20,11 +20,12 @@
     "@convex-dev/auth": "^0.0.90",
     "@convex-dev/migrations": "^0.3.1",
     "@convex-dev/resend": "^0.2.3",
+    "@nativesquare/soma": "^0.1.2",
     "@packages/shared": "workspace:*",
     "@packages/transactional": "workspace:*",
     "@react-email/render": "^2.0.4",
     "ai": "^6.0.86",
-    "convex": "^1.29.3",
+    "convex": "^1.31.7",
     "oslo": "^1.2.1",
     "resend": "3.2.0"
   },

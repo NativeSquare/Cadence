@@ -4,10 +4,49 @@ import {
   requestAuthorization,
   queryWorkoutSamples,
   queryQuantitySamples,
+  queryCategorySamples,
   WorkoutActivityType,
   getRequestStatusForAuthorization,
   AuthorizationRequestStatus,
+  getBiologicalSexAsync,
+  getDateOfBirthAsync,
+  getBloodTypeAsync,
+  getFitzpatrickSkinTypeAsync,
+  getWheelchairUseAsync,
 } from "@kingstinct/react-native-healthkit";
+import {
+  transformWorkout,
+  transformSleep,
+  transformBody,
+  transformDaily,
+  transformNutrition,
+  transformMenstruation,
+  transformAthlete,
+} from "@nativesquare/soma/healthkit";
+import type {
+  ActivityData,
+  SleepData,
+  BodyData,
+  DailyData,
+  NutritionData,
+  MenstruationData,
+  AthleteData,
+  HKWorkout,
+  HKQuantitySample,
+  HKCategorySample,
+  HKCharacteristics,
+} from "@nativesquare/soma/healthkit";
+
+// Re-export Soma data types for consumers
+export type {
+  ActivityData,
+  SleepData,
+  BodyData,
+  DailyData,
+  NutritionData,
+  MenstruationData,
+  AthleteData,
+};
 
 // Infer WorkoutProxy type from the library's return type
 type WorkoutProxy = Awaited<ReturnType<typeof queryWorkoutSamples>>[number];
@@ -16,34 +55,27 @@ type WorkoutProxy = Awaited<ReturnType<typeof queryWorkoutSamples>>[number];
 
 /** Aggregated runner data shaped to match the `runners.inferred` schema. */
 export type RunnerAggregates = {
-  avgWeeklyVolume: number; // km per week
-  volumeConsistency: number; // % variance (lower = more consistent)
-  easyPaceActual: string | undefined; // "X:XX/km" format
-  longRunPattern: string | undefined; // e.g., "weekly" | "biweekly" | "irregular"
-  restDayFrequency: number; // avg rest days per week
+  avgWeeklyVolume: number;
+  volumeConsistency: number;
+  easyPaceActual: string | undefined;
+  longRunPattern: string | undefined;
+  restDayFrequency: number;
   trainingLoadTrend: "building" | "maintaining" | "declining" | "erratic";
-  estimatedFitness: number | undefined; // VO2max if available
+  estimatedFitness: number | undefined;
 };
 
-export type HealthKitImportResult = {
-  totalRuns: number;
-  dateRange: { from: Date; to: Date } | null;
+/** Full HealthKit import result with all Soma-transformed data types. */
+export type HealthKitFullImport = {
+  activities: ActivityData[];
+  sleep: SleepData[];
+  body: BodyData[];
+  daily: DailyData[];
+  nutrition: NutritionData[];
+  menstruation: MenstruationData[];
+  athlete: AthleteData | null;
   aggregates: RunnerAggregates;
-  summary: string; // Human-readable, e.g. "47 runs imported"
-};
-
-/** Raw workout data for backend storage and normalization. */
-export type RawHealthKitWorkout = {
-  uuid: string; // HealthKit UUID - use as externalId
-  startDate: number; // Unix timestamp ms
-  endDate: number; // Unix timestamp ms
-  durationSeconds: number;
-  distanceMeters: number;
-  activeEnergyBurnedKcal: number | undefined;
-  avgHeartRate: number | undefined;
-  maxHeartRate: number | undefined;
-  avgSpeedMps: number | undefined;
-  avgPaceSecondsPerKm: number | undefined;
+  totalRuns: number;
+  summary: string;
 };
 
 // ─── HealthKit Availability ──────────────────────────────────────────────────
@@ -60,23 +92,16 @@ export function checkHealthKitAvailable(): boolean {
 
 // ─── Authorization Status ─────────────────────────────────────────────────────
 
-/** Authorization status for HealthKit permissions. */
 export type HealthKitAuthStatus =
-  | "unknown" // Status not yet determined
-  | "shouldRequest" // Should request authorization (not yet asked)
-  | "unnecessary" // Authorization unnecessary (already granted)
-  | "denied" // User has denied access
-  | "unavailable"; // HealthKit not available on device
+  | "unknown"
+  | "shouldRequest"
+  | "unnecessary"
+  | "denied"
+  | "unavailable";
 
-/** Check the current authorization status for HealthKit. */
 export async function getHealthKitAuthStatus(): Promise<HealthKitAuthStatus> {
-  if (Platform.OS !== "ios") {
-    return "unavailable";
-  }
-
-  if (!isHealthDataAvailable()) {
-    return "unavailable";
-  }
+  if (Platform.OS !== "ios") return "unavailable";
+  if (!isHealthDataAvailable()) return "unavailable";
 
   try {
     const status = await getRequestStatusForAuthorization({
@@ -94,27 +119,15 @@ export async function getHealthKitAuthStatus(): Promise<HealthKitAuthStatus> {
         return "unknown";
     }
   } catch {
-    // If we can't get status, assume unknown
     return "unknown";
   }
 }
 
-/**
- * Check if authorization was likely denied.
- * Note: iOS HealthKit doesn't expose a direct "denied" state.
- * We infer denial when:
- * - Status is "unnecessary" (request was made before)
- * - But we can't read any workout data
- */
 export async function checkIfAuthorizationDenied(): Promise<boolean> {
   const status = await getHealthKitAuthStatus();
 
-  // If status is "unnecessary", authorization was requested before.
-  // Try to query data - if we get nothing and status is unnecessary,
-  // it's likely denied.
   if (status === "unnecessary") {
     try {
-      // Try a minimal query to check access
       const workouts = await queryWorkoutSamples({
         limit: 1,
         ascending: false,
@@ -126,10 +139,8 @@ export async function checkIfAuthorizationDenied(): Promise<boolean> {
           },
         },
       });
-      // If we can query (even empty results), we have access
       return false;
     } catch {
-      // Query failed - likely denied
       return true;
     }
   }
@@ -137,20 +148,14 @@ export async function checkIfAuthorizationDenied(): Promise<boolean> {
   return false;
 }
 
-/**
- * Open iOS Settings app to allow user to grant HealthKit permissions.
- * Users need to navigate to Privacy & Security > Health > [App Name]
- */
 export function openHealthSettings(): void {
-  // This opens the app's settings page in iOS Settings
   Linking.openURL("app-settings:");
 }
 
-/** Guidance message for users who denied permissions. */
 export const PERMISSION_DENIED_GUIDANCE = {
   title: "Apple Health Access Required",
   message:
-    "To sync your running data, please enable Apple Health access in Settings.",
+    "To sync your health data, please enable Apple Health access in Settings.",
   instructions: [
     "Open Settings",
     "Scroll down and tap on this app",
@@ -159,72 +164,540 @@ export const PERMISSION_DENIED_GUIDANCE = {
   ],
 };
 
-// ─── Authorization ───────────────────────────────────────────────────────────
+// ─── Authorization & Permissions ─────────────────────────────────────────────
 
 const READ_PERMISSIONS = [
+  // Workouts
   "HKWorkoutTypeIdentifier",
+
+  // Heart & Vitals (used by Body + Activity)
   "HKQuantityTypeIdentifierHeartRate",
+  "HKQuantityTypeIdentifierRestingHeartRate",
   "HKQuantityTypeIdentifierHeartRateVariabilitySDNN",
   "HKQuantityTypeIdentifierVO2Max",
+  "HKQuantityTypeIdentifierOxygenSaturation",
+  "HKQuantityTypeIdentifierRespiratoryRate",
+  "HKQuantityTypeIdentifierBloodPressureSystolic",
+  "HKQuantityTypeIdentifierBloodPressureDiastolic",
+  "HKQuantityTypeIdentifierBloodGlucose",
+  "HKQuantityTypeIdentifierBodyTemperature",
+
+  // Body Measurements
+  "HKQuantityTypeIdentifierBodyMass",
+  "HKQuantityTypeIdentifierHeight",
+  "HKQuantityTypeIdentifierBodyMassIndex",
+  "HKQuantityTypeIdentifierBodyFatPercentage",
+  "HKQuantityTypeIdentifierLeanBodyMass",
+
+  // Activity & Energy
   "HKQuantityTypeIdentifierActiveEnergyBurned",
+  "HKQuantityTypeIdentifierBasalEnergyBurned",
   "HKQuantityTypeIdentifierDistanceWalkingRunning",
+  "HKQuantityTypeIdentifierDistanceCycling",
   "HKQuantityTypeIdentifierRunningSpeed",
+  "HKQuantityTypeIdentifierStepCount",
+  "HKQuantityTypeIdentifierFlightsClimbed",
+  "HKQuantityTypeIdentifierAppleExerciseTime",
+  "HKQuantityTypeIdentifierAppleStandTime",
+
+  // Sleep
+  "HKCategoryTypeIdentifierSleepAnalysis",
+
+  // Nutrition
+  "HKQuantityTypeIdentifierDietaryEnergyConsumed",
+  "HKQuantityTypeIdentifierDietaryProtein",
+  "HKQuantityTypeIdentifierDietaryCarbohydrates",
+  "HKQuantityTypeIdentifierDietaryFatTotal",
+  "HKQuantityTypeIdentifierDietaryWater",
+
+  // Menstruation
+  "HKCategoryTypeIdentifierMenstrualFlow",
+
+  // Athlete characteristics (requested via read, queried via getXxx)
+  "HKCharacteristicTypeIdentifierBiologicalSex",
+  "HKCharacteristicTypeIdentifierDateOfBirth",
 ] as const;
 
-/** Request read-only authorization for running-related HealthKit data. */
 export async function requestHealthKitAuthorization(): Promise<boolean> {
   return requestAuthorization({
     toRead: [...READ_PERMISSIONS],
   });
 }
 
+// ─── Bridge helpers: library types → Soma types ──────────────────────────────
+
+function toSomaWorkout(proxy: WorkoutProxy): HKWorkout {
+  return {
+    uuid: proxy.uuid,
+    workoutActivityType: proxy.workoutActivityType ?? 0,
+    startDate: new Date(proxy.startDate).toISOString(),
+    endDate: new Date(proxy.endDate).toISOString(),
+    duration: proxy.duration?.quantity ?? 0,
+    totalEnergyBurned: proxy.totalEnergyBurned?.quantity,
+    totalDistance: proxy.totalDistance?.quantity,
+    totalSwimmingStrokeCount: proxy.totalSwimmingStrokeCount?.quantity,
+    totalFlightsClimbed: proxy.totalFlightsClimbed?.quantity,
+    source: proxy.sourceRevision
+      ? {
+          name: proxy.sourceRevision.source?.name ?? "",
+          bundleIdentifier:
+            proxy.sourceRevision.source?.bundleIdentifier ?? "",
+        }
+      : undefined,
+    device: proxy.device
+      ? {
+          name: proxy.device.name ?? undefined,
+          manufacturer: proxy.device.manufacturer ?? undefined,
+          model: proxy.device.model ?? undefined,
+          hardwareVersion: proxy.device.hardwareVersion ?? undefined,
+          softwareVersion: proxy.device.softwareVersion ?? undefined,
+        }
+      : undefined,
+  };
+}
+
+function toSomaQuantitySample(sample: {
+  uuid: string;
+  quantityType: string;
+  startDate: string | Date;
+  endDate: string | Date;
+  quantity: number;
+  unit: string;
+  sourceRevision?: { source?: { name?: string; bundleIdentifier?: string } };
+  device?: {
+    name?: string;
+    manufacturer?: string;
+    model?: string;
+    hardwareVersion?: string;
+    softwareVersion?: string;
+  };
+}): HKQuantitySample {
+  return {
+    uuid: sample.uuid,
+    sampleType: sample.quantityType as HKQuantitySample["sampleType"],
+    startDate: new Date(sample.startDate).toISOString(),
+    endDate: new Date(sample.endDate).toISOString(),
+    value: sample.quantity,
+    unit: sample.unit,
+    source: sample.sourceRevision?.source
+      ? {
+          name: sample.sourceRevision.source.name ?? "",
+          bundleIdentifier:
+            sample.sourceRevision.source.bundleIdentifier ?? "",
+        }
+      : undefined,
+    device: sample.device
+      ? {
+          name: sample.device.name ?? undefined,
+          manufacturer: sample.device.manufacturer ?? undefined,
+          hardwareVersion: sample.device.hardwareVersion ?? undefined,
+          softwareVersion: sample.device.softwareVersion ?? undefined,
+        }
+      : undefined,
+  };
+}
+
+function toSomaCategorySample(sample: {
+  uuid: string;
+  categoryType: string;
+  startDate: string | Date;
+  endDate: string | Date;
+  value: number;
+  sourceRevision?: { source?: { name?: string; bundleIdentifier?: string } };
+  device?: {
+    name?: string;
+    manufacturer?: string;
+    model?: string;
+    hardwareVersion?: string;
+    softwareVersion?: string;
+  };
+}): HKCategorySample {
+  return {
+    uuid: sample.uuid,
+    sampleType: sample.categoryType as HKCategorySample["sampleType"],
+    startDate: new Date(sample.startDate).toISOString(),
+    endDate: new Date(sample.endDate).toISOString(),
+    value: sample.value,
+    source: sample.sourceRevision?.source
+      ? {
+          name: sample.sourceRevision.source.name ?? "",
+          bundleIdentifier:
+            sample.sourceRevision.source.bundleIdentifier ?? "",
+        }
+      : undefined,
+    device: sample.device
+      ? {
+          name: sample.device.name ?? undefined,
+          manufacturer: sample.device.manufacturer ?? undefined,
+          hardwareVersion: sample.device.hardwareVersion ?? undefined,
+          softwareVersion: sample.device.softwareVersion ?? undefined,
+        }
+      : undefined,
+  };
+}
+
 // ─── Data Queries ────────────────────────────────────────────────────────────
 
-/** Query running workouts from the last N days. */
+function dateRange(days: number): { startDate: Date; endDate: Date } {
+  const endDate = new Date();
+  const startDate = new Date(endDate.getTime() - days * 24 * 60 * 60 * 1000);
+  return { startDate, endDate };
+}
+
+/** Query all workout types (not just running) from the last N days. */
+export async function queryAllWorkouts(
+  days: number = 90,
+): Promise<WorkoutProxy[]> {
+  const { startDate, endDate } = dateRange(days);
+
+  return queryWorkoutSamples({
+    limit: 0,
+    ascending: false,
+    filter: {
+      date: { startDate, endDate },
+    },
+  });
+}
+
+/** Query running workouts from the last N days (for aggregate calculations). */
 export async function queryRunningWorkouts(
   days: number = 90,
 ): Promise<WorkoutProxy[]> {
-  const now = new Date();
-  const startDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+  const { startDate, endDate } = dateRange(days);
 
-  const workouts = await queryWorkoutSamples({
-    limit: 0, // 0 or negative = fetch all
+  return queryWorkoutSamples({
+    limit: 0,
     ascending: false,
     filter: {
       workoutActivityType: WorkoutActivityType.running,
-      date: {
-        startDate,
-        endDate: now,
-      },
+      date: { startDate, endDate },
     },
   });
-
-  return workouts;
 }
 
-/** Query the most recent VO2max sample. */
-async function queryVO2Max(): Promise<number | undefined> {
-  try {
-    const samples = await queryQuantitySamples(
-      "HKQuantityTypeIdentifierVO2Max",
-      {
-        limit: 1,
+/** Query sleep analysis category samples from the last N days. */
+async function querySleepSamples(days: number = 90) {
+  const { startDate, endDate } = dateRange(days);
+
+  return queryCategorySamples(
+    "HKCategoryTypeIdentifierSleepAnalysis",
+    {
+      limit: 0,
+      ascending: false,
+      filter: {
+        date: { startDate, endDate },
+      },
+    },
+  );
+}
+
+/** Quantity types for body metrics. */
+const BODY_QUANTITY_TYPES = [
+  "HKQuantityTypeIdentifierBodyMass",
+  "HKQuantityTypeIdentifierHeight",
+  "HKQuantityTypeIdentifierBodyMassIndex",
+  "HKQuantityTypeIdentifierBodyFatPercentage",
+  "HKQuantityTypeIdentifierLeanBodyMass",
+  "HKQuantityTypeIdentifierHeartRate",
+  "HKQuantityTypeIdentifierRestingHeartRate",
+  "HKQuantityTypeIdentifierHeartRateVariabilitySDNN",
+  "HKQuantityTypeIdentifierBloodPressureSystolic",
+  "HKQuantityTypeIdentifierBloodPressureDiastolic",
+  "HKQuantityTypeIdentifierOxygenSaturation",
+  "HKQuantityTypeIdentifierBloodGlucose",
+  "HKQuantityTypeIdentifierBodyTemperature",
+  "HKQuantityTypeIdentifierRespiratoryRate",
+  "HKQuantityTypeIdentifierVO2Max",
+] as const;
+
+/** Query body-related quantity samples from the last N days. */
+async function queryBodySamples(days: number = 90) {
+  const { startDate, endDate } = dateRange(days);
+  const allSamples: Array<Awaited<ReturnType<typeof queryQuantitySamples>>[number]> = [];
+
+  for (const type of BODY_QUANTITY_TYPES) {
+    try {
+      const samples = await queryQuantitySamples(type as any, {
+        limit: 0,
         ascending: false,
+        filter: {
+          date: { startDate, endDate },
+        },
+      });
+      allSamples.push(...samples);
+    } catch {
+      // Type may not be available or authorized -- skip silently
+    }
+  }
+
+  return allSamples;
+}
+
+/** Quantity types for daily activity metrics. */
+const DAILY_QUANTITY_TYPES = [
+  "HKQuantityTypeIdentifierStepCount",
+  "HKQuantityTypeIdentifierDistanceWalkingRunning",
+  "HKQuantityTypeIdentifierDistanceCycling",
+  "HKQuantityTypeIdentifierActiveEnergyBurned",
+  "HKQuantityTypeIdentifierBasalEnergyBurned",
+  "HKQuantityTypeIdentifierFlightsClimbed",
+  "HKQuantityTypeIdentifierAppleExerciseTime",
+  "HKQuantityTypeIdentifierAppleStandTime",
+  "HKQuantityTypeIdentifierVO2Max",
+  "HKQuantityTypeIdentifierHeartRate",
+  "HKQuantityTypeIdentifierHeartRateVariabilitySDNN",
+] as const;
+
+/** Query daily-activity quantity samples from the last N days. */
+async function queryDailySamples(days: number = 90) {
+  const { startDate, endDate } = dateRange(days);
+  const allSamples: Array<Awaited<ReturnType<typeof queryQuantitySamples>>[number]> = [];
+
+  for (const type of DAILY_QUANTITY_TYPES) {
+    try {
+      const samples = await queryQuantitySamples(type as any, {
+        limit: 0,
+        ascending: false,
+        filter: {
+          date: { startDate, endDate },
+        },
+      });
+      allSamples.push(...samples);
+    } catch {
+      // Skip unavailable types
+    }
+  }
+
+  return allSamples;
+}
+
+/** Quantity types for nutrition data. */
+const NUTRITION_QUANTITY_TYPES = [
+  "HKQuantityTypeIdentifierDietaryEnergyConsumed",
+  "HKQuantityTypeIdentifierDietaryProtein",
+  "HKQuantityTypeIdentifierDietaryCarbohydrates",
+  "HKQuantityTypeIdentifierDietaryFatTotal",
+  "HKQuantityTypeIdentifierDietaryWater",
+] as const;
+
+/** Query nutrition quantity samples from the last N days. */
+async function queryNutritionSamples(days: number = 90) {
+  const { startDate, endDate } = dateRange(days);
+  const allSamples: Array<Awaited<ReturnType<typeof queryQuantitySamples>>[number]> = [];
+
+  for (const type of NUTRITION_QUANTITY_TYPES) {
+    try {
+      const samples = await queryQuantitySamples(type as any, {
+        limit: 0,
+        ascending: false,
+        filter: {
+          date: { startDate, endDate },
+        },
+      });
+      allSamples.push(...samples);
+    } catch {
+      // Skip unavailable types
+    }
+  }
+
+  return allSamples;
+}
+
+/** Query menstrual flow category samples from the last N days. */
+async function queryMenstruationSamples(days: number = 90) {
+  const { startDate, endDate } = dateRange(days);
+
+  try {
+    return await queryCategorySamples(
+      "HKCategoryTypeIdentifierMenstrualFlow",
+      {
+        limit: 0,
+        ascending: false,
+        filter: {
+          date: { startDate, endDate },
+        },
       },
     );
-
-    if (samples.length > 0) {
-      return samples[0].quantity;
-    }
-    return undefined;
   } catch {
-    return undefined;
+    return [];
   }
 }
 
-// ─── Aggregate Calculations ──────────────────────────────────────────────────
+/** Get athlete characteristics from HealthKit (static profile data). */
+async function getAthleteCharacteristics(): Promise<HKCharacteristics | null> {
+  try {
+    const [biologicalSex, dateOfBirth, bloodType, skinType, wheelchair] =
+      await Promise.all([
+        getBiologicalSexAsync().catch(() => undefined),
+        getDateOfBirthAsync().catch(() => undefined),
+        getBloodTypeAsync().catch(() => undefined),
+        getFitzpatrickSkinTypeAsync().catch(() => undefined),
+        getWheelchairUseAsync().catch(() => undefined),
+      ]);
 
-/** Fetch distance in km for a workout using its statistics. */
+    const sexMap: Record<string, HKCharacteristics["biologicalSex"]> = {
+      female: "female",
+      male: "male",
+      other: "other",
+    };
+
+    return {
+      biologicalSex: sexMap[String(biologicalSex)] ?? "notSet",
+      dateOfBirth: dateOfBirth ? dateOfBirth.toISOString() : undefined,
+      bloodType: bloodType ? String(bloodType) : undefined,
+      fitzpatrickSkinType:
+        skinType !== undefined ? Number(skinType) : undefined,
+      wheelchairUse:
+        wheelchair !== undefined ? Boolean(wheelchair) : undefined,
+    };
+  } catch {
+    return null;
+  }
+}
+
+// ─── Sleep Session Grouping ──────────────────────────────────────────────────
+
+/**
+ * Group sleep category samples into individual sessions.
+ * A new session starts when there is a gap > 2 hours between samples.
+ */
+function groupSleepSessions(
+  rawSamples: Awaited<ReturnType<typeof querySleepSamples>>,
+): HKCategorySample[][] {
+  if (rawSamples.length === 0) return [];
+
+  const samples = rawSamples.map(toSomaCategorySample);
+  const sorted = [...samples].sort(
+    (a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime(),
+  );
+
+  const sessions: HKCategorySample[][] = [];
+  let currentSession: HKCategorySample[] = [sorted[0]];
+
+  for (let i = 1; i < sorted.length; i++) {
+    const prevEnd = new Date(sorted[i - 1].endDate).getTime();
+    const curStart = new Date(sorted[i].startDate).getTime();
+    const gapHours = (curStart - prevEnd) / (1000 * 60 * 60);
+
+    if (gapHours > 2) {
+      sessions.push(currentSession);
+      currentSession = [sorted[i]];
+    } else {
+      currentSession.push(sorted[i]);
+    }
+  }
+  sessions.push(currentSession);
+
+  return sessions;
+}
+
+// ─── Daily Sample Grouping ───────────────────────────────────────────────────
+
+/**
+ * Group quantity samples by calendar day (local time).
+ * Returns a map of "YYYY-MM-DD" → samples.
+ */
+function groupSamplesByDay(
+  samples: HKQuantitySample[],
+): Map<string, HKQuantitySample[]> {
+  const dayMap = new Map<string, HKQuantitySample[]>();
+
+  for (const sample of samples) {
+    const day = sample.startDate.slice(0, 10); // "YYYY-MM-DD"
+    const existing = dayMap.get(day);
+    if (existing) {
+      existing.push(sample);
+    } else {
+      dayMap.set(day, [sample]);
+    }
+  }
+
+  return dayMap;
+}
+
+// ─── Transform Orchestration ─────────────────────────────────────────────────
+
+async function transformAllWorkouts(
+  workouts: WorkoutProxy[],
+): Promise<ActivityData[]> {
+  return workouts.map((proxy) => {
+    const hkWorkout = toSomaWorkout(proxy);
+    return transformWorkout(hkWorkout);
+  });
+}
+
+function transformAllSleep(
+  rawSamples: Awaited<ReturnType<typeof querySleepSamples>>,
+): SleepData[] {
+  const sessions = groupSleepSessions(rawSamples);
+  return sessions.map((session) => transformSleep(session));
+}
+
+function transformAllBody(
+  rawSamples: Awaited<ReturnType<typeof queryBodySamples>>,
+): BodyData[] {
+  if (rawSamples.length === 0) return [];
+  const somaSamples = rawSamples.map(toSomaQuantitySample);
+  return [transformBody(somaSamples)];
+}
+
+function transformAllDaily(
+  rawSamples: Awaited<ReturnType<typeof queryDailySamples>>,
+): DailyData[] {
+  if (rawSamples.length === 0) return [];
+
+  const somaSamples = rawSamples.map(toSomaQuantitySample);
+  const dayGroups = groupSamplesByDay(somaSamples);
+
+  const results: DailyData[] = [];
+  for (const [dayStr, daySamples] of dayGroups) {
+    const timeRange = {
+      start_time: `${dayStr}T00:00:00.000Z`,
+      end_time: `${dayStr}T23:59:59.999Z`,
+    };
+    results.push(transformDaily(daySamples, timeRange));
+  }
+
+  return results;
+}
+
+function transformAllNutrition(
+  rawSamples: Awaited<ReturnType<typeof queryNutritionSamples>>,
+): NutritionData[] {
+  if (rawSamples.length === 0) return [];
+
+  const somaSamples = rawSamples.map(toSomaQuantitySample);
+  const dayGroups = groupSamplesByDay(somaSamples);
+
+  const results: NutritionData[] = [];
+  for (const [dayStr, daySamples] of dayGroups) {
+    const timeRange = {
+      start_time: `${dayStr}T00:00:00.000Z`,
+      end_time: `${dayStr}T23:59:59.999Z`,
+    };
+    results.push(transformNutrition(daySamples, timeRange));
+  }
+
+  return results;
+}
+
+function transformAllMenstruation(
+  rawSamples: Awaited<ReturnType<typeof queryMenstruationSamples>>,
+): MenstruationData[] {
+  if (rawSamples.length === 0) return [];
+  const somaSamples = rawSamples.map(toSomaCategorySample);
+  return [transformMenstruation(somaSamples)];
+}
+
+function transformAthleteData(
+  characteristics: HKCharacteristics | null,
+): AthleteData | null {
+  if (!characteristics) return null;
+  return transformAthlete(characteristics);
+}
+
+// ─── Aggregate Calculations (kept for Runner profile) ────────────────────────
+
 async function getWorkoutDistanceKmAsync(
   workout: WorkoutProxy,
 ): Promise<number> {
@@ -237,10 +710,9 @@ async function getWorkoutDistanceKmAsync(
       return stat.sumQuantity.quantity;
     }
   } catch {
-    // Fall through to speed-based estimation
+    // Fall through
   }
 
-  // Fallback: estimate from average speed * duration
   const durationSeconds = workout.duration?.quantity ?? 0;
   if (workout.metadataAverageSpeed?.quantity && durationSeconds > 0) {
     const distanceMeters =
@@ -251,14 +723,12 @@ async function getWorkoutDistanceKmAsync(
   return 0;
 }
 
-/** Batch-fetch distances for all workouts. */
 async function resolveDistances(
   workouts: WorkoutProxy[],
 ): Promise<Map<string, number>> {
   const distanceMap = new Map<string, number>();
-
-  // Process in parallel batches of 10 to avoid overwhelming the system
   const batchSize = 10;
+
   for (let i = 0; i < workouts.length; i += batchSize) {
     const batch = workouts.slice(i, i + batchSize);
     const results = await Promise.all(
@@ -272,11 +742,21 @@ async function resolveDistances(
   return distanceMap;
 }
 
-/**
- * Calculate runner aggregates from raw workout data.
- * All calculations happen on-device — no data leaves the phone until
- * the user's runner profile is updated in Convex.
- */
+async function queryVO2Max(): Promise<number | undefined> {
+  try {
+    const samples = await queryQuantitySamples(
+      "HKQuantityTypeIdentifierVO2Max",
+      { limit: 1, ascending: false },
+    );
+    if (samples.length > 0) {
+      return samples[0].quantity;
+    }
+    return undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export async function calculateRunnerAggregates(
   workouts: WorkoutProxy[],
   vo2max?: number,
@@ -293,34 +773,21 @@ export async function calculateRunnerAggregates(
     };
   }
 
-  // Sort workouts by date ascending
   const sorted = [...workouts].sort(
     (a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime(),
   );
 
-  // Resolve distances for all workouts (async, batched)
   const distances = await resolveDistances(sorted);
 
-  // ─── Weekly volume calculation ─────────────────────────────────────
   const weeklyVolumes = calculateWeeklyVolumes(sorted, distances);
   const avgWeeklyVolume =
     weeklyVolumes.length > 0
       ? weeklyVolumes.reduce((sum, v) => sum + v, 0) / weeklyVolumes.length
       : 0;
-
-  // ─── Volume consistency (coefficient of variation) ─────────────────
   const volumeConsistency = calculateCoefficientOfVariation(weeklyVolumes);
-
-  // ─── Easy pace estimation ──────────────────────────────────────────
   const easyPaceActual = estimateEasyPace(sorted, distances);
-
-  // ─── Long run pattern ──────────────────────────────────────────────
   const longRunPattern = detectLongRunPattern(sorted, distances);
-
-  // ─── Rest day frequency ────────────────────────────────────────────
   const restDayFrequency = calculateRestDayFrequency(sorted);
-
-  // ─── Training load trend ───────────────────────────────────────────
   const trainingLoadTrend = detectTrainingLoadTrend(weeklyVolumes);
 
   return {
@@ -334,37 +801,31 @@ export async function calculateRunnerAggregates(
   };
 }
 
-// ─── Helper: Weekly Volumes ──────────────────────────────────────────────────
+// ─── Aggregate Helpers ───────────────────────────────────────────────────────
 
 function calculateWeeklyVolumes(
   workouts: WorkoutProxy[],
   distances: Map<string, number>,
 ): number[] {
   if (workouts.length === 0) return [];
-
   const weekMap = new Map<string, number>();
-
   for (const workout of workouts) {
     const date = new Date(workout.startDate);
     const weekKey = getISOWeekKey(date);
     const distanceKm = distances.get(workout.uuid) ?? 0;
     weekMap.set(weekKey, (weekMap.get(weekKey) ?? 0) + distanceKm);
   }
-
   return Array.from(weekMap.values());
 }
 
 function getISOWeekKey(date: Date): string {
   const d = new Date(date);
   d.setHours(0, 0, 0, 0);
-  // Get the Monday of this week
   const day = d.getDay();
   const diff = d.getDate() - day + (day === 0 ? -6 : 1);
   d.setDate(diff);
   return d.toISOString().split("T")[0];
 }
-
-// ─── Helper: Coefficient of Variation ────────────────────────────────────────
 
 function calculateCoefficientOfVariation(values: number[]): number {
   if (values.length < 2) return 0;
@@ -376,18 +837,14 @@ function calculateCoefficientOfVariation(values: number[]): number {
   return (stdDev / mean) * 100;
 }
 
-// ─── Helper: Easy Pace Estimation ────────────────────────────────────────────
-
 function estimateEasyPace(
   workouts: WorkoutProxy[],
   distances: Map<string, number>,
 ): string | undefined {
-  // Filter for runs that are likely "easy" — between 30-75 min duration
   const easyRuns = workouts.filter((w) => {
     const durationMin = (w.duration?.quantity ?? 0) / 60;
     return durationMin >= 30 && durationMin <= 75;
   });
-
   if (easyRuns.length === 0) return undefined;
 
   const paces: number[] = [];
@@ -395,16 +852,13 @@ function estimateEasyPace(
     const distanceKm = distances.get(run.uuid) ?? 0;
     const durationMin = (run.duration?.quantity ?? 0) / 60;
     if (distanceKm > 0 && durationMin > 0) {
-      paces.push(durationMin / distanceKm); // min/km
+      paces.push(durationMin / distanceKm);
     }
   }
-
   if (paces.length === 0) return undefined;
 
-  // Take the median pace as the "easy pace"
   paces.sort((a, b) => a - b);
   const medianPace = paces[Math.floor(paces.length / 2)];
-
   return formatPace(medianPace);
 }
 
@@ -414,39 +868,31 @@ function formatPace(minPerKm: number): string {
   return `${mins}:${secs.toString().padStart(2, "0")}/km`;
 }
 
-// ─── Helper: Long Run Pattern ────────────────────────────────────────────────
-
 function detectLongRunPattern(
   workouts: WorkoutProxy[],
   distanceMap: Map<string, number>,
 ): string | undefined {
   if (workouts.length < 3) return undefined;
-
-  // A "long run" is any run > 1.5x the average distance
   const validDistances = workouts
     .map((w) => distanceMap.get(w.uuid) ?? 0)
     .filter((d) => d > 0);
-
   if (validDistances.length < 3) return undefined;
 
   const avgDistance =
     validDistances.reduce((sum, d) => sum + d, 0) / validDistances.length;
   const longRunThreshold = avgDistance * 1.5;
-
   const longRuns = workouts.filter(
     (w) => (distanceMap.get(w.uuid) ?? 0) >= longRunThreshold,
   );
-
   if (longRuns.length < 2) return undefined;
 
-  // Calculate average days between long runs
   const longRunDates = longRuns
     .map((w) => new Date(w.startDate).getTime())
     .sort((a, b) => a - b);
-
   let totalGapDays = 0;
   for (let i = 1; i < longRunDates.length; i++) {
-    totalGapDays += (longRunDates[i] - longRunDates[i - 1]) / (1000 * 60 * 60 * 24);
+    totalGapDays +=
+      (longRunDates[i] - longRunDates[i - 1]) / (1000 * 60 * 60 * 24);
   }
   const avgGap = totalGapDays / (longRunDates.length - 1);
 
@@ -455,250 +901,124 @@ function detectLongRunPattern(
   return "irregular";
 }
 
-// ─── Helper: Rest Day Frequency ──────────────────────────────────────────────
-
 function calculateRestDayFrequency(workouts: WorkoutProxy[]): number {
   if (workouts.length === 0) return 7;
-
   const firstDate = new Date(workouts[0].startDate);
   const lastDate = new Date(workouts[workouts.length - 1].startDate);
   const totalDays =
     (lastDate.getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24) + 1;
-
   if (totalDays <= 0) return 7;
 
-  // Count unique days with workouts
   const activeDays = new Set(
     workouts.map((w) => new Date(w.startDate).toISOString().split("T")[0]),
   );
-
   const totalWeeks = totalDays / 7;
   const restDays = totalDays - activeDays.size;
-  const restDaysPerWeek = restDays / totalWeeks;
-
-  return Math.max(0, Math.min(7, restDaysPerWeek));
+  return Math.max(0, Math.min(7, restDays / totalWeeks));
 }
-
-// ─── Helper: Training Load Trend ─────────────────────────────────────────────
 
 function detectTrainingLoadTrend(
   weeklyVolumes: number[],
 ): "building" | "maintaining" | "declining" | "erratic" {
   if (weeklyVolumes.length < 3) return "maintaining";
-
-  // Compare last 4 weeks to previous 4 weeks
   const recentWeeks = weeklyVolumes.slice(-4);
   const previousWeeks = weeklyVolumes.slice(-8, -4);
-
   if (previousWeeks.length === 0) return "maintaining";
 
   const recentAvg =
     recentWeeks.reduce((sum, v) => sum + v, 0) / recentWeeks.length;
   const previousAvg =
     previousWeeks.reduce((sum, v) => sum + v, 0) / previousWeeks.length;
-
   if (previousAvg === 0) return recentAvg > 0 ? "building" : "maintaining";
 
   const changePercent = ((recentAvg - previousAvg) / previousAvg) * 100;
-
-  // Check for erratic pattern (high CV in recent weeks)
   const recentCV = calculateCoefficientOfVariation(recentWeeks);
   if (recentCV > 40) return "erratic";
-
   if (changePercent > 10) return "building";
   if (changePercent < -10) return "declining";
   return "maintaining";
 }
 
-// ─── Raw Workout Extraction ──────────────────────────────────────────────────
-
-/** Get heart rate statistics for a workout. */
-async function getWorkoutHeartRateStats(
-  workout: WorkoutProxy,
-): Promise<{ avg: number | undefined; max: number | undefined }> {
-  try {
-    const stat = await workout.getStatistic(
-      "HKQuantityTypeIdentifierHeartRate",
-      "count/min",
-    );
-    return {
-      avg: stat?.averageQuantity?.quantity,
-      max: stat?.maximumQuantity?.quantity,
-    };
-  } catch {
-    return { avg: undefined, max: undefined };
-  }
-}
-
-/** Get energy burned for a workout in kcal. */
-async function getWorkoutEnergyBurned(
-  workout: WorkoutProxy,
-): Promise<number | undefined> {
-  try {
-    const stat = await workout.getStatistic(
-      "HKQuantityTypeIdentifierActiveEnergyBurned",
-      "kcal",
-    );
-    return stat?.sumQuantity?.quantity;
-  } catch {
-    return undefined;
-  }
-}
-
-/**
- * Extract raw workout data from a WorkoutProxy.
- * Fetches distance, heart rate, and energy burned statistics.
- */
-async function extractRawWorkout(
-  workout: WorkoutProxy,
-): Promise<RawHealthKitWorkout> {
-  // Fetch statistics in parallel
-  const [distanceKm, hrStats, energyKcal] = await Promise.all([
-    getWorkoutDistanceKmAsync(workout),
-    getWorkoutHeartRateStats(workout),
-    getWorkoutEnergyBurned(workout),
-  ]);
-
-  const durationSeconds = workout.duration?.quantity ?? 0;
-  const distanceMeters = distanceKm * 1000;
-
-  // Calculate pace: seconds per km
-  let avgPaceSecondsPerKm: number | undefined;
-  if (distanceKm > 0 && durationSeconds > 0) {
-    avgPaceSecondsPerKm = durationSeconds / distanceKm;
-  }
-
-  // Get average speed in m/s from metadata or calculate
-  let avgSpeedMps: number | undefined = workout.metadataAverageSpeed?.quantity;
-  if (!avgSpeedMps && distanceMeters > 0 && durationSeconds > 0) {
-    avgSpeedMps = distanceMeters / durationSeconds;
-  }
-
-  return {
-    uuid: workout.uuid,
-    startDate: new Date(workout.startDate).getTime(),
-    endDate: new Date(workout.endDate).getTime(),
-    durationSeconds,
-    distanceMeters,
-    activeEnergyBurnedKcal: energyKcal,
-    avgHeartRate: hrStats.avg,
-    maxHeartRate: hrStats.max,
-    avgSpeedMps,
-    avgPaceSecondsPerKm,
-  };
-}
-
-/**
- * Extract raw data from all workouts in batches.
- */
-async function extractRawWorkouts(
-  workouts: WorkoutProxy[],
-): Promise<RawHealthKitWorkout[]> {
-  const rawWorkouts: RawHealthKitWorkout[] = [];
-
-  // Process in batches of 10 to avoid overwhelming the system
-  const batchSize = 10;
-  for (let i = 0; i < workouts.length; i += batchSize) {
-    const batch = workouts.slice(i, i + batchSize);
-    const results = await Promise.all(batch.map(extractRawWorkout));
-    rawWorkouts.push(...results);
-  }
-
-  return rawWorkouts;
-}
-
 // ─── Main Import Function ────────────────────────────────────────────────────
 
 /**
- * Full HealthKit import pipeline:
- * 1. Request authorization
- * 2. Query running workouts (last 90 days)
- * 3. Query VO2max
- * 4. Calculate aggregates
+ * Full HealthKit import pipeline — fetches and transforms all 7 data types:
+ * 1. Request authorization (expanded permissions)
+ * 2. Query all data types in parallel
+ * 3. Transform each batch using Soma transformers
+ * 4. Calculate runner aggregates (for profile, from running workouts only)
  * 5. Return structured result
  */
-export async function importHealthKitData(): Promise<HealthKitImportResult> {
-  // Request authorization
+export async function importAllHealthKitData(
+  days: number = 90,
+): Promise<HealthKitFullImport> {
   await requestHealthKitAuthorization();
 
-  // Query data in parallel
-  const [workouts, vo2max] = await Promise.all([
-    queryRunningWorkouts(90),
+  // Query all data types in parallel
+  const [
+    allWorkouts,
+    runningWorkouts,
+    sleepRaw,
+    bodyRaw,
+    dailyRaw,
+    nutritionRaw,
+    menstruationRaw,
+    athleteRaw,
+    vo2max,
+  ] = await Promise.all([
+    queryAllWorkouts(days),
+    queryRunningWorkouts(days),
+    querySleepSamples(days),
+    queryBodySamples(days),
+    queryDailySamples(days),
+    queryNutritionSamples(days),
+    queryMenstruationSamples(days),
+    getAthleteCharacteristics(),
     queryVO2Max(),
   ]);
 
-  // Calculate aggregates (async — fetches distance stats per workout)
-  const aggregates = await calculateRunnerAggregates(workouts, vo2max);
-
-  // Build date range
-  let dateRange: { from: Date; to: Date } | null = null;
-  if (workouts.length > 0) {
-    const dates = workouts.map((w) => new Date(w.startDate).getTime());
-    dateRange = {
-      from: new Date(Math.min(...dates)),
-      to: new Date(Math.max(...dates)),
-    };
-  }
-
-  // Human-readable summary
-  const summary =
-    workouts.length > 0
-      ? `${workouts.length} run${workouts.length === 1 ? "" : "s"} imported`
-      : "No recent runs found";
-
-  return {
-    totalRuns: workouts.length,
-    dateRange,
-    aggregates,
-    summary,
-  };
-}
-
-export type HealthKitImportWithRawResult = HealthKitImportResult & {
-  rawWorkouts: RawHealthKitWorkout[];
-};
-
-/**
- * Extended HealthKit import that returns raw workout data for backend sync.
- * Use this when you need to store individual activities in the database.
- */
-export async function importHealthKitDataWithRaw(): Promise<HealthKitImportWithRawResult> {
-  // Request authorization
-  await requestHealthKitAuthorization();
-
-  // Query data in parallel
-  const [workouts, vo2max] = await Promise.all([
-    queryRunningWorkouts(90),
-    queryVO2Max(),
+  // Transform and calculate aggregates in parallel
+  const [activities, aggregates] = await Promise.all([
+    transformAllWorkouts(allWorkouts),
+    calculateRunnerAggregates(runningWorkouts, vo2max),
   ]);
 
-  // Extract raw workouts and calculate aggregates in parallel
-  const [rawWorkouts, aggregates] = await Promise.all([
-    extractRawWorkouts(workouts),
-    calculateRunnerAggregates(workouts, vo2max),
-  ]);
+  const sleep = transformAllSleep(sleepRaw);
+  const body = transformAllBody(bodyRaw);
+  const daily = transformAllDaily(dailyRaw);
+  const nutrition = transformAllNutrition(nutritionRaw);
+  const menstruation = transformAllMenstruation(menstruationRaw);
+  const athlete = transformAthleteData(athleteRaw);
 
-  // Build date range
-  let dateRange: { from: Date; to: Date } | null = null;
-  if (workouts.length > 0) {
-    const dates = workouts.map((w) => new Date(w.startDate).getTime());
-    dateRange = {
-      from: new Date(Math.min(...dates)),
-      to: new Date(Math.max(...dates)),
-    };
-  }
+  const totalRuns = runningWorkouts.length;
+  const totalActivities = activities.length;
+  const parts: string[] = [];
+  if (totalActivities > 0)
+    parts.push(
+      `${totalActivities} workout${totalActivities === 1 ? "" : "s"}`,
+    );
+  if (sleep.length > 0)
+    parts.push(`${sleep.length} sleep session${sleep.length === 1 ? "" : "s"}`);
+  if (daily.length > 0)
+    parts.push(`${daily.length} daily summar${daily.length === 1 ? "y" : "ies"}`);
+  if (body.length > 0) parts.push("body metrics");
+  if (nutrition.length > 0) parts.push("nutrition data");
+  if (menstruation.length > 0) parts.push("menstruation data");
+  if (athlete) parts.push("athlete profile");
 
-  // Human-readable summary
   const summary =
-    workouts.length > 0
-      ? `${workouts.length} run${workouts.length === 1 ? "" : "s"} imported`
-      : "No recent runs found";
+    parts.length > 0 ? `Imported ${parts.join(", ")}` : "No health data found";
 
   return {
-    totalRuns: workouts.length,
-    dateRange,
+    activities,
+    sleep,
+    body,
+    daily,
+    nutrition,
+    menstruation,
+    athlete,
     aggregates,
+    totalRuns,
     summary,
-    rawWorkouts,
   };
 }

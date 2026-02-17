@@ -186,6 +186,9 @@ importers:
       '@kingstinct/react-native-healthkit':
         specifier: ^13.1.4
         version: 13.1.4(react-native-nitro-modules@0.33.7(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
+      '@nativesquare/soma':
+        specifier: ^0.1.2
+        version: 0.1.2(convex@1.31.7(@clerk/clerk-react@5.60.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(react@19.1.0))(react@19.1.0)
       '@packages/backend':
         specifier: workspace:*
         version: link:../../packages/backend
@@ -283,7 +286,7 @@ importers:
         specifier: ^2.1.1
         version: 2.1.1
       convex:
-        specifier: ^1.29.3
+        specifier: ^1.31.7
         version: 1.31.7(@clerk/clerk-react@5.60.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(react@19.1.0)
       expo:
         specifier: ~54.0.25
@@ -581,6 +584,9 @@ importers:
       '@convex-dev/resend':
         specifier: ^0.2.3
         version: 0.2.3(@react-email/render@2.0.4(react-dom@19.2.4(react@18.2.0))(react@18.2.0))(convex-helpers@0.1.111(@standard-schema/spec@1.1.0)(convex@1.31.7(@clerk/clerk-react@5.60.0(react-dom@19.2.4(react@18.2.0))(react@18.2.0))(react@18.2.0))(react@18.2.0)(typescript@5.9.3)(zod@4.3.6))(convex@1.31.7(@clerk/clerk-react@5.60.0(react-dom@19.2.4(react@18.2.0))(react@18.2.0))(react@18.2.0))(react@18.2.0)
+      '@nativesquare/soma':
+        specifier: ^0.1.2
+        version: 0.1.2(convex@1.31.7(@clerk/clerk-react@5.60.0(react-dom@19.2.4(react@18.2.0))(react@18.2.0))(react@18.2.0))(react@18.2.0)
       '@packages/shared':
         specifier: workspace:*
         version: link:../shared
@@ -594,7 +600,7 @@ importers:
         specifier: ^6.0.86
         version: 6.0.86(zod@4.3.6)
       convex:
-        specifier: ^1.29.3
+        specifier: ^1.31.7
         version: 1.31.7(@clerk/clerk-react@5.60.0(react-dom@19.2.4(react@18.2.0))(react@18.2.0))(react@18.2.0)
       oslo:
         specifier: ^1.2.1
@@ -2234,6 +2240,12 @@ packages:
 
   '@napi-rs/wasm-runtime@0.2.12':
     resolution: {integrity: sha512-ZVWUcfwY4E/yPitQJl481FjFo3K22D6qF0DuFH6Y/nbnE11GY5uguDxZMGXPQ8WQ0128MXQD7TnfHyK4oWoIJQ==}
+
+  '@nativesquare/soma@0.1.2':
+    resolution: {integrity: sha512-Lkz4b+6bL1xkYoVOXT8Gq9+nlXoDd7uTqlo7OBdWQ8UY4CJtNzjXzL+4cca6XUozuej5Ul+edYO3mcorxro7Jg==}
+    peerDependencies:
+      convex: ^1.31.7
+      react: ^18.3.1 || ^19.0.0
 
   '@next/env@16.0.7':
     resolution: {integrity: sha512-gpaNgUh5nftFKRkRQGnVi5dpcYSKGcZZkQffZ172OrG/XkrnS7UBTQ648YY+8ME92cC4IojpI2LqTC8sTDhAaw==}
@@ -10414,6 +10426,16 @@ snapshots:
       '@emnapi/runtime': 1.8.1
       '@tybys/wasm-util': 0.10.1
     optional: true
+
+  '@nativesquare/soma@0.1.2(convex@1.31.7(@clerk/clerk-react@5.60.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(react@19.1.0))(react@19.1.0)':
+    dependencies:
+      convex: 1.31.7(@clerk/clerk-react@5.60.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(react@19.1.0)
+      react: 19.1.0
+
+  '@nativesquare/soma@0.1.2(convex@1.31.7(@clerk/clerk-react@5.60.0(react-dom@19.2.4(react@18.2.0))(react@18.2.0))(react@18.2.0))(react@18.2.0)':
+    dependencies:
+      convex: 1.31.7(@clerk/clerk-react@5.60.0(react-dom@19.2.4(react@18.2.0))(react@18.2.0))(react@18.2.0)
+      react: 18.2.0
 
   '@next/env@16.0.7': {}
 
