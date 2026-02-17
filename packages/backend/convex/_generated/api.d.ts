@@ -18,6 +18,7 @@ import type * as emails from "../emails.js";
 import type * as healthkit from "../healthkit.js";
 import type * as http from "../http.js";
 import type * as integrations_healthkit_sync from "../integrations/healthkit/sync.js";
+import type * as integrations_strava_sync from "../integrations/strava/sync.js";
 import type * as knowledge_index from "../knowledge/index.js";
 import type * as knowledge_query from "../knowledge/query.js";
 import type * as lib_adapters_index from "../lib/adapters/index.js";
@@ -76,6 +77,7 @@ declare const fullApi: ApiFromModules<{
   healthkit: typeof healthkit;
   http: typeof http;
   "integrations/healthkit/sync": typeof integrations_healthkit_sync;
+  "integrations/strava/sync": typeof integrations_strava_sync;
   "knowledge/index": typeof knowledge_index;
   "knowledge/query": typeof knowledge_query;
   "lib/adapters/index": typeof lib_adapters_index;
@@ -1621,6 +1623,49 @@ export declare const components: {
         "internal",
         { active?: boolean; connectionId: string; lastDataUpdate?: string },
         null
+      >;
+    };
+    strava: {
+      connectStrava: FunctionReference<
+        "action",
+        "internal",
+        {
+          baseUrl?: string;
+          clientId: string;
+          clientSecret: string;
+          code: string;
+          includeStreams?: boolean;
+          userId: string;
+        },
+        {
+          connectionId: string;
+          errors: Array<{ activityId: number; error: string }>;
+          synced: number;
+        }
+      >;
+      disconnectStrava: FunctionReference<
+        "action",
+        "internal",
+        {
+          baseUrl?: string;
+          clientId: string;
+          clientSecret: string;
+          userId: string;
+        },
+        null
+      >;
+      syncStrava: FunctionReference<
+        "action",
+        "internal",
+        {
+          after?: number;
+          baseUrl?: string;
+          clientId: string;
+          clientSecret: string;
+          includeStreams?: boolean;
+          userId: string;
+        },
+        { errors: Array<{ activityId: number; error: string }>; synced: number }
       >;
     };
   };

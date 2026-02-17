@@ -19,6 +19,7 @@ import Animated, { FadeIn, FadeInUp } from "react-native-reanimated";
 import { Text } from "@/components/ui/text";
 import { useStream } from "@/hooks/use-stream";
 import { useHealthKit } from "@/hooks/use-healthkit";
+import { useStrava } from "@/hooks/use-strava";
 import { Cursor } from "../Cursor";
 import { COLORS, GRAYS, SURFACES } from "@/lib/design-tokens";
 
@@ -52,8 +53,10 @@ export function WearableScreen({ onComplete, testID }: WearableScreenProps) {
   const [connectingId, setConnectingId] = useState<string | null>(null);
   const [connectedIds, setConnectedIds] = useState<string[]>([]);
   const { connect: connectHealthKit, error: healthKitError } = useHealthKit();
+  const { connect: connectStrava, error: stravaError } = useStrava();
 
   const hasConnected = connectedIds.length > 0;
+  const connectionError = healthKitError || stravaError;
 
   const s1 = useStream({
     text: "I'm your running coach. I learn, I adapt, and I get better the more I know.",
@@ -85,6 +88,13 @@ export function WearableScreen({ onComplete, testID }: WearableScreenProps) {
         if (result) {
           setConnectedIds((prev) => [...prev, "apple"]);
         }
+      } else if (id === "strava") {
+        setConnectingId("strava");
+        const result = await connectStrava();
+        setConnectingId(null);
+        if (result) {
+          setConnectedIds((prev) => [...prev, "strava"]);
+        }
       } else {
         // Other providers not yet implemented — mark as connected for now
         setConnectingId(id);
@@ -93,7 +103,7 @@ export function WearableScreen({ onComplete, testID }: WearableScreenProps) {
         setConnectedIds((prev) => [...prev, id]);
       }
     },
-    [connectedIds, connectingId, connectHealthKit],
+    [connectedIds, connectingId, connectHealthKit, connectStrava],
   );
 
   const handleContinue = useCallback(() => {
@@ -127,8 +137,8 @@ export function WearableScreen({ onComplete, testID }: WearableScreenProps) {
           entering={FadeIn.duration(400)}
           style={styles.optionsSection}
         >
-          {healthKitError && (
-            <Text style={styles.errorText}>{healthKitError}</Text>
+          {connectionError && (
+            <Text style={styles.errorText}>{connectionError}</Text>
           )}
           {OPTIONS.map((option) => {
             const isConnected = connectedIds.includes(option.id);
