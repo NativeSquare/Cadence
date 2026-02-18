@@ -14,9 +14,30 @@ import { StreamBlock } from "../../StreamBlock";
 import { Choice, Btn } from "../../generative/Choice";
 import { COLORS, GRAYS } from "@/lib/design-tokens";
 
-interface StyleMockProps {
-  onNext: () => void;
+/** Data collected by StyleMock screen */
+export interface CoachingData {
+  coachingVoice: "tough_love" | "encouraging" | "analytical" | "minimalist";
+  biggestChallenge: "consistency" | "pacing" | "time" | "stuck";
 }
+
+interface StyleMockProps {
+  onNext: (data: CoachingData) => void;
+}
+
+// Map UI values to backend enum values
+const STYLE_VALUE_MAP: Record<string, CoachingData["coachingVoice"]> = {
+  tough: "tough_love",
+  enc: "encouraging",
+  ana: "analytical",
+  min: "minimalist",
+};
+
+const CHALLENGE_VALUE_MAP: Record<string, CoachingData["biggestChallenge"]> = {
+  cons: "consistency",
+  pace: "pacing",
+  time: "time",
+  stuck: "stuck",
+};
 
 const STYLE_OPTIONS = [
   { label: "Tough love — push me", value: "tough" },
@@ -110,9 +131,17 @@ export function StyleMock({ onNext }: StyleMockProps) {
         )}
       </ScrollView>
 
-      {challenge && (
+      {challenge && style && (
         <View style={styles.buttonContainer}>
-          <Btn label="Continue" onPress={onNext} />
+          <Btn
+            label="Continue"
+            onPress={() => {
+              onNext({
+                coachingVoice: STYLE_VALUE_MAP[style],
+                biggestChallenge: CHALLENGE_VALUE_MAP[challenge],
+              });
+            }}
+          />
         </View>
       )}
     </View>

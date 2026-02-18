@@ -10,3 +10,8 @@ export { HealthMock } from "./HealthMock";
 export { StyleMock } from "./StyleMock";
 export { OpenQuestionMock } from "./OpenQuestionMock";
 export { TransitionMock } from "./TransitionMock";
+
+// Data types for backend integration
+export type { GoalsData } from "./GoalsMock";
+export type { HealthData } from "./HealthMock";
+export type { CoachingData } from "./StyleMock";

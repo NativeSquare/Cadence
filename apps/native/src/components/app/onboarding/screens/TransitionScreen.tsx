@@ -18,6 +18,8 @@ import Animated, {
   withRepeat,
   withTiming,
 } from "react-native-reanimated";
+import { useMutation } from "convex/react";
+import { api } from "@packages/backend/convex/_generated/api";
 import { StreamBlock } from "../StreamBlock";
 import { COLORS, GRAYS } from "@/lib/design-tokens";
 
@@ -136,7 +138,13 @@ export function TransitionScreen({
   const [state, setState] = useState<TransitionState>("streaming-1");
   const [showSecondMessage, setShowSecondMessage] = useState(false);
   const [showSpinner, setShowSpinner] = useState(false);
+  const [planGenerated, setPlanGenerated] = useState(false);
+  const [planError, setPlanError] = useState<string | null>(null);
   const spinnerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const planGenerationStarted = useRef(false);
+
+  // Plan generation mutation
+  const generatePlan = useMutation(api.training.mutations.generateAndPersistPlan);
 
   // Handle first message completion
   const handleFirstMessageDone = useCallback(() => {
@@ -158,14 +166,35 @@ export function TransitionScreen({
     setShowSpinner(true);
   }, []);
 
-  // Auto-advance timer after spinner appears
+  // Trigger plan generation when spinner state begins
   useEffect(() => {
-    if (state === "spinning") {
+    if (state === "spinning" && !planGenerationStarted.current) {
+      planGenerationStarted.current = true;
+      console.log("[TransitionScreen] Starting plan generation...");
+
+      generatePlan({})
+        .then((result) => {
+          console.log("[TransitionScreen] Plan generated:", result);
+          setPlanGenerated(true);
+        })
+        .catch((error) => {
+          console.error("[TransitionScreen] Plan generation failed:", error);
+          setPlanError(error?.message ?? "Failed to generate plan");
+          // Still mark as generated to allow continuing
+          setPlanGenerated(true);
+        });
+    }
+  }, [state, generatePlan]);
+
+  // Auto-advance after spinner appears AND plan is generated
+  useEffect(() => {
+    if (state === "spinning" && planGenerated) {
+      console.log("[TransitionScreen] Plan ready, transitioning...");
       spinnerTimerRef.current = setTimeout(() => {
         setState("transitioning");
         // Delay for fade-out, then call onComplete
         setTimeout(onComplete, TIMING.fadeOutDuration);
-      }, TIMING.spinnerDelay);
+      }, 500); // Short delay after plan is ready
 
       return () => {
         if (spinnerTimerRef.current) {
@@ -173,7 +202,7 @@ export function TransitionScreen({
         }
       };
     }
-  }, [state, onComplete]);
+  }, [state, planGenerated, onComplete]);
 
   // Cleanup on unmount
   useEffect(() => {

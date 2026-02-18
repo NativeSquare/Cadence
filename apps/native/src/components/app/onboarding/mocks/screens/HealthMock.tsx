@@ -14,10 +14,23 @@ import { StreamBlock } from "../../StreamBlock";
 import { Choice, Btn } from "../../generative/Choice";
 import { COLORS, GRAYS } from "@/lib/design-tokens";
 
+/** Data collected by HealthMock screen */
+export interface HealthData {
+  pastInjuries: string[];
+  recoveryStyle?: "quick" | "slow" | "push_through";
+}
+
 interface HealthMockProps {
   hasData: boolean;
-  onNext: () => void;
+  onNext: (data: HealthData) => void;
 }
+
+// Map UI values to backend enum values
+const RECOVERY_VALUE_MAP: Record<string, HealthData["recoveryStyle"]> = {
+  quick: "quick",
+  slow: "slow",
+  push: "push_through",
+};
 
 const INJURY_OPTIONS = [
   { label: "Shin splints", value: "shin" },
@@ -147,7 +160,17 @@ export function HealthMock({ hasData, onNext }: HealthMockProps) {
 
       {injuries.length > 0 && (
         <Animated.View entering={FadeIn.duration(300)} style={styles.buttonContainer}>
-          <Btn label="Continue" onPress={onNext} />
+          <Btn
+            label="Continue"
+            onPress={() => {
+              // Filter out "none" and pass actual injuries
+              const actualInjuries = injuries.filter((i) => i !== "none");
+              onNext({
+                pastInjuries: actualInjuries,
+                recoveryStyle: recovery ? RECOVERY_VALUE_MAP[recovery] : undefined,
+              });
+            }}
+          />
         </Animated.View>
       )}
     </View>

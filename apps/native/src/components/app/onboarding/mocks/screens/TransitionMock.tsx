@@ -1,10 +1,13 @@
 /**
  * TransitionMock - Transition screen matching cadence-v3.jsx prototype.
  *
+ * This screen triggers plan generation while showing the "building your plan" animation.
+ * It waits for plan generation to complete before advancing.
+ *
  * Source: cadence-v3.jsx lines 683-698
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { View, StyleSheet } from "react-native";
 import Animated, {
   FadeIn,
@@ -14,6 +17,8 @@ import Animated, {
   withTiming,
   Easing,
 } from "react-native-reanimated";
+import { useMutation } from "convex/react";
+import { api } from "@packages/backend/convex/_generated/api";
 import { Text } from "@/components/ui/text";
 import { useStream } from "@/hooks/use-stream";
 import { Cursor } from "../../Cursor";
@@ -43,6 +48,11 @@ function Spinner() {
 
 export function TransitionMock({ onDone }: TransitionMockProps) {
   const [showSpinner, setShowSpinner] = useState(false);
+  const [planGenerated, setPlanGenerated] = useState(false);
+  const planGenerationStarted = useRef(false);
+
+  // Plan generation mutation
+  const generatePlan = useMutation(api.training.mutations.generateAndPersistPlan);
 
   const s1 = useStream({
     text: "Okay. I believe I have what I need to draft your game plan.",
@@ -63,11 +73,32 @@ export function TransitionMock({ onDone }: TransitionMockProps) {
     }
   }, [s2.done]);
 
+  // Trigger plan generation when spinner appears
   useEffect(() => {
-    if (showSpinner) {
-      setTimeout(onDone, 2500);
+    if (showSpinner && !planGenerationStarted.current) {
+      planGenerationStarted.current = true;
+      console.log("[TransitionMock] Starting plan generation...");
+
+      generatePlan({})
+        .then((result) => {
+          console.log("[TransitionMock] Plan generated successfully:", result);
+          setPlanGenerated(true);
+        })
+        .catch((error) => {
+          console.error("[TransitionMock] Plan generation failed:", error);
+          // Do NOT advance on error - keep spinner showing
+          // User will need to retry or debug
+        });
     }
-  }, [showSpinner, onDone]);
+  }, [showSpinner, generatePlan]);
+
+  // Only advance when spinner is showing AND plan is generated
+  useEffect(() => {
+    if (showSpinner && planGenerated) {
+      console.log("[TransitionMock] Plan ready, advancing to next screen...");
+      setTimeout(onDone, 500);
+    }
+  }, [showSpinner, planGenerated, onDone]);
 
   return (
     <View style={styles.container}>

@@ -11,6 +11,8 @@
 
 import { useState, useCallback, useMemo } from "react";
 import { View, StyleSheet } from "react-native";
+import { useMutation, useQuery } from "convex/react";
+import { api } from "@packages/backend/convex/_generated/api";
 import { MockPathProvider, useMockPath } from "./MockPathContext";
 import { FlowProgressBar } from "./FlowProgressBar";
 import { ScreenTransition } from "./ScreenTransition";
@@ -27,6 +29,7 @@ import {
   OpenQuestionMock,
   TransitionMock,
 } from "./mocks/screens";
+import type { GoalsData, HealthData, CoachingData } from "./mocks/screens";
 
 // Real data-driven screen
 import { DataInsightsScreen } from "./screens/DataInsightsScreen";
@@ -113,6 +116,12 @@ function OnboardingFlowMockInner({
   const currentScreen = SCREENS[currentScreenIndex];
   const progress = screenProgressMap[currentScreenIndex] ?? 0;
 
+  // Query runner to get ID for updates
+  const runner = useQuery(api.table.runners.getCurrentRunner);
+
+  // Mutation for updating runner fields
+  const updateRunner = useMutation(api.table.runners.updateRunner);
+
   // Navigation helpers
   const goToNext = useCallback(() => {
     if (currentScreenIndex < SCREENS.length - 1) {
@@ -138,6 +147,62 @@ function OnboardingFlowMockInner({
   const handleScreenComplete = useCallback(() => {
     goToNext();
   }, [goToNext]);
+
+  // Goals screen handler - persists to backend
+  const handleGoalsComplete = useCallback(
+    async (data: GoalsData) => {
+      if (runner?._id) {
+        await updateRunner({
+          runnerId: runner._id,
+          fields: {
+            goals: {
+              goalType: data.goalType,
+            },
+          },
+        });
+      }
+      goToNext();
+    },
+    [runner?._id, updateRunner, goToNext]
+  );
+
+  // Health screen handler - persists to backend
+  const handleHealthComplete = useCallback(
+    async (data: HealthData) => {
+      if (runner?._id) {
+        await updateRunner({
+          runnerId: runner._id,
+          fields: {
+            health: {
+              pastInjuries: data.pastInjuries,
+              recoveryStyle: data.recoveryStyle,
+            },
+          },
+        });
+      }
+      goToNext();
+    },
+    [runner?._id, updateRunner, goToNext]
+  );
+
+  // Style screen handler - persists to backend
+  const handleStyleComplete = useCallback(
+    async (data: CoachingData) => {
+      if (runner?._id) {
+        await updateRunner({
+          runnerId: runner._id,
+          fields: {
+            coaching: {
+              coachingVoice: data.coachingVoice,
+              biggestChallenge: data.biggestChallenge,
+            },
+          },
+        });
+      }
+      goToNext();
+    },
+    [runner?._id, updateRunner, goToNext]
+  );
 
   // Paywall handler
   const handlePaywallComplete = useCallback(
@@ -184,13 +249,13 @@ function OnboardingFlowMockInner({
         );
 
       case "goals":
-        return <GoalsMock hasData={hasData} onNext={goToNext} />;
+        return <GoalsMock hasData={hasData} onNext={handleGoalsComplete} />;
 
       case "health":
-        return <HealthMock hasData={hasData} onNext={goToNext} />;
+        return <HealthMock hasData={hasData} onNext={handleHealthComplete} />;
 
       case "style":
-        return <StyleMock onNext={goToNext} />;
+        return <StyleMock onNext={handleStyleComplete} />;
 
       case "openQuestion":
         return <OpenQuestionMock onNext={goToNext} />;
@@ -250,7 +315,11 @@ function OnboardingFlowMockInner({
     handleNameChanged,
     handleWearableComplete,
     handleScreenComplete,
+    handleGoalsComplete,
+    handleHealthComplete,
+    handleStyleComplete,
     handlePaywallComplete,
+    setPath,
   ]);
 
   // Progress bar visible from wearable through transition (screens 1-7)

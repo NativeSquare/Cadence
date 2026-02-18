@@ -57,6 +57,29 @@ function getAccentColor(accent: AccentColor): string {
 }
 
 // =============================================================================
+// Provider Name Helper
+// =============================================================================
+
+type WearableType = "garmin" | "coros" | "apple_watch" | "none" | undefined;
+
+function getProviderDisplayName(
+  stravaConnected: boolean,
+  wearableType: WearableType
+): string {
+  if (stravaConnected) return "Strava";
+  switch (wearableType) {
+    case "apple_watch":
+      return "Apple Health";
+    case "garmin":
+      return "Garmin";
+    case "coros":
+      return "COROS";
+    default:
+      return "your wearable";
+  }
+}
+
+// =============================================================================
 // Activity Counter Component
 // =============================================================================
 
@@ -99,15 +122,17 @@ function ActivityCounter({ target }: { target: number }) {
 
 function ConnectingPhase({
   activityCount,
+  providerName,
   onDone,
 }: {
   activityCount: number;
+  providerName: string;
   onDone: () => void;
 }) {
   const [step, setStep] = useState(0);
 
   const s0 = useStream({
-    text: "Connected to Strava.",
+    text: `Connected to ${providerName}.`,
     speed: 28,
     delay: 400,
     active: step >= 0,
@@ -294,6 +319,13 @@ export function DataInsightsScreen({ onNext, onNoData }: DataInsightsScreenProps
     order: "desc",
   });
 
+  // Query runner to get wearable type
+  const runner = useQuery(api.table.runners.getCurrentRunner);
+  const providerName = getProviderDisplayName(
+    runner?.connections?.stravaConnected ?? false,
+    runner?.connections?.wearableType as WearableType
+  );
+
   // Compute insights when data loads
   const insights = useMemo(() => {
     if (!activities || activities.length === 0) return null;
@@ -368,7 +400,11 @@ export function DataInsightsScreen({ onNext, onNoData }: DataInsightsScreenProps
 
         {/* Phase 1: Connecting */}
         {phase === "connecting" && (
-          <ConnectingPhase activityCount={activityCount} onDone={handleConnectDone} />
+          <ConnectingPhase
+            activityCount={activityCount}
+            providerName={providerName}
+            onDone={handleConnectDone}
+          />
         )}
 
         {/* Phase 2: Insight cards */}

@@ -43,6 +43,7 @@ import type * as table_runners from "../table/runners.js";
 import type * as table_safeguards from "../table/safeguards.js";
 import type * as table_trainingPlans from "../table/trainingPlans.js";
 import type * as table_users from "../table/users.js";
+import type * as training_mutations from "../training/mutations.js";
 import type * as training_planGenerator from "../training/planGenerator.js";
 import type * as training_queries from "../training/queries.js";
 import type * as training_templates_10k from "../training/templates/10k.js";
@@ -96,6 +97,7 @@ declare const fullApi: ApiFromModules<{
   "table/safeguards": typeof table_safeguards;
   "table/trainingPlans": typeof table_trainingPlans;
   "table/users": typeof table_users;
+  "training/mutations": typeof training_mutations;
   "training/planGenerator": typeof training_planGenerator;
   "training/queries": typeof training_queries;
   "training/templates/10k": typeof training_templates_10k;

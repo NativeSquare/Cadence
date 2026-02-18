@@ -16,10 +16,26 @@ import { FreeformInput } from "../../generative/FreeformInput";
 import { MiniAnalysis } from "../../generative/MiniAnalysis";
 import { COLORS, GRAYS } from "@/lib/design-tokens";
 
+/** Data collected by GoalsMock screen */
+export interface GoalsData {
+  goalType: "race" | "speed" | "base_building" | "return_to_fitness" | "general_health";
+  freeformGoal?: string;
+}
+
 interface GoalsMockProps {
   hasData: boolean;
-  onNext: () => void;
+  onNext: (data: GoalsData) => void;
 }
+
+// Map UI values to backend enum values
+const GOAL_VALUE_MAP: Record<string, GoalsData["goalType"]> = {
+  race: "race",
+  speed: "speed",
+  base: "base_building",
+  return: "return_to_fitness",
+  health: "general_health",
+  custom: "general_health", // Custom goals default to general_health
+};
 
 const GOAL_OPTIONS = [
   { label: "Training for a race", value: "race" },
@@ -163,7 +179,16 @@ export function GoalsMock({ hasData, onNext }: GoalsMockProps) {
 
       {selected && (
         <Animated.View entering={FadeIn.duration(300)} style={styles.buttonContainer}>
-          <Btn label="Continue" onPress={onNext} />
+          <Btn
+            label="Continue"
+            onPress={() => {
+              const goalType = GOAL_VALUE_MAP[selected] ?? "general_health";
+              onNext({
+                goalType,
+                freeformGoal: freeformText || undefined,
+              });
+            }}
+          />
         </Animated.View>
       )}
     </View>

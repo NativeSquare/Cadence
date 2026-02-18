@@ -9,21 +9,54 @@
  * 5. Delayed coach comment (appears after 8s)
  * 6. Continue button
  *
+ * Queries real plan data when available, falls back to mock data.
+ *
  * Source: cadence-calendar-v2.jsx prototype
  */
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { View, StyleSheet, ScrollView } from "react-native";
 import Animated, { FadeIn } from "react-native-reanimated";
+import { useQuery } from "convex/react";
+import { api } from "@packages/backend/convex/_generated/api";
 import { Text } from "@/components/ui/text";
 import { Cursor } from "../Cursor";
 import {
   CalendarWidget,
   CALENDAR_MOCK_SCHEDULE,
   type SessionData,
+  type DayAbbrev,
 } from "../viz/CalendarWidget";
 import { Btn } from "../generative/Choice";
 import { COLORS, GRAYS, SURFACES } from "@/lib/design-tokens";
+
+// =============================================================================
+// Session Type to Color Mapping
+// =============================================================================
+
+const DAY_FULL_NAMES: Record<DayAbbrev, string> = {
+  Mon: "Monday",
+  Tue: "Tuesday",
+  Wed: "Wednesday",
+  Thu: "Thursday",
+  Fri: "Friday",
+  Sat: "Saturday",
+  Sun: "Sunday",
+};
+
+function getSessionColors(
+  type: string,
+  isKey: boolean,
+  isRest: boolean
+): { color: string; colorDim: string } {
+  if (isRest) {
+    return { color: GRAYS.g4, colorDim: "transparent" };
+  }
+  if (isKey) {
+    return { color: COLORS.lime, colorDim: COLORS.limeDim };
+  }
+  return { color: GRAYS.g3, colorDim: GRAYS.g6 };
+}
 
 // =============================================================================
 // Types
@@ -106,13 +139,65 @@ function CoachComment() {
 
 export function CalendarScreen({
   mockPath = "data",
-  schedule = CALENDAR_MOCK_SCHEDULE,
-  phaseLabel = "Build Phase",
+  schedule: providedSchedule,
+  phaseLabel: providedPhaseLabel,
   onComplete,
 }: CalendarScreenProps) {
   const [showCalendar, setShowCalendar] = useState(false);
   const [showCoachComment, setShowCoachComment] = useState(false);
   const [showButton, setShowButton] = useState(false);
+
+  // Query runner to get active plan
+  const runner = useQuery(api.table.runners.getCurrentRunner);
+  const planId = useQuery(
+    api.training.queries.getActivePlanForRunner,
+    runner?._id ? { runnerId: runner._id } : "skip"
+  );
+
+  // Query week 1 sessions from plan (for onboarding preview)
+  const weekSessions = useQuery(
+    api.training.queries.getWeekSessions,
+    planId ? { planId, weekNumber: 1 } : "skip"
+  );
+
+  // Determine loading and error states
+  const isLoading = runner === undefined || (runner?._id && planId === undefined);
+  const noPlanAvailable = runner !== undefined && planId === null;
+
+  // Map backend data to SessionData format
+  const schedule = useMemo((): SessionData[] | null => {
+    // Use provided schedule first
+    if (providedSchedule) return providedSchedule;
+
+    // Use real plan data if available
+    if (weekSessions?.sessions && weekSessions.sessions.length > 0) {
+      return weekSessions.sessions.map((s) => {
+        const colors = getSessionColors(s.type, s.key, s.rest);
+        const dayAbbrev = s.day as DayAbbrev;
+        return {
+          day: DAY_FULL_NAMES[dayAbbrev] ?? s.day,
+          short: dayAbbrev,
+          type: s.type,
+          dur: s.dur,
+          effort: s.effort,
+          key: s.key,
+          color: colors.color,
+          colorDim: colors.colorDim,
+          pace: s.pace,
+          desc: s.desc,
+          structure: s.structure,
+          why: s.why,
+          rest: s.rest,
+        };
+      });
+    }
+
+    // No data available
+    return null;
+  }, [providedSchedule, weekSessions]);
+
+  // Determine phase label (from plan or default)
+  const phaseLabel = providedPhaseLabel ?? "Build Phase";
 
   // Streaming intro text
   const stream = useStream(
@@ -142,6 +227,36 @@ export function CalendarScreen({
   const handleCalendarAnimationComplete = useCallback(() => {
     setShowButton(true);
   }, []);
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.centerContent}>
+          <Text style={styles.loadingText}>Loading your schedule...</Text>
+        </View>
+      </View>
+    );
+  }
+
+  // Show error state when no plan is available
+  if (noPlanAvailable || !schedule) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.centerContent}>
+          <Text style={styles.errorTitle}>Schedule Not Ready</Text>
+          <Text style={styles.errorText}>
+            Your training schedule is still being generated. Please wait a moment and try again.
+          </Text>
+          {onComplete && (
+            <View style={styles.errorButtonContainer}>
+              <Btn label="Continue Anyway" onPress={onComplete} />
+            </View>
+          )}
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -201,6 +316,36 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingTop: 70,
+    backgroundColor: COLORS.black,
+  },
+  centerContent: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 32,
+  },
+  loadingText: {
+    fontFamily: "Outfit-Light",
+    fontSize: 18,
+    color: GRAYS.g3,
+  },
+  errorTitle: {
+    fontFamily: "Outfit-Medium",
+    fontSize: 24,
+    color: GRAYS.g1,
+    marginBottom: 12,
+    textAlign: "center",
+  },
+  errorText: {
+    fontFamily: "Outfit-Light",
+    fontSize: 16,
+    color: GRAYS.g3,
+    textAlign: "center",
+    lineHeight: 24,
+  },
+  errorButtonContainer: {
+    marginTop: 32,
+    width: "100%",
   },
   scrollView: {
     flex: 1,
