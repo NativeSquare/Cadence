@@ -49,29 +49,42 @@ const sleepValidator = v.object({
   raw_payload: v.optional(v.any()),
 });
 
-const bodyValidator = v.object({
-  external_id: v.string(),
-  recorded_at: v.string(),
+// Body: Soma's transformBody() returns nested Terra-style (metadata, measurements_data, device_data).
+const bodyMeasurementValidator = v.object({
+  measurement_time: v.string(),
   weight_kg: v.optional(v.number()),
   height_cm: v.optional(v.number()),
   body_fat_percentage: v.optional(v.number()),
   resting_heart_rate: v.optional(v.number()),
   hrv_ms: v.optional(v.number()),
   vo2_max: v.optional(v.number()),
-  source: v.optional(v.string()),
+});
+
+const bodyValidator = v.object({
+  metadata: v.object({
+    start_time: v.string(),
+    end_time: v.string(),
+  }),
+  measurements_data: v.optional(
+    v.object({
+      measurements: v.array(bodyMeasurementValidator),
+    }),
+  ),
+  device_data: v.optional(v.any()),
   raw_payload: v.optional(v.any()),
 });
 
+// Daily: Soma's transformDaily() returns nested Terra-style (metadata, distance_data, calories_data, etc.).
 const dailyValidator = v.object({
-  external_id: v.string(),
-  date: v.string(),
-  steps: v.optional(v.number()),
-  active_calories: v.optional(v.number()),
-  total_calories: v.optional(v.number()),
-  distance_meters: v.optional(v.number()),
-  floors_climbed: v.optional(v.number()),
-  active_minutes: v.optional(v.number()),
-  source: v.optional(v.string()),
+  metadata: v.object({
+    start_time: v.string(),
+    end_time: v.string(),
+    upload_type: v.optional(v.number()),
+  }),
+  active_durations_data: v.optional(v.any()),
+  calories_data: v.optional(v.any()),
+  device_data: v.optional(v.any()),
+  distance_data: v.optional(v.any()),
   raw_payload: v.optional(v.any()),
 });
 
@@ -189,6 +202,35 @@ export const syncHealthKitData = mutation({
         code: "RUNNER_NOT_FOUND",
         message: "Runner not found. Complete initial onboarding first.",
       });
+    }
+
+    // Log transformed payload received from native (raw from HealthKit → Soma shape)
+    const payloadSummary = {
+      activities: args.activities.length,
+      sleep: args.sleep.length,
+      body: args.body.length,
+      daily: args.daily.length,
+      nutrition: args.nutrition.length,
+      menstruation: args.menstruation.length,
+      athlete: args.athlete != null,
+      aggregates: args.aggregates ?? null,
+      totalRuns: args.totalRuns ?? null,
+    };
+    console.log(
+      "[HealthKit Sync] Transformed data received (to Soma):",
+      JSON.stringify(payloadSummary, null, 2),
+    );
+    if (args.activities.length > 0) {
+      console.log(
+        "[HealthKit Sync] Transformed activity sample (first):",
+        JSON.stringify(args.activities[0], null, 2),
+      );
+    }
+    if (args.sleep.length > 0) {
+      console.log(
+        "[HealthKit Sync] Transformed sleep sample (first):",
+        JSON.stringify(args.sleep[0], null, 2),
+      );
     }
 
     // Ensure a Soma connection exists for this user + HEALTHKIT provider
@@ -350,15 +392,15 @@ export const syncHealthKitData = mutation({
     // Build updated inferred data from aggregates (if provided)
     const updatedInferred = args.aggregates
       ? {
-          ...runner.inferred,
-          avgWeeklyVolume: args.aggregates.avgWeeklyVolume,
-          volumeConsistency: args.aggregates.volumeConsistency,
-          easyPaceActual: args.aggregates.easyPaceActual,
-          longRunPattern: args.aggregates.longRunPattern,
-          restDayFrequency: args.aggregates.restDayFrequency,
-          trainingLoadTrend: args.aggregates.trainingLoadTrend,
-          estimatedFitness: args.aggregates.estimatedFitness,
-        }
+        ...runner.inferred,
+        avgWeeklyVolume: args.aggregates.avgWeeklyVolume,
+        volumeConsistency: args.aggregates.volumeConsistency,
+        easyPaceActual: args.aggregates.easyPaceActual,
+        longRunPattern: args.aggregates.longRunPattern,
+        restDayFrequency: args.aggregates.restDayFrequency,
+        trainingLoadTrend: args.aggregates.trainingLoadTrend,
+        estimatedFitness: args.aggregates.estimatedFitness,
+      }
       : runner.inferred;
 
     // Build merged runner for recalculation

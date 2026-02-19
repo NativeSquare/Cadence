@@ -16,19 +16,24 @@ import { v } from "convex/values";
 // Validator Schemas (duplicated from sync.ts for testing)
 // =============================================================================
 
-const activityValidator = v.object({
-  external_id: v.string(),
-  activity_type: v.string(),
+// Nested format from Soma's HealthKit transformWorkout (Terra-style)
+const activityMetadataValidator = v.object({
   start_time: v.string(),
   end_time: v.string(),
-  duration_seconds: v.optional(v.number()),
-  distance_meters: v.optional(v.number()),
-  calories_burned: v.optional(v.number()),
-  average_heart_rate: v.optional(v.number()),
-  max_heart_rate: v.optional(v.number()),
-  average_pace_seconds_per_km: v.optional(v.number()),
-  elevation_gain_meters: v.optional(v.number()),
-  source: v.optional(v.string()),
+  summary_id: v.string(),
+  type: v.number(),
+  upload_type: v.optional(v.number()),
+  name: v.optional(v.string()),
+});
+
+const activityValidator = v.object({
+  metadata: activityMetadataValidator,
+  active_durations_data: v.optional(v.any()),
+  device_data: v.optional(v.any()),
+  distance_data: v.optional(v.any()),
+  heart_rate_data: v.optional(v.any()),
+  calories_data: v.optional(v.any()),
+  movement_data: v.optional(v.any()),
   raw_payload: v.optional(v.any()),
 });
 
@@ -42,29 +47,40 @@ const sleepValidator = v.object({
   raw_payload: v.optional(v.any()),
 });
 
-const bodyValidator = v.object({
-  external_id: v.string(),
-  recorded_at: v.string(),
+const bodyMeasurementValidator = v.object({
+  measurement_time: v.string(),
   weight_kg: v.optional(v.number()),
   height_cm: v.optional(v.number()),
   body_fat_percentage: v.optional(v.number()),
   resting_heart_rate: v.optional(v.number()),
   hrv_ms: v.optional(v.number()),
   vo2_max: v.optional(v.number()),
-  source: v.optional(v.string()),
+});
+
+const bodyValidator = v.object({
+  metadata: v.object({
+    start_time: v.string(),
+    end_time: v.string(),
+  }),
+  measurements_data: v.optional(
+    v.object({
+      measurements: v.array(bodyMeasurementValidator),
+    }),
+  ),
+  device_data: v.optional(v.any()),
   raw_payload: v.optional(v.any()),
 });
 
 const dailyValidator = v.object({
-  external_id: v.string(),
-  date: v.string(),
-  steps: v.optional(v.number()),
-  active_calories: v.optional(v.number()),
-  total_calories: v.optional(v.number()),
-  distance_meters: v.optional(v.number()),
-  floors_climbed: v.optional(v.number()),
-  active_minutes: v.optional(v.number()),
-  source: v.optional(v.string()),
+  metadata: v.object({
+    start_time: v.string(),
+    end_time: v.string(),
+    upload_type: v.optional(v.number()),
+  }),
+  active_durations_data: v.optional(v.any()),
+  calories_data: v.optional(v.any()),
+  device_data: v.optional(v.any()),
+  distance_data: v.optional(v.any()),
   raw_payload: v.optional(v.any()),
 });
 
@@ -72,21 +88,23 @@ const dailyValidator = v.object({
 // Test Fixtures
 // =============================================================================
 
+/** Nested activity shape from Soma's HealthKit transformWorkout (Terra-style). */
 function createMockActivity(overrides: Partial<{
-  external_id: string;
-  activity_type: string;
-  start_time: string;
-  end_time: string;
-  duration_seconds: number;
-  distance_meters: number;
+  metadata: { start_time: string; end_time: string; summary_id: string; type: number; upload_type?: number };
+  active_durations_data: unknown;
+  device_data: unknown;
 }> = {}) {
   return {
-    external_id: "hk_workout_123",
-    activity_type: "running",
-    start_time: "2026-02-17T08:00:00.000Z",
-    end_time: "2026-02-17T08:45:00.000Z",
-    duration_seconds: 2700,
-    distance_meters: 8000,
+    metadata: {
+      start_time: "2026-02-17T08:00:00.000Z",
+      end_time: "2026-02-17T08:45:00.000Z",
+      summary_id: "hk_workout_123",
+      type: 1, // Running
+      upload_type: 1,
+      ...overrides.metadata,
+    },
+    active_durations_data: { activity_seconds: 2700 },
+    device_data: undefined,
     ...overrides,
   };
 }
@@ -106,28 +124,42 @@ function createMockSleep(overrides: Partial<{
   };
 }
 
+/** Nested body shape from Soma's HealthKit transformBody (Terra-style). */
 function createMockBody(overrides: Partial<{
-  external_id: string;
-  recorded_at: string;
-  weight_kg: number;
+  metadata: { start_time: string; end_time: string };
+  measurements_data: { measurements: Array<{ measurement_time: string; weight_kg?: number; height_cm?: number }> };
 }> = {}) {
   return {
-    external_id: "hk_body_123",
-    recorded_at: "2026-02-17T07:00:00.000Z",
-    weight_kg: 72.5,
+    metadata: {
+      start_time: "2026-02-17T07:00:00.000Z",
+      end_time: "2026-02-17T07:00:00.000Z",
+      ...overrides.metadata,
+    },
+    measurements_data: {
+      measurements: [
+        { measurement_time: "2026-02-17T07:00:00.000Z", weight_kg: 72.5 },
+      ],
+      ...overrides.measurements_data,
+    },
     ...overrides,
   };
 }
 
+/** Nested daily shape from Soma's HealthKit transformDaily (Terra-style). */
 function createMockDaily(overrides: Partial<{
-  external_id: string;
-  date: string;
-  steps: number;
+  metadata: { start_time: string; end_time: string; upload_type?: number };
+  distance_data: unknown;
+  calories_data: unknown;
 }> = {}) {
   return {
-    external_id: "hk_daily_20260217",
-    date: "2026-02-17",
-    steps: 8500,
+    metadata: {
+      start_time: "2026-02-17T00:00:00.000Z",
+      end_time: "2026-02-17T23:59:59.999Z",
+      upload_type: 1,
+      ...overrides.metadata,
+    },
+    distance_data: { steps: 8500, distance_meters: 0, floors_climbed: 0 },
+    calories_data: undefined,
     ...overrides,
   };
 }
@@ -138,34 +170,30 @@ function createMockDaily(overrides: Partial<{
 
 describe("HealthKit Sync Validators", () => {
   describe("activityValidator", () => {
-    it("accepts valid activity data", () => {
+    it("accepts valid activity data (nested Soma/Terra format)", () => {
       const activity = createMockActivity();
-      // Convex validators don't have a validate method in the same way,
-      // but we can test the shape by checking required fields
-      expect(activity.external_id).toBeDefined();
-      expect(activity.activity_type).toBeDefined();
-      expect(activity.start_time).toBeDefined();
-      expect(activity.end_time).toBeDefined();
+      expect(activity.metadata).toBeDefined();
+      expect(activity.metadata.summary_id).toBeDefined();
+      expect(activity.metadata.start_time).toBeDefined();
+      expect(activity.metadata.end_time).toBeDefined();
+      expect(typeof activity.metadata.type).toBe("number");
     });
 
-    it("accepts activity with all optional fields", () => {
+    it("accepts activity with optional fields", () => {
       const activity = {
         ...createMockActivity(),
-        calories_burned: 450,
-        average_heart_rate: 155,
-        max_heart_rate: 178,
-        average_pace_seconds_per_km: 340,
-        elevation_gain_meters: 85,
-        source: "Apple Watch",
+        distance_data: { summary: { distance_meters: 8000 } },
+        heart_rate_data: { summary: { avg_hr_bpm: 155, max_hr_bpm: 178 } },
+        calories_data: { total_burned_calories: 450 },
         raw_payload: { original: "data" },
       };
-      expect(activity.calories_burned).toBe(450);
-      expect(activity.average_heart_rate).toBe(155);
+      expect(activity.distance_data).toBeDefined();
+      expect(activity.heart_rate_data).toBeDefined();
     });
 
-    it("requires external_id as string", () => {
+    it("requires metadata.summary_id as string", () => {
       const activity = createMockActivity();
-      expect(typeof activity.external_id).toBe("string");
+      expect(typeof activity.metadata.summary_id).toBe("string");
     });
   });
 
@@ -191,43 +219,51 @@ describe("HealthKit Sync Validators", () => {
   });
 
   describe("bodyValidator", () => {
-    it("accepts valid body data", () => {
+    it("accepts valid body data (nested Soma/Terra format)", () => {
       const body = createMockBody();
-      expect(body.external_id).toBeDefined();
-      expect(body.recorded_at).toBeDefined();
+      expect(body.metadata).toBeDefined();
+      expect(body.metadata.start_time).toBeDefined();
+      expect(body.metadata.end_time).toBeDefined();
+      expect(body.measurements_data?.measurements).toBeDefined();
     });
 
-    it("accepts body with all metrics", () => {
-      const body = {
-        ...createMockBody(),
-        height_cm: 178,
-        body_fat_percentage: 18.5,
-        resting_heart_rate: 58,
-        hrv_ms: 45,
-        vo2_max: 48.5,
-      };
-      expect(body.vo2_max).toBe(48.5);
-      expect(body.hrv_ms).toBe(45);
+    it("accepts body with all metrics in measurements", () => {
+      const body = createMockBody({
+        measurements_data: {
+          measurements: [
+            {
+              measurement_time: "2026-02-17T07:00:00.000Z",
+              weight_kg: 72.5,
+              height_cm: 178,
+              body_fat_percentage: 18.5,
+              resting_heart_rate: 58,
+              hrv_ms: 45,
+              vo2_max: 48.5,
+            },
+          ],
+        },
+      });
+      expect(body.measurements_data?.measurements[0].vo2_max).toBe(48.5);
+      expect(body.measurements_data?.measurements[0].hrv_ms).toBe(45);
     });
   });
 
   describe("dailyValidator", () => {
-    it("accepts valid daily summary", () => {
+    it("accepts valid daily summary (nested Soma/Terra format)", () => {
       const daily = createMockDaily();
-      expect(daily.external_id).toBeDefined();
-      expect(daily.date).toBeDefined();
+      expect(daily.metadata).toBeDefined();
+      expect(daily.metadata.start_time).toBeDefined();
+      expect(daily.metadata.end_time).toBeDefined();
     });
 
-    it("accepts daily with all metrics", () => {
+    it("accepts daily with distance_data and calories_data", () => {
       const daily = {
         ...createMockDaily(),
-        active_calories: 450,
-        total_calories: 2100,
-        distance_meters: 12500,
-        floors_climbed: 8,
-        active_minutes: 65,
+        distance_data: { steps: 8500, distance_meters: 12500, floors_climbed: 8 },
+        calories_data: { total_burned_calories: 2100, net_activity_calories: 450 },
       };
-      expect(daily.active_minutes).toBe(65);
+      expect(daily.distance_data).toBeDefined();
+      expect(daily.calories_data).toBeDefined();
     });
   });
 });
@@ -269,27 +305,29 @@ describe("Batch Processing Logic", () => {
 // =============================================================================
 
 describe("Data Consistency", () => {
-  it("generates unique external_ids for activities", () => {
+  it("generates unique summary_ids for activities", () => {
+    const base = createMockActivity();
     const activities = [
-      createMockActivity({ external_id: "hk_workout_1" }),
-      createMockActivity({ external_id: "hk_workout_2" }),
-      createMockActivity({ external_id: "hk_workout_3" }),
+      createMockActivity({ metadata: { ...base.metadata, summary_id: "hk_workout_1" } }),
+      createMockActivity({ metadata: { ...base.metadata, summary_id: "hk_workout_2" } }),
+      createMockActivity({ metadata: { ...base.metadata, summary_id: "hk_workout_3" } }),
     ];
-    const ids = activities.map((a) => a.external_id);
+    const ids = activities.map((a) => a.metadata.summary_id);
     const uniqueIds = new Set(ids);
     expect(uniqueIds.size).toBe(activities.length);
   });
 
-  it("validates ISO date format for timestamps", () => {
+  it("validates ISO date format for activity timestamps", () => {
     const activity = createMockActivity();
     const isoRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z$/;
-    expect(activity.start_time).toMatch(isoRegex);
-    expect(activity.end_time).toMatch(isoRegex);
+    expect(activity.metadata.start_time).toMatch(isoRegex);
+    expect(activity.metadata.end_time).toMatch(isoRegex);
   });
 
-  it("validates date format for daily summaries", () => {
+  it("validates ISO range format for daily metadata", () => {
     const daily = createMockDaily();
-    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-    expect(daily.date).toMatch(dateRegex);
+    const isoRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z$/;
+    expect(daily.metadata.start_time).toMatch(isoRegex);
+    expect(daily.metadata.end_time).toMatch(isoRegex);
   });
 });
