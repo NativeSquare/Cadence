@@ -250,19 +250,19 @@ function toSomaWorkout(proxy: WorkoutProxy): HKWorkout {
     totalFlightsClimbed: proxy.totalFlightsClimbed?.quantity,
     source: proxy.sourceRevision
       ? {
-          name: proxy.sourceRevision.source?.name ?? "",
-          bundleIdentifier:
-            proxy.sourceRevision.source?.bundleIdentifier ?? "",
-        }
+        name: proxy.sourceRevision.source?.name ?? "",
+        bundleIdentifier:
+          proxy.sourceRevision.source?.bundleIdentifier ?? "",
+      }
       : undefined,
     device: proxy.device
       ? {
-          name: proxy.device.name ?? undefined,
-          manufacturer: proxy.device.manufacturer ?? undefined,
-          model: proxy.device.model ?? undefined,
-          hardwareVersion: proxy.device.hardwareVersion ?? undefined,
-          softwareVersion: proxy.device.softwareVersion ?? undefined,
-        }
+        name: proxy.device.name ?? undefined,
+        manufacturer: proxy.device.manufacturer ?? undefined,
+        model: proxy.device.model ?? undefined,
+        hardwareVersion: proxy.device.hardwareVersion ?? undefined,
+        softwareVersion: proxy.device.softwareVersion ?? undefined,
+      }
       : undefined,
   };
 }
@@ -292,19 +292,19 @@ function toSomaQuantitySample(sample: {
     unit: sample.unit,
     source: sample.sourceRevision?.source
       ? {
-          name: sample.sourceRevision.source.name ?? "",
-          bundleIdentifier:
-            sample.sourceRevision.source.bundleIdentifier ?? "",
-        }
+        name: sample.sourceRevision.source.name ?? "",
+        bundleIdentifier:
+          sample.sourceRevision.source.bundleIdentifier ?? "",
+      }
       : undefined,
     device: sample.device
       ? {
-          name: sample.device.name ?? undefined,
-          manufacturer: sample.device.manufacturer ?? undefined,
-          model: sample.device.model ?? undefined,
-          hardwareVersion: sample.device.hardwareVersion ?? undefined,
-          softwareVersion: sample.device.softwareVersion ?? undefined,
-        }
+        name: sample.device.name ?? undefined,
+        manufacturer: sample.device.manufacturer ?? undefined,
+        model: sample.device.model ?? undefined,
+        hardwareVersion: sample.device.hardwareVersion ?? undefined,
+        softwareVersion: sample.device.softwareVersion ?? undefined,
+      }
       : undefined,
   };
 }
@@ -332,18 +332,18 @@ function toSomaCategorySample(sample: {
     value: sample.value,
     source: sample.sourceRevision?.source
       ? {
-          name: sample.sourceRevision.source.name ?? "",
-          bundleIdentifier:
-            sample.sourceRevision.source.bundleIdentifier ?? "",
-        }
+        name: sample.sourceRevision.source.name ?? "",
+        bundleIdentifier:
+          sample.sourceRevision.source.bundleIdentifier ?? "",
+      }
       : undefined,
     device: sample.device
       ? {
-          name: sample.device.name ?? undefined,
-          manufacturer: sample.device.manufacturer ?? undefined,
-          hardwareVersion: sample.device.hardwareVersion ?? undefined,
-          softwareVersion: sample.device.softwareVersion ?? undefined,
-        }
+        name: sample.device.name ?? undefined,
+        manufacturer: sample.device.manufacturer ?? undefined,
+        hardwareVersion: sample.device.hardwareVersion ?? undefined,
+        softwareVersion: sample.device.softwareVersion ?? undefined,
+      }
       : undefined,
   };
 }
@@ -638,6 +638,41 @@ async function transformAllWorkouts(
   });
 }
 
+/**
+ * Enrich Soma-transformed activities with distance and calories from HealthKit.
+ * Soma's transformWorkout() only receives the base HKWorkout and does not
+ * include distance/calories; HealthKit often stores run distance in linked
+ * statistics, so we resolve them per workout and attach Terra-style fields.
+ */
+function enrichActivitiesWithDistanceAndCalories(
+  activities: ActivityData[],
+  workouts: WorkoutProxy[],
+  distanceMap: Map<string, number>,
+): void {
+  for (let i = 0; i < activities.length; i++) {
+    const activity = activities[i] as Record<string, unknown>;
+    const workout = workouts[i];
+    if (!workout) continue;
+
+    const distanceKm = distanceMap.get(workout.uuid);
+    if (distanceKm != null && distanceKm > 0) {
+      activity.distance_data = {
+        summary: {
+          distance_meters: Math.round(distanceKm * 1000),
+        },
+      };
+    }
+
+    const energy = (workout as { totalEnergyBurned?: { quantity?: number } })
+      .totalEnergyBurned?.quantity;
+    if (energy != null && energy > 0) {
+      activity.calories_data = {
+        total_burned_calories: Math.round(energy),
+      };
+    }
+  }
+}
+
 function transformAllSleep(
   rawSamples: Awaited<ReturnType<typeof querySleepSamples>>,
 ): SleepData[] {
@@ -772,6 +807,7 @@ async function queryVO2Max(): Promise<number | undefined> {
 export async function calculateRunnerAggregates(
   workouts: WorkoutProxy[],
   vo2max?: number,
+  distanceMap?: Map<string, number>,
 ): Promise<RunnerAggregates> {
   if (workouts.length === 0) {
     return {
@@ -789,7 +825,8 @@ export async function calculateRunnerAggregates(
     (a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime(),
   );
 
-  const distances = await resolveDistances(sorted);
+  const distances =
+    distanceMap ?? (await resolveDistances(sorted));
 
   const weeklyVolumes = calculateWeeklyVolumes(sorted, distances);
   const avgWeeklyVolume =
@@ -989,11 +1026,21 @@ export async function importAllHealthKitData(
     queryVO2Max(),
   ]);
 
+  // Resolve distances for all workouts once (used for activity enrichment and aggregates)
+  const distanceMap = await resolveDistances(allWorkouts);
+
   // Transform and calculate aggregates in parallel
   const [activities, aggregates] = await Promise.all([
     transformAllWorkouts(allWorkouts),
-    calculateRunnerAggregates(runningWorkouts, vo2max),
+    calculateRunnerAggregates(runningWorkouts, vo2max, distanceMap),
   ]);
+
+  // Enrich activities with distance and calories (Soma transform doesn't include these)
+  enrichActivitiesWithDistanceAndCalories(
+    activities,
+    allWorkouts,
+    distanceMap,
+  );
 
   const sleep = transformAllSleep(sleepRaw);
   const body = transformAllBody(bodyRaw);
@@ -1020,6 +1067,36 @@ export async function importAllHealthKitData(
 
   const summary =
     parts.length > 0 ? `Imported ${parts.join(", ")}` : "No health data found";
+
+  if (__DEV__) {
+    const transformedSummary = {
+      activities: activities.length,
+      sleep: sleep.length,
+      body: body.length,
+      daily: daily.length,
+      nutrition: nutrition.length,
+      menstruation: menstruation.length,
+      athlete: athlete != null,
+      aggregates,
+      totalRuns,
+    };
+    console.log(
+      "[HealthKit] Transformed data (to Soma):",
+      JSON.stringify(transformedSummary, null, 2),
+    );
+    if (activities.length > 0) {
+      console.log(
+        "[HealthKit] Transformed activity sample (first):",
+        JSON.stringify(activities[0], null, 2),
+      );
+    }
+    if (sleep.length > 0) {
+      console.log(
+        "[HealthKit] Transformed sleep sample (first):",
+        JSON.stringify(sleep[0], null, 2),
+      );
+    }
+  }
 
   return {
     activities,
