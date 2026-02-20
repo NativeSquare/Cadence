@@ -5,21 +5,13 @@
  * Features:
  * - 2x2 grid layout
  * - Cards: Total Distance, Sessions, Longest Run, Avg HR
- * - Count-up animation on values
+ * - Staggered entrance animations via Reanimated entering prop (UI thread)
  * - Avg HR card uses dark theme (inverted colors)
- * - Staggered entrance animations (80ms delay per card)
  */
 
+import { memo, useMemo } from "react";
 import { View, useWindowDimensions } from "react-native";
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withDelay,
-  withTiming,
-  Easing,
-  FadeInUp,
-} from "react-native-reanimated";
-import { useEffect, useMemo } from "react";
+import Animated, { FadeInUp, Easing } from "react-native-reanimated";
 import { Text } from "@/components/ui/text";
 import { COLORS, LIGHT_THEME, ACTIVITY_COLORS } from "@/lib/design-tokens";
 import { MOCK_STATS } from "./mock-data";
@@ -33,7 +25,6 @@ export interface StatItem {
 }
 
 export interface StatsGridProps {
-  /** Stats data */
   stats?: {
     totalDistance: number;
     totalPlanned: number;
@@ -44,67 +35,32 @@ export interface StatsGridProps {
     avgHR: number;
     avgHRChange: number;
   };
-  /** Whether to animate on mount */
-  animate?: boolean;
 }
 
-/** Individual stat card component */
-function StatCard({
+const StatCard = memo(function StatCard({
   stat,
   index,
-  animate,
   cardWidth,
 }: {
   stat: StatItem;
   index: number;
-  animate: boolean;
   cardWidth: number;
 }) {
-  // Animation values
-  const opacity = useSharedValue(animate ? 0 : 1);
-  const translateY = useSharedValue(animate ? 8 : 0);
-
-  useEffect(() => {
-    if (animate) {
-      const delay = 300 + index * 80;
-      opacity.value = withDelay(
-        delay,
-        withTiming(1, {
-          duration: 400,
-          easing: Easing.out(Easing.cubic),
-        })
-      );
-      translateY.value = withDelay(
-        delay,
-        withTiming(0, {
-          duration: 400,
-          easing: Easing.out(Easing.cubic),
-        })
-      );
-    }
-  }, [animate, index]);
-
-  const cardAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: opacity.value,
-    transform: [{ translateY: translateY.value }],
-  }));
-
   const isDark = stat.dark;
 
   return (
     <Animated.View
+      entering={FadeInUp.delay(300 + index * 80)
+        .duration(400)
+        .easing(Easing.out(Easing.cubic))}
       className="p-4 rounded-2xl"
-      style={[
-        {
-          width: cardWidth,
-          backgroundColor: isDark ? "#1A1A1A" : LIGHT_THEME.w1,
-          borderWidth: isDark ? 0 : 1,
-          borderColor: isDark ? "transparent" : LIGHT_THEME.wBrd,
-        },
-        cardAnimatedStyle,
-      ]}
+      style={{
+        width: cardWidth,
+        backgroundColor: isDark ? "#1A1A1A" : LIGHT_THEME.w1,
+        borderWidth: isDark ? 0 : 1,
+        borderColor: isDark ? "transparent" : LIGHT_THEME.wBrd,
+      }}
     >
-      {/* Label */}
       <Text
         className="text-[11px] font-coach-medium mb-[6px]"
         style={{
@@ -114,7 +70,6 @@ function StatCard({
         {stat.label}
       </Text>
 
-      {/* Value row */}
       <View className="flex-row items-baseline gap-[2px]">
         <Text
           className="text-[26px] font-coach-extrabold"
@@ -136,7 +91,6 @@ function StatCard({
         )}
       </View>
 
-      {/* Sub text */}
       <Text
         className="text-[11px] font-coach mt-1"
         style={{
@@ -147,23 +101,17 @@ function StatCard({
       </Text>
     </Animated.View>
   );
-}
+});
 
-/**
- * StatsGrid main component
- */
 export function StatsGrid({
   stats = MOCK_STATS,
-  animate = true,
 }: StatsGridProps) {
   const { width: screenWidth } = useWindowDimensions();
-  // Calculate card width: (screen - padding*2 - gap) / 2
   const cardWidth = useMemo(() => {
-    const availableWidth = screenWidth - 32 - 8; // 16px padding each side, 8px gap
+    const availableWidth = screenWidth - 32 - 8;
     return (availableWidth / 2) - 4;
   }, [screenWidth]);
 
-  // Build stats items array
   const statItems: StatItem[] = useMemo(
     () => [
       {
@@ -201,7 +149,6 @@ export function StatsGrid({
           key={stat.label}
           stat={stat}
           index={index}
-          animate={animate}
           cardWidth={cardWidth}
         />
       ))}

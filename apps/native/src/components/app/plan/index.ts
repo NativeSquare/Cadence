@@ -11,7 +11,6 @@ export { CalendarStrip } from "./CalendarStrip";
 export { TodayCard } from "./TodayCard";
 export { SessionPreview } from "./SessionPreview";
 export { WeekStatsRow } from "./WeekStatsRow";
-export { EditPlanFAB } from "./EditPlanFAB";
 
 // Types
 export type { SessionData, PlanData, SessionIntensity } from "./types";

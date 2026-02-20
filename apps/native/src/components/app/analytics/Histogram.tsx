@@ -1,180 +1,142 @@
 /**
- * Histogram Component - Reusable bar chart with animations
+ * Histogram Component - Daily KM bar chart with staggered grow animation
  * Reference: cadence-full-v9.jsx lines 407-428
  *
- * Features:
- * - Takes data[], labels[], maxVal, accentIdx props
- * - Bar animation from 0 to value using reanimated
- * - Staggered delay per bar (60ms each)
- * - Accent bar styling for highlighted day
- * - Value labels above bars
+ * Each bar grows from bottom with a per-bar staggered delay (i * 60ms),
+ * matching the prototype's CSS transition. Uses Reanimated shared values
+ * driving Skia RoundedRect elements — all on the GPU thread.
  */
 
+import React, { useEffect } from "react";
 import { View } from "react-native";
-import Animated, {
-  useAnimatedStyle,
+import { CartesianChart, type PointsArray } from "victory-native";
+import { RoundedRect, useFont } from "@shopify/react-native-skia";
+import {
   useSharedValue,
+  useDerivedValue,
   withDelay,
   withTiming,
+  cancelAnimation,
   Easing,
 } from "react-native-reanimated";
-import { useEffect, useMemo } from "react";
-import { Text } from "@/components/ui/text";
+import { Outfit_400Regular } from "@expo-google-fonts/outfit";
 import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
+import { DAY_LABELS } from "./mock-data";
+import type { HistogramDatum } from "@/hooks/use-analytics-data";
+
+const BAR_EASING = Easing.bezier(0.4, 0, 0.2, 1);
 
 export interface HistogramProps {
-  /** Data values for each bar */
-  data: number[];
-  /** Labels for each bar (e.g., ["M", "T", "W", "T", "F", "S", "S"]) */
-  labels: string[];
-  /** Maximum value for scale (if not provided, uses max(data) * 1.2) */
-  maxVal?: number;
-  /** Index of the accent/highlighted bar (usually current day) */
+  data: HistogramDatum[];
   accentIdx?: number;
-  /** Whether to animate on mount */
-  animate?: boolean;
-  /** Chart height (default: 100) */
   chartHeight?: number;
 }
 
-/** Individual bar component */
-function HistogramBar({
-  value,
-  label,
-  maxVal,
-  isAccent,
-  index,
-  animate,
-  chartHeight,
+function AnimatedBar({
+  targetHeight,
+  x,
+  width,
+  bottom,
+  color,
+  delayMs,
 }: {
-  value: number;
-  label: string;
-  maxVal: number;
-  isAccent: boolean;
-  index: number;
-  animate: boolean;
-  chartHeight: number;
+  targetHeight: number;
+  x: number;
+  width: number;
+  bottom: number;
+  color: string;
+  delayMs: number;
 }) {
-  // Calculate bar height percentage
-  const targetHeight = value > 0 ? Math.max(6, (value / maxVal) * 100) : 4;
-  const barHeight = useSharedValue(animate ? 0 : targetHeight);
+  const progress = useSharedValue(0);
 
   useEffect(() => {
-    if (animate) {
-      barHeight.value = withDelay(
-        500 + index * 60, // 500ms initial delay + 60ms per bar
-        withTiming(targetHeight, {
-          duration: 600,
-          easing: Easing.bezier(0.4, 0, 0.2, 1),
-        })
-      );
-    }
-  }, [animate, index, targetHeight]);
+    progress.value = withDelay(
+      delayMs,
+      withTiming(1, { duration: 600, easing: BAR_EASING })
+    );
+    return () => cancelAnimation(progress);
+  }, []);
 
-  const barAnimatedStyle = useAnimatedStyle(() => ({
-    height: (barHeight.value / 100) * chartHeight,
-  }));
-
-  const labelOpacity = useSharedValue(animate ? 0 : 1);
-
-  useEffect(() => {
-    if (animate && value > 0) {
-      labelOpacity.value = withDelay(
-        700 + index * 60, // Slightly after bar animation
-        withTiming(1, { duration: 200 })
-      );
-    }
-  }, [animate, index, value]);
-
-  const labelAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: labelOpacity.value,
-  }));
-
-  // Determine bar color
-  const barColor =
-    value === 0
-      ? LIGHT_THEME.w3
-      : isAccent
-        ? COLORS.lime
-        : LIGHT_THEME.w3;
+  const animHeight = useDerivedValue(() => progress.value * targetHeight);
+  const animY = useDerivedValue(() => bottom - animHeight.value);
 
   return (
-    <View className="flex-1 items-center gap-[6px]">
-      {/* Bar container */}
-      <View
-        className="w-full items-center justify-end relative"
-        style={{ height: chartHeight }}
-      >
-        {/* The bar */}
-        <Animated.View
-          className="w-full rounded-[6px]"
-          style={[{ backgroundColor: barColor }, barAnimatedStyle]}
-        />
-        {/* Value label above bar (only if value > 0) */}
-        {value > 0 && (
-          <Animated.View
-            className="absolute left-0 right-0 items-center"
-            style={[{ bottom: chartHeight + 6 }, labelAnimatedStyle]}
-          >
-            <Text
-              className="text-[10px] font-coach text-center"
-              style={{
-                fontWeight: isAccent ? "700" : "400",
-                color: isAccent ? LIGHT_THEME.wText : LIGHT_THEME.wMute,
-              }}
-            >
-              {value}
-            </Text>
-          </Animated.View>
-        )}
-      </View>
-      {/* Day label */}
-      <Text
-        className="text-[10px] font-coach"
-        style={{
-          fontWeight: isAccent ? "700" : "400",
-          color: isAccent ? LIGHT_THEME.wText : LIGHT_THEME.wMute,
-        }}
-      >
-        {label}
-      </Text>
-    </View>
+    <RoundedRect
+      x={x}
+      y={animY}
+      width={width}
+      height={animHeight}
+      r={6}
+      color={color}
+    />
   );
 }
 
-/**
- * Histogram main component
- */
-export function Histogram({
-  data,
-  labels,
-  maxVal,
+function HistogramBars({
+  points,
+  chartBounds,
   accentIdx,
-  animate = true,
-  chartHeight = 100,
-}: HistogramProps) {
-  // Calculate max value for scale
-  const maxValue = useMemo(() => {
-    return maxVal || Math.max(...data) * 1.2;
-  }, [data, maxVal]);
+}: {
+  points: PointsArray;
+  chartBounds: { bottom: number; left: number; right: number };
+  accentIdx?: number;
+}) {
+  const barCount = points.length;
+  const totalWidth = chartBounds.right - chartBounds.left;
+  const barWidth = (totalWidth / barCount) * 0.6;
 
   return (
-    <View
-      className="flex-row items-end gap-[6px] px-[2px]"
-      style={{ height: chartHeight + 24 }} // Extra height for labels
-    >
-      {data.map((value, index) => (
-        <HistogramBar
-          key={index}
-          value={value}
-          label={labels[index]}
-          maxVal={maxValue}
-          isAccent={index === accentIdx}
-          index={index}
-          animate={animate}
-          chartHeight={chartHeight}
-        />
-      ))}
+    <>
+      {points.map((point, i) => {
+        if (point.y == null) return null;
+        const targetHeight = chartBounds.bottom - point.y;
+        const color = i === accentIdx ? COLORS.lime : LIGHT_THEME.w3;
+        return (
+          <AnimatedBar
+            key={i}
+            targetHeight={targetHeight}
+            x={point.x - barWidth / 2}
+            width={barWidth}
+            bottom={chartBounds.bottom}
+            color={color}
+            delayMs={i * 60}
+          />
+        );
+      })}
+    </>
+  );
+}
+
+export function Histogram({
+  data,
+  accentIdx,
+  chartHeight = 124,
+}: HistogramProps) {
+  const font = useFont(Outfit_400Regular, 10);
+
+  return (
+    <View style={{ height: chartHeight }}>
+      <CartesianChart
+        data={data}
+        xKey="day"
+        yKeys={["km"]}
+        domainPadding={{ left: 20, right: 20, top: 20 }}
+        axisOptions={{
+          font,
+          formatXLabel: (v) => DAY_LABELS[v] ?? "",
+          tickCount: { x: 7, y: 0 },
+          lineColor: "transparent",
+          labelColor: LIGHT_THEME.wMute,
+        }}
+      >
+        {({ points, chartBounds }) => (
+          <HistogramBars
+            points={points.km}
+            chartBounds={chartBounds}
+            accentIdx={accentIdx}
+          />
+        )}
+      </CartesianChart>
     </View>
   );
 }

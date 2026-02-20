@@ -12,9 +12,8 @@ export {
   StackedHistogram,
   ZoneLegend,
   type StackedHistogramProps,
-  type ZoneData,
 } from "./StackedHistogram";
-export { LineChart, VolumeChart, PaceChart, type LineChartProps } from "./LineChart";
+export { VolumeChart, PaceChart, type LineChartProps } from "./LineChart";
 export { StatsGrid, type StatsGridProps, type StatItem } from "./StatsGrid";
 
 // Mock data exports for development

@@ -1,182 +1,219 @@
 /**
- * StackedHistogram Component - Zone split stacked bar chart
+ * StackedHistogram Component - Zone split stacked bar chart with clip-reveal animation
  * Reference: cadence-full-v9.jsx lines 430-452
  *
- * Features:
- * - Takes data[] with z2/z3/z4 percentages
- * - Stacked bar segments with zone colors
- * - Legend integration (Z4-5, Z3, Z2)
- * - Zone colors: Z4-5=#A8D900, Z3=#7CB342, Z2=#5B9EFF
+ * Each bar uses a Skia Group with an animated clip rect that reveals
+ * statically-positioned zone segments from bottom to top.
+ * Per-bar staggered delay (i * 60ms) matches the prototype.
  */
 
+import React, { useEffect, useMemo } from "react";
 import { View } from "react-native";
-import Animated, {
-  useAnimatedStyle,
+import { CartesianChart, type PointsArray } from "victory-native";
+import { RoundedRect, Rect, Group, useFont } from "@shopify/react-native-skia";
+import {
   useSharedValue,
+  useDerivedValue,
   withDelay,
   withTiming,
+  cancelAnimation,
   Easing,
 } from "react-native-reanimated";
-import { useEffect } from "react";
+import { Outfit_400Regular } from "@expo-google-fonts/outfit";
 import { Text } from "@/components/ui/text";
 import { COLORS, LIGHT_THEME, ACTIVITY_COLORS } from "@/lib/design-tokens";
+import { DAY_LABELS } from "./mock-data";
+import type { ZoneChartDatum } from "@/hooks/use-analytics-data";
 
-export interface ZoneData {
-  z2: number; // Zone 2 percentage (0-100)
-  z3: number; // Zone 3 percentage (0-100)
-  z4: number; // Zone 4-5 percentage (0-100)
-}
+const BAR_EASING = Easing.bezier(0.4, 0, 0.2, 1);
 
 export interface StackedHistogramProps {
-  /** Zone split data for each day */
-  data: ZoneData[];
-  /** Labels for each bar (e.g., ["M", "T", "W", "T", "F", "S", "S"]) */
-  labels: string[];
-  /** Index of the accent/highlighted bar (usually current day) */
+  data: ZoneChartDatum[];
   accentIdx?: number;
-  /** Whether to animate on mount */
-  animate?: boolean;
-  /** Chart height (default: 90) */
   chartHeight?: number;
 }
 
-/** Individual stacked bar component */
-function StackedBar({
-  zoneData,
-  label,
+function AnimatedStackedBar({
+  z2,
+  z3,
+  z4,
+  x,
+  width,
+  bottom,
+  barTop,
+  delayMs,
   isAccent,
-  index,
-  animate,
-  chartHeight,
 }: {
-  zoneData: ZoneData;
-  label: string;
+  z2: number;
+  z3: number;
+  z4: number;
+  x: number;
+  width: number;
+  bottom: number;
+  barTop: number;
+  delayMs: number;
   isAccent: boolean;
-  index: number;
-  animate: boolean;
-  chartHeight: number;
 }) {
-  const total = zoneData.z2 + zoneData.z3 + zoneData.z4;
-  const isEmpty = total === 0;
-
-  // Animation values for each zone segment
-  const z4Height = useSharedValue(animate ? 0 : (zoneData.z4 / 100) * chartHeight);
-  const z3Height = useSharedValue(animate ? 0 : (zoneData.z3 / 100) * chartHeight);
-  const z2Height = useSharedValue(animate ? 0 : (zoneData.z2 / 100) * chartHeight);
+  const total = z2 + z3 + z4;
+  const progress = useSharedValue(0);
 
   useEffect(() => {
-    if (animate && !isEmpty) {
-      const baseDelay = 600 + index * 60;
-      z4Height.value = withDelay(
-        baseDelay,
-        withTiming((zoneData.z4 / 100) * chartHeight, {
-          duration: 600,
-          easing: Easing.bezier(0.4, 0, 0.2, 1),
-        })
-      );
-      z3Height.value = withDelay(
-        baseDelay + 50,
-        withTiming((zoneData.z3 / 100) * chartHeight, {
-          duration: 600,
-          easing: Easing.bezier(0.4, 0, 0.2, 1),
-        })
-      );
-      z2Height.value = withDelay(
-        baseDelay + 100,
-        withTiming((zoneData.z2 / 100) * chartHeight, {
-          duration: 600,
-          easing: Easing.bezier(0.4, 0, 0.2, 1),
-        })
+    if (total > 0) {
+      progress.value = withDelay(
+        delayMs,
+        withTiming(1, { duration: 600, easing: BAR_EASING })
       );
     }
-  }, [animate, index, zoneData, chartHeight, isEmpty]);
+    return () => cancelAnimation(progress);
+  }, []);
 
-  const z4Style = useAnimatedStyle(() => ({ height: z4Height.value }));
-  const z3Style = useAnimatedStyle(() => ({ height: z3Height.value }));
-  const z2Style = useAnimatedStyle(() => ({ height: z2Height.value }));
+  if (total === 0) {
+    return (
+      <RoundedRect
+        x={x}
+        y={bottom - 4}
+        width={width}
+        height={4}
+        r={2}
+        color={LIGHT_THEME.w3}
+      />
+    );
+  }
 
-  // Colors based on accent state
+  const totalH = bottom - barTop;
+  const z2H = totalH * (z2 / total);
+  const z3H = totalH * (z3 / total);
+  const z4H = totalH * (z4 / total);
+
+  const z2Y = bottom - z2H;
+  const z3Y = z2Y - z3H;
+  const z4Y = z3Y - z4H;
+
+  const clip = useDerivedValue(() => ({
+    x: x - 1,
+    y: bottom - totalH * progress.value,
+    width: width + 2,
+    height: totalH * progress.value + 1,
+  }));
+
   const z4Color = isAccent ? COLORS.lime : ACTIVITY_COLORS.barHigh;
   const z3Color = isAccent ? "rgba(200,255,0,0.5)" : ACTIVITY_COLORS.barEasy;
   const z2Color = isAccent ? "rgba(200,255,0,0.25)" : ACTIVITY_COLORS.barRest;
 
   return (
-    <View className="flex-1 items-center gap-[6px]">
-      {/* Stacked bar container */}
-      <View
-        className="w-full justify-end gap-[1.5px]"
-        style={{ height: chartHeight }}
-      >
-        {isEmpty ? (
-          // Empty/rest day indicator
-          <View
-            className="w-full h-1 rounded-[6px]"
-            style={{ backgroundColor: LIGHT_THEME.w3 }}
-          />
-        ) : (
-          <>
-            {/* Z4-5 segment (top) */}
-            <Animated.View
-              className="w-full"
-              style={[
-                {
-                  backgroundColor: z4Color,
-                  opacity: isAccent ? 1 : 0.6,
-                  borderTopLeftRadius: 6,
-                  borderTopRightRadius: 6,
-                },
-                z4Style,
-              ]}
-            />
-            {/* Z3 segment (middle) */}
-            <Animated.View
-              className="w-full"
-              style={[
-                {
-                  backgroundColor: z3Color,
-                  opacity: isAccent ? 1 : 0.5,
-                },
-                z3Style,
-              ]}
-            />
-            {/* Z2 segment (bottom) */}
-            <Animated.View
-              className="w-full"
-              style={[
-                {
-                  backgroundColor: z2Color,
-                  opacity: isAccent ? 1 : 0.4,
-                  borderBottomLeftRadius: 6,
-                  borderBottomRightRadius: 6,
-                },
-                z2Style,
-              ]}
-            />
-          </>
-        )}
-      </View>
-      {/* Day label */}
-      <Text
-        className="text-[10px] font-coach"
-        style={{
-          fontWeight: isAccent ? "700" : "400",
-          color: isAccent ? LIGHT_THEME.wText : LIGHT_THEME.wMute,
+    <Group clip={clip}>
+      {z4 > 0 && (
+        <RoundedRect
+          x={x}
+          y={z4Y}
+          width={width}
+          height={z4H}
+          r={6}
+          color={z4Color}
+          opacity={isAccent ? 1 : 0.6}
+        />
+      )}
+      {z3 > 0 && (
+        <Rect
+          x={x}
+          y={z3Y}
+          width={width}
+          height={z3H}
+          color={z3Color}
+          opacity={isAccent ? 1 : 0.5}
+        />
+      )}
+      {z2 > 0 && (
+        <RoundedRect
+          x={x}
+          y={z2Y}
+          width={width}
+          height={z2H}
+          r={6}
+          color={z2Color}
+          opacity={isAccent ? 1 : 0.4}
+        />
+      )}
+    </Group>
+  );
+}
+
+function StackedBars({
+  data,
+  xPoints,
+  chartBounds,
+  accentIdx,
+}: {
+  data: ZoneChartDatum[];
+  xPoints: PointsArray;
+  chartBounds: { top: number; bottom: number; left: number; right: number };
+  accentIdx?: number;
+}) {
+  const totalWidth = chartBounds.right - chartBounds.left;
+  const barWidth = (totalWidth / xPoints.length) * 0.6;
+
+  return (
+    <>
+      {data.map((datum, i) => (
+        <AnimatedStackedBar
+          key={i}
+          z2={datum.z2}
+          z3={datum.z3}
+          z4={datum.z4}
+          x={xPoints[i].x - barWidth / 2}
+          width={barWidth}
+          bottom={chartBounds.bottom}
+          barTop={xPoints[i].y ?? chartBounds.bottom}
+          delayMs={i * 60}
+          isAccent={i === accentIdx}
+        />
+      ))}
+    </>
+  );
+}
+
+export function StackedHistogram({
+  data,
+  accentIdx,
+  chartHeight = 114,
+}: StackedHistogramProps) {
+  const font = useFont(Outfit_400Regular, 10);
+
+  const chartData = useMemo(
+    () => data.map((d) => ({ ...d, total: d.z2 + d.z3 + d.z4 })),
+    [data]
+  );
+
+  return (
+    <View style={{ height: chartHeight }}>
+      <CartesianChart
+        data={chartData}
+        xKey="day"
+        yKeys={["total"]}
+        domain={{ y: [0, 100] }}
+        domainPadding={{ left: 20, right: 20, top: 10 }}
+        axisOptions={{
+          font,
+          formatXLabel: (v) => DAY_LABELS[v] ?? "",
+          tickCount: { x: 7, y: 0 },
+          lineColor: "transparent",
+          labelColor: LIGHT_THEME.wMute,
         }}
       >
-        {label}
-      </Text>
+        {({ points, chartBounds }) => (
+          <StackedBars
+            data={data}
+            xPoints={points.total}
+            chartBounds={chartBounds}
+            accentIdx={accentIdx}
+          />
+        )}
+      </CartesianChart>
     </View>
   );
 }
 
-/** Zone legend item */
-function ZoneLegendItem({
-  label,
-  color,
-}: {
-  label: string;
-  color: string;
-}) {
+function ZoneLegendItem({ label, color }: { label: string; color: string }) {
   return (
     <View className="flex-row items-center gap-[3px]">
       <View
@@ -188,40 +225,6 @@ function ZoneLegendItem({
   );
 }
 
-/**
- * StackedHistogram main component
- */
-export function StackedHistogram({
-  data,
-  labels,
-  accentIdx,
-  animate = true,
-  chartHeight = 90,
-}: StackedHistogramProps) {
-  return (
-    <View>
-      {/* Bars */}
-      <View
-        className="flex-row items-end gap-[6px] px-[2px]"
-        style={{ height: chartHeight + 24 }}
-      >
-        {data.map((zoneData, index) => (
-          <StackedBar
-            key={index}
-            zoneData={zoneData}
-            label={labels[index]}
-            isAccent={index === accentIdx}
-            index={index}
-            animate={animate}
-            chartHeight={chartHeight}
-          />
-        ))}
-      </View>
-    </View>
-  );
-}
-
-/** Zone legend row - exported separately for flexible placement */
 export function ZoneLegend() {
   return (
     <View className="flex-row gap-2">

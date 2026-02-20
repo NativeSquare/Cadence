@@ -9,7 +9,6 @@
  * - Today's session card with coach message
  * - Coming up section with upcoming sessions
  * - Weekly stats row
- * - Edit Plan FAB
  */
 
 import { useState, useCallback } from "react";
@@ -32,7 +31,6 @@ import { CalendarStrip } from "./CalendarStrip";
 import { TodayCard } from "./TodayCard";
 import { SessionPreview } from "./SessionPreview";
 import { WeekStatsRow } from "./WeekStatsRow";
-import { EditPlanFAB } from "./EditPlanFAB";
 import { MOCK_PLAN_DATA } from "./mock-data";
 import { TODAY_INDEX, DAYS, DATES } from "./types";
 
@@ -188,9 +186,6 @@ export function PlanScreen() {
           </View>
         </View>
       </ScrollView>
-
-      {/* Edit Plan FAB */}
-      <EditPlanFAB />
     </View>
   );
 }

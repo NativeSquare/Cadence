@@ -85,7 +85,10 @@ function RootStack() {
   const { colorScheme } = useColorScheme();
   const { isAuthenticated, isLoading } = useConvexAuth();
   const { signOut } = useAuthActions();
-  const user = useQuery(api.table.users.currentUser);
+  const user = useQuery(
+    api.table.users.currentUser,
+    isAuthenticated ? {} : "skip"
+  );
   const runner = useQuery(
     api.table.runners.getCurrentRunner,
     isAuthenticated ? {} : "skip"

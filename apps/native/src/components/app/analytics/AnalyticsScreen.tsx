@@ -10,11 +10,11 @@
  * - Zone split stacked histogram
  * - Volume and pace trend line charts
  * - Stats grid (2x2)
- * - All charts animate on mount
+ * - All charts animate on mount (self-contained per component)
  */
 
-import { useState, useEffect } from "react";
-import { View, ScrollView } from "react-native";
+import { View } from "react-native";
+import Animated from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text } from "@/components/ui/text";
 import { LIGHT_THEME, ACTIVITY_COLORS } from "@/lib/design-tokens";
@@ -38,14 +38,7 @@ import { useAnalyticsData } from "@/hooks/use-analytics-data";
  */
 export function AnalyticsScreen() {
   const insets = useSafeAreaInsets();
-  const [animated, setAnimated] = useState(false);
   const { data, isLoading, error } = useAnalyticsData();
-
-  // Trigger animations on mount
-  useEffect(() => {
-    const timer = setTimeout(() => setAnimated(true), 400);
-    return () => clearTimeout(timer);
-  }, []);
 
   // Loading state
   if (isLoading || !data) {
@@ -69,7 +62,7 @@ export function AnalyticsScreen() {
 
   return (
     <View className="flex-1 bg-black relative">
-      <ScrollView
+      <Animated.ScrollView
         className="flex-1"
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 120 }}
@@ -102,7 +95,7 @@ export function AnalyticsScreen() {
           <View className="px-4 py-[22px]">
             {/* Plan Progress */}
             <View className="mb-3">
-              <PlanProgress data={data.planProgress} animate={animated} />
+              <PlanProgress data={data.planProgress} />
             </View>
 
             {/* Volume + Streak Cards Row */}
@@ -111,12 +104,10 @@ export function AnalyticsScreen() {
                 currentVolume={data.volumeStats.currentVolume}
                 plannedVolume={data.volumeStats.plannedVolume}
                 weekOverWeekChange={data.volumeStats.weekOverWeekChange}
-                animate={animated}
               />
               <StreakCard
                 streak={data.volumeStats.streak}
                 streakDays={data.volumeStats.streakDays}
-                animate={animated}
               />
             </View>
 
@@ -149,11 +140,8 @@ export function AnalyticsScreen() {
                 </View>
               </View>
               <Histogram
-                data={data.weeklyKm}
-                labels={data.dayLabels}
-                maxVal={18}
+                data={data.histogramChartData}
                 accentIdx={data.todayIndex}
-                animate={animated}
               />
             </View>
 
@@ -169,10 +157,8 @@ export function AnalyticsScreen() {
                 <ZoneLegend />
               </View>
               <StackedHistogram
-                data={data.zoneData}
-                labels={data.dayLabels}
+                data={data.zoneChartData}
                 accentIdx={data.todayIndex}
-                animate={animated}
               />
             </View>
 
@@ -197,7 +183,7 @@ export function AnalyticsScreen() {
                   </Text>
                 </View>
               </View>
-              <VolumeChart data={data.volumeTrend} animate={animated} />
+              <VolumeChart data={data.volumeChartData} />
             </View>
 
             {/* Pace Line Chart */}
@@ -221,14 +207,14 @@ export function AnalyticsScreen() {
                   </Text>
                 </View>
               </View>
-              <PaceChart data={data.paceTrend} animate={animated} />
+              <PaceChart data={data.paceChartData} />
             </View>
 
             {/* Stats Grid */}
-            <StatsGrid stats={data.stats} animate={animated} />
+            <StatsGrid stats={data.stats} />
           </View>
         </View>
-      </ScrollView>
+      </Animated.ScrollView>
     </View>
   );
 }

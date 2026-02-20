@@ -8,13 +8,13 @@
  * - Compute weekly aggregates
  * - Return loading/error/data states
  * - Mock data fallback for development
+ * - Pre-computed chart data arrays for victory-native (stable refs)
  */
 
 import { useMemo } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@packages/backend/convex/_generated/api";
 
-// Import mock data for fallback
 import {
   MOCK_VOLUME_DATA,
   MOCK_PACE_DATA,
@@ -28,12 +28,36 @@ import {
   CURRENT_WEEK,
 } from "@/components/app/analytics/mock-data";
 
+export type HistogramDatum = {
+  day: number;
+  km: number;
+  [key: string]: unknown;
+};
+
+export type ZoneChartDatum = {
+  day: number;
+  z2: number;
+  z3: number;
+  z4: number;
+  [key: string]: unknown;
+};
+
+export type VolumeChartDatum = {
+  week: number;
+  volume: number;
+  [key: string]: unknown;
+};
+
+export type PaceChartDatum = {
+  week: number;
+  pace: number;
+  [key: string]: unknown;
+};
+
 export interface AnalyticsData {
-  // Plan progress
   planProgress: typeof PLAN_PROGRESS;
   currentWeek: number;
 
-  // Volume stats
   volumeStats: {
     currentVolume: number;
     plannedVolume: number;
@@ -42,17 +66,15 @@ export interface AnalyticsData {
     streakDays: boolean[];
   };
 
-  // Weekly data for histograms
-  weeklyKm: number[];
-  zoneData: typeof MOCK_ZONE_DATA;
   dayLabels: string[];
   todayIndex: number;
 
-  // Trend data for line charts
-  volumeTrend: number[];
-  paceTrend: number[];
+  // Pre-computed chart data for victory-native
+  histogramChartData: HistogramDatum[];
+  zoneChartData: ZoneChartDatum[];
+  volumeChartData: VolumeChartDatum[];
+  paceChartData: PaceChartDatum[];
 
-  // Stats grid data
   stats: typeof MOCK_STATS;
 }
 
@@ -63,11 +85,8 @@ export interface UseAnalyticsDataResult {
 }
 
 /**
- * Hook to fetch and compute analytics data
- *
- * Currently uses mock data with optional real data integration.
- * To enable real data, uncomment the Convex queries and adjust
- * the computation logic accordingly.
+ * Hook to fetch and compute analytics data.
+ * Pre-computes chart data arrays in victory-native format as stable references.
  */
 export function useAnalyticsData(): UseAnalyticsDataResult {
   // Uncomment these when ready to use real data:
@@ -78,14 +97,11 @@ export function useAnalyticsData(): UseAnalyticsDataResult {
   // });
   // const runner = useQuery(api.table.runners.getCurrentRunner);
 
-  // For now, use mock data
   const data = useMemo<AnalyticsData>(() => {
     return {
-      // Plan progress
       planProgress: PLAN_PROGRESS,
       currentWeek: CURRENT_WEEK,
 
-      // Volume stats
       volumeStats: {
         currentVolume: MOCK_VOLUME_STATS.currentVolume,
         plannedVolume: MOCK_VOLUME_STATS.plannedVolume,
@@ -94,17 +110,25 @@ export function useAnalyticsData(): UseAnalyticsDataResult {
         streakDays: MOCK_VOLUME_STATS.streakDays,
       },
 
-      // Weekly data for histograms
-      weeklyKm: MOCK_WEEKLY_KM,
-      zoneData: MOCK_ZONE_DATA,
       dayLabels: DAY_LABELS,
       todayIndex: TODAY_INDEX,
 
-      // Trend data for line charts
-      volumeTrend: MOCK_VOLUME_DATA,
-      paceTrend: MOCK_PACE_DATA,
+      histogramChartData: MOCK_WEEKLY_KM.map((km, i) => ({ day: i, km })),
+      zoneChartData: MOCK_ZONE_DATA.map((zone, i) => ({
+        day: i,
+        z2: zone.z2,
+        z3: zone.z3,
+        z4: zone.z4,
+      })),
+      volumeChartData: MOCK_VOLUME_DATA.map((volume, i) => ({
+        week: i + 1,
+        volume,
+      })),
+      paceChartData: MOCK_PACE_DATA.map((pace, i) => ({
+        week: i + 1,
+        pace,
+      })),
 
-      // Stats grid data
       stats: MOCK_STATS,
     };
   }, []);
@@ -116,26 +140,12 @@ export function useAnalyticsData(): UseAnalyticsDataResult {
   };
 }
 
-/**
- * Helper: Get week start timestamp (Monday 00:00:00)
- */
 function getWeekStartTimestamp(): number {
   const now = new Date();
-  const dayOfWeek = now.getDay(); // 0 = Sunday, 1 = Monday, ...
-  const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Adjust for Monday start
+  const dayOfWeek = now.getDay();
+  const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
   const monday = new Date(now);
   monday.setDate(now.getDate() - diff);
   monday.setHours(0, 0, 0, 0);
   return monday.getTime();
 }
-
-/**
- * Helper: Compute weekly aggregates from activities
- * (To be implemented when real data is available)
- */
-// function computeWeeklyAggregates(activities: Activity[]): WeeklyAggregates {
-//   // Group activities by day
-//   // Sum distance per day
-//   // Calculate zone splits
-//   // Compute week-over-week comparisons
-// }
