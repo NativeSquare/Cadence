@@ -50,7 +50,7 @@ export function ChatInput({
   };
 
   return (
-    <View className="flex-row gap-2 items-center px-4 pt-2.5">
+    <View className="flex-row gap-2 items-center px-4 py-2.5">
       {/* Text input container */}
       <View className="flex-1 flex-row items-center rounded-2xl bg-w1 border border-wBrd overflow-hidden">
         <TextInput

@@ -189,7 +189,7 @@ export function VoiceRecorder({ transcript, onCancel, onSend }: VoiceRecorderPro
       ) : null}
 
       {/* Recording controls */}
-      <View className="flex-row gap-2 items-center pt-2.5">
+      <View className="flex-row gap-2 items-center py-2.5">
         {/* Cancel button */}
         <Pressable
           onPress={onCancel}

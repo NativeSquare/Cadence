@@ -17,9 +17,10 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import {
   View,
-  Platform,
-  KeyboardAvoidingView,
   ScrollView,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -76,6 +77,9 @@ export function CoachScreen() {
   const handleSend = useCallback(() => {
     const text = inputValue.trim();
     if (!text) return;
+
+    // Dismiss keyboard when sending
+    Keyboard.dismiss();
 
     // Add user message
     const userMessage: ChatMessageType = {
@@ -177,7 +181,10 @@ export function CoachScreen() {
   }, []);
 
   return (
-    <View className="flex-1 bg-black">
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      className="flex-1 bg-black"
+    >
       {/* Dark header area */}
       <View
         className="bg-black px-6 pb-4"
@@ -186,18 +193,16 @@ export function CoachScreen() {
         <ChatHeader isTyping={isTyping} />
       </View>
 
-      {/* Light content area with chat - uses flex column layout like prototype */}
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      {/* Light content area with chat */}
+      <View
         className="flex-1 bg-w2 -mt-1"
         style={{
           borderTopLeftRadius: 28,
           borderTopRightRadius: 28,
           overflow: "hidden",
         }}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
       >
-        {/* Message list - flex: 1 to take remaining space */}
+        {/* Message list */}
         <ScrollView
           ref={scrollViewRef}
           className="flex-1 px-4 pt-5"
@@ -233,8 +238,8 @@ export function CoachScreen() {
           <TypingIndicator visible={isTyping} />
         </ScrollView>
 
-        {/* Input area - fixed at bottom, not absolutely positioned */}
-        <View className="bg-w2 border-t border-wBrd pb-8">
+        {/* Input area */}
+        <View className="bg-w2 border-t border-wBrd">
           {isRecording ? (
             <VoiceRecorder
               transcript={transcript}
@@ -250,7 +255,7 @@ export function CoachScreen() {
             />
           )}
         </View>
-      </KeyboardAvoidingView>
-    </View>
+      </View>
+    </KeyboardAvoidingView>
   );
 }

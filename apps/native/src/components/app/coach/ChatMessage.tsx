@@ -19,7 +19,7 @@
 
 import { View } from "react-native";
 import { Text } from "@/components/ui/text";
-import Animated, { FadeInDown, Easing } from "react-native-reanimated";
+import Animated, { FadeIn } from "react-native-reanimated";
 
 import type { ChatMessageProps } from "./types";
 
@@ -55,7 +55,7 @@ function CoachBadge() {
 export function ChatMessage({ message, isCoach }: ChatMessageProps) {
   return (
     <Animated.View
-      entering={FadeInDown.duration(300).easing(Easing.out(Easing.ease))}
+      entering={FadeIn.duration(200)}
       className={`flex-row mb-2.5 ${isCoach ? "justify-start" : "justify-end"}`}
     >
       <View

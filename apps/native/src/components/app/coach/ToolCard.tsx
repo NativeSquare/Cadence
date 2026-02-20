@@ -17,7 +17,7 @@
 
 import { View } from "react-native";
 import { Text } from "@/components/ui/text";
-import Animated, { FadeInDown } from "react-native-reanimated";
+import Animated, { FadeIn } from "react-native-reanimated";
 import { Clock } from "lucide-react-native";
 
 import type { ToolCardProps } from "./types";
@@ -66,7 +66,7 @@ function Metric({ label, value, isWarning }: MetricProps) {
 export function ToolCard({ title, data }: ToolCardProps) {
   return (
     <Animated.View
-      entering={FadeInDown.duration(300).springify().damping(15)}
+      entering={FadeIn.duration(200)}
       className="my-1.5 mb-3"
     >
       <View
