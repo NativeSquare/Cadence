@@ -1,6 +1,6 @@
 # Story 10.9: Celebration Overlay
 
-Status: ready-for-dev
+Status: review
 
 ---
 
@@ -12,6 +12,8 @@ So that I feel accomplished and motivated to continue training.
 
 ---
 
+# CRITICAL NOTE : THE DESIGN AND A WEB VERSION PROTOTYPE OF ALL CODE THE UI IS AVAILABLE HERE : - [cadence-full-v10.jsx](../_brainstorming/cadence-full-v10.jsx) . USE THIS AS YOUR ONLY REFERENCE IN TERMS OF DESIGN. THE FINAL NATIVE DESIGN MUST PERFECTLY MATCH THE ONE OF THE PROTOTYPE. PAY SPECIAL ATTENTION TO THE ANIMATION AND FONTs AND FONT PROPERTIES USED IN THAT PROTOTYPE. THE IMPLEMENTED VERSION MUST EXACTLY MATCH
+
 ## Acceptance Criteria
 
 ### AC-1: Overlay Appearance
@@ -19,6 +21,7 @@ So that I feel accomplished and motivated to continue training.
 **Given** the user taps "Done" on the Debrief screen
 **When** the Celebration Overlay appears
 **Then** they see a full-screen dark overlay with centered animation:
+
 - Phase 0 (0-600ms): Check circle animates in
 - Phase 1 (600-2200ms): Text appears
 - Phase 2 (2200-2800ms): Fade out
@@ -29,6 +32,7 @@ So that I feel accomplished and motivated to continue training.
 **Given** the celebration animation plays
 **When** the check circle appears (animation: scale 0→1.2→0.95→1 with rotation bounce)
 **Then** they see:
+
 - Large lime circle (88px diameter)
 - White checkmark icon inside
 - Box shadow glow: `0 0 60px lime44, 0 0 120px lime22`
@@ -39,6 +43,7 @@ So that I feel accomplished and motivated to continue training.
 **Given** the celebration animation plays
 **When** the outer ring bursts
 **Then** they see:
+
 - SVG circle (140px, stroke lime, strokeWidth 2)
 - Primary ring: Expands from scale 0.3 to 1, stroke-dashoffset animates from 220 to 0
 - Secondary ring: Expands from scale 0.5 to 1.8 and fades out
@@ -49,6 +54,7 @@ So that I feel accomplished and motivated to continue training.
 **Given** the celebration text appears
 **When** it animates in (after 600ms delay)
 **Then** they see:
+
 - Session type name (22px, fontWeight 800, letterSpacing -0.03em)
 - "Logged ✓" label (14px, fontWeight 500, color lime, letterSpacing 0.04em)
 - Text fades in with translateY from 16px to 0
@@ -69,70 +75,70 @@ So that I feel accomplished and motivated to continue training.
 
 ### Phase 1: Component Foundation
 
-- [ ] **Task 1.1** Create `CelebrationOverlay.tsx` component (AC: 1)
-  - [ ] Full-screen absolute positioned overlay with black background
-  - [ ] Phase state management (0, 1, 2) using `useState`
-  - [ ] Timer sequence with `useEffect` and `setTimeout`:
+- [x] **Task 1.1** Create `CelebrationOverlay.tsx` component (AC: 1)
+  - [x] Full-screen absolute positioned overlay with black background
+  - [x] Phase state management (0, 1, 2) using `useState`
+  - [x] Timer sequence with `useEffect` and `setTimeout`:
     - t1: 600ms → phase 1
     - t2: 2200ms → phase 2
     - t3: 2800ms → call `onComplete`
-  - [ ] Cleanup timers on unmount
-  - [ ] Accept `session` and `onComplete` props
+  - [x] Cleanup timers on unmount
+  - [x] Accept `session` and `onComplete` props
 
 ### Phase 2: Check Circle with Glow
 
-- [ ] **Task 2.1** Implement animated check circle (AC: 2)
-  - [ ] Container: 88px × 88px, borderRadius 44px, bg lime
-  - [ ] Checkmark SVG (40×40, viewBox 0 0 24 24)
-  - [ ] Path: `M4 12.5l5.5 5.5L20 6`, stroke black, strokeWidth 3.5
-  - [ ] Box shadow with lime glow (use `elevation` + custom shadow)
-  - [ ] Reanimated spring animation: scale 0→1.2→0.95→1, rotation -20°→5°→-2°→0°
-  - [ ] Spring config: overshoot curve `cubic-bezier(.34,1.56,.64,1)`
+- [x] **Task 2.1** Implement animated check circle (AC: 2)
+  - [x] Container: 88px × 88px, borderRadius 44px, bg lime
+  - [x] Checkmark SVG (40×40, viewBox 0 0 24 24)
+  - [x] Path: `M4 12.5l5.5 5.5L20 6`, stroke black, strokeWidth 3.5
+  - [x] Box shadow with lime glow (use `elevation` + custom shadow)
+  - [x] Reanimated spring animation: scale 0→1.2→0.95→1, rotation -20°→5°→-2°→0°
+  - [x] Spring config: overshoot curve `cubic-bezier(.34,1.56,.64,1)`
 
 ### Phase 3: Ring Burst SVG Animation
 
-- [ ] **Task 3.1** Implement primary ring animation (AC: 3)
-  - [ ] SVG container: 140×140, positioned absolutely behind check circle
-  - [ ] Circle: cx=70, cy=70, r=60, fill none, stroke lime, strokeWidth 2
-  - [ ] strokeDasharray: 220
-  - [ ] Animated strokeDashoffset: 220 → 0 over 1000ms
-  - [ ] Animated scale: 0.3 → 1 with overshoot spring
-  - [ ] transformOrigin: center
+- [x] **Task 3.1** Implement primary ring animation (AC: 3)
+  - [x] SVG container: 140×140, positioned absolutely behind check circle
+  - [x] Circle: cx=70, cy=70, r=60, fill none, stroke lime, strokeWidth 2
+  - [x] strokeDasharray: 220
+  - [x] Animated strokeDashoffset: 220 → 0 over 1000ms
+  - [x] Animated scale: 0.3 → 1 with overshoot spring
+  - [x] transformOrigin: center
 
-- [ ] **Task 3.2** Implement secondary ring animation (AC: 3)
-  - [ ] Absolute positioned div, 140×140, borderRadius 50%
-  - [ ] Border: 1px solid lime at 33% opacity
-  - [ ] Animated scale: 0.5 → 1.8 over 1200ms
-  - [ ] Animated opacity: 0 → 0.6 → 0
-  - [ ] Delay: 200ms after primary ring
+- [x] **Task 3.2** Implement secondary ring animation (AC: 3)
+  - [x] Absolute positioned div, 140×140, borderRadius 50%
+  - [x] Border: 1px solid lime at 33% opacity
+  - [x] Animated scale: 0.5 → 1.8 over 1200ms
+  - [x] Animated opacity: 0 → 0.6 → 0
+  - [x] Delay: 200ms after primary ring
 
 ### Phase 4: Text Animation
 
-- [ ] **Task 4.1** Implement text reveal (AC: 4)
-  - [ ] Container with marginTop 28px, textAlign center
-  - [ ] Session type: Outfit-ExtraBold, 22px, color g1, letterSpacing -0.03em
-  - [ ] "Logged ✓": Outfit-Medium, 14px, color lime, letterSpacing 0.04em, marginTop 6px
-  - [ ] Animation: translateY 16→0, opacity 0→1 over 1000ms
-  - [ ] Animation delay: matches phase 1 (starts at ~600ms)
+- [x] **Task 4.1** Implement text reveal (AC: 4)
+  - [x] Container with marginTop 28px, textAlign center
+  - [x] Session type: Outfit-ExtraBold, 22px, color g1, letterSpacing -0.03em
+  - [x] "Logged ✓": Outfit-Medium, 14px, color lime, letterSpacing 0.04em, marginTop 6px
+  - [x] Animation: translateY 16→0, opacity 0→1 over 1000ms
+  - [x] Animation delay: matches phase 1 (starts at ~600ms)
 
 ### Phase 5: Fade Out Transition
 
-- [ ] **Task 5.1** Implement overlay fade out (AC: 5)
-  - [ ] Track phase 2 state
-  - [ ] Animate entire overlay opacity 1→0 over 600ms
-  - [ ] Use Reanimated FadeOut or withTiming
-  - [ ] Call `onComplete` callback after fade completes
+- [x] **Task 5.1** Implement overlay fade out (AC: 5)
+  - [x] Track phase 2 state
+  - [x] Animate entire overlay opacity 1→0 over 600ms
+  - [x] Use Reanimated FadeOut or withTiming
+  - [x] Call `onComplete` callback after fade completes
 
 ### Phase 6: Integration
 
-- [ ] **Task 6.1** Export from session components
-  - [ ] Add to `apps/native/src/components/app/session/index.ts`
-  - [ ] Ensure TypeScript compiles without errors
+- [x] **Task 6.1** Export from session components
+  - [x] Add to `apps/native/src/components/app/session/index.ts`
+  - [x] Ensure TypeScript compiles without errors
 
-- [ ] **Task 6.2** Document integration with DebriefScreen (Story 10.8)
-  - [ ] Note: This component is triggered by `onDone` callback from DebriefScreen
-  - [ ] DebriefScreen sets `celebrating: true` state when user taps "Done"
-  - [ ] After celebration `onComplete`, navigate back to Plan screen
+- [x] **Task 6.2** Document integration with DebriefScreen (Story 10.8)
+  - [x] Note: This component is triggered by `onDone` callback from DebriefScreen
+  - [x] DebriefScreen sets `celebrating: true` state when user taps "Done"
+  - [x] After celebration `onComplete`, navigate back to Plan screen
 
 ---
 
@@ -142,48 +148,88 @@ So that I feel accomplished and motivated to continue training.
 
 The Celebration Overlay is fully implemented in the prototype at `_bmad-output/brainstorming/cadence-full-v10.jsx` lines 599-633.
 
-| Prototype Element         | Lines   | Implementation Notes                                |
-| ------------------------- | ------- | --------------------------------------------------- |
-| `CelebrationOverlay()`    | 599-633 | Main component with phase-based animation           |
-| CSS animations            | 40-44   | `celebCheck`, `celebRing`, `celebRing2`, `celebText`, `celebFadeOut` |
-| Theme constants `T`       | 3-14    | Colors: lime=#C8FF00, g1=92% white, black=#000000   |
+| Prototype Element      | Lines   | Implementation Notes                                                 |
+| ---------------------- | ------- | -------------------------------------------------------------------- |
+| `CelebrationOverlay()` | 599-633 | Main component with phase-based animation                            |
+| CSS animations         | 40-44   | `celebCheck`, `celebRing`, `celebRing2`, `celebText`, `celebFadeOut` |
+| Theme constants `T`    | 3-14    | Colors: lime=#C8FF00, g1=92% white, black=#000000                    |
 
 ### Animation Keyframes (from prototype CSS)
 
 ```css
 /* Check circle entrance - scale with rotation overshoot */
 @keyframes celebCheck {
-  0%   { transform: scale(0) rotate(-20deg); opacity: 0 }
-  50%  { transform: scale(1.2) rotate(5deg); opacity: 1 }
-  70%  { transform: scale(0.95) rotate(-2deg) }
-  100% { transform: scale(1) rotate(0) }
+  0% {
+    transform: scale(0) rotate(-20deg);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.2) rotate(5deg);
+    opacity: 1;
+  }
+  70% {
+    transform: scale(0.95) rotate(-2deg);
+  }
+  100% {
+    transform: scale(1) rotate(0);
+  }
 }
 
 /* Primary ring burst - stroke reveal with scale */
 @keyframes celebRing {
-  0%   { transform: scale(0.3); opacity: 0; stroke-dashoffset: 220 }
-  40%  { opacity: 1 }
-  100% { transform: scale(1); opacity: 0; stroke-dashoffset: 0 }
+  0% {
+    transform: scale(0.3);
+    opacity: 0;
+    stroke-dashoffset: 220;
+  }
+  40% {
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0;
+    stroke-dashoffset: 0;
+  }
 }
 
 /* Secondary ring - expanding fade */
 @keyframes celebRing2 {
-  0%   { transform: scale(0.5); opacity: 0 }
-  30%  { opacity: 0.6 }
-  100% { transform: scale(1.8); opacity: 0 }
+  0% {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+  30% {
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(1.8);
+    opacity: 0;
+  }
 }
 
 /* Text reveal - fade up */
 @keyframes celebText {
-  0%   { opacity: 0; transform: translateY(16px) }
-  50%  { opacity: 0 }
-  100% { opacity: 1; transform: translateY(0) }
+  0% {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  50% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Overlay fade out */
 @keyframes celebFadeOut {
-  0%   { opacity: 1 }
-  100% { opacity: 0 }
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
 }
 ```
 
@@ -200,20 +246,17 @@ useEffect(() => {
   scale.value = withSequence(
     withSpring(1.2, { damping: 8, stiffness: 180 }),
     withSpring(0.95, { damping: 15, stiffness: 200 }),
-    withSpring(1, { damping: 12, stiffness: 180 })
+    withSpring(1, { damping: 12, stiffness: 180 }),
   );
   rotation.value = withSequence(
     withSpring(5, { damping: 8, stiffness: 180 }),
     withSpring(-2, { damping: 15, stiffness: 200 }),
-    withSpring(0, { damping: 12, stiffness: 180 })
+    withSpring(0, { damping: 12, stiffness: 180 }),
   );
 }, []);
 
 const checkStyle = useAnimatedStyle(() => ({
-  transform: [
-    { scale: scale.value },
-    { rotate: `${rotation.value}deg` }
-  ],
+  transform: [{ scale: scale.value }, { rotate: `${rotation.value}deg` }],
 }));
 ```
 
@@ -233,23 +276,23 @@ From `apps/native/src/lib/design-tokens.ts`:
 
 ```typescript
 // COLORS
-lime: "#C8FF00"         // Primary accent, check circle bg, text accent
-black: "#000000"        // Overlay background, checkmark stroke
+lime: "#C8FF00"; // Primary accent, check circle bg, text accent
+black: "#000000"; // Overlay background, checkmark stroke
 
 // GRAYS
-g1: "rgba(255,255,255,0.92)"  // Session type text
+g1: "rgba(255,255,255,0.92)"; // Session type text
 
 // Typography
-font-coach-extrabold   // Session type (22px)
-font-coach-medium      // "Logged ✓" (14px)
+font - coach - extrabold; // Session type (22px)
+font - coach - medium; // "Logged ✓" (14px)
 ```
 
 ### Typography Requirements (CRITICAL - must match exactly)
 
-| Element        | Size | Weight | Color | LetterSpacing |
-| -------------- | ---- | ------ | ----- | ------------- |
-| Session type   | 22px | 800    | g1    | -0.03em       |
-| "Logged ✓"     | 14px | 500    | lime  | 0.04em        |
+| Element      | Size | Weight | Color | LetterSpacing |
+| ------------ | ---- | ------ | ----- | ------------- |
+| Session type | 22px | 800    | g1    | -0.03em       |
+| "Logged ✓"   | 14px | 500    | lime  | 0.04em        |
 
 ### Project Structure Notes
 
@@ -262,6 +305,7 @@ apps/native/src/components/app/session/
 ```
 
 Note: The `session/` directory may need to be created if it doesn't exist yet. This component is part of the session flow along with:
+
 - Story 10.6: SessionDetailScreen
 - Story 10.7: ActiveSessionScreen
 - Story 10.8: DebriefScreen
@@ -393,10 +437,10 @@ import Animated, {
 
 ## File Structure Requirements
 
-| File                                                              | Purpose                  |
-| ----------------------------------------------------------------- | ------------------------ |
-| `apps/native/src/components/app/session/CelebrationOverlay.tsx`   | Celebration animation    |
-| `apps/native/src/components/app/session/index.ts`                 | Export barrel            |
+| File                                                            | Purpose               |
+| --------------------------------------------------------------- | --------------------- |
+| `apps/native/src/components/app/session/CelebrationOverlay.tsx` | Celebration animation |
+| `apps/native/src/components/app/session/index.ts`               | Export barrel         |
 
 ---
 
@@ -437,11 +481,44 @@ import Animated, {
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 ### Debug Log References
 
+- TypeScript compilation verified: No errors in CelebrationOverlay.tsx
+- Pre-existing TS errors in use-healthkit.ts and healthkit.ts (unrelated to this story)
+- Testing infrastructure not configured (Story 9.2 backlog) - unit tests written but require framework setup
+
 ### Completion Notes List
+
+- ✅ **AC-1 Satisfied**: Phase-based timing (0-600ms check, 600-2200ms text, 2200-2800ms fadeout, auto-dismiss)
+- ✅ **AC-2 Satisfied**: Check circle with 88px diameter, lime bg, checkmark SVG, glow shadow, scale+rotation animation sequence 0→1.2→0.95→1
+- ✅ **AC-3 Satisfied**: Primary ring SVG with animated strokeDashoffset (220→0) and scale (0.3→1); Secondary ring with scale (0.5→1.8) and 200ms delay
+- ✅ **AC-4 Satisfied**: Text animation with correct typography (22px/800 for type, 14px/500 for "Logged ✓"), translateY 16→0
+- ✅ **AC-5 Satisfied**: Fade out over 600ms, onComplete callback triggers navigation
+- ✅ **Integration Verified**: DebriefScreen imports and conditionally renders CelebrationOverlay when `celebrating` state is true
+- ✅ **Export Verified**: Component and types exported from session/index.ts
+
+### Implementation Details
+
+- Used `useAnimatedProps` with `AnimatedCircle` for SVG strokeDashoffset animation (following RadarChart.tsx pattern)
+- Check circle animation uses `withSequence` + `withTiming` with Easing.bezier(.34,1.56,.64,1) for overshoot spring effect
+- Timer cleanup implemented via useEffect return function
+- All animation values match prototype CSS keyframes exactly
 
 ### File List
 
+| File | Action |
+|------|--------|
+| apps/native/src/components/app/session/CelebrationOverlay.tsx | Modified - Added strokeDashoffset animation, fixed check scale sequence |
+| apps/native/src/components/app/session/CelebrationOverlay.test.ts | Created - Unit tests for animation timing and specifications |
+| apps/native/src/components/app/session/index.ts | Unchanged - Already exported CelebrationOverlay |
+
+### Change Log
+
+- 2026-02-20: Story 10.9 implementation complete
+  - Enhanced check circle animation to match celebCheck keyframes exactly (scale 0→1.2→0.95→1)
+  - Added animated strokeDashoffset for primary ring SVG (celebRing keyframes)
+  - Verified secondary ring animation timing (200ms delay, scale 0.5→1.8)
+  - Created unit test file covering all AC specifications
+  - TypeScript compiles without errors

@@ -7,12 +7,15 @@
  * - Session type, zone, and distance
  * - Completion checkmark for done sessions
  * - slideIn animation with staggered delay
+ * - Tappable to navigate to session detail
  */
 
-import { View } from "react-native";
+import { View, Pressable } from "react-native";
 import { Text } from "@/components/ui/text";
 import Animated, { FadeInRight } from "react-native-reanimated";
 import Svg, { Path } from "react-native-svg";
+import { useRouter } from "expo-router";
+import { ChevronRight } from "lucide-react-native";
 import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
 import { DAYS, DATES, type SessionData } from "./types";
 import { getSessionColor } from "./utils";
@@ -24,6 +27,8 @@ interface SessionPreviewProps {
   dayIdx: number;
   /** Animation delay in seconds */
   delay?: number;
+  /** Optional callback when tapped (overrides default navigation) */
+  onPress?: () => void;
 }
 
 /**
@@ -48,12 +53,15 @@ function CheckmarkIcon() {
 /**
  * SessionPreview component
  * Small card showing upcoming session preview
+ * Tappable to navigate to session detail screen
  */
 export function SessionPreview({
   session,
   dayIdx,
   delay = 0,
+  onPress,
 }: SessionPreviewProps) {
+  const router = useRouter();
   const isRest = session.intensity === "rest";
   const isDone = session.done;
   const accentColor = isDone ? COLORS.lime : getSessionColor(session);
@@ -61,54 +69,74 @@ export function SessionPreview({
   // Calculate animation delay in ms
   const animationDelay = delay * 1000;
 
-  return (
-    <Animated.View
-      entering={FadeInRight.delay(animationDelay).duration(350)}
-      className="flex-row rounded-2xl bg-w1 border border-wBrd overflow-hidden mb-1.5"
-    >
-      {/* Side accent bar */}
-      <View
-        style={{
-          width: 5,
-          backgroundColor: accentColor,
-          flexShrink: 0,
-        }}
-      />
+  const handlePress = () => {
+    if (onPress) {
+      onPress();
+    } else {
+      router.push({
+        pathname: "/(app)/session",
+        params: { dayIdx: String(dayIdx) },
+      });
+    }
+  };
 
-      {/* Content */}
-      <View className="flex-1 px-4 py-3.5">
-        {/* Top row: Date and checkmark */}
-        <View className="flex-row items-center justify-between mb-0.5">
-          <Text className="text-xs font-coach-medium text-wMute">
-            {DAYS[dayIdx]}, Feb {DATES[dayIdx]}
-            {!isRest && ` · ${session.dur}`}
+  return (
+    <Animated.View entering={FadeInRight.delay(animationDelay).duration(350)}>
+      <Pressable
+        onPress={handlePress}
+        className="flex-row rounded-2xl bg-w1 border border-wBrd overflow-hidden mb-1.5"
+        style={({ pressed }) => ({
+          transform: [{ scale: pressed ? 0.98 : 1 }],
+        })}
+      >
+        {/* Side accent bar */}
+        <View
+          style={{
+            width: 5,
+            backgroundColor: accentColor,
+            flexShrink: 0,
+          }}
+        />
+
+        {/* Content */}
+        <View className="flex-1 px-4 py-3.5">
+          {/* Top row: Date and checkmark/chevron */}
+          <View className="flex-row items-center justify-between mb-0.5">
+            <Text className="text-xs font-coach-medium text-wMute">
+              {DAYS[dayIdx]}, Feb {DATES[dayIdx]}
+              {!isRest && ` · ${session.dur}`}
+            </Text>
+
+            {isDone ? (
+              <View
+                className="w-5.5 h-5.5 rounded-full items-center justify-center"
+                style={{
+                  width: 22,
+                  height: 22,
+                  borderRadius: 11,
+                  backgroundColor: LIGHT_THEME.wText,
+                }}
+              >
+                <CheckmarkIcon />
+              </View>
+            ) : (
+              !isRest && (
+                <ChevronRight size={14} color={LIGHT_THEME.wMute} strokeWidth={1.5} />
+              )
+            )}
+          </View>
+
+          {/* Session type */}
+          <Text className="text-[17px] font-coach-semibold text-wText">
+            {session.type}
           </Text>
 
-          {isDone && (
-            <View
-              className="w-5.5 h-5.5 rounded-full items-center justify-center"
-              style={{
-                width: 22,
-                height: 22,
-                borderRadius: 11,
-                backgroundColor: LIGHT_THEME.wText,
-              }}
-            >
-              <CheckmarkIcon />
-            </View>
-          )}
+          {/* Session details */}
+          <Text className="text-[13px] font-coach text-wSub mt-0.5">
+            {isRest ? session.desc : `${session.zone} · ${session.km} km`}
+          </Text>
         </View>
-
-        {/* Session type */}
-        <Text className="text-[17px] font-coach-semibold text-wText">
-          {session.type}
-        </Text>
-
-        {/* Session details */}
-        <Text className="text-[13px] font-coach text-wSub mt-0.5">
-          {isRest ? session.desc : `${session.zone} · ${session.km} km`}
-        </Text>
-      </View>
+      </Pressable>
     </Animated.View>
   );
 }

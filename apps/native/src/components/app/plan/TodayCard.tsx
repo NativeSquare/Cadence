@@ -20,8 +20,9 @@ import Animated, {
 } from "react-native-reanimated";
 import { useEffect } from "react";
 import Svg, { Polygon } from "react-native-svg";
+import { useRouter } from "expo-router";
 import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
-import { type SessionData } from "./types";
+import { type SessionData, TODAY_INDEX } from "./types";
 import { getSessionColor, formatShortDate } from "./utils";
 import { useStream } from "./use-stream";
 
@@ -186,9 +187,18 @@ function CoachQuote({
  * Reference: prototype lines 201-215
  */
 function SessionDetails({ session }: { session: SessionData }) {
+  const router = useRouter();
   const accentColor = getSessionColor(session);
   const isRest = session.intensity === "rest";
   const dateStr = formatShortDate();
+
+  const handleStartSession = () => {
+    // Navigate to session detail screen for today's session
+    router.push({
+      pathname: "/(app)/session",
+      params: { dayIdx: String(TODAY_INDEX) },
+    });
+  };
 
   return (
     <View className="px-4 py-4 pb-4">
@@ -226,17 +236,16 @@ function SessionDetails({ session }: { session: SessionData }) {
       </View>
 
       {/* Start Session CTA */}
-      <Pressable
-        className="mt-4 py-3.5 px-5 rounded-xl flex-row items-center justify-center gap-2"
-        style={{ backgroundColor: LIGHT_THEME.wText }}
-        onPress={() => {
-          // TODO: Navigate to session start flow
-          console.log("Start session pressed");
-        }}
-      >
-        <PlayIcon />
-        <Text className="text-[15px] font-coach-semibold text-w1">Start Session</Text>
-      </Pressable>
+      {!isRest && (
+        <Pressable
+          className="mt-4 py-[14px] px-5 rounded-[14px] flex-row items-center justify-center gap-2 active:scale-[0.98]"
+          style={{ backgroundColor: "#1A1A1A" }}
+          onPress={handleStartSession}
+        >
+          <PlayIcon />
+          <Text className="text-[15px] font-coach-semibold text-w1">Start Session</Text>
+        </Pressable>
+      )}
     </View>
   );
 }

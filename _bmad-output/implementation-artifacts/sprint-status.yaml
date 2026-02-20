@@ -226,10 +226,10 @@ development_status:
   10-3-coach-screen-chat-tab: ready-for-dev  # Story created 2026-02-20, comprehensive dev guide
   10-4-analytics-screen-analytics-tab: review  # Charts, histograms, plan progress. Completed 2026-02-20.
   10-5-settings-screen-profile-tab: review  # Completed 2026-02-20: Profile screen with progress ring, connected services, settings
-  10-6-session-screen-active-workout: ready-for-dev  # Story created 2026-02-20: Session Detail (pre-workout) comprehensive dev guide
-  10-7-debrief-screen-post-workout: ready-for-dev  # Story created 2026-02-20. Session summary, feeling selector, coach streaming response.
-  10-8-session-debrief-screen: ready-for-dev  # Story created 2026-02-20: Feeling selector, coach streaming response, celebration trigger
-  10-9-celebration-overlay: ready-for-dev  # Story created 2026-02-20. Animation overlay on session complete.
+  10-6-session-screen-active-workout: review  # Implementation complete 2026-02-20: Session Detail (pre-workout)
+  10-7-debrief-screen-post-workout: review  # Implementation complete 2026-02-20. Session summary, feeling selector, coach streaming response, celebration overlay.
+  10-8-session-debrief-screen: review  # Duplicate of 10.7, verified complete 2026-02-20
+  10-9-celebration-overlay: review  # Implementation complete 2026-02-20: Phase-based animation, check circle, ring burst, text reveal, fade out.
   epic-10-retrospective: optional
 
 # ==========================================================================

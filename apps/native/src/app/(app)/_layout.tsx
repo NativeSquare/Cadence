@@ -11,6 +11,25 @@ export default function AppLayout() {
         }}
       >
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="session"
+          options={{
+            headerShown: false,
+            presentation: "fullScreenModal",
+            animation: "slide_from_bottom",
+            gestureEnabled: true,
+            gestureDirection: "vertical",
+          }}
+        />
+        <Stack.Screen
+          name="active-session"
+          options={{
+            headerShown: false,
+            presentation: "fullScreenModal",
+            animation: "fade",
+            gestureEnabled: false,
+          }}
+        />
       </Stack>
     </View>
   );
