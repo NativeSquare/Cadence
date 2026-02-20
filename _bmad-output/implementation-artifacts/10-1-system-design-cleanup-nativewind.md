@@ -1,6 +1,6 @@
 # Story 10.1: System Design Cleanup - NativeWind Design System
 
-Status: review
+Status: done
 
 ---
 
@@ -218,4 +218,18 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 - apps/native/src/lib/design-tokens.ts (MODIFIED)
 - apps/native/tailwind.config.ts (MODIFIED)
 - apps/native/src/app/global.css (MODIFIED)
+- apps/native/src/components/app/onboarding/welcome-screen.tsx (MODIFIED - code review fix)
+- apps/native/src/components/app/onboarding/generative/ConfirmationCard.tsx (MODIFIED - code review fix)
+- apps/native/src/components/app/onboarding/generative/MultipleChoiceInput.tsx (MODIFIED - code review fix)
+
+### Code Review Fixes Applied (2026-02-20)
+
+**Reviewer:** Claude Opus 4.5 (Code Review Agent)
+
+**Issues Fixed:**
+1. ✅ **Added `grn` (green/success) semantic color** to design-tokens.ts, tailwind.config.ts, and global.css
+2. ✅ **Fixed hardcoded `#D4FF3A` cursor color** in welcome-screen.tsx → now uses `COLORS.lime`
+3. ✅ **Fixed hardcoded `rgba(255,255,255,0.3)` placeholder colors** → now uses `GRAYS.g4`
+4. ✅ **Fixed hardcoded `bg-green-500` / `text-green-400`** in ConfirmationCard.tsx → now uses `COLORS.grn`
+5. ✅ **AC#6 compliance** - Onboarding components now properly use design tokens
 

@@ -224,8 +224,8 @@ development_status:
   10-1-system-design-cleanup-nativewind: review  # Foundation: design tokens, Tailwind config. Completed 2026-02-20.
   10-2-plan-screen-home-today-tab: ready-for-dev  # Primary entry point, calendar strip, session cards. Story created 2026-02-20.
   10-3-coach-screen-chat-tab: ready-for-dev  # Story created 2026-02-20, comprehensive dev guide
-  10-4-analytics-screen-analytics-tab: backlog  # Charts, histograms, plan progress
-  10-5-settings-screen-profile-tab: ready-for-dev  # Story created 2026-02-20
+  10-4-analytics-screen-analytics-tab: review  # Charts, histograms, plan progress. Completed 2026-02-20.
+  10-5-settings-screen-profile-tab: review  # Completed 2026-02-20: Profile screen with progress ring, connected services, settings
   10-6-session-screen-active-workout: backlog  # Active workout UI, interval tracker, controls
   10-7-debrief-screen-post-workout: backlog  # Session summary, RPE selector, notes
   epic-10-retrospective: optional
