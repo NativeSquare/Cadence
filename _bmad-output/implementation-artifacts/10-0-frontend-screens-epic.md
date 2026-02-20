@@ -3,14 +3,20 @@ status: draft
 createdDate: 2026-02-20
 epic: 10
 title: Frontend Screens Implementation
-designReference: _bmad-output/brainstorming/cadence-full-v9.jsx
+designReference:
+  - _bmad-output/brainstorming/cadence-full-v9.jsx
+  - _bmad-output/brainstorming/cadence-full-v10.jsx
 ---
 
 # Epic 10: Frontend Screens Implementation
 
 User can navigate through the complete app experience with polished, consistent UI screens that follow the established design language.
 
-**Design Reference:** All screen designs are already coded as a working React prototype in [`_bmad-output/brainstorming/cadence-full-v9.jsx`](./../brainstorming/cadence-full-v9.jsx). This prototype contains the complete visual language, color palette, typography, spacing, animations, and component structure.
+**Design Reference:** All screen designs are already coded as working React prototypes:
+- [`_bmad-output/brainstorming/cadence-full-v9.jsx`](./../brainstorming/cadence-full-v9.jsx) - Main tabs (Today, Coach, Analytics, Profile)
+- [`_bmad-output/brainstorming/cadence-full-v10.jsx`](./../brainstorming/cadence-full-v10.jsx) - Session flow (Session Detail, Active Session, Debrief, Celebration)
+
+These prototypes contain the complete visual language, color palette, typography, spacing, animations, and component structure. **The native implementation MUST be an exact transcription of the web-based UI.**
 
 ---
 
@@ -273,97 +279,445 @@ So that I can customize my experience and manage my account.
 
 ---
 
-## Story 10.6: Session Screen (Active Workout)
+## Story 10.6: Session Detail Screen (Pre-Workout)
 
 As a runner,
-I want to see and track my active workout session,
-So that I can follow the workout instructions and record my activity.
+I want to see complete details about a planned session before starting it,
+So that I understand the workout structure, coach guidance, and can mentally prepare.
 
 **Design Reference:**
-- Not fully implemented in prototype - derive from `TodayCard` session structure and app patterns
-- Should display: session type, target metrics (distance, pace, zone), intervals if applicable, timer/GPS tracking UI, pause/stop controls
+- `SessionDetailScreen` component in prototype (`cadence-full-v10.jsx` lines 251-399)
+- `IntensityProfile` component (`cadence-full-v10.jsx` lines 163-246)
+- Theme constants `T` object (`cadence-full-v10.jsx` lines 3-14)
+- Animations: `detailSlideUp`, `splitReveal`, `springUp` (`cadence-full-v10.jsx` lines 27, 33, 45)
+
+**Typography Requirements (CRITICAL - must match exactly):**
+- Session type title: fontSize 34, fontWeight 800, letterSpacing -0.04em, lineHeight 1.1, color `g1`
+- Section headers: fontSize 11, fontWeight 600, color `wMute`, letterSpacing 0.05em, textTransform uppercase
+- Segment names: fontSize 15, fontWeight 600, color `wText`
+- Segment details: fontSize 12, color `wMute`
+- Coach insight text: fontSize 15, fontWeight 500, color `black`, lineHeight 1.55
+- Focus point text: fontSize 14, color `wText`, lineHeight 1.4
+- Font family: Outfit (fontWeight 300-800)
 
 **Acceptance Criteria:**
 
-**Given** the user taps "Start Session" from the Plan screen
-**When** the Session screen loads
-**Then** they see the session type and description prominently displayed
-**And** they see target metrics (distance, duration, zone, pace)
-**And** they see a large timer display (or distance if GPS-based)
-**And** they see pause and stop controls
+**Given** the user taps a session from the Plan screen or Calendar
+**When** the Session Detail screen slides up (animation: `detailSlideUp .45s cubic-bezier(.32,.72,.37,1.0)`)
+**Then** they see the dark hero header with:
+- Back button (chevron left icon, color `g3`)
+- Zone badge (pill with zone text, e.g., "Z4", colored background matching intensity)
+- "Today" indicator with animated pulse dot (if applicable)
+- "Completed" indicator with checkmark (if applicable)
+- Session type as large title (34px, fontWeight 800, letterSpacing -0.04em)
+- Date, duration, and distance subtitle (14px, color `g3`)
 
-**Given** the session is an interval workout
-**When** the screen displays
-**Then** they see the interval structure (e.g., "8x800m @ 4:30 with 400m jog")
-**And** they see current interval progress (e.g., "Rep 3 of 8")
-**And** they see visual cues for work vs recovery segments
+**Given** the hero header is displayed
+**When** the user scrolls down past threshold (80% of scroll position 10-90)
+**Then** a collapsed header bar appears with:
+- Back button
+- Session type (16px, fontWeight 700)
+- Zone badge (smaller variant)
+- Background: `rgba(0,0,0,.95)` with `backdropFilter: blur(24px)`
 
-**Given** the session is in progress
-**When** the user pauses
-**Then** the timer pauses and they see resume/stop options
+**Given** the session has a coach note
+**When** the content area loads
+**Then** they see the "Coach Insight" card:
+- Background: `lime` (#C8FF00)
+- Dot indicator + "Coach Insight" label (11px, fontWeight 600, color `rgba(0,0,0,.4)`)
+- Coach message text (15px, fontWeight 500, color `black`, lineHeight 1.55)
+- Border radius: 18px, padding: 18px 20px
 
-**Given** the session is complete
-**When** the user taps stop
-**Then** they are navigated to the Debrief screen
+**Given** the session has multiple segments (not rest day)
+**When** the IntensityProfile chart renders
+**Then** they see an SVG-based visualization with:
+- Title: "Intensity Profile" (11px uppercase)
+- Legend showing Z4-5, Z3, Z2, Rest with color indicators
+- Horizontal zone grid lines at 25%, 50%, 75%, 100%
+- Animated bars for each segment (transition: 0.6s ease, staggered by segment index * 0.08s)
+- Colored zone indicators on top edge of bars
+- Segment km labels below bars
+- Zone colors: Z4-5 = `barHigh` (#A8D900), Z3 = #9ACD32, Z2 = `barEasy` (#7CB342), Z1/Rest = `barRest` (#5B9EFF)
+- **MUST use Victory Native** for implementation (following pattern in `AnalyticsScreen.tsx`)
+
+**Given** the session has segments
+**When** the Workout Structure section renders
+**Then** they see:
+- Section header: "Workout Structure" (11px uppercase)
+- List of segment rows with:
+  - Colored bar indicator (4px width, 36px height, rounded)
+  - Segment name (15px, fontWeight 600)
+  - Zone and pace (12px, color `wMute`)
+  - Distance in km (17px, fontWeight 700)
+  - Staggered reveal animation (`splitReveal .35s ease` with delay per index * 0.06s)
+- Container: rounded 20px, background `w1`, border `1px solid wBrd`
+
+**Given** the session is not a rest day
+**When** the Overview section renders
+**Then** they see a 3-column grid with:
+- Distance card: value + "km" unit, background `lime`, text `black`
+- Duration card: value only, background `w1`, border `wBrd`
+- Intensity card: "High"/"Low"/"Key", background `w1`, border `wBrd`
+- Card padding: 14px 12px, borderRadius 16px
+- Value: 20px, fontWeight 800; Label: 10px uppercase
+
+**Given** the session renders
+**When** the Focus Points section loads
+**Then** they see:
+- Section header: "Focus Points"
+- 3 focus items with emoji + text
+- Rest days: yoga, easy walk, sleep/hydration tips
+- Workout days: pace guidance, hydration, route/fueling tips
+- Container: rounded 16px, background `w1`, border `wBrd`
+
+**Given** the session is not completed and not a rest day
+**When** the screen renders
+**Then** a sticky CTA button appears at the bottom:
+- Background gradient: `linear-gradient(transparent, w2 20%)`
+- Button: full width, 18px padding, rounded 18px, background `wText`
+- Play icon in lime circle (32px diameter)
+- Text: "Start Session" (17px, fontWeight 700, color `w1`)
+- Box shadow: `0 8px 32px rgba(0,0,0,.2)`
+- Press feedback: `transform: scale(.97)` on press
 
 **Component Breakdown:**
-- `SessionScreen.tsx` - Main active session container
-- `SessionHeader.tsx` - Session type and description
-- `MetricsDisplay.tsx` - Timer, distance, pace, HR (if available)
-- `IntervalTracker.tsx` - Interval progress for structured workouts
-- `SessionControls.tsx` - Pause/Resume/Stop buttons
+- `SessionDetailScreen.tsx` - Main container with scroll handling and collapsed header
+- `SessionDetailHeader.tsx` - Hero header with zone badge, title, subtitle
+- `CollapsedHeader.tsx` - Collapsed header bar (shared with other screens)
+- `CoachInsightCard.tsx` - Lime background coach note card
+- `IntensityProfileChart.tsx` - SVG/Victory Native intensity visualization
+- `WorkoutStructure.tsx` - Segment list with colored indicators
+- `OverviewGrid.tsx` - 3-column stats grid
+- `FocusPoints.tsx` - Focus tips list with emojis
+- `WeekContextBar.tsx` - Week/phase progress indicator
+- `StartSessionCTA.tsx` - Sticky bottom CTA button
 
 **Data Requirements:**
-- Session details from plan
-- Real-time metrics (timer, GPS if implemented)
-- Interval structure if applicable
-
-**Note:** GPS/real-time tracking may be stubbed initially. Focus on UI structure matching design language.
+- Session object: `{ type, km, dur, done, intensity, desc, zone, today, coachNote, segments[] }`
+- Segments: `{ name, km, pace, zone }`
+- Week context: week number, phase name, planned km, completion dots
 
 ---
 
-## Story 10.7: Debrief Screen (Post-Workout)
+## Story 10.7: Active Session Screen (Live Workout)
 
 As a runner,
-I want to review and rate my completed workout,
-So that I can provide feedback and help the coach understand how it went.
+I want to track my workout in real-time with a clear timer, metrics, and segment guidance,
+So that I can follow the workout plan and record my activity.
 
 **Design Reference:**
-- Not fully implemented in prototype - derive from app patterns and coach interaction style
-- Should display: session summary, RPE input, notes input, coach acknowledgment
+- `ActiveSessionScreen` component in prototype (`cadence-full-v10.jsx` lines 404-593)
+- Theme constants `T` object (`cadence-full-v10.jsx` lines 3-14)
+- Animations: `sessionFadeIn`, `timerPulse`, `segmentSlide`, `hrPulse` (`cadence-full-v10.jsx` lines 29-34)
+
+**Typography Requirements (CRITICAL - must match exactly):**
+- Hours: fontSize 56, fontWeight 300, color `g4`, letterSpacing -0.04em, fontVariantNumeric: tabular-nums
+- Minutes (hero): fontSize 88, fontWeight 800, color `lime`, letterSpacing -0.05em, fontVariantNumeric: tabular-nums
+- Seconds: fontSize 52, fontWeight 700, color `g2`, letterSpacing -0.04em, fontVariantNumeric: tabular-nums
+- Time unit labels: fontSize 14-16, fontWeight 500, color matching time digit
+- Metric values: fontSize 28, fontWeight 800, color `g1`, fontVariantNumeric: tabular-nums
+- Metric labels: fontSize 11, fontWeight 500, color `g4`, textTransform uppercase, letterSpacing 0.04em
+- Button text: fontSize 15-16, fontWeight 600-800
+- Font family: Outfit
 
 **Acceptance Criteria:**
 
-**Given** the user completes a session
-**When** they land on the Debrief screen
-**Then** they see a summary of the completed session (type, duration, distance)
-**And** they see an RPE (Rate of Perceived Exertion) selector (1-10 scale or emoji-based)
-**And** they see an optional notes field for feedback
-**And** they see a "Done" or "Save" CTA
+**Given** the user taps "Start Session" from Session Detail screen
+**When** the Active Session screen appears (animation: `sessionFadeIn .5s ease`)
+**Then** they see the full-screen dark interface with:
+- Top status bar with recording/paused indicator
+- Session type label
+- Big timer display in center
+- Metrics bar at bottom
+- Control buttons
 
-**Given** the user selects an RPE
-**When** they select a value
-**Then** the selection is visually highlighted
-**And** the value is ready to be saved
+**Given** the session is recording
+**When** the top bar displays
+**Then** they see:
+- Animated pulse dot (8px, color `lime`, animation: `timerPulse 2s ease infinite`)
+- "Recording" text (13px, fontWeight 600, color `g3`)
+- Session type on right (13px, fontWeight 500, color `g4`)
 
-**Given** the user taps Done
-**When** they complete the debrief
-**Then** the session is marked complete in the plan
-**And** RPE and notes are saved
-**And** they are returned to the Plan screen
-**And** the coach may send a follow-up message acknowledging the workout
+**Given** the session is paused
+**When** the top bar displays
+**Then** they see:
+- Static dot (color `ora` / #FF9500)
+- "Paused" text (13px, fontWeight 600, color `ora`)
+
+**Given** the session has multiple segments
+**When** the current segment indicator displays (animation: `segmentSlide .3s ease`)
+**Then** they see:
+- Card: rounded 14px, background `rgba(255,255,255,.04)`, border `1px solid brd`
+- "Current" label + segment name in `lime` (14px, fontWeight 700)
+- Target pace (12px, fontWeight 600, color `g3`)
+- Segment progress bar (3px height, `lime` fill, animated width)
+- "Up next" preview with next segment name and distance
+
+**Given** the session timer is running
+**When** the big timer displays in center
+**Then** they see vertically stacked time:
+- Hours: large light text (56px, fontWeight 300, color `g4`) with "h" unit
+- Minutes: hero size accent (88px, fontWeight 800, color `lime`) with "m" unit
+- Seconds: medium size (52px, fontWeight 700, color `g2`) with "s" unit
+- All numbers use tabular-nums for stable width
+- Time updates every second
+
+**Given** the metrics bar is visible
+**When** it renders
+**Then** they see:
+- Overall progress bar at top (3px, background `rgba(255,255,255,.06)`, fill `lime`)
+- 3-column layout:
+  - Left: Distance (value + "km")
+  - Center: Pace (value + "/km", shows "--" until 0.05km covered)
+  - Right: Heart Rate (animated heart icon + value + "bpm")
+- Values: 28px fontWeight 800, labels: 11px uppercase
+
+**Given** the controls are visible
+**When** the session is running (not paused)
+**Then** they see two buttons:
+- Left: "Lap" button (flex 1, 64px height, outline style with `lime` border)
+  - Plus icon + "Lap" text (15px, fontWeight 600, color `lime`)
+- Right: "Pause" button (flex 1, 64px height, solid `lime` background)
+  - Pause icon (two rectangles) + "Pause" text (16px, fontWeight 800, color `black`)
+
+**Given** the controls are visible
+**When** the session is paused
+**Then** the buttons change to:
+- Left: "End" button (outline with `red` border)
+  - Stop icon (filled square) + "End" text (15px, fontWeight 700, color `red`)
+- Right: "Resume" button (solid `lime` background)
+  - Play icon + "Resume" text (16px, fontWeight 800, color `black`)
+
+**Given** the user taps "End" while paused
+**When** the stop confirmation overlay appears (animation: `sessionFadeIn .2s ease`)
+**Then** they see:
+- Full-screen overlay: background `rgba(0,0,0,.85)`, backdropFilter `blur(12px)`
+- Title: "End Session?" (22px, fontWeight 700, color `g1`)
+- Summary: distance and time covered (14px, color `g3`, lineHeight 1.5)
+- "End & Save" button (full width, background `red`, text `w1`)
+- "Resume" button (full width, outline style)
+
+**Given** the user confirms "End & Save"
+**When** they tap the button
+**Then** the session ends and transitions to Debrief screen with elapsed time and distance data
 
 **Component Breakdown:**
-- `DebriefScreen.tsx` - Main post-workout container
-- `SessionSummary.tsx` - Completed session stats
-- `RPESelector.tsx` - 1-10 scale or emoji picker
-- `NotesInput.tsx` - Optional feedback text area
-- `DebriefCTA.tsx` - Done/Save button
+- `ActiveSessionScreen.tsx` - Main container with timer logic and state management
+- `SessionStatusBar.tsx` - Recording/Paused indicator with session type
+- `CurrentSegmentCard.tsx` - Active segment with progress and next preview
+- `BigTimer.tsx` - Hero timer display with h/m/s
+- `SessionMetricsBar.tsx` - Progress bar + Distance/Pace/HR
+- `SessionControls.tsx` - Lap/Pause/Resume/End buttons
+- `StopConfirmationOverlay.tsx` - End session modal
 
 **Data Requirements:**
-- Completed session data
-- RPE value (to be saved)
-- Notes (optional, to be saved)
+- Session object from previous screen
+- Timer state (elapsed seconds)
+- Simulated/real metrics (distance, pace, heart rate)
+- Current segment index (for multi-segment workouts)
+- Paused state
+
+**Technical Notes:**
+- Timer should use `useEffect` with `setInterval` (1000ms)
+- Distance can be simulated (increment ~0.0028-0.0036 km/s for running pace)
+- Heart rate can be randomized within realistic range (138-154 bpm)
+- Pace calculation: `elapsed / 60 / distance` when distance > 0.05km
+
+---
+
+## Story 10.8: Session Debrief Screen (Post-Workout)
+
+As a runner,
+I want to log how my workout felt and receive coach feedback,
+So that the AI coach understands my training response and can adjust future sessions.
+
+**Design Reference:**
+- `DebriefScreen` component in prototype (`cadence-full-v10.jsx` lines 647-848)
+- `FEELING_OPTIONS` and `DEBRIEF_PILLS` constants (`cadence-full-v10.jsx` lines 638-645)
+- `useStream` hook for coach text streaming (`cadence-full-v10.jsx` lines 59-64)
+- Animations: `debriefIn`, `springUp`, `checkPop`, `scaleIn`, `waveform` (`cadence-full-v10.jsx` lines 24, 36-38, 45)
+
+**Typography Requirements (CRITICAL - must match exactly):**
+- Session type title: fontSize 30, fontWeight 800, letterSpacing -0.04em, lineHeight 1.1, color `g1`
+- "How did that feel?" question: fontSize 20, fontWeight 700, color `wText`
+- Feeling option label: fontSize 15, fontWeight 600, color `wText` (selected) or `wSub` (unselected)
+- Feeling option description: fontSize 12, color `wMute`
+- "Anything else to note?" label: fontSize 16, fontWeight 600, color `wText`
+- Pill buttons: fontSize 13, color `wText` (selected) or `wSub` (unselected)
+- Coach response: fontSize 17, fontWeight 400, color `g1`, lineHeight 1.6, letterSpacing -0.01em
+- Stat values: fontSize 18, fontWeight 700
+- Stat labels: fontSize 10, fontWeight 500, textTransform uppercase, letterSpacing 0.04em
+- Font family: Outfit
+
+**Feeling Options (exact values):**
+```
+{ emoji: "🔥", label: "Amazing", value: "amazing", desc: "Felt strong the whole way" }
+{ emoji: "👍", label: "Good", value: "good", desc: "Solid effort, nothing special" }
+{ emoji: "😐", label: "Okay", value: "okay", desc: "Got it done, that's what counts" }
+{ emoji: "😮‍💨", label: "Tough", value: "tough", desc: "Harder than expected" }
+{ emoji: "🥵", label: "Brutal", value: "brutal", desc: "Really struggled today" }
+```
+
+**Quick Tag Pills (exact values):**
+```
+"Legs felt heavy", "Breathing was easy", "Side stitch", "Felt fast",
+"Needed more rest", "Perfect weather", "Too hot", "Had to walk"
+```
+
+**Acceptance Criteria:**
+
+**Given** the user ends a session from Active Session screen
+**When** the Debrief screen appears (animation: `debriefIn .5s ease`)
+**Then** they see the dark hero header with:
+- Completion badge (28px lime circle with checkmark)
+- "Session Complete" text (15px, fontWeight 600, color `lime`)
+- Session type title (30px, fontWeight 800)
+- Subtitle with date, zone, and target km
+
+**Given** the hero header is displayed
+**When** the stats row animates in (`springUp .4s ease` with staggered delay)
+**Then** they see 3 stat cards:
+- Time: formatted as M:SS
+- Distance: actual km covered with 2 decimals
+- Avg Pace: calculated M:SS/km (or "--" if insufficient distance)
+- Card style: padding 12px 10px, rounded 14px, background `rgba(255,255,255,.04)`, border `1px solid brd`
+
+**Given** the debrief flow begins (phase 1, delay 500ms)
+**When** the feeling question appears (`springUp .5s ease`)
+**Then** they see:
+- Question: "How did that feel?" (20px, fontWeight 700)
+- 5 vertically stacked option buttons with:
+  - Emoji (22px)
+  - Label + description
+  - Selection state: border `lime`, background `rgba(200,255,0,.06)`, checkmark circle
+  - Staggered animation: 0.04s delay per item
+
+**Given** the user selects a feeling
+**When** the selection is made (phase 2, delay 400ms)
+**Then** the "Anything else to note?" section appears with:
+- Quick tag pills in a flex-wrap layout
+- Dashed border (unselected) vs solid border (selected)
+- Selected: border `lime`, background `rgba(200,255,0,.06)`
+
+**Given** the note section is visible
+**When** the voice recorder button is tapped
+**Then** the recording mode UI appears:
+- "Listening..." text
+- Animated waveform bars (24 bars, random heights, animation: `waveform 0.4-0.8s ease infinite alternate`)
+- Timer display (M:SS format)
+- Cancel and Done buttons
+
+**Given** the note section is visible
+**When** the text input is focused
+**Then** they see:
+- Textarea with placeholder "Or type something..."
+- Mic button (bottom left)
+- Character count (bottom right)
+- Send arrow button (appears when text entered, animation: `scaleIn .2s ease`)
+
+**Given** the user taps "Save & Wrap Up" or "Skip — just save"
+**When** the coach response phase begins
+**Then** they see:
+- Large coach response card (background `wText`, rounded 22px)
+- Coach avatar (28px lime circle with "C")
+- Streaming text with blinking cursor (speed: 22ms per character, delay: 300ms)
+- Response varies by feeling:
+  - Amazing/Good: positive reinforcement
+  - Tough/Brutal: empathetic, promises adjustment
+  - Okay: acknowledgment of consistency
+
+**Given** the coach response finishes streaming
+**When** the coachReply state becomes true (delay 300ms after stream done)
+**Then** they see:
+- "Logged" summary card showing feeling + selected pills + note indicator
+- "Done" button (full width, background `wText`, 18px fontWeight 700)
+
+**Given** the user taps "Done"
+**When** the celebration triggers
+**Then** the Celebration Overlay appears (Story 10.9)
+**And** after celebration completes, user returns to Plan screen
+
+**Component Breakdown:**
+- `DebriefScreen.tsx` - Main container with phase state management
+- `DebriefHeader.tsx` - Completion badge, title, stats row
+- `FeelingSelector.tsx` - 5-option feeling picker with animations
+- `QuickTagPills.tsx` - Flex-wrap pill buttons
+- `VoiceRecorderMode.tsx` - Recording UI with waveform
+- `DebriefNoteInput.tsx` - Textarea with mic and send buttons
+- `CoachResponseCard.tsx` - Streaming coach message with avatar
+- `DebriefSummary.tsx` - Logged items summary
+- `useStreamingText.ts` - Hook for character-by-character text streaming
+
+**Data Requirements:**
+- Session data from Active Session screen
+- Elapsed time and distance covered
+- Selected feeling value
+- Selected quick tag pills array
+- Note text (optional)
+- Coach response (generated based on feeling)
+
+---
+
+## Story 10.9: Celebration Overlay
+
+As a runner,
+I want to see a satisfying celebration animation when I complete a workout,
+So that I feel accomplished and motivated to continue training.
+
+**Design Reference:**
+- `CelebrationOverlay` component in prototype (`cadence-full-v10.jsx` lines 599-633)
+- Animations: `celebCheck`, `celebRing`, `celebRing2`, `celebText`, `celebFadeOut` (`cadence-full-v10.jsx` lines 40-44)
+
+**Typography Requirements:**
+- Session type: fontSize 22, fontWeight 800, color `g1`, letterSpacing -0.03em
+- "Logged ✓": fontSize 14, fontWeight 500, color `lime`, letterSpacing 0.04em
+- Font family: Outfit
+
+**Acceptance Criteria:**
+
+**Given** the user taps "Done" on the Debrief screen
+**When** the Celebration Overlay appears
+**Then** they see a full-screen dark overlay with centered animation:
+- Phase 0 (0-600ms): Check circle animates in
+- Phase 1 (600-2200ms): Text appears
+- Phase 2 (2200-2800ms): Fade out
+- Auto-dismiss after 2800ms total
+
+**Given** the celebration animation plays
+**When** the check circle appears (animation: `celebCheck .7s cubic-bezier(.34,1.56,.64,1)`)
+**Then** they see:
+- Large lime circle (88px diameter)
+- White checkmark icon inside
+- Box shadow glow: `0 0 60px lime44, 0 0 120px lime22`
+
+**Given** the celebration animation plays
+**When** the outer ring bursts (animation: `celebRing 1s cubic-bezier(.34,1.56,.64,1)`)
+**Then** they see:
+- SVG circle (140px, stroke `lime`, strokeWidth 2)
+- Expands from scale 0.3 to 1, stroke-dashoffset animates
+- Secondary ring (animation: `celebRing2 1.2s ease .2s`) expands and fades
+
+**Given** the celebration text appears
+**When** it animates in (animation: `celebText 1s ease`)
+**Then** they see:
+- Session type name (22px, fontWeight 800)
+- "Logged ✓" (14px, fontWeight 500, color `lime`)
+
+**Given** the celebration completes
+**When** it fades out (animation: `celebFadeOut .6s ease`)
+**Then** the overlay dismisses
+**And** the user is returned to the Plan screen
+**And** the completed session is marked as done
+
+**Component Breakdown:**
+- `CelebrationOverlay.tsx` - Full-screen overlay with phase-based animation
+- Uses React Native Reanimated for smooth animations
+- SVG components for ring burst effect
+
+**Technical Notes:**
+- Implement using `useEffect` with `setTimeout` for phase transitions
+- Consider using `react-native-reanimated` for performant animations
+- SVG ring animation may require `react-native-svg` with animated props
 
 ---
 
@@ -372,28 +726,70 @@ So that I can provide feedback and help the coach understand how it went.
 | Order | Story | Rationale |
 |-------|-------|-----------|
 | 1 | 10.1 System Design Cleanup | Foundation - must be done first to establish consistent styling |
-| 2 | 10.2 Plan Screen | Primary entry point, most complex UI |
+| 2 | 10.2 Plan Screen | Primary entry point, validates design system |
 | 3 | 10.5 Settings Screen | Simpler UI, validates design system |
-| 4 | 10.4 Analytics Screen | Chart components, validates animation patterns |
-| 5 | 10.3 Coach Screen | Chat UI, depends on message/input patterns |
-| 6 | 10.6 Session Screen | Requires Plan screen complete for navigation |
-| 7 | 10.7 Debrief Screen | Requires Session screen complete for flow |
+| 4 | 10.4 Analytics Screen | Chart components (Victory Native), validates animation patterns |
+| 5 | 10.3 Coach Screen | Chat UI, streaming text patterns |
+| 6 | 10.6 Session Detail Screen | Entry point to session flow, depends on Plan screen |
+| 7 | 10.7 Active Session Screen | Live workout tracking, depends on Session Detail |
+| 8 | 10.8 Session Debrief Screen | Post-workout flow, depends on Active Session |
+| 9 | 10.9 Celebration Overlay | Final animation, depends on Debrief |
+
+---
+
+## Session Flow Navigation
+
+```
+Plan Screen (tap session)
+    → Session Detail Screen (tap "Start Session")
+        → Active Session Screen (tap "End & Save")
+            → Debrief Screen (tap "Done")
+                → Celebration Overlay (auto-dismiss)
+                    → Plan Screen (session marked complete)
+```
 
 ---
 
 ## Dependencies
 
-- **Prerequisite:** Navigation infrastructure (tab bar, screen routing)
+- **Prerequisite:** Navigation infrastructure (tab bar, screen routing, modal stack)
 - **Prerequisite:** Authentication flow (user must be logged in)
 - **Data Layer:** Stories assume mock data initially; backend wiring is separate epic
 - **Design System:** Story 10.1 must be complete before other stories begin
+- **Charts:** Victory Native must be configured (reference `AnalyticsScreen.tsx` implementation)
+- **Animations:** React Native Reanimated for smooth transitions
 
 ---
 
 ## Out of Scope
 
-- GPS tracking implementation (Session screen will use stub/mock)
-- Real AI streaming (Coach screen will use mock responses)
+- GPS tracking implementation (Active Session screen will use simulated distance)
+- Real AI streaming (Coach screen and Debrief will use mock responses)
 - Backend data fetching (all screens use mock data)
 - Push notifications
 - Deep linking
+- Apple Health / Garmin integration (read-only display of connection status)
+
+---
+
+## Technical Notes
+
+### Victory Native Charts
+All charts (IntensityProfile, Histogram, LineChart) MUST use Victory Native following the pattern established in `apps/native/src/components/app/analytics/AnalyticsScreen.tsx`. This ensures:
+- Consistent animation behavior
+- Optimal performance on native
+- Reusable chart components
+
+### Typography Consistency
+The prototype uses the Outfit font family with specific weights and letter-spacing. Ensure:
+- Font weights 300-800 are loaded
+- Letter-spacing values are converted to React Native format
+- `fontVariantNumeric: 'tabular-nums'` for timer displays
+
+### Animation Patterns
+Key animations from prototype that need Reanimated implementation:
+- `springUp`: translateY + scale with spring physics
+- `detailSlideUp`: screen slide from bottom
+- `sessionFadeIn`: opacity fade
+- `celebCheck`: scale + rotate with overshoot
+- `waveform`: scaleY oscillation for voice recorder
