@@ -2,6 +2,56 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   CADENCE DESIGN SYSTEM - Animation Keyframes
+   Reference: cadence-full-v9.jsx CSS constant (lines 16-28)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(12px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes dotPulse {
+  0%, 100% { transform: scale(1); opacity: 0.6; }
+  50% { transform: scale(1.3); opacity: 1; }
+}
+
+@keyframes msgIn {
+  from { opacity: 0; transform: translateY(10px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes countUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes waveform {
+  0%, 100% { transform: scaleY(0.3); }
+  50% { transform: scaleY(1); }
+}
+
+@keyframes typingDot {
+  0%, 60%, 100% { opacity: 0.3; transform: translateY(0); }
+  30% { opacity: 1; transform: translateY(-4px); }
+}
+
+@keyframes fabIn {
+  from { opacity: 0; transform: scale(0.7) translateY(20px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
 @layer base {
   @media (prefers-color-scheme: light) {
     :root {
@@ -29,6 +79,20 @@
       --chart-3: 197 37% 24%;
       --chart-4: 43 74% 66%;
       --chart-5: 27 87% 67%;
+
+      /* Cadence light theme content area tokens */
+      --w1: #FFFFFF;
+      --w2: #F8F8F6;
+      --w3: #EEEEEC;
+      --wText: #1A1A1A;
+      --wSub: #5C5C5C;
+      --wMute: #A3A3A0;
+      --wBrd: rgba(0,0,0,0.06);
+
+      /* Activity intensity colors */
+      --barHigh: #A8D900;
+      --barEasy: #7CB342;
+      --barRest: #5B9EFF;
     }
   }
 
@@ -65,6 +129,39 @@
       --tabbar-accent-foreground: oklch(0.985 0 0);
       --tabbar-border: oklch(1 0 0 / 10%);
       --tabbar-ring: oklch(0.439 0 0);
+
+      /* Cadence dark theme tokens */
+      --lime: #C8FF00;
+      --lime-dim: rgba(200,255,0,0.12);
+      --ora: #FF9500;
+      --red: #FF5A5A;
+      --blu: #5B9EFF;
+
+      /* Grayscale (white at varying opacities) */
+      --g1: rgba(255,255,255,0.92);
+      --g2: rgba(255,255,255,0.70);
+      --g3: rgba(255,255,255,0.45);
+      --g4: rgba(255,255,255,0.25);
+      --g5: rgba(255,255,255,0.10);
+      --g6: rgba(255,255,255,0.06);
+
+      /* Surface tokens */
+      --brd: rgba(255,255,255,0.08);
+      --card-surface: rgba(255,255,255,0.03);
+
+      /* Light theme tokens (for content areas even in dark mode) */
+      --w1: #FFFFFF;
+      --w2: #F8F8F6;
+      --w3: #EEEEEC;
+      --wText: #1A1A1A;
+      --wSub: #5C5C5C;
+      --wMute: #A3A3A0;
+      --wBrd: rgba(0,0,0,0.06);
+
+      /* Activity intensity colors */
+      --barHigh: #A8D900;
+      --barEasy: #7CB342;
+      --barRest: #5B9EFF;
     }
   }
 }

@@ -1,4 +1,4 @@
-# generated: 2026-02-17
+# generated: 2026-02-20
 # project: Cadence
 # project_key: NOKEY
 # tracking_system: file-system
@@ -21,6 +21,11 @@
 #
 # CHANGE LOG:
 # ===========
+# 2026-02-20: Epic 10 NEW - Frontend Screens Implementation (7 stories)
+#   - Complete UI implementation matching design prototype (cadence-full-v9.jsx)
+#   - Stories: NativeWind Design System, Plan Screen, Coach Screen, Analytics Screen,
+#     Settings Screen, Session Screen, Debrief Screen
+#   - Depends on: Navigation infrastructure, Auth flow, Mock data layer
 # 2026-02-17: Story 4.7 NEW - Data Insights Screen (real data replacing ThinkingDataMock)
 #   - Queries activities from Soma via new Convex wrapper
 #   - O(n) client-side insight computation (no AI, no backend compute)
@@ -54,7 +59,7 @@
 #   - Epic 3 REVISED: visualization UI first, then backend wiring
 #   - Reference: sprint-change-proposal-2026-02-14.md
 
-generated: 2026-02-17
+generated: 2026-02-20
 project: Cadence
 project_key: NOKEY
 tracking_system: file-system
@@ -206,9 +211,27 @@ development_status:
   9-7-onboarding-flow-test-suite: backlog  # native screens, flows, persistence
   9-8-generative-ui-component-tests: backlog  # all tool components + charts
   9-9-mock-utilities-test-fixtures: backlog  # shared mocks, factories, fixtures
+  epic-9-retrospective: optional
+
+  # ==========================================================================
+  # Epic 10: Frontend Screens Implementation - DRAFT
+  # ==========================================================================
+  # Complete app UI screens matching design prototype (cadence-full-v9.jsx)
+  # FRs: UI implementation for Plan, Coach, Analytics, Settings, Session, Debrief
+  # Reference: 10-0-frontend-screens-epic.md
+  # Dependencies: Navigation infrastructure, Authentication flow, Mock data layer
+  epic-10: in-progress
+  10-1-system-design-cleanup-nativewind: review  # Foundation: design tokens, Tailwind config. Completed 2026-02-20.
+  10-2-plan-screen-home-today-tab: ready-for-dev  # Primary entry point, calendar strip, session cards. Story created 2026-02-20.
+  10-3-coach-screen-chat-tab: ready-for-dev  # Story created 2026-02-20, comprehensive dev guide
+  10-4-analytics-screen-analytics-tab: backlog  # Charts, histograms, plan progress
+  10-5-settings-screen-profile-tab: ready-for-dev  # Story created 2026-02-20
+  10-6-session-screen-active-workout: backlog  # Active workout UI, interval tracker, controls
+  10-7-debrief-screen-post-workout: backlog  # Session summary, RPE selector, notes
+  epic-10-retrospective: optional
 
 # ==========================================================================
-# IMPLEMENTATION SEQUENCE (from epics.md, updated 2026-02-17)
+# IMPLEMENTATION SEQUENCE (from epics.md, updated 2026-02-20)
 # ==========================================================================
 # SOMA INTEGRATION IMPACT (Sprint Change Proposal 2026-02-17):
 #   Stories obsoleted: 3 (4.3, 5.1, 5.3)
@@ -260,3 +283,15 @@ development_status:
 #   - After Phase 3: Story 9.6 (Inference Engine Validation)
 #   - Parallel with Phase 5: Story 9.7 (Onboarding), Story 9.8 (Generative UI)
 #   - Any time: Story 9.9 (Mock Utilities)
+#
+# Phase 8: Frontend Screens (Epic 10) ← NEW
+#   Goal: Complete polished app UI matching design prototype
+#   Dependencies: Phase 1 complete (navigation), Phase 4 complete (plan data)
+#   Recommended sequence (from epic file):
+#     1. Story 10.1: NativeWind Design System (FIRST - establishes foundation)
+#     2. Story 10.2: Plan Screen (primary entry point, most complex)
+#     3. Story 10.5: Settings Screen (validates design system)
+#     4. Story 10.4: Analytics Screen (charts, validates animation patterns)
+#     5. Story 10.3: Coach Screen (chat UI patterns)
+#     6. Story 10.6: Session Screen (requires Plan for navigation)
+#     7. Story 10.7: Debrief Screen (requires Session for flow)
