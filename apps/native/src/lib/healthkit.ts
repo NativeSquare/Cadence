@@ -15,14 +15,16 @@ import {
   getWheelchairUseAsync,
 } from "@kingstinct/react-native-healthkit";
 import {
-  transformWorkout,
+  mapActivityType,
+  buildDeviceData,
+  toISO,
   transformSleep,
   transformBody,
   transformDaily,
   transformNutrition,
   transformMenstruation,
   transformAthlete,
-} from "@nativesquare/soma/healthkit";
+} from "./healthkit-transforms";
 import type {
   ActivityData,
   SleepData,
@@ -31,13 +33,13 @@ import type {
   NutritionData,
   MenstruationData,
   AthleteData,
-  HKWorkout,
-  HKQuantitySample,
-  HKCategorySample,
-  HKCharacteristics,
-} from "@nativesquare/soma/healthkit";
+  LibQuantitySample,
+  LibCategorySample,
+  WorkoutRoute,
+  AthleteCharacteristics,
+} from "./healthkit-transforms";
 
-// Re-export Soma data types for consumers
+// Re-export types for consumers
 export type {
   ActivityData,
   SleepData,
@@ -235,117 +237,189 @@ export async function requestHealthKitAuthorization(): Promise<boolean> {
   });
 }
 
-// ─── Bridge helpers: library types → Soma types ──────────────────────────────
+/** Options for the Library Proxy → Soma Unified activity transform. */
+export type WorkoutProxyToSomaActivityOptions = {
+  /** Distance in km (e.g. from getStatistic or resolveDistances). */
+  distanceKm?: number;
+  /** Total energy burned in kcal (e.g. from proxy.totalEnergyBurned?.quantity). */
+  totalEnergyBurned?: number;
+  /** Routes from proxy.getWorkoutRoutes() to fill position_data and raw_payload. */
+  routeData?: WorkoutRoute[];
+  /** Heart rate samples in workout window for heart_rate_data (and raw_payload). */
+  heartRateSamples?: Array<{ startDate: string; value: number }>;
+};
 
-function toSomaWorkout(proxy: WorkoutProxy): HKWorkout {
-  return {
-    uuid: proxy.uuid,
-    workoutActivityType: proxy.workoutActivityType ?? 0,
-    startDate: new Date(proxy.startDate).toISOString(),
-    endDate: new Date(proxy.endDate).toISOString(),
-    duration: proxy.duration?.quantity ?? 0,
-    totalEnergyBurned: proxy.totalEnergyBurned?.quantity,
-    totalDistance: proxy.totalDistance?.quantity,
-    totalSwimmingStrokeCount: proxy.totalSwimmingStrokeCount?.quantity,
-    totalFlightsClimbed: proxy.totalFlightsClimbed?.quantity,
-    source: proxy.sourceRevision
-      ? {
-        name: proxy.sourceRevision.source?.name ?? "",
-        bundleIdentifier:
-          proxy.sourceRevision.source?.bundleIdentifier ?? "",
-      }
-      : undefined,
-    device: proxy.device
-      ? {
-        name: proxy.device.name ?? undefined,
-        manufacturer: proxy.device.manufacturer ?? undefined,
-        model: proxy.device.model ?? undefined,
-        hardwareVersion: proxy.device.hardwareVersion ?? undefined,
-        softwareVersion: proxy.device.softwareVersion ?? undefined,
-      }
-      : undefined,
+/**
+ * Transform a Library WorkoutProxy into the Soma Unified activity ingest shape.
+ * Uses all available proxy data; unmapped fields go into raw_payload so nothing is lost.
+ */
+export function workoutProxyToSomaActivity(
+  proxy: WorkoutProxy,
+  opts: WorkoutProxyToSomaActivityOptions = {},
+): ActivityData {
+  const startDate = new Date(proxy.startDate).toISOString();
+  const endDate = new Date(proxy.endDate).toISOString();
+  const duration = proxy.duration?.quantity ?? 0;
+  const totals = proxy as {
+    totalEnergyBurned?: { quantity?: number };
+    totalDistance?: { quantity?: number };
+    totalSwimmingStrokeCount?: { quantity?: number };
+    totalFlightsClimbed?: { quantity?: number };
   };
-}
+  const energy = opts.totalEnergyBurned ?? totals.totalEnergyBurned?.quantity;
+  const totalDistanceRaw = totals.totalDistance?.quantity;
+  const distanceMeters =
+    opts.distanceKm != null
+      ? Math.round(opts.distanceKm * 1000)
+      : totalDistanceRaw != null
+        ? Math.round(totalDistanceRaw)
+        : undefined;
+  const flightsClimbed = totals.totalFlightsClimbed?.quantity;
+  const strokeCount = totals.totalSwimmingStrokeCount?.quantity;
+  const source = proxy.sourceRevision?.source
+    ? {
+      name: proxy.sourceRevision.source?.name ?? "",
+      bundleIdentifier:
+        proxy.sourceRevision.source?.bundleIdentifier ?? "",
+    }
+    : undefined;
+  const device = proxy.device
+    ? {
+      name: proxy.device.name ?? undefined,
+      manufacturer: proxy.device.manufacturer ?? undefined,
+      model: proxy.device.model ?? undefined,
+      hardwareVersion: proxy.device.hardwareVersion ?? undefined,
+      softwareVersion: proxy.device.softwareVersion ?? undefined,
+    }
+    : undefined;
 
-function toSomaQuantitySample(sample: {
-  uuid: string;
-  quantityType: string;
-  startDate: string | Date;
-  endDate: string | Date;
-  quantity: number;
-  unit: string;
-  sourceRevision?: { source?: { name?: string; bundleIdentifier?: string } };
-  device?: {
-    name?: string;
-    manufacturer?: string;
-    model?: string;
-    hardwareVersion?: string;
-    softwareVersion?: string;
-  };
-}): HKQuantitySample {
-  return {
-    uuid: sample.uuid,
-    sampleType: sample.quantityType as HKQuantitySample["sampleType"],
-    startDate: new Date(sample.startDate).toISOString(),
-    endDate: new Date(sample.endDate).toISOString(),
-    value: sample.quantity,
-    unit: sample.unit,
-    source: sample.sourceRevision?.source
-      ? {
-        name: sample.sourceRevision.source.name ?? "",
-        bundleIdentifier:
-          sample.sourceRevision.source.bundleIdentifier ?? "",
-      }
-      : undefined,
-    device: sample.device
-      ? {
-        name: sample.device.name ?? undefined,
-        manufacturer: sample.device.manufacturer ?? undefined,
-        model: sample.device.model ?? undefined,
-        hardwareVersion: sample.device.hardwareVersion ?? undefined,
-        softwareVersion: sample.device.softwareVersion ?? undefined,
-      }
-      : undefined,
-  };
-}
+  const heartRateSamples = opts.heartRateSamples;
+  const hrValues = heartRateSamples?.map((s) => s.value) ?? [];
+  const routeData = opts.routeData;
 
-function toSomaCategorySample(sample: {
-  uuid: string;
-  categoryType: string;
-  startDate: string | Date;
-  endDate: string | Date;
-  value: number;
-  sourceRevision?: { source?: { name?: string; bundleIdentifier?: string } };
-  device?: {
-    name?: string;
-    manufacturer?: string;
-    model?: string;
-    hardwareVersion?: string;
-    softwareVersion?: string;
+  const activity: ActivityData = {
+    metadata: {
+      summary_id: proxy.uuid,
+      start_time: startDate,
+      end_time: endDate,
+      type: mapActivityType(proxy.workoutActivityType ?? 0),
+      upload_type: 1,
+      name: undefined,
+    },
+    active_durations_data: {
+      activity_seconds: duration,
+    },
+    calories_data:
+      energy != null && energy > 0
+        ? { total_burned_calories: Math.round(energy) }
+        : undefined,
+    device_data: buildDeviceData(source, device),
+    distance_data:
+      distanceMeters != null ||
+      strokeCount != null ||
+      flightsClimbed != null
+        ? {
+          summary: {
+            distance_meters: distanceMeters,
+            steps: undefined,
+            floors_climbed: flightsClimbed,
+            swimming:
+              strokeCount != null
+                ? { num_strokes: strokeCount }
+                : undefined,
+          },
+        }
+        : undefined,
+    heart_rate_data:
+      heartRateSamples && heartRateSamples.length > 0
+        ? {
+          detailed: {
+            hr_samples: heartRateSamples.map((s) => ({
+              timestamp: s.startDate,
+              bpm: s.value,
+            })),
+          },
+          summary: {
+            avg_hr_bpm:
+              hrValues.length > 0
+                ? hrValues.reduce((a, b) => a + b, 0) / hrValues.length
+                : undefined,
+            max_hr_bpm: hrValues.length > 0 ? Math.max(...hrValues) : undefined,
+            min_hr_bpm: hrValues.length > 0 ? Math.min(...hrValues) : undefined,
+          },
+        }
+        : undefined,
+    position_data:
+      routeData && routeData.length > 0
+        ? {
+          position_samples: routeData.flatMap((route) =>
+            route.locations.map((loc) => ({
+              timestamp: loc.timestamp,
+              coords_lat_lng_deg: [loc.latitude, loc.longitude],
+            })),
+          ),
+          start_pos_lat_lng_deg: (() => {
+            const first = routeData[0]?.locations[0];
+            return first
+              ? [first.latitude, first.longitude]
+              : undefined;
+          })(),
+          end_pos_lat_lng_deg: (() => {
+            const lastRoute = routeData[routeData.length - 1];
+            const last =
+              lastRoute?.locations[lastRoute.locations.length - 1];
+            return last ? [last.latitude, last.longitude] : undefined;
+          })(),
+        }
+        : undefined,
   };
-}): HKCategorySample {
-  return {
-    uuid: sample.uuid,
-    sampleType: sample.categoryType as HKCategorySample["sampleType"],
-    startDate: new Date(sample.startDate).toISOString(),
-    endDate: new Date(sample.endDate).toISOString(),
-    value: sample.value,
-    source: sample.sourceRevision?.source
-      ? {
-        name: sample.sourceRevision.source.name ?? "",
-        bundleIdentifier:
-          sample.sourceRevision.source.bundleIdentifier ?? "",
-      }
-      : undefined,
-    device: sample.device
-      ? {
-        name: sample.device.name ?? undefined,
-        manufacturer: sample.device.manufacturer ?? undefined,
-        hardwareVersion: sample.device.hardwareVersion ?? undefined,
-        softwareVersion: sample.device.softwareVersion ?? undefined,
-      }
-      : undefined,
+
+  // Preserve everything the proxy provides that we don't first-class map
+  const raw = proxy as {
+    events?: readonly { type: number; startDate: Date; endDate: Date }[];
+    activities?: readonly {
+      startDate: Date;
+      endDate: Date;
+      uuid: string;
+      duration: number;
+    }[];
+    metadataAverageMETs?: { quantity?: number };
+    metadataElevationAscended?: { quantity?: number };
+    metadataElevationDescended?: { quantity?: number };
+    metadataIndoorWorkout?: boolean;
+    metadataAverageSpeed?: { quantity?: number };
+    metadataMaximumSpeed?: { quantity?: number };
   };
+  activity.raw_payload = {
+    events: raw.events?.map((e) => ({
+      type: e.type,
+      startDate: new Date(e.startDate).toISOString(),
+      endDate: new Date(e.endDate).toISOString(),
+    })),
+    activities: raw.activities?.map((a) => ({
+      startDate: new Date(a.startDate).toISOString(),
+      endDate: new Date(a.endDate).toISOString(),
+      uuid: a.uuid,
+      duration: a.duration,
+    })),
+    metadataAverageMETs: raw.metadataAverageMETs?.quantity,
+    metadataElevationAscended: raw.metadataElevationAscended?.quantity,
+    metadataElevationDescended: raw.metadataElevationDescended?.quantity,
+    metadataIndoorWorkout: raw.metadataIndoorWorkout,
+    metadataAverageSpeed: raw.metadataAverageSpeed?.quantity,
+    metadataMaximumSpeed: raw.metadataMaximumSpeed?.quantity,
+    routeData:
+      routeData?.map((r) => ({
+        locations: r.locations.map((loc) => ({
+          latitude: loc.latitude,
+          longitude: loc.longitude,
+          altitude: loc.altitude,
+          timestamp: loc.timestamp,
+        })),
+      })),
+  };
+
+  return activity;
 }
 
 // ─── Data Queries ────────────────────────────────────────────────────────────
@@ -536,7 +610,7 @@ async function queryMenstruationSamples(days: number = 90) {
 }
 
 /** Get athlete characteristics from HealthKit (static profile data). */
-async function getAthleteCharacteristics(): Promise<HKCharacteristics | null> {
+async function getAthleteCharacteristics(): Promise<AthleteCharacteristics | null> {
   try {
     const [biologicalSex, dateOfBirth, bloodType, skinType, wheelchair] =
       await Promise.all([
@@ -547,7 +621,7 @@ async function getAthleteCharacteristics(): Promise<HKCharacteristics | null> {
         getWheelchairUseAsync().catch(() => undefined),
       ]);
 
-    const sexMap: Record<string, HKCharacteristics["biologicalSex"]> = {
+    const sexMap: Record<string, AthleteCharacteristics["biologicalSex"]> = {
       female: "female",
       male: "male",
       other: "other",
@@ -574,17 +648,16 @@ async function getAthleteCharacteristics(): Promise<HKCharacteristics | null> {
  * A new session starts when there is a gap > 2 hours between samples.
  */
 function groupSleepSessions(
-  rawSamples: Awaited<ReturnType<typeof querySleepSamples>>,
-): HKCategorySample[][] {
+  rawSamples: LibCategorySample[],
+): LibCategorySample[][] {
   if (rawSamples.length === 0) return [];
 
-  const samples = rawSamples.map(toSomaCategorySample);
-  const sorted = [...samples].sort(
+  const sorted = [...rawSamples].sort(
     (a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime(),
   );
 
-  const sessions: HKCategorySample[][] = [];
-  let currentSession: HKCategorySample[] = [sorted[0]];
+  const sessions: LibCategorySample[][] = [];
+  let currentSession: LibCategorySample[] = [sorted[0]];
 
   for (let i = 1; i < sorted.length; i++) {
     const prevEnd = new Date(sorted[i - 1].endDate).getTime();
@@ -610,12 +683,12 @@ function groupSleepSessions(
  * Returns a map of "YYYY-MM-DD" → samples.
  */
 function groupSamplesByDay(
-  samples: HKQuantitySample[],
-): Map<string, HKQuantitySample[]> {
-  const dayMap = new Map<string, HKQuantitySample[]>();
+  samples: LibQuantitySample[],
+): Map<string, LibQuantitySample[]> {
+  const dayMap = new Map<string, LibQuantitySample[]>();
 
   for (const sample of samples) {
-    const day = sample.startDate.slice(0, 10); // "YYYY-MM-DD"
+    const day = toISO(sample.startDate).slice(0, 10); // "YYYY-MM-DD"
     const existing = dayMap.get(day);
     if (existing) {
       existing.push(sample);
@@ -629,72 +702,43 @@ function groupSamplesByDay(
 
 // ─── Transform Orchestration ─────────────────────────────────────────────────
 
-async function transformAllWorkouts(
+/**
+ * Transform workout proxies to Soma Unified activity shape.
+ * Preserves events, metadata, and raw_payload via workoutProxyToSomaActivity.
+ */
+function transformAllWorkouts(
   workouts: WorkoutProxy[],
-): Promise<ActivityData[]> {
+  distanceMap: Map<string, number>,
+): ActivityData[] {
   return workouts.map((proxy) => {
-    const hkWorkout = toSomaWorkout(proxy);
-    return transformWorkout(hkWorkout);
+    const totals = proxy as { totalEnergyBurned?: { quantity?: number } };
+    return workoutProxyToSomaActivity(proxy, {
+      distanceKm: distanceMap.get(proxy.uuid),
+      totalEnergyBurned: totals.totalEnergyBurned?.quantity,
+    });
   });
 }
 
-/**
- * Enrich Soma-transformed activities with distance and calories from HealthKit.
- * Soma's transformWorkout() only receives the base HKWorkout and does not
- * include distance/calories; HealthKit often stores run distance in linked
- * statistics, so we resolve them per workout and attach Terra-style fields.
- */
-function enrichActivitiesWithDistanceAndCalories(
-  activities: ActivityData[],
-  workouts: WorkoutProxy[],
-  distanceMap: Map<string, number>,
-): void {
-  for (let i = 0; i < activities.length; i++) {
-    const activity = activities[i] as Record<string, unknown>;
-    const workout = workouts[i];
-    if (!workout) continue;
-
-    const distanceKm = distanceMap.get(workout.uuid);
-    if (distanceKm != null && distanceKm > 0) {
-      activity.distance_data = {
-        summary: {
-          distance_meters: Math.round(distanceKm * 1000),
-        },
-      };
-    }
-
-    const energy = (workout as { totalEnergyBurned?: { quantity?: number } })
-      .totalEnergyBurned?.quantity;
-    if (energy != null && energy > 0) {
-      activity.calories_data = {
-        total_burned_calories: Math.round(energy),
-      };
-    }
-  }
-}
-
 function transformAllSleep(
-  rawSamples: Awaited<ReturnType<typeof querySleepSamples>>,
+  rawSamples: LibCategorySample[],
 ): SleepData[] {
   const sessions = groupSleepSessions(rawSamples);
   return sessions.map((session) => transformSleep(session));
 }
 
 function transformAllBody(
-  rawSamples: Awaited<ReturnType<typeof queryBodySamples>>,
+  rawSamples: LibQuantitySample[],
 ): BodyData[] {
   if (rawSamples.length === 0) return [];
-  const somaSamples = rawSamples.map(toSomaQuantitySample);
-  return [transformBody(somaSamples)];
+  return [transformBody(rawSamples)];
 }
 
 function transformAllDaily(
-  rawSamples: Awaited<ReturnType<typeof queryDailySamples>>,
+  rawSamples: LibQuantitySample[],
 ): DailyData[] {
   if (rawSamples.length === 0) return [];
 
-  const somaSamples = rawSamples.map(toSomaQuantitySample);
-  const dayGroups = groupSamplesByDay(somaSamples);
+  const dayGroups = groupSamplesByDay(rawSamples);
 
   const results: DailyData[] = [];
   for (const [dayStr, daySamples] of dayGroups) {
@@ -709,12 +753,11 @@ function transformAllDaily(
 }
 
 function transformAllNutrition(
-  rawSamples: Awaited<ReturnType<typeof queryNutritionSamples>>,
+  rawSamples: LibQuantitySample[],
 ): NutritionData[] {
   if (rawSamples.length === 0) return [];
 
-  const somaSamples = rawSamples.map(toSomaQuantitySample);
-  const dayGroups = groupSamplesByDay(somaSamples);
+  const dayGroups = groupSamplesByDay(rawSamples);
 
   const results: NutritionData[] = [];
   for (const [dayStr, daySamples] of dayGroups) {
@@ -729,15 +772,14 @@ function transformAllNutrition(
 }
 
 function transformAllMenstruation(
-  rawSamples: Awaited<ReturnType<typeof queryMenstruationSamples>>,
+  rawSamples: LibCategorySample[],
 ): MenstruationData[] {
   if (rawSamples.length === 0) return [];
-  const somaSamples = rawSamples.map(toSomaCategorySample);
-  return [transformMenstruation(somaSamples)];
+  return [transformMenstruation(rawSamples)];
 }
 
 function transformAthleteData(
-  characteristics: HKCharacteristics | null,
+  characteristics: AthleteCharacteristics | null,
 ): AthleteData | null {
   if (!characteristics) return null;
   return transformAthlete(characteristics);
@@ -994,7 +1036,7 @@ function detectTrainingLoadTrend(
  * Full HealthKit import pipeline — fetches and transforms all 7 data types:
  * 1. Request authorization (expanded permissions)
  * 2. Query all data types in parallel
- * 3. Transform each batch using Soma transformers
+ * 3. Transform each batch to Soma unified schema
  * 4. Calculate runner aggregates (for profile, from running workouts only)
  * 5. Return structured result
  */
@@ -1029,18 +1071,9 @@ export async function importAllHealthKitData(
   // Resolve distances for all workouts once (used for activity enrichment and aggregates)
   const distanceMap = await resolveDistances(allWorkouts);
 
-  // Transform and calculate aggregates in parallel
-  const [activities, aggregates] = await Promise.all([
-    transformAllWorkouts(allWorkouts),
-    calculateRunnerAggregates(runningWorkouts, vo2max, distanceMap),
-  ]);
-
-  // Enrich activities with distance and calories (Soma transform doesn't include these)
-  enrichActivitiesWithDistanceAndCalories(
-    activities,
-    allWorkouts,
-    distanceMap,
-  );
+  // Transform workouts and calculate aggregates
+  const activities = transformAllWorkouts(allWorkouts, distanceMap);
+  const aggregates = await calculateRunnerAggregates(runningWorkouts, vo2max, distanceMap);
 
   const sleep = transformAllSleep(sleepRaw);
   const body = transformAllBody(bodyRaw);
@@ -1069,33 +1102,9 @@ export async function importAllHealthKitData(
     parts.length > 0 ? `Imported ${parts.join(", ")}` : "No health data found";
 
   if (__DEV__) {
-    const transformedSummary = {
-      activities: activities.length,
-      sleep: sleep.length,
-      body: body.length,
-      daily: daily.length,
-      nutrition: nutrition.length,
-      menstruation: menstruation.length,
-      athlete: athlete != null,
-      aggregates,
-      totalRuns,
-    };
     console.log(
-      "[HealthKit] Transformed data (to Soma):",
-      JSON.stringify(transformedSummary, null, 2),
+      `[HealthKit] Import complete: ${activities.length} activities, ${totalRuns} runs`,
     );
-    if (activities.length > 0) {
-      console.log(
-        "[HealthKit] Transformed activity sample (first):",
-        JSON.stringify(activities[0], null, 2),
-      );
-    }
-    if (sleep.length > 0) {
-      console.log(
-        "[HealthKit] Transformed sleep sample (first):",
-        JSON.stringify(sleep[0], null, 2),
-      );
-    }
   }
 
   return {

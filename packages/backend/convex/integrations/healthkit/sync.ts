@@ -1,12 +1,22 @@
 /**
  * HealthKit Sync - Batch ingest health data via Soma component
  *
- * Receives pre-transformed data from the native app (using Soma's HealthKit
- * transformers) and ingests all data types into the Soma component tables.
+ * Receives pre-transformed data from the native app (app-owned HealthKit
+ * transforms producing Soma unified schema shapes) and ingests all data
+ * types into the Soma component tables.
  * Handles connection management and runner profile updates.
  */
 
 import { Soma } from "@nativesquare/soma";
+import {
+  activityData,
+  sleepData,
+  bodyData,
+  dailyData,
+  nutritionData,
+  menstruationData,
+  athleteData,
+} from "@nativesquare/soma/validators";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { ConvexError, v } from "convex/values";
 import { components } from "../../_generated/api";
@@ -18,103 +28,6 @@ import {
 } from "../../table/runners";
 
 const soma = new Soma(components.soma);
-
-// ─── Validators for Soma-transformed HealthKit data ─────────────────────────
-// These validators ensure data integrity at the API boundary while allowing
-// Soma to perform deeper validation during ingestion.
-
-const activityValidator = v.object({
-  external_id: v.string(),
-  activity_type: v.string(),
-  start_time: v.string(),
-  end_time: v.string(),
-  duration_seconds: v.optional(v.number()),
-  distance_meters: v.optional(v.number()),
-  calories_burned: v.optional(v.number()),
-  average_heart_rate: v.optional(v.number()),
-  max_heart_rate: v.optional(v.number()),
-  average_pace_seconds_per_km: v.optional(v.number()),
-  elevation_gain_meters: v.optional(v.number()),
-  source: v.optional(v.string()),
-  raw_payload: v.optional(v.any()),
-});
-
-const sleepValidator = v.object({
-  external_id: v.string(),
-  start_time: v.string(),
-  end_time: v.string(),
-  duration_seconds: v.optional(v.number()),
-  sleep_stages: v.optional(v.any()),
-  source: v.optional(v.string()),
-  raw_payload: v.optional(v.any()),
-});
-
-// Body: Soma's transformBody() returns nested Terra-style (metadata, measurements_data, device_data).
-const bodyMeasurementValidator = v.object({
-  measurement_time: v.string(),
-  weight_kg: v.optional(v.number()),
-  height_cm: v.optional(v.number()),
-  body_fat_percentage: v.optional(v.number()),
-  resting_heart_rate: v.optional(v.number()),
-  hrv_ms: v.optional(v.number()),
-  vo2_max: v.optional(v.number()),
-});
-
-const bodyValidator = v.object({
-  metadata: v.object({
-    start_time: v.string(),
-    end_time: v.string(),
-  }),
-  measurements_data: v.optional(
-    v.object({
-      measurements: v.array(bodyMeasurementValidator),
-    }),
-  ),
-  device_data: v.optional(v.any()),
-  raw_payload: v.optional(v.any()),
-});
-
-// Daily: Soma's transformDaily() returns nested Terra-style (metadata, distance_data, calories_data, etc.).
-const dailyValidator = v.object({
-  metadata: v.object({
-    start_time: v.string(),
-    end_time: v.string(),
-    upload_type: v.optional(v.number()),
-  }),
-  active_durations_data: v.optional(v.any()),
-  calories_data: v.optional(v.any()),
-  device_data: v.optional(v.any()),
-  distance_data: v.optional(v.any()),
-  raw_payload: v.optional(v.any()),
-});
-
-const nutritionValidator = v.object({
-  external_id: v.string(),
-  date: v.string(),
-  calories: v.optional(v.number()),
-  protein_g: v.optional(v.number()),
-  carbs_g: v.optional(v.number()),
-  fat_g: v.optional(v.number()),
-  water_ml: v.optional(v.number()),
-  source: v.optional(v.string()),
-  raw_payload: v.optional(v.any()),
-});
-
-const menstruationValidator = v.object({
-  external_id: v.string(),
-  date: v.string(),
-  flow_level: v.optional(v.string()),
-  source: v.optional(v.string()),
-  raw_payload: v.optional(v.any()),
-});
-
-const athleteValidator = v.object({
-  biological_sex: v.optional(v.string()),
-  date_of_birth: v.optional(v.string()),
-  blood_type: v.optional(v.string()),
-  skin_type: v.optional(v.number()),
-  wheelchair_use: v.optional(v.boolean()),
-});
 
 // Aggregates computed on-device from HealthKit data, stored in runner.inferred
 const aggregatesValidator = v.object({
@@ -135,22 +48,22 @@ const aggregatesValidator = v.object({
 /**
  * Sync all HealthKit health data to the Soma component.
  *
- * Accepts pre-transformed data from the native app. Each data type array
- * contains objects already shaped by Soma's HealthKit transformers
- * (e.g., transformWorkout, transformSleep, etc.).
+ * Accepts pre-transformed data from the native app in Soma's unified
+ * (Terra-style) schema shapes, ready to be spread into soma.ingestX() calls.
  *
  * Returns per-type sync statistics for UI feedback.
  */
 export const syncHealthKitData = mutation({
   args: {
-    activities: v.array(activityValidator),
-    sleep: v.array(sleepValidator),
-    body: v.array(bodyValidator),
-    daily: v.array(dailyValidator),
-    nutrition: v.array(nutritionValidator),
-    menstruation: v.array(menstruationValidator),
-    athlete: v.optional(athleteValidator),
-    // Aggregates computed on-device, stored in runner.inferred for conversation state
+    activities: v.array(
+      v.object({ ...activityData, raw_payload: v.optional(v.any()) }),
+    ),
+    sleep: v.array(v.object(sleepData)),
+    body: v.array(v.object(bodyData)),
+    daily: v.array(v.object(dailyData)),
+    nutrition: v.array(v.object(nutritionData)),
+    menstruation: v.array(v.object(menstruationData)),
+    athlete: v.optional(v.object(athleteData)),
     aggregates: v.optional(aggregatesValidator),
     totalRuns: v.optional(v.number()),
   },
@@ -204,35 +117,6 @@ export const syncHealthKitData = mutation({
       });
     }
 
-    // Log transformed payload received from native (raw from HealthKit → Soma shape)
-    const payloadSummary = {
-      activities: args.activities.length,
-      sleep: args.sleep.length,
-      body: args.body.length,
-      daily: args.daily.length,
-      nutrition: args.nutrition.length,
-      menstruation: args.menstruation.length,
-      athlete: args.athlete != null,
-      aggregates: args.aggregates ?? null,
-      totalRuns: args.totalRuns ?? null,
-    };
-    console.log(
-      "[HealthKit Sync] Transformed data received (to Soma):",
-      JSON.stringify(payloadSummary, null, 2),
-    );
-    if (args.activities.length > 0) {
-      console.log(
-        "[HealthKit Sync] Transformed activity sample (first):",
-        JSON.stringify(args.activities[0], null, 2),
-      );
-    }
-    if (args.sleep.length > 0) {
-      console.log(
-        "[HealthKit Sync] Transformed sleep sample (first):",
-        JSON.stringify(args.sleep[0], null, 2),
-      );
-    }
-
     // Ensure a Soma connection exists for this user + HEALTHKIT provider
     const connectionId = await soma.connect(ctx, {
       userId,
@@ -271,14 +155,8 @@ export const syncHealthKitData = mutation({
             ingested++;
           } else {
             failed++;
-            // Log first failure per batch for debugging without overwhelming logs
             if (failed === 1) {
-              console.warn(
-                `[HealthKit Sync] ${typeName} ingestion failure:`,
-                result.reason instanceof Error
-                  ? result.reason.message
-                  : result.reason,
-              );
+              console.warn(`[HealthKit Sync] ${typeName} ingestion failure:`, result.reason);
             }
           }
         }
@@ -298,42 +176,32 @@ export const syncHealthKitData = mutation({
     ] = await Promise.all([
       batchIngest(
         args.activities,
-        (activity) =>
-          soma.ingestActivity(ctx, {
+        (activity) => {
+          const { raw_payload, ...somaFields } = activity;
+          return soma.ingestActivity(ctx, {
             connectionId,
             userId,
-            ...(activity as Record<string, unknown>),
-          }),
+            ...somaFields,
+          });
+        },
         "activity",
       ),
       batchIngest(
         args.sleep,
         (session) =>
-          soma.ingestSleep(ctx, {
-            connectionId,
-            userId,
-            ...(session as Record<string, unknown>),
-          }),
+          soma.ingestSleep(ctx, { connectionId, userId, ...session }),
         "sleep",
       ),
       batchIngest(
         args.body,
         (bodyRecord) =>
-          soma.ingestBody(ctx, {
-            connectionId,
-            userId,
-            ...(bodyRecord as Record<string, unknown>),
-          }),
+          soma.ingestBody(ctx, { connectionId, userId, ...bodyRecord }),
         "body",
       ),
       batchIngest(
         args.daily,
         (dailyRecord) =>
-          soma.ingestDaily(ctx, {
-            connectionId,
-            userId,
-            ...(dailyRecord as Record<string, unknown>),
-          }),
+          soma.ingestDaily(ctx, { connectionId, userId, ...dailyRecord }),
         "daily",
       ),
       batchIngest(
@@ -342,7 +210,7 @@ export const syncHealthKitData = mutation({
           soma.ingestNutrition(ctx, {
             connectionId,
             userId,
-            ...(nutritionRecord as Record<string, unknown>),
+            ...nutritionRecord,
           }),
         "nutrition",
       ),
@@ -352,7 +220,7 @@ export const syncHealthKitData = mutation({
           soma.ingestMenstruation(ctx, {
             connectionId,
             userId,
-            ...(menstruationRecord as Record<string, unknown>),
+            ...menstruationRecord,
           }),
         "menstruation",
       ),
@@ -371,14 +239,11 @@ export const syncHealthKitData = mutation({
         await soma.ingestAthlete(ctx, {
           connectionId,
           userId,
-          ...(args.athlete as Record<string, unknown>),
+          ...args.athlete,
         });
         stats.athlete = true;
       } catch (error) {
-        console.warn(
-          "[HealthKit Sync] Failed to ingest athlete:",
-          error instanceof Error ? error.message : error,
-        );
+        console.warn("[HealthKit Sync] Failed to ingest athlete:", error);
       }
     }
 

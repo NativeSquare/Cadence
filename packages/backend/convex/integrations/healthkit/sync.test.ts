@@ -10,79 +10,6 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { v } from "convex/values";
-
-// =============================================================================
-// Validator Schemas (duplicated from sync.ts for testing)
-// =============================================================================
-
-// Nested format from Soma's HealthKit transformWorkout (Terra-style)
-const activityMetadataValidator = v.object({
-  start_time: v.string(),
-  end_time: v.string(),
-  summary_id: v.string(),
-  type: v.number(),
-  upload_type: v.optional(v.number()),
-  name: v.optional(v.string()),
-});
-
-const activityValidator = v.object({
-  metadata: activityMetadataValidator,
-  active_durations_data: v.optional(v.any()),
-  device_data: v.optional(v.any()),
-  distance_data: v.optional(v.any()),
-  heart_rate_data: v.optional(v.any()),
-  calories_data: v.optional(v.any()),
-  movement_data: v.optional(v.any()),
-  raw_payload: v.optional(v.any()),
-});
-
-const sleepValidator = v.object({
-  external_id: v.string(),
-  start_time: v.string(),
-  end_time: v.string(),
-  duration_seconds: v.optional(v.number()),
-  sleep_stages: v.optional(v.any()),
-  source: v.optional(v.string()),
-  raw_payload: v.optional(v.any()),
-});
-
-const bodyMeasurementValidator = v.object({
-  measurement_time: v.string(),
-  weight_kg: v.optional(v.number()),
-  height_cm: v.optional(v.number()),
-  body_fat_percentage: v.optional(v.number()),
-  resting_heart_rate: v.optional(v.number()),
-  hrv_ms: v.optional(v.number()),
-  vo2_max: v.optional(v.number()),
-});
-
-const bodyValidator = v.object({
-  metadata: v.object({
-    start_time: v.string(),
-    end_time: v.string(),
-  }),
-  measurements_data: v.optional(
-    v.object({
-      measurements: v.array(bodyMeasurementValidator),
-    }),
-  ),
-  device_data: v.optional(v.any()),
-  raw_payload: v.optional(v.any()),
-});
-
-const dailyValidator = v.object({
-  metadata: v.object({
-    start_time: v.string(),
-    end_time: v.string(),
-    upload_type: v.optional(v.number()),
-  }),
-  active_durations_data: v.optional(v.any()),
-  calories_data: v.optional(v.any()),
-  device_data: v.optional(v.any()),
-  distance_data: v.optional(v.any()),
-  raw_payload: v.optional(v.any()),
-});
 
 // =============================================================================
 // Test Fixtures
@@ -127,7 +54,9 @@ function createMockSleep(overrides: Partial<{
 /** Nested body shape from Soma's HealthKit transformBody (Terra-style). */
 function createMockBody(overrides: Partial<{
   metadata: { start_time: string; end_time: string };
-  measurements_data: { measurements: Array<{ measurement_time: string; weight_kg?: number; height_cm?: number }> };
+  measurements_data: { measurements: Array<{ measurement_time?: string; weight_kg?: number; height_cm?: number; bodyfat_percentage?: number }> };
+  oxygen_data: { vo2max_ml_per_min_per_kg?: number };
+  heart_data: { heart_rate_data?: { summary?: { avg_hr_bpm?: number; resting_hr_bpm?: number } } };
 }> = {}) {
   return {
     metadata: {
@@ -227,7 +156,7 @@ describe("HealthKit Sync Validators", () => {
       expect(body.measurements_data?.measurements).toBeDefined();
     });
 
-    it("accepts body with all metrics in measurements", () => {
+    it("accepts body with all metrics across sections", () => {
       const body = createMockBody({
         measurements_data: {
           measurements: [
@@ -235,16 +164,16 @@ describe("HealthKit Sync Validators", () => {
               measurement_time: "2026-02-17T07:00:00.000Z",
               weight_kg: 72.5,
               height_cm: 178,
-              body_fat_percentage: 18.5,
-              resting_heart_rate: 58,
-              hrv_ms: 45,
-              vo2_max: 48.5,
+              bodyfat_percentage: 18.5,
             },
           ],
         },
+        oxygen_data: { vo2max_ml_per_min_per_kg: 48.5 },
+        heart_data: { heart_rate_data: { summary: { resting_hr_bpm: 58 } } },
       });
-      expect(body.measurements_data?.measurements[0].vo2_max).toBe(48.5);
-      expect(body.measurements_data?.measurements[0].hrv_ms).toBe(45);
+      expect(body.measurements_data?.measurements[0].bodyfat_percentage).toBe(18.5);
+      expect(body.oxygen_data?.vo2max_ml_per_min_per_kg).toBe(48.5);
+      expect(body.heart_data?.heart_rate_data?.summary?.resting_hr_bpm).toBe(58);
     });
   });
 
