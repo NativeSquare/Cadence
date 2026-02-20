@@ -59,6 +59,7 @@ export function WearableScreen({ onComplete, testID }: WearableScreenProps) {
   const [showOptions, setShowOptions] = useState(false);
   const [connectingId, setConnectingId] = useState<string | null>(null);
   const [connectedIds, setConnectedIds] = useState<string[]>([]);
+  const [hasActivityData, setHasActivityData] = useState(false);
   const [mockError, setMockError] = useState<string | null>(null);
   const { connect: connectHealthKit, error: healthKitError } = useHealthKit();
   const { connect: connectStrava, error: stravaError } = useStrava();
@@ -98,6 +99,9 @@ export function WearableScreen({ onComplete, testID }: WearableScreenProps) {
         setConnectingId(null);
         if (result) {
           setConnectedIds((prev) => [...prev, "apple"]);
+          if (result.syncStats.activities.ingested > 0) {
+            setHasActivityData(true);
+          }
         }
       } else if (id === "strava") {
         setConnectingId("strava");
@@ -105,6 +109,7 @@ export function WearableScreen({ onComplete, testID }: WearableScreenProps) {
         setConnectingId(null);
         if (result) {
           setConnectedIds((prev) => [...prev, "strava"]);
+          setHasActivityData(true);
         }
       } else {
         // Other providers (Garmin, etc.) - seed mock data in dev mode (Story 4.2)
@@ -119,6 +124,7 @@ export function WearableScreen({ onComplete, testID }: WearableScreenProps) {
               weeks: 12,
             });
             setConnectedIds((prev) => [...prev, id]);
+            setHasActivityData(true);
           } else {
             // Production: provider not implemented yet
             setMockError(`${id} integration coming soon`);
@@ -135,12 +141,12 @@ export function WearableScreen({ onComplete, testID }: WearableScreenProps) {
   );
 
   const handleContinue = useCallback(() => {
-    onComplete(true);
-  }, [onComplete]);
+    onComplete(hasActivityData);
+  }, [onComplete, hasActivityData]);
 
   const handleSkip = useCallback(() => {
-    onComplete(hasConnected);
-  }, [onComplete, hasConnected]);
+    onComplete(hasActivityData);
+  }, [onComplete, hasActivityData]);
 
   return (
     <View style={styles.container} testID={testID}>

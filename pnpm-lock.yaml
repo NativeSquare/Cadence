@@ -588,8 +588,8 @@ importers:
         specifier: ^0.2.3
         version: 0.2.3(@react-email/render@2.0.4(react-dom@19.2.4(react@18.2.0))(react@18.2.0))(convex-helpers@0.1.111(@standard-schema/spec@1.1.0)(convex@1.31.7(@clerk/clerk-react@5.60.0(react-dom@19.2.4(react@18.2.0))(react@18.2.0))(react@18.2.0))(react@18.2.0)(typescript@5.9.3)(zod@4.3.6))(convex@1.31.7(@clerk/clerk-react@5.60.0(react-dom@19.2.4(react@18.2.0))(react@18.2.0))(react@18.2.0))(react@18.2.0)
       '@nativesquare/soma':
-        specifier: ^0.2.0
-        version: 0.2.0(convex@1.31.7(@clerk/clerk-react@5.60.0(react-dom@19.2.4(react@18.2.0))(react@18.2.0))(react@18.2.0))(react@18.2.0)
+        specifier: ^0.3.0
+        version: 0.3.0(convex@1.31.7(@clerk/clerk-react@5.60.0(react-dom@19.2.4(react@18.2.0))(react@18.2.0))(react@18.2.0))(react@18.2.0)
       '@packages/shared':
         specifier: workspace:*
         version: link:../shared
@@ -2246,6 +2246,12 @@ packages:
 
   '@nativesquare/soma@0.2.0':
     resolution: {integrity: sha512-8+xTyUG5Vlu7+K7o5xMr0dgLHU391M4PW6sEGyrhYfBmSzdZk7jliNuHjjFkQbejJW9A97mIZ64rOEwWknVfJQ==}
+    peerDependencies:
+      convex: ^1.31.7
+      react: ^18.3.1 || ^19.0.0
+
+  '@nativesquare/soma@0.3.0':
+    resolution: {integrity: sha512-+7DX1tQms0O9nabIUj4rWpGjKh2Ku4OEmu4iJZJrNm/Mtp5buer2SgC/Kbn3a6Q+7HBqEk1cXy8jlxSB2BKgqg==}
     peerDependencies:
       convex: ^1.31.7
       react: ^18.3.1 || ^19.0.0
@@ -10441,7 +10447,7 @@ snapshots:
       convex: 1.31.7(@clerk/clerk-react@5.60.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(react@19.1.0)
       react: 19.1.0
 
-  '@nativesquare/soma@0.2.0(convex@1.31.7(@clerk/clerk-react@5.60.0(react-dom@19.2.4(react@18.2.0))(react@18.2.0))(react@18.2.0))(react@18.2.0)':
+  '@nativesquare/soma@0.3.0(convex@1.31.7(@clerk/clerk-react@5.60.0(react-dom@19.2.4(react@18.2.0))(react@18.2.0))(react@18.2.0))(react@18.2.0)':
     dependencies:
       convex: 1.31.7(@clerk/clerk-react@5.60.0(react-dom@19.2.4(react@18.2.0))(react@18.2.0))(react@18.2.0)
       react: 18.2.0
