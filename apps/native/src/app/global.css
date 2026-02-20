@@ -136,6 +136,8 @@
       --ora: #FF9500;
       --red: #FF5A5A;
       --blu: #5B9EFF;
+      --grn: #4ADE80;
+      --grn-dim: rgba(74,222,128,0.12);
 
       /* Grayscale (white at varying opacities) */
       --g1: rgba(255,255,255,0.92);

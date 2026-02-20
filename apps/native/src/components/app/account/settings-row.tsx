@@ -6,14 +6,23 @@ import { Pressable, View } from "react-native";
 export type SettingsRowProps = {
   label: string;
   icon: keyof typeof Ionicons.glyphMap;
+  value?: string;
   destructive?: boolean;
   showChevron?: boolean;
   onPress?: () => void;
 };
 
+/**
+ * Settings Row Component
+ * Reference: cadence-full-v9.jsx ProfileTab (lines 679-687)
+ *
+ * Displays a single settings row with icon, label, optional value, and chevron.
+ * The value appears to the left of the chevron when provided.
+ */
 export function SettingsRow({
   label,
   icon,
+  value,
   destructive,
   showChevron = true,
   onPress,
@@ -47,13 +56,18 @@ export function SettingsRow({
       >
         {label}
       </Text>
-      {showChevron && (
-        <Ionicons
-          name="chevron-forward"
-          size={16}
-          className="text-muted-foreground"
-        />
-      )}
+      <View className="flex-row items-center gap-1.5">
+        {value && (
+          <Text className="text-sm text-muted-foreground">{value}</Text>
+        )}
+        {showChevron && (
+          <Ionicons
+            name="chevron-forward"
+            size={16}
+            className="text-muted-foreground"
+          />
+        )}
+      </View>
     </Pressable>
   );
 }

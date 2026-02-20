@@ -1,6 +1,7 @@
 import { useStreamingText, StreamPhrase } from "@/hooks/use-streaming-text";
 import { selectionFeedback, arrivalPulse, insightTap } from "@/lib/haptics";
 import { Text } from "@/components/ui/text";
+import { COLORS, GRAYS } from "@/lib/design-tokens";
 import { api } from "@packages/backend/convex/_generated/api";
 import { useMutation } from "convex/react";
 import { useRef, useEffect, useState } from "react";
@@ -153,13 +154,13 @@ export function WelcomeScreen({
                 value={newName}
                 onChangeText={setNewName}
                 placeholder="Your name"
-                placeholderTextColor="rgba(255,255,255,0.3)"
+                placeholderTextColor={GRAYS.g4}
                 autoCapitalize="words"
                 autoCorrect={false}
                 returnKeyType="done"
                 onSubmitEditing={handleSubmitNewName}
-                selectionColor="#D4FF3A"
-                cursorColor="#D4FF3A"
+                selectionColor={COLORS.lime}
+                cursorColor={COLORS.lime}
                 style={{
                   fontSize: 34,
                   lineHeight: 42,

@@ -1,27 +1,16 @@
-import { Text } from "@/components/ui/text";
-import { ScrollView, View } from "react-native";
+import { PlanScreen } from "@/components/app/plan/PlanScreen";
 
+/**
+ * Today Tab - Daily Training Plan
+ * Renders the PlanScreen component which shows:
+ * - Date header with greeting and week indicator
+ * - 7-day calendar strip with activity dots
+ * - Today's session card with coach message
+ * - Coming up section with upcoming sessions
+ * - Weekly stats (volume and streak)
+ *
+ * Reference: cadence-full-v9.jsx TodayTab component (lines 119-244)
+ */
 export default function Home() {
-  return (
-    <ScrollView
-      keyboardShouldPersistTaps="handled"
-      className="bg-background flex-1"
-      contentContainerClassName="sm:flex-1 items-center justify-center p-4 py-8 sm:py-4 sm:p-6"
-      keyboardDismissMode="interactive"
-      contentInsetAdjustmentBehavior="automatic"
-    >
-      <View className="items-center gap-4 max-w-sm">
-        <View className="w-16 h-16 rounded-2xl bg-muted items-center justify-center">
-          <Text className="text-3xl">🏠</Text>
-        </View>
-        <Text className="text-xl font-semibold text-foreground text-center">
-          Your Home Screen
-        </Text>
-        <Text className="text-muted-foreground text-center leading-relaxed">
-          This is a template project. Replace this placeholder with your app's
-          main content — dashboards, feeds, or whatever fits your needs.
-        </Text>
-      </View>
-    </ScrollView>
-  );
+  return <PlanScreen />;
 }

@@ -38,6 +38,11 @@ export const COLORS = {
   /** Blue dim - rgba(91,158,255,0.12) for subtle blue backgrounds */
   bluDim: "rgba(91,158,255,0.12)",
 
+  /** Green accent - success states, confirmations #4ADE80 */
+  grn: "#4ADE80",
+  /** Green dim - rgba(74,222,128,0.12) for subtle green backgrounds */
+  grnDim: "rgba(74,222,128,0.12)",
+
   /** Pure black background */
   black: "#000000",
 } as const;
@@ -122,6 +127,19 @@ export const FONTS = {
 
 /**
  * Font weight mappings for Outfit font family.
+ * Maps prototype fontWeight numbers to React Native font family names.
+ *
+ * Prototype usage → React Native fontFamily:
+ *   fontWeight: 300 → "Outfit-Light"
+ *   fontWeight: 400 → "Outfit-Regular"
+ *   fontWeight: 500 → "Outfit-Medium"
+ *   fontWeight: 600 → "Outfit-SemiBold"
+ *   fontWeight: 700 → "Outfit-Bold"
+ *   fontWeight: 800 → "Outfit-ExtraBold"
+ *
+ * NativeWind usage (in React Native, use these instead of font-coach + font-bold):
+ *   font-coach-light, font-coach, font-coach-medium, font-coach-semibold,
+ *   font-coach-bold, font-coach-extrabold
  */
 export const FONT_WEIGHTS = {
   light: "Outfit-Light",
@@ -129,6 +147,7 @@ export const FONT_WEIGHTS = {
   medium: "Outfit-Medium",
   semibold: "Outfit-SemiBold",
   bold: "Outfit-Bold",
+  extrabold: "Outfit-ExtraBold",
 } as const;
 
 /**
@@ -302,9 +321,20 @@ export const tailwindColors = {
 // TYPOGRAPHY
 // ─────────────────────────────────────────────────────────────────────────────
 //
-// Font families:
-//   className="font-coach"  // Outfit - UI text, coach voice
-//   className="font-mono"   // JetBrains Mono - data display
+// IMPORTANT: In React Native, fontFamily and fontWeight don't combine like CSS.
+// Use weight-specific font classes instead of combining font-coach + font-bold.
+//
+// Coach font (Outfit) - Use these weight-specific classes:
+//   className="font-coach-light"      // 300 - Light emphasis
+//   className="font-coach"            // 400 - Regular (default)
+//   className="font-coach-medium"     // 500 - Medium emphasis
+//   className="font-coach-semibold"   // 600 - Section headers
+//   className="font-coach-bold"       // 700 - Primary headers
+//   className="font-coach-extrabold"  // 800 - Numbers, stats, emphasis
+//
+// Mono font (JetBrains Mono) - For data display:
+//   className="font-mono"             // 400 - Regular
+//   className="font-mono-medium"      // 500 - Medium
 //
 // ─────────────────────────────────────────────────────────────────────────────
 // ANIMATIONS (NativeWind utility classes)

@@ -72,6 +72,10 @@ export default {
           DEFAULT: COLORS.blu,
           dim: COLORS.bluDim,
         },
+        grn: {
+          DEFAULT: COLORS.grn,
+          dim: COLORS.grnDim,
+        },
 
         // Gray scale (white at varying opacities - for text on dark bg)
         g1: GRAYS.g1,
@@ -102,8 +106,31 @@ export default {
         barRest: ACTIVITY_COLORS.barRest,
       },
       fontFamily: {
-        coach: ["Outfit"],
-        mono: ["JetBrainsMono"],
+        // ═══════════════════════════════════════════════════════════════
+        // Coach voice (Outfit) - React Native Font Family Mapping
+        // ═══════════════════════════════════════════════════════════════
+        // IMPORTANT: In React Native, fontFamily and fontWeight don't combine
+        // like web CSS. Each weight needs its own font family name.
+        //
+        // Usage pattern (MUST USE for React Native):
+        //   font-coach-light    → Outfit 300 (light text)
+        //   font-coach          → Outfit 400 (regular/default)
+        //   font-coach-medium   → Outfit 500 (medium emphasis)
+        //   font-coach-semibold → Outfit 600 (section headers)
+        //   font-coach-bold     → Outfit 700 (primary headers)
+        //   font-coach-extrabold→ Outfit 800 (numbers, stats)
+        //
+        // DO NOT use: font-coach font-bold (won't work in React Native)
+        // ═══════════════════════════════════════════════════════════════
+        coach: ["Outfit-Regular"],
+        "coach-light": ["Outfit-Light"],
+        "coach-medium": ["Outfit-Medium"],
+        "coach-semibold": ["Outfit-SemiBold"],
+        "coach-bold": ["Outfit-Bold"],
+        "coach-extrabold": ["Outfit-ExtraBold"],
+        // Mono (JetBrains Mono) - for data/terminal display
+        mono: ["JetBrainsMono-Regular"],
+        "mono-medium": ["JetBrainsMono-Medium"],
       },
       borderRadius: {
         lg: "var(--radius)",

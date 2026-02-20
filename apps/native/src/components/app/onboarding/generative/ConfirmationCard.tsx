@@ -18,6 +18,7 @@ import {
 import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
 import { selectionFeedback, questionPause } from "@/lib/haptics";
+import { COLORS, GRAYS } from "@/lib/design-tokens";
 import { Check, Edit3, ChevronDown, ChevronUp } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 
@@ -183,8 +184,11 @@ export function ConfirmationCard({
           <Text className="text-white/90 text-base font-medium">{title}</Text>
           {cardState === "confirmed" && (
             <Animated.View
-              style={{ transform: [{ scale: checkmarkScale }] }}
-              className="w-6 h-6 rounded-full bg-green-500 items-center justify-center"
+              style={[
+                { transform: [{ scale: checkmarkScale }] },
+                { backgroundColor: COLORS.grn },
+              ]}
+              className="w-6 h-6 rounded-full items-center justify-center"
             >
               <Check size={14} color="#fff" />
             </Animated.View>
@@ -210,7 +214,7 @@ export function ConfirmationCard({
                         value={tempEditValue}
                         onChangeText={setTempEditValue}
                         placeholder="Enter value..."
-                        placeholderTextColor="rgba(255,255,255,0.3)"
+                        placeholderTextColor={GRAYS.g4}
                         returnKeyType="done"
                         onSubmitEditing={handleSaveFieldEdit}
                         className="flex-1 bg-white/10 rounded-lg px-3 py-2 text-white text-base"
@@ -307,7 +311,7 @@ export function ConfirmationCard({
       {/* Confirmed state - show success message */}
       {cardState === "confirmed" && (
         <View className="items-center py-2">
-          <Text className="text-green-400 text-sm">
+          <Text style={{ color: COLORS.grn }} className="text-sm">
             {Object.keys(editedValues).length > 0
               ? "Changes saved!"
               : "Confirmed!"}

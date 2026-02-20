@@ -19,6 +19,7 @@ import {
 import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
 import { selectionFeedback, questionPause } from "@/lib/haptics";
+import { GRAYS } from "@/lib/design-tokens";
 import type { MultipleChoiceArgs } from "./types";
 
 // =============================================================================
@@ -206,7 +207,7 @@ export function MultipleChoiceInput({
               value={freeTextValue}
               onChangeText={setFreeTextValue}
               placeholder="Type your answer..."
-              placeholderTextColor="rgba(255,255,255,0.3)"
+              placeholderTextColor={GRAYS.g4}
               returnKeyType="done"
               onSubmitEditing={handleFreeTextSubmit}
               editable={!isDisabled}
