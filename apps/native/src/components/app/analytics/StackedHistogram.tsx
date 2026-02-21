@@ -10,7 +10,7 @@
 import React, { useEffect, useMemo } from "react";
 import { View } from "react-native";
 import { CartesianChart, type PointsArray } from "victory-native";
-import { RoundedRect, Rect, Group, useFont } from "@shopify/react-native-skia";
+import { RoundedRect, Rect, Group, type SkFont } from "@shopify/react-native-skia";
 import {
   useSharedValue,
   useDerivedValue,
@@ -19,7 +19,6 @@ import {
   cancelAnimation,
   Easing,
 } from "react-native-reanimated";
-import { Outfit_400Regular } from "@expo-google-fonts/outfit";
 import { Text } from "@/components/ui/text";
 import { COLORS, LIGHT_THEME, ACTIVITY_COLORS } from "@/lib/design-tokens";
 import { DAY_LABELS } from "./mock-data";
@@ -31,6 +30,7 @@ export interface StackedHistogramProps {
   data: ZoneChartDatum[];
   accentIdx?: number;
   chartHeight?: number;
+  font?: SkFont | null;
 }
 
 function AnimatedStackedBar({
@@ -176,9 +176,8 @@ export function StackedHistogram({
   data,
   accentIdx,
   chartHeight = 114,
+  font,
 }: StackedHistogramProps) {
-  const font = useFont(Outfit_400Regular, 10);
-
   const chartData = useMemo(
     () => data.map((d) => ({ ...d, total: d.z2 + d.z3 + d.z4 })),
     [data]

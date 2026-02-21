@@ -10,7 +10,7 @@
 import React, { useEffect } from "react";
 import { View } from "react-native";
 import { CartesianChart, type PointsArray } from "victory-native";
-import { RoundedRect, useFont } from "@shopify/react-native-skia";
+import { RoundedRect, type SkFont } from "@shopify/react-native-skia";
 import {
   useSharedValue,
   useDerivedValue,
@@ -19,7 +19,6 @@ import {
   cancelAnimation,
   Easing,
 } from "react-native-reanimated";
-import { Outfit_400Regular } from "@expo-google-fonts/outfit";
 import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
 import { DAY_LABELS } from "./mock-data";
 import type { HistogramDatum } from "@/hooks/use-analytics-data";
@@ -30,6 +29,7 @@ export interface HistogramProps {
   data: HistogramDatum[];
   accentIdx?: number;
   chartHeight?: number;
+  font?: SkFont | null;
 }
 
 function AnimatedBar({
@@ -111,9 +111,8 @@ export function Histogram({
   data,
   accentIdx,
   chartHeight = 124,
+  font,
 }: HistogramProps) {
-  const font = useFont(Outfit_400Regular, 10);
-
   return (
     <View style={{ height: chartHeight }}>
       <CartesianChart

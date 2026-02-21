@@ -3,50 +3,58 @@
  * Reference: cadence-full-v9.jsx lines 455-484 (VolChart, PaceChart)
  *
  * Prototype animation spec:
- * - Volume line: strokeDashoffset 1.5s cubic-bezier(.4,0,.2,1)
+ * - Volume line: opacity 0→1 over 1.5s cubic-bezier(.4,0,.2,1)
  * - Volume area: opacity 0→1 over 0.8s ease
  * - Volume dot: opacity 0→1, 0.5s ease, 1.2s delay
- * - Pace line: strokeDashoffset 1.5s cubic-bezier(.4,0,.2,1), 0.2s delay
+ * - Pace line: opacity 0→1 over 1.5s cubic-bezier(.4,0,.2,1), 0.2s delay
  * - Pace dot: opacity 0→1, 0.5s ease, 1.4s delay
  *
- * Uses Reanimated shared values for area fade-in and dot delayed appearance.
- * Line drawing animation delegated to victory-native's built-in animate prop.
+ * All animations use Reanimated shared values with explicit cancelAnimation
+ * cleanup on unmount, ensuring proper resource release when navigating away.
+ * Font is received as a prop from AnalyticsScreen to avoid duplicate loading.
  */
 
 import React, { useEffect } from "react";
 import { View } from "react-native";
 import { CartesianChart, Line, Area } from "victory-native";
-import { Circle, Group, useFont } from "@shopify/react-native-skia";
+import { Circle, Group, type SkFont } from "@shopify/react-native-skia";
 import {
   useSharedValue,
   withDelay,
   withTiming,
   cancelAnimation,
+  Easing,
 } from "react-native-reanimated";
-import { Outfit_400Regular } from "@expo-google-fonts/outfit";
 import { COLORS, LIGHT_THEME, ACTIVITY_COLORS } from "@/lib/design-tokens";
 import type {
   VolumeChartDatum,
   PaceChartDatum,
 } from "@/hooks/use-analytics-data";
 
-export interface LineChartProps {
-  data: VolumeChartDatum[] | PaceChartDatum[];
-}
-
 /**
  * VolumeChart - Weekly volume trend with area fade-in, line drawing, and delayed dot
  */
-export function VolumeChart({ data }: { data: VolumeChartDatum[] }) {
-  const font = useFont(Outfit_400Regular, 9);
+export function VolumeChart({
+  data,
+  font,
+}: {
+  data: VolumeChartDatum[];
+  font?: SkFont | null;
+}) {
   const areaOpacity = useSharedValue(0);
+  const lineOpacity = useSharedValue(0);
   const dotOpacity = useSharedValue(0);
 
   useEffect(() => {
     areaOpacity.value = withTiming(1, { duration: 800 });
+    lineOpacity.value = withTiming(1, {
+      duration: 1500,
+      easing: Easing.bezier(0.4, 0, 0.2, 1),
+    });
     dotOpacity.value = withDelay(1200, withTiming(1, { duration: 500 }));
     return () => {
       cancelAnimation(areaOpacity);
+      cancelAnimation(lineOpacity);
       cancelAnimation(dotOpacity);
     };
   }, []);
@@ -77,13 +85,14 @@ export function VolumeChart({ data }: { data: VolumeChartDatum[] }) {
                   opacity={0.15}
                 />
               </Group>
-              <Line
-                points={points.volume}
-                color={COLORS.lime}
-                strokeWidth={2.5}
-                curveType="linear"
-                animate={{ type: "timing", duration: 1500 }}
-              />
+              <Group opacity={lineOpacity}>
+                <Line
+                  points={points.volume}
+                  color={COLORS.lime}
+                  strokeWidth={2.5}
+                  curveType="linear"
+                />
+              </Group>
               {lastPoint && lastPoint.y != null && (
                 <Circle
                   cx={lastPoint.x}
@@ -104,13 +113,29 @@ export function VolumeChart({ data }: { data: VolumeChartDatum[] }) {
 /**
  * PaceChart - Weekly pace trend with line drawing and delayed dot
  */
-export function PaceChart({ data }: { data: PaceChartDatum[] }) {
-  const font = useFont(Outfit_400Regular, 9);
+export function PaceChart({
+  data,
+  font,
+}: {
+  data: PaceChartDatum[];
+  font?: SkFont | null;
+}) {
+  const lineOpacity = useSharedValue(0);
   const dotOpacity = useSharedValue(0);
 
   useEffect(() => {
+    lineOpacity.value = withDelay(
+      200,
+      withTiming(1, {
+        duration: 1500,
+        easing: Easing.bezier(0.4, 0, 0.2, 1),
+      })
+    );
     dotOpacity.value = withDelay(1400, withTiming(1, { duration: 500 }));
-    return () => cancelAnimation(dotOpacity);
+    return () => {
+      cancelAnimation(lineOpacity);
+      cancelAnimation(dotOpacity);
+    };
   }, []);
 
   return (
@@ -131,13 +156,14 @@ export function PaceChart({ data }: { data: PaceChartDatum[] }) {
           const lastPoint = points.pace[points.pace.length - 1];
           return (
             <>
-              <Line
-                points={points.pace}
-                color={ACTIVITY_COLORS.barRest}
-                strokeWidth={2.5}
-                curveType="linear"
-                animate={{ type: "timing", duration: 1500 }}
-              />
+              <Group opacity={lineOpacity}>
+                <Line
+                  points={points.pace}
+                  color={ACTIVITY_COLORS.barRest}
+                  strokeWidth={2.5}
+                  curveType="linear"
+                />
+              </Group>
               {lastPoint && lastPoint.y != null && (
                 <Circle
                   cx={lastPoint.x}
