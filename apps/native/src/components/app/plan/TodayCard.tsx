@@ -20,9 +20,8 @@ import Animated, {
 } from "react-native-reanimated";
 import { useEffect } from "react";
 import Svg, { Polygon } from "react-native-svg";
-import { useRouter } from "expo-router";
 import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
-import { type SessionData, TODAY_INDEX } from "./types";
+import { type SessionData } from "./types";
 import { getSessionColor, formatShortDate } from "./utils";
 import { useStream } from "./use-stream";
 
@@ -31,6 +30,8 @@ interface TodayCardProps {
   session: SessionData;
   /** Coach message to display with streaming effect */
   coachMessage: string;
+  /** Callback when Start Session is pressed (opens bottom sheet) */
+  onStartPress?: () => void;
 }
 
 /**
@@ -186,18 +187,21 @@ function CoachQuote({
  * Session details section
  * Reference: prototype lines 201-215
  */
-function SessionDetails({ session }: { session: SessionData }) {
-  const router = useRouter();
+function SessionDetails({
+  session,
+  onStartPress,
+}: {
+  session: SessionData;
+  onStartPress?: () => void;
+}) {
   const accentColor = getSessionColor(session);
   const isRest = session.intensity === "rest";
   const dateStr = formatShortDate();
 
   const handleStartSession = () => {
-    // Navigate to session detail screen for today's session
-    router.push({
-      pathname: "/(app)/session",
-      params: { dayIdx: String(TODAY_INDEX) },
-    });
+    if (onStartPress) {
+      onStartPress();
+    }
   };
 
   return (
@@ -254,7 +258,7 @@ function SessionDetails({ session }: { session: SessionData }) {
  * TodayCard - Main component
  * Combines coach quote and session details in a single card
  */
-export function TodayCard({ session, coachMessage }: TodayCardProps) {
+export function TodayCard({ session, coachMessage, onStartPress }: TodayCardProps) {
   const { displayed, done, started } = useStream(coachMessage, {
     speed: 20,
     delay: 800,
@@ -287,7 +291,7 @@ export function TodayCard({ session, coachMessage }: TodayCardProps) {
           done={done}
           started={started}
         />
-        <SessionDetails session={session} />
+        <SessionDetails session={session} onStartPress={onStartPress} />
       </View>
     </View>
   );

@@ -11,23 +11,35 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 interface BottomSheetModalProps {
   ref: React.RefObject<GorhomBottomSheetModal | null>;
   children: React.ReactNode;
+  /** Custom background color */
+  backgroundColor?: string;
+  /** Custom border radius for top corners */
+  borderRadius?: number;
 }
 
 export type BottomSheetModalType = BottomSheetModalProps;
 
-export function BottomSheetModal({ ref, children }: BottomSheetModalProps) {
+export function BottomSheetModal({
+  ref,
+  children,
+  backgroundColor,
+  borderRadius = 12,
+}: BottomSheetModalProps) {
   const { colorScheme } = useColorScheme();
   const insets = useSafeAreaInsets();
+
+  const bgColor =
+    backgroundColor ??
+    (colorScheme === "dark"
+      ? "#121212"
+      : THEME[colorScheme ?? "light"].background);
 
   return (
     <GorhomBottomSheetModal
       ref={ref}
       stackBehavior="replace"
       backgroundStyle={{
-        backgroundColor:
-          colorScheme === "dark"
-            ? "#121212"
-            : THEME[colorScheme ?? "light"].background,
+        backgroundColor: bgColor,
       }}
       handleIndicatorStyle={{
         backgroundColor:
@@ -38,12 +50,9 @@ export function BottomSheetModal({ ref, children }: BottomSheetModalProps) {
         height: 5,
       }}
       handleStyle={{
-        backgroundColor:
-          colorScheme === "dark"
-            ? "#121212"
-            : THEME[colorScheme ?? "light"].background,
-        borderTopLeftRadius: 12,
-        borderTopRightRadius: 12,
+        backgroundColor: bgColor,
+        borderTopLeftRadius: borderRadius,
+        borderTopRightRadius: borderRadius,
       }}
       backdropComponent={(props) => (
         <GorhomBottomSheetBackdrop

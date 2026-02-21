@@ -11,7 +11,7 @@
  * - Weekly stats row
  */
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { View, StatusBar } from "react-native";
 import Animated, {
   useAnimatedStyle,
@@ -21,6 +21,7 @@ import Animated, {
   runOnJS,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { Text } from "@/components/ui/text";
 
 import { DateHeader } from "./DateHeader";
@@ -28,8 +29,10 @@ import { CalendarStrip } from "./CalendarStrip";
 import { TodayCard } from "./TodayCard";
 import { SessionPreview } from "./SessionPreview";
 import { WeekStatsRow } from "./WeekStatsRow";
+import { SessionBriefSheet } from "./SessionBriefSheet";
 import { MOCK_PLAN_DATA } from "./mock-data";
-import { TODAY_INDEX, DAYS, DATES } from "./types";
+import { TODAY_INDEX } from "./types";
+import type { SessionData } from "./types";
 
 /**
  * PlanScreen main component
@@ -48,6 +51,21 @@ export function PlanScreen() {
   const [selectedDay, setSelectedDay] = useState(TODAY_INDEX);
   const [isSticky, setIsSticky] = useState(false);
   const scrollY = useSharedValue(0);
+
+  // Bottom sheet state and ref
+  const sessionBriefSheetRef = useRef<BottomSheetModal>(null);
+  const [selectedSession, setSelectedSession] = useState<{
+    session: SessionData;
+    dayIdx: number;
+  } | null>(null);
+
+  const handleOpenSessionBrief = useCallback(
+    (session: SessionData, dayIdx: number) => {
+      setSelectedSession({ session, dayIdx });
+      sessionBriefSheetRef.current?.present();
+    },
+    []
+  );
 
   const handleScroll = useAnimatedScrollHandler({
     onScroll: (event) => {
@@ -139,6 +157,7 @@ export function PlanScreen() {
             <TodayCard
               session={todaySession}
               coachMessage={MOCK_PLAN_DATA.coachMessage}
+              onStartPress={() => handleOpenSessionBrief(todaySession, TODAY_INDEX)}
             />
           </View>
 
@@ -156,6 +175,7 @@ export function PlanScreen() {
                 session={session}
                 dayIdx={session.dayIdx}
                 delay={index * 0.04}
+                onPress={() => handleOpenSessionBrief(session, session.dayIdx)}
               />
             ))}
           </View>
@@ -170,6 +190,13 @@ export function PlanScreen() {
           </View>
         </View>
       </Animated.ScrollView>
+
+      {/* Session Brief Bottom Sheet */}
+      <SessionBriefSheet
+        sheetRef={sessionBriefSheetRef}
+        session={selectedSession?.session ?? null}
+        dayIdx={selectedSession?.dayIdx ?? 0}
+      />
     </View>
   );
 }

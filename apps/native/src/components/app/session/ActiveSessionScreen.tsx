@@ -339,8 +339,7 @@ export function ActiveSessionScreen({
                   fontFamily: FONT_WEIGHTS.light,
                   fontSize: 56,
                   color: GRAYS.g4,
-                  letterSpacing: -0.04 * 56,
-                  lineHeight: 56,
+                  lineHeight: 64,
                   fontVariant: ["tabular-nums"],
                 }}
               >
@@ -365,8 +364,7 @@ export function ActiveSessionScreen({
                   fontFamily: FONT_WEIGHTS.extrabold,
                   fontSize: 88,
                   color: COLORS.lime,
-                  letterSpacing: -0.05 * 88,
-                  lineHeight: 88,
+                  lineHeight: 96,
                   fontVariant: ["tabular-nums"],
                 }}
               >
@@ -391,8 +389,7 @@ export function ActiveSessionScreen({
                   fontFamily: FONT_WEIGHTS.bold,
                   fontSize: 52,
                   color: GRAYS.g2,
-                  letterSpacing: -0.04 * 52,
-                  lineHeight: 52,
+                  lineHeight: 60,
                   fontVariant: ["tabular-nums"],
                 }}
               >
