@@ -60,8 +60,8 @@ export function ConfirmationSheet({
 
         {/* Content */}
         <View className="gap-2">
-          <Text className="text-center text-xl font-semibold">{title}</Text>
-          <Text className="text-center text-muted-foreground">
+          <Text className="text-center text-xl font-coach-bold">{title}</Text>
+          <Text className="text-center font-coach text-muted-foreground">
             {description}
           </Text>
         </View>
@@ -74,10 +74,10 @@ export function ConfirmationSheet({
             disabled={loading}
             className="h-12"
           >
-            <Text>{loading ? "Please wait..." : confirmLabel}</Text>
+            <Text className="font-coach-semibold">{loading ? "Please wait..." : confirmLabel}</Text>
           </Button>
           <Button variant="outline" onPress={handleCancel} className="h-12">
-            <Text>{cancelLabel}</Text>
+            <Text className="font-coach-medium">{cancelLabel}</Text>
           </Button>
         </View>
       </View>

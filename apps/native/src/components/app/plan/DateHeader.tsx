@@ -1,22 +1,15 @@
 /**
- * DateHeader - Header showing date, greeting, and week indicator
+ * DateHeader - Header showing date, greeting, and notification bell
  * Reference: cadence-full-v9.jsx TodayTab header (lines 144-156)
  *
  * Two variants:
- * - full: Complete header with date, greeting, and week badge
+ * - full: Complete header with date, greeting, and notification bell
  * - collapsed: Condensed header for sticky bar when scrolled
  */
 
-import { View } from "react-native";
+import { View, Pressable } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { Text } from "@/components/ui/text";
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withTiming,
-  Easing,
-} from "react-native-reanimated";
-import { useEffect } from "react";
 import { formatDate, formatShortDate, getGreeting } from "./utils";
 
 interface DateHeaderProps {
@@ -26,40 +19,15 @@ interface DateHeaderProps {
   userName: string;
   /** Current week number */
   weekNumber: number;
-}
-
-/**
- * Pulsing dot indicator for the week badge
- * Reference: prototype line 152
- */
-function PulsingDot() {
-  const opacity = useSharedValue(0.4);
-
-  useEffect(() => {
-    opacity.value = withRepeat(
-      withTiming(1, { duration: 750, easing: Easing.inOut(Easing.ease) }),
-      -1,
-      true
-    );
-  }, [opacity]);
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    opacity: opacity.value,
-  }));
-
-  return (
-    <Animated.View
-      style={animatedStyle}
-      className="w-1.5 h-1.5 rounded-full bg-lime"
-    />
-  );
+  /** Callback when notification bell is pressed */
+  onNotificationPress?: () => void;
 }
 
 /**
  * Full DateHeader variant
- * Shows date, personalized greeting, and week indicator badge
+ * Shows date, personalized greeting, and notification bell
  */
-function FullDateHeader({ userName, weekNumber }: Omit<DateHeaderProps, "variant">) {
+function FullDateHeader({ userName, onNotificationPress }: Omit<DateHeaderProps, "variant" | "weekNumber">) {
   const greeting = getGreeting();
   const dateStr = formatDate();
 
@@ -77,13 +45,14 @@ function FullDateHeader({ userName, weekNumber }: Omit<DateHeaderProps, "variant
         </Text>
       </View>
 
-      {/* Right side: Week badge */}
-      <View className="flex-row gap-2">
-        <View className="px-3 py-1.5 rounded-full bg-card-surface border border-brd flex-row items-center gap-1.5">
-          <PulsingDot />
-          <Text className="text-xs font-coach-semibold text-g2">W{weekNumber}</Text>
-        </View>
-      </View>
+      {/* Right side: Notification bell */}
+      <Pressable
+        onPress={onNotificationPress}
+        className="p-2 -mr-2 active:opacity-70"
+        hitSlop={8}
+      >
+        <Ionicons name="notifications-outline" size={24} color="#9CA3AF" />
+      </Pressable>
     </View>
   );
 }
@@ -117,9 +86,9 @@ function CollapsedDateHeader({ userName, weekNumber }: Omit<DateHeaderProps, "va
  * DateHeader component
  * Renders either full or collapsed variant based on props
  */
-export function DateHeader({ variant, userName, weekNumber }: DateHeaderProps) {
+export function DateHeader({ variant, userName, weekNumber, onNotificationPress }: DateHeaderProps) {
   if (variant === "collapsed") {
     return <CollapsedDateHeader userName={userName} weekNumber={weekNumber} />;
   }
-  return <FullDateHeader userName={userName} weekNumber={weekNumber} />;
+  return <FullDateHeader userName={userName} onNotificationPress={onNotificationPress} />;
 }

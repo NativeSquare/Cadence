@@ -22,6 +22,8 @@ import Animated, {
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
+import { useQuery } from "convex/react";
+import { api } from "@packages/backend/convex/_generated/api";
 import { Text } from "@/components/ui/text";
 
 import { DateHeader } from "./DateHeader";
@@ -51,6 +53,10 @@ export function PlanScreen() {
   const [selectedDay, setSelectedDay] = useState(TODAY_INDEX);
   const [isSticky, setIsSticky] = useState(false);
   const scrollY = useSharedValue(0);
+
+  // Fetch runner data for personalized greeting
+  const runner = useQuery(api.table.runners.getCurrentRunner);
+  const userName = runner?.identity?.name || "there";
 
   // Bottom sheet state and ref
   const sessionBriefSheetRef = useRef<BottomSheetModal>(null);
@@ -126,7 +132,7 @@ export function PlanScreen() {
             <Animated.View style={headerAnimatedStyle}>
               <DateHeader
                 variant="full"
-                userName={MOCK_PLAN_DATA.userName}
+                userName={userName}
                 weekNumber={MOCK_PLAN_DATA.weekNumber}
               />
             </Animated.View>
