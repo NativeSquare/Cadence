@@ -1,35 +1,30 @@
-import { ProfileHeader } from "@/components/app/profile/profile-header";
-import { ConnectedServiceCard } from "@/components/app/profile/connected-service-card";
+import { ConnectionRow } from "@/components/app/account/connection-row";
+import { SettingsGroup } from "@/components/app/account/settings-group";
 import { SettingsRow } from "@/components/app/account/settings-row";
 import { ConfirmationSheet } from "@/components/shared/confirmation-sheet";
+import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { Text } from "@/components/ui/text";
+import { ACTIVITY_COLORS, COLORS, LIGHT_THEME } from "@/lib/design-tokens";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { api } from "@packages/backend/convex/_generated/api";
+import { Ionicons } from "@expo/vector-icons";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { useMutation, useQuery } from "convex/react";
 import { useRouter } from "expo-router";
-import React, { useState, useCallback } from "react";
-import {
-  ScrollView,
-  View,
-  NativeScrollEvent,
-  NativeSyntheticEvent,
-} from "react-native";
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
-  Easing,
-} from "react-native-reanimated";
+import { LinearGradient } from "expo-linear-gradient";
+import React, { useState } from "react";
+import { Pressable, ScrollView, View } from "react-native";
 
 /**
  * Profile Screen (Tab 4)
- * Reference: cadence-full-v9.jsx ProfileTab (lines 604-695)
+ * Reference: cadence-settings.tsx design
  *
- * Design: Two-tone dark header / light content pattern
- * - Dark header: Avatar with progress ring, name, PRO badge, stats, Share button
- * - Light content: Connected services, Settings list
- * - Collapsed header appears on scroll (mini avatar + name)
+ * Design: Light theme settings screen
+ * - Header with avatar, name, PRO badge, training info
+ * - Training settings with colored icons
+ * - Connections with toggle switches
+ * - Account settings
+ * - Share on Strava / Sign Out buttons
  */
 export default function Profile() {
   const router = useRouter();
@@ -37,114 +32,35 @@ export default function Profile() {
   const user = useQuery(api.table.users.currentUser);
   const deleteAccount = useMutation(api.table.users.deleteAccount);
 
-  // Scroll state for collapsed header
-  const [scrollY, setScrollY] = useState(0);
-  const progress = Math.min(1, Math.max(0, (scrollY - 10) / 110));
-  const showCollapsedHeader = progress > 0.85;
-
-  // Animated collapsed header
-  const collapsedHeaderOpacity = useSharedValue(0);
-  const collapsedHeaderTranslateY = useSharedValue(-10);
-
-  // Update animation values when showCollapsedHeader changes
-  React.useEffect(() => {
-    if (showCollapsedHeader) {
-      collapsedHeaderOpacity.value = withTiming(1, {
-        duration: 200,
-        easing: Easing.out(Easing.ease),
-      });
-      collapsedHeaderTranslateY.value = withTiming(0, {
-        duration: 200,
-        easing: Easing.out(Easing.ease),
-      });
-    } else {
-      collapsedHeaderOpacity.value = withTiming(0, {
-        duration: 150,
-        easing: Easing.in(Easing.ease),
-      });
-      collapsedHeaderTranslateY.value = withTiming(-10, {
-        duration: 150,
-        easing: Easing.in(Easing.ease),
-      });
-    }
-  }, [showCollapsedHeader, collapsedHeaderOpacity, collapsedHeaderTranslateY]);
-
-  const collapsedHeaderStyle = useAnimatedStyle(() => ({
-    opacity: collapsedHeaderOpacity.value,
-    transform: [{ translateY: collapsedHeaderTranslateY.value }],
-  }));
-
   const logoutSheetRef = React.useRef<BottomSheetModal>(null);
   const deleteAccountSheetRef = React.useRef<BottomSheetModal>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const displayName = user?.name || "Guest";
-  const displayEmail = user?.email || "guest@example.com";
-  const avatarInitial = React.useMemo(() => {
-    const fromName = displayName?.trim()?.[0];
-    const fromEmail = displayEmail?.trim()?.[0];
-    return (fromName || fromEmail || "?").toUpperCase();
-  }, [displayName, displayEmail]);
+  // Connection toggle states
+  const [connections, setConnections] = useState({
+    strava: true,
+    appleHealth: true,
+    garmin: false,
+  });
 
-  // Mock data for profile stats
-  const profileStats = {
-    km: 387,
-    runs: 31,
-    streak: 12,
-    planCompletion: 0.74, // 74%
-    planPhase: "Half Marathon · Week 4 Build",
-    isPro: true,
+  const toggleConnection = (key: keyof typeof connections) => {
+    setConnections((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
-  // Mock data for connected services
-  const connectedServices = [
-    {
-      name: "Strava",
-      description: "Sync activities",
-      connected: true,
-      color: "#FC4C02",
-      icon: "S",
-    },
-    {
-      name: "Apple Health",
-      description: "HR, sleep & recovery",
-      connected: true,
-      color: "#FF2D55",
-      icon: "♥",
-    },
-    {
-      name: "Garmin",
-      description: "GPS watch sync",
-      connected: false,
-      color: "#007CC3",
-      icon: "G",
-    },
-  ];
+  const displayName = user?.name || "Guest";
+  const avatarInitial = React.useMemo(() => {
+    const fromName = displayName?.trim()?.[0];
+    return (fromName || "?").toUpperCase();
+  }, [displayName]);
 
-  // Mock data for settings values
-  const settingsItems = [
-    { label: "Edit Profile", value: "", icon: "person-outline" as const },
-    { label: "Goal", value: "Sub 1:45", icon: "flag-outline" as const },
-    {
-      label: "Coaching Style",
-      value: "Balanced",
-      icon: "fitness-outline" as const,
-    },
-    { label: "Units", value: "Metric", icon: "speedometer-outline" as const },
-    {
-      label: "Notifications",
-      value: "On",
-      icon: "notifications-outline" as const,
-    },
-    { label: "Subscription", value: "Pro", icon: "card-outline" as const },
-  ];
+  // DEBUG: Log avatar image resolution
+  console.log("[Profile] user?.image:", user?.image, "| hasImage:", !!user?.image);
 
-  const handleScroll = useCallback(
-    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-      setScrollY(event.nativeEvent.contentOffset.y);
-    },
-    []
-  );
+  // Mock data for profile
+  const profileData = {
+    isPro: true,
+    planPhase: "Half Marathon · Week 4 Build",
+  };
 
   const handleLogout = () => {
     logoutSheetRef.current?.dismiss();
@@ -163,128 +79,193 @@ export default function Profile() {
     }
   };
 
-  const handleShareOnStrava = () => {
-    // TODO: Implement Strava share functionality
-    console.log("Share on Strava");
-  };
-
   return (
     <>
-      {/* Collapsed Header - appears on scroll with slide-in animation */}
-      <Animated.View
-        className="absolute top-0 left-0 right-0 z-[90] px-6 pb-3 pt-[54px]"
-        style={[
-          {
-            backgroundColor: "rgba(0,0,0,0.92)",
-          },
-          collapsedHeaderStyle,
-        ]}
-        pointerEvents={showCollapsedHeader ? "auto" : "none"}
-      >
-        <View className="flex-row items-center gap-3">
-          <View className="size-8 items-center justify-center rounded-full bg-lime">
-            <Text className="font-coach-extrabold text-sm text-black">
-              {avatarInitial}
-            </Text>
-          </View>
-          <Text className="font-coach-bold text-base text-g1">
-            {displayName}
-          </Text>
-          {profileStats.isPro && (
-            <View className="rounded-md bg-lime px-2 py-0.5">
-              <Text className="font-coach-extrabold text-[9px] text-black">
-                PRO
-              </Text>
-            </View>
-          )}
-        </View>
-      </Animated.View>
-
       <ScrollView
-        onScroll={handleScroll}
-        scrollEventThrottle={16}
         keyboardShouldPersistTaps="handled"
-        className="flex-1 bg-black"
+        className="flex-1"
+        style={{ backgroundColor: LIGHT_THEME.w2 }}
+        contentContainerClassName="px-4 pb-10 pt-[68px]"
         keyboardDismissMode="interactive"
         contentInsetAdjustmentBehavior="automatic"
       >
-        {/* Dark Header Section */}
-        <ProfileHeader
-          name={displayName}
-          avatarInitial={avatarInitial}
-          avatarUri={user?.image}
-          isPro={profileStats.isPro}
-          planPhase={profileStats.planPhase}
-          planCompletion={profileStats.planCompletion}
-          stats={{ km: profileStats.km, runs: profileStats.runs, streak: profileStats.streak }}
-          scrollProgress={progress}
-          onShareStrava={handleShareOnStrava}
-        />
-
-        {/* Light Content Section */}
-        <View className="min-h-[500px] -mt-1 rounded-t-[28px] bg-w2">
-          <View className="px-4 pb-[100px] pt-[22px]">
-            {/* Connected Services Section */}
-            <Text className="mb-2.5 px-1 font-coach-semibold text-[11px] uppercase tracking-wider text-wMute">
-              Connected Services
-            </Text>
-            <View className="mb-5 gap-2">
-              {connectedServices.map((service) => (
-                <ConnectedServiceCard
-                  key={service.name}
-                  name={service.name}
-                  description={service.description}
-                  icon={service.icon}
-                  color={service.color}
-                  connected={service.connected}
-                  onPress={() => console.log(`Pressed ${service.name}`)}
-                />
-              ))}
-            </View>
-
-            {/* Settings Section */}
-            <Text className="mb-2.5 mt-5 px-1 font-coach-semibold text-[11px] uppercase tracking-wider text-wMute">
-              Settings
-            </Text>
-            <View className="overflow-hidden rounded-2xl border border-wBrd bg-w1">
-              <View className="divide-y divide-wBrd">
-                {settingsItems.map((item) => (
-                  <SettingsRow
-                    key={item.label}
-                    label={item.label}
-                    icon={item.icon}
-                    value={item.value}
-                    onPress={() => console.log(`Pressed ${item.label}`)}
-                  />
-                ))}
+        <View className="w-full max-w-2xl gap-5 self-center">
+          {/* Header - Avatar + Name + Badge + Training Info */}
+          <View className="flex-row items-center gap-4 pb-2">
+            {user?.image ? (
+              <Avatar alt={displayName} className="size-14">
+                <AvatarImage source={{ uri: user.image }} />
+              </Avatar>
+            ) : (
+              <LinearGradient
+                colors={[COLORS.lime, ACTIVITY_COLORS.barHigh]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                className="size-14 items-center justify-center rounded-full"
+              >
+                <Text className="font-coach-extrabold text-2xl text-black">
+                  {avatarInitial}
+                </Text>
+              </LinearGradient>
+            )}
+            <View className="flex-1">
+              <View className="flex-row items-center gap-2">
+                <Text
+                  className="font-coach-bold text-xl tracking-tight"
+                  style={{ color: LIGHT_THEME.wText }}
+                >
+                  {displayName}
+                </Text>
+                {profileData.isPro && (
+                  <View
+                    className="rounded-md px-2 py-0.5"
+                    style={{ backgroundColor: LIGHT_THEME.wText }}
+                  >
+                    <Text
+                      className="font-coach-extrabold text-[9px] tracking-wider"
+                      style={{ color: COLORS.lime }}
+                    >
+                      PRO
+                    </Text>
+                  </View>
+                )}
               </View>
-            </View>
-
-            {/* Account Actions */}
-            <View className="mt-5 overflow-hidden rounded-2xl border border-wBrd bg-w1">
-              <View className="divide-y divide-wBrd">
-                <SettingsRow
-                  label="Log out"
-                  icon="log-out-outline"
-                  showChevron={false}
-                  onPress={() => logoutSheetRef.current?.present()}
-                />
-                <SettingsRow
-                  label="Delete Account"
-                  icon="trash-outline"
-                  destructive
-                  showChevron={false}
-                  onPress={() => deleteAccountSheetRef.current?.present()}
-                />
-              </View>
-            </View>
-
-            {/* Version Footer */}
-            <View className="mt-6 items-center">
-              <Text className="font-coach text-xs text-wMute">
-                Cadence v0.1
+              <Text
+                className="mt-0.5 font-coach text-[13px]"
+                style={{ color: LIGHT_THEME.wMute }}
+              >
+                {profileData.planPhase}
               </Text>
             </View>
+          </View>
+
+          {/* Training Section */}
+          <SettingsGroup
+            title="Training"
+            items={[
+              {
+                label: "Goal",
+                icon: "layers-outline",
+                value: "Sub 1:45 HM",
+                iconColor: ACTIVITY_COLORS.barHigh,
+                iconBgColor: "rgba(168,217,0,0.1)",
+                onPress: () => {},
+              },
+              {
+                label: "Coaching Style",
+                icon: "bar-chart-outline",
+                value: "Balanced",
+                iconColor: COLORS.blu,
+                iconBgColor: "rgba(91,158,255,0.1)",
+                onPress: () => {},
+              },
+              {
+                label: "Weekly Volume",
+                icon: "time-outline",
+                value: "42-48 km",
+                iconColor: COLORS.ora,
+                iconBgColor: "rgba(255,138,0,0.1)",
+                onPress: () => {},
+              },
+              {
+                label: "Units",
+                icon: "flag-outline",
+                value: "Metric (km)",
+                iconColor: ACTIVITY_COLORS.barHigh,
+                iconBgColor: "rgba(168,217,0,0.1)",
+                onPress: () => {},
+              },
+            ]}
+          />
+
+          {/* Connections Section */}
+          <SettingsGroup title="Connections">
+            <ConnectionRow
+              name="Strava"
+              description="Activities synced"
+              icon="S"
+              color="#FC4C02"
+              connected={connections.strava}
+              onToggle={() => toggleConnection("strava")}
+            />
+            <ConnectionRow
+              name="Apple Health"
+              description="HR, sleep & recovery"
+              icon="♥"
+              color="#FF2D55"
+              connected={connections.appleHealth}
+              onToggle={() => toggleConnection("appleHealth")}
+            />
+            <ConnectionRow
+              name="Garmin"
+              description="GPS watch"
+              icon="G"
+              color="#007CC3"
+              connected={connections.garmin}
+              onToggle={() => toggleConnection("garmin")}
+              isLast
+            />
+          </SettingsGroup>
+
+          {/* Account Section */}
+          <SettingsGroup
+            title="Account"
+            items={[
+              {
+                label: "Edit Profile",
+                icon: "person-outline",
+                onPress: () => router.push("/account/edit"),
+              },
+              {
+                label: "Notifications",
+                icon: "notifications-outline",
+                value: "On",
+                onPress: () => {},
+              },
+              {
+                label: "Subscription",
+                icon: "lock-closed-outline",
+                value: "Pro",
+                valueColor: ACTIVITY_COLORS.barHigh,
+                onPress: () => {},
+              },
+            ]}
+          />
+
+          {/* Share on Strava Button */}
+          <Pressable
+            className="flex-row items-center justify-center gap-2 rounded-2xl py-3.5 active:opacity-90"
+            style={{ backgroundColor: LIGHT_THEME.wText }}
+            onPress={() => {}}
+          >
+            <Ionicons name="share-outline" size={16} color={COLORS.lime} />
+            <Text className="font-coach-bold text-sm text-white ">
+              Share on Strava
+            </Text>
+          </Pressable>
+
+          {/* Sign Out Button */}
+          <Pressable
+            className="flex-row items-center justify-center gap-2 rounded-2xl border py-3.5 active:opacity-80"
+            style={{ borderColor: LIGHT_THEME.wBrd }}
+            onPress={() => logoutSheetRef.current?.present()}
+          >
+            <Text
+              className="font-coach-medium text-sm"
+              style={{ color: LIGHT_THEME.wMute }}
+            >
+              Sign Out
+            </Text>
+          </Pressable>
+
+          {/* Version Footer */}
+          <View className="items-center pt-2">
+            <Text
+              className="font-coach text-[11px]"
+              style={{ color: LIGHT_THEME.wMute }}
+            >
+              Cadence v0.1
+            </Text>
           </View>
         </View>
       </ScrollView>
@@ -292,9 +273,9 @@ export default function Profile() {
       <ConfirmationSheet
         sheetRef={logoutSheetRef}
         icon="log-out-outline"
-        title="Log out"
-        description="Are you sure you want to log out? You'll need to sign in again to access your account."
-        confirmLabel="Log out"
+        title="Sign out"
+        description="Are you sure you want to sign out? You'll need to sign in again to access your account."
+        confirmLabel="Sign Out"
         onConfirm={handleLogout}
       />
 

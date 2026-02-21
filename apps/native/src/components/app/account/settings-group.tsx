@@ -1,24 +1,40 @@
 import { Text } from "@/components/ui/text";
+import { LIGHT_THEME } from "@/lib/design-tokens";
+import React from "react";
 import { View } from "react-native";
 import { SettingsRow, SettingsRowProps } from "./settings-row";
 
 export type SettingsGroupProps = {
   title: string;
-  items: SettingsRowProps[];
+  items?: SettingsRowProps[];
+  children?: React.ReactNode;
 };
 
-export function SettingsGroup({ title, items }: SettingsGroupProps) {
+export function SettingsGroup({ title, items, children }: SettingsGroupProps) {
   return (
     <View className="gap-2">
-      <Text className="px-1.5 text-[10px] font-semibold uppercase tracking-[0.4px] text-muted-foreground">
+      <Text
+        className="px-1 font-coach-semibold text-[11px] uppercase tracking-wider"
+        style={{ color: LIGHT_THEME.wMute }}
+      >
         {title}
       </Text>
-      <View className="overflow-hidden rounded-xl border border-border/50 bg-secondary/60">
-        <View className="divide-y divide-border/50">
-          {items.map((item) => (
-            <SettingsRow key={item.label} {...item} />
+      <View
+        className="overflow-hidden rounded-[18px]"
+        style={{
+          backgroundColor: LIGHT_THEME.w1,
+          borderWidth: 1,
+          borderColor: LIGHT_THEME.wBrd,
+        }}
+      >
+        {children ||
+          items?.map((item, index) => (
+            <SettingsRow
+              key={item.label}
+              {...item}
+              isLast={index === (items?.length ?? 0) - 1}
+            />
           ))}
-        </View>
       </View>
     </View>
   );

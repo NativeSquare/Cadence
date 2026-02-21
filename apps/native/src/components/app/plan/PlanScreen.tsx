@@ -92,14 +92,14 @@ export function PlanScreen() {
   });
 
   return (
-    <View className="flex-1 bg-black">
+    <View className="flex-1 bg-w2">
       <StatusBar hidden={isSticky} animated />
       <Animated.ScrollView
         className="flex-1"
         onScroll={handleScroll}
         scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 120 }}
+        contentContainerStyle={{ paddingBottom: 32, flexGrow: 1 }}
         stickyHeaderIndices={[1]}
       >
         {/* Child 0: Dark header area with DateHeader + rounded corner transition */}
@@ -133,7 +133,7 @@ export function PlanScreen() {
         </View>
 
         {/* Child 2: Scrollable content */}
-        <View className="bg-w2" style={{ minHeight: 600 }}>
+        <View className="flex-1 bg-w2 pb-6">
           {/* Today's Session Card */}
           <View className="px-4 pt-4">
             <TodayCard

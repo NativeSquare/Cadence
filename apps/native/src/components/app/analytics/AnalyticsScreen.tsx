@@ -61,37 +61,42 @@ export function AnalyticsScreen() {
   }
 
   return (
-    <View className="flex-1 bg-black relative">
+    <View className="flex-1 bg-w2 relative">
+      {/* Black status bar background */}
+      <View
+        className="absolute top-0 left-0 right-0 bg-black z-10"
+        style={{ height: insets.top }}
+      />
       <Animated.ScrollView
         className="flex-1"
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 120 }}
+        contentContainerStyle={{ paddingBottom: 32, flexGrow: 1 }}
       >
         {/* Dark header area */}
-        <View
-          className="bg-black px-6 pb-[18px]"
-          style={{ paddingTop: insets.top + 12 }}
-        >
-          <Text
-            className="text-2xl font-coach-bold text-g1"
-            style={{ letterSpacing: -0.03 * 24 }}
+        <View className="bg-black">
+          <View
+            className="px-6 pb-[18px]"
+            style={{ paddingTop: insets.top + 12 }}
           >
-            Analytics
-          </Text>
-          <Text className="text-[13px] font-coach text-g4 mt-1">
-            10-week half marathon plan
-          </Text>
+            <Text
+              className="text-2xl font-coach-bold text-g1"
+              style={{ letterSpacing: -0.03 * 24 }}
+            >
+              Analytics
+            </Text>
+            <Text className="text-[13px] font-coach text-g4 mt-1">
+              10-week half marathon plan
+            </Text>
+          </View>
+          {/* Rounded corner transition */}
+          <View
+            className="bg-w2 h-7"
+            style={{ borderTopLeftRadius: 28, borderTopRightRadius: 28 }}
+          />
         </View>
 
-        {/* Light content area with rounded top corners */}
-        <View
-          className="bg-w2 -mt-1"
-          style={{
-            borderTopLeftRadius: 28,
-            borderTopRightRadius: 28,
-            minHeight: 700,
-          }}
-        >
+        {/* Light content area */}
+        <View className="flex-1 bg-w2 pb-6">
           <View className="px-4 py-[22px]">
             {/* Plan Progress */}
             <View className="mb-3">
