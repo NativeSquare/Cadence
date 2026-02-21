@@ -12,16 +12,13 @@
  */
 
 import { useState, useCallback } from "react";
-import {
-  View,
-  ScrollView,
-  NativeSyntheticEvent,
-  NativeScrollEvent,
-} from "react-native";
+import { View, StatusBar } from "react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
-  withTiming,
+  useAnimatedScrollHandler,
+  useAnimatedReaction,
+  runOnJS,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text } from "@/components/ui/text";
@@ -43,14 +40,32 @@ import { TODAY_INDEX, DAYS, DATES } from "./types";
  * - Full header fades/translates based on progress
  * - Collapsed header appears at p > 0.85
  */
+// Threshold where sticky header becomes active
+const STICKY_THRESHOLD = 100;
+
 export function PlanScreen() {
   const insets = useSafeAreaInsets();
   const [selectedDay, setSelectedDay] = useState(TODAY_INDEX);
+  const [isSticky, setIsSticky] = useState(false);
   const scrollY = useSharedValue(0);
 
-  const handleScroll = useCallback(
-    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-      scrollY.value = event.nativeEvent.contentOffset.y;
+  const handleScroll = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      scrollY.value = event.contentOffset.y;
+    },
+  });
+
+  // Toggle status bar visibility based on scroll position
+  const updateStickyState = useCallback((sticky: boolean) => {
+    setIsSticky(sticky);
+  }, []);
+
+  useAnimatedReaction(
+    () => scrollY.value > STICKY_THRESHOLD,
+    (isNowSticky, wasSticky) => {
+      if (isNowSticky !== wasSticky) {
+        runOnJS(updateStickyState)(isNowSticky);
+      }
     },
     [scrollY]
   );
@@ -76,80 +91,49 @@ export function PlanScreen() {
     };
   });
 
-  // Animated style for collapsed header (fade in on scroll)
-  const collapsedHeaderAnimatedStyle = useAnimatedStyle(() => {
-    const progress = Math.min(1, Math.max(0, (scrollY.value - 20) / 60));
-    const showCollapsed = progress > 0.85;
-    return {
-      opacity: withTiming(showCollapsed ? 1 : 0, { duration: 150 }),
-      transform: [{ translateY: withTiming(showCollapsed ? 0 : -10, { duration: 150 }) }],
-    };
-  });
-
   return (
-    <View className="flex-1 bg-black relative">
-      {/* Collapsed header bar - shown when scrolled */}
-      <Animated.View
-        style={[
-          {
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            zIndex: 90,
-            paddingTop: insets.top,
-            paddingHorizontal: 24,
-            paddingBottom: 12,
-            backgroundColor: "rgba(0,0,0,0.92)",
-          },
-          collapsedHeaderAnimatedStyle,
-        ]}
-        className="border-b border-brd"
-        pointerEvents="box-none"
-      >
-        <DateHeader variant="collapsed" userName={MOCK_PLAN_DATA.userName} weekNumber={MOCK_PLAN_DATA.weekNumber} />
-      </Animated.View>
-
-      <ScrollView
+    <View className="flex-1 bg-black">
+      <StatusBar hidden={isSticky} animated />
+      <Animated.ScrollView
         className="flex-1"
         onScroll={handleScroll}
         scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 120 }}
+        stickyHeaderIndices={[1]}
       >
-        {/* Dark header area with full DateHeader */}
-        <View
-          className="bg-black px-6 pb-5"
-          style={{ paddingTop: insets.top + 8 }}
-        >
-          <Animated.View style={headerAnimatedStyle}>
-            <DateHeader
-              variant="full"
-              userName={MOCK_PLAN_DATA.userName}
-              weekNumber={MOCK_PLAN_DATA.weekNumber}
-            />
-          </Animated.View>
+        {/* Child 0: Dark header area with DateHeader + rounded corner transition */}
+        <View className="bg-black">
+          <View className="px-6 pb-5" style={{ paddingTop: insets.top + 8 }}>
+            <Animated.View style={headerAnimatedStyle}>
+              <DateHeader
+                variant="full"
+                userName={MOCK_PLAN_DATA.userName}
+                weekNumber={MOCK_PLAN_DATA.weekNumber}
+              />
+            </Animated.View>
+          </View>
+          {/* Rounded corner visual element */}
+          <View
+            className="bg-w2 h-7"
+            style={{ borderTopLeftRadius: 28, borderTopRightRadius: 28 }}
+          />
         </View>
 
-        {/* Light content area with rounded top corners */}
-        <View
-          className="bg-w2 -mt-1"
-          style={{ borderTopLeftRadius: 28, borderTopRightRadius: 28, minHeight: 700 }}
-        >
-          {/* Calendar Strip */}
-          <View className="px-4 pt-5 pb-3">
-            <CalendarStrip
-              sessions={MOCK_PLAN_DATA.sessions}
-              selectedDay={selectedDay}
-              onDaySelect={handleDaySelect}
-              weekNumber={MOCK_PLAN_DATA.weekNumber}
-              phase={MOCK_PLAN_DATA.phase}
-            />
-          </View>
+        {/* Child 1: CalendarStrip - STICKY */}
+        <View className="bg-w2 px-4 pt-2">
+          <CalendarStrip
+            sessions={MOCK_PLAN_DATA.sessions}
+            selectedDay={selectedDay}
+            onDaySelect={handleDaySelect}
+            weekNumber={MOCK_PLAN_DATA.weekNumber}
+            phase={MOCK_PLAN_DATA.phase}
+          />
+          <View className="h-px bg-wBrd mt-3 -mx-4" />
+        </View>
 
-          {/* Divider */}
-          <View className="h-px bg-wBrd mx-5" />
-
+        {/* Child 2: Scrollable content */}
+        <View className="bg-w2" style={{ minHeight: 600 }}>
           {/* Today's Session Card */}
           <View className="px-4 pt-4">
             <TodayCard
@@ -185,7 +169,7 @@ export function PlanScreen() {
             />
           </View>
         </View>
-      </ScrollView>
+      </Animated.ScrollView>
     </View>
   );
 }
