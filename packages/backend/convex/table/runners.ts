@@ -20,6 +20,9 @@ const physicalSchema = v.optional(
     age: v.optional(v.number()),
     weight: v.optional(v.number()),
     height: v.optional(v.number()),
+    gender: v.optional(v.union(v.literal("male"), v.literal("female"))),
+    maxHr: v.optional(v.number()),
+    restingHr: v.optional(v.number()),
   })
 );
 

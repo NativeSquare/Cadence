@@ -64,7 +64,7 @@ export const Legend = React.memo(function Legend({
               style={[
                 styles.phasePill,
                 {
-                  backgroundColor: blendWithBg(p.color, 0.35),
+                  backgroundColor: blendWithBg(p.color, 0.25),
                   borderLeftColor: p.color,
                 },
               ]}
@@ -80,13 +80,13 @@ export const Legend = React.memo(function Legend({
 const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 16,
-    paddingTop: 8,
+    paddingTop: 10,
     paddingBottom: 4,
   },
   row: {
     flexDirection: "row",
     justifyContent: "center",
-    gap: 16,
+    gap: 14,
     marginBottom: 8,
   },
   item: {
@@ -95,26 +95,26 @@ const styles = StyleSheet.create({
     gap: 5,
   },
   sessionDot: {
-    width: 11,
-    height: 11,
-    borderRadius: 3,
+    width: 3,
+    height: 12,
+    borderRadius: 2,
   },
   sessionLabel: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "500",
     fontFamily: "Outfit-Medium",
     color: LIGHT_THEME.wSub,
   },
   phasePill: {
-    width: 20,
-    height: 10,
-    borderRadius: 5,
-    borderLeftWidth: 3,
+    width: 16,
+    height: 8,
+    borderRadius: 4,
+    borderLeftWidth: 2.5,
   },
   phaseLabel: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: "600",
     fontFamily: "Outfit-SemiBold",
-    color: LIGHT_THEME.wSub,
+    color: LIGHT_THEME.wMute,
   },
 });

@@ -4,7 +4,7 @@
  * Reference: cadence-calendar-final.jsx todayBlink keyframe
  */
 
-import React, { useEffect } from "react";
+import React, { useEffect, useMemo } from "react";
 import { InteractionManager, type ViewStyle } from "react-native";
 import Animated, {
   cancelAnimation,
@@ -90,21 +90,22 @@ export const TodayMarker = React.memo(function TodayMarker({
     transform: [{ scale: scale.value }],
   }));
 
+  const baseStyle = useMemo(
+    () => ({
+      width: size,
+      height: size,
+      borderRadius: size / 2,
+      borderWidth: bw,
+      borderColor,
+      backgroundColor,
+      position: "absolute" as const,
+    }),
+    [size, bw, borderColor, backgroundColor]
+  );
+
   return (
     <Animated.View
-      style={[
-        {
-          width: size,
-          height: size,
-          borderRadius: size / 2,
-          borderWidth: bw,
-          borderColor,
-          backgroundColor,
-          position: "absolute",
-        },
-        animatedStyle,
-        style,
-      ]}
+      style={[baseStyle, animatedStyle, style]}
       pointerEvents="none"
     />
   );

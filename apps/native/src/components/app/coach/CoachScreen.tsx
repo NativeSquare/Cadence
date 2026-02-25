@@ -24,6 +24,8 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { Bot } from "lucide-react-native";
+
 import { ChatHeader } from "./ChatHeader";
 import { ChatMessage } from "./ChatMessage";
 import { ToolCard } from "./ToolCard";
@@ -213,11 +215,17 @@ export function CoachScreen() {
           {messages.map((message) => {
             if (isToolMessage(message)) {
               return (
-                <ToolCard
-                  key={message.id}
-                  title={message.title}
-                  data={message.data}
-                />
+                <View key={message.id} className="flex-row mb-2.5">
+                  <View className="w-7 h-7 rounded-full bg-lime items-center justify-center mr-2 mt-1">
+                    <Bot size={16} color="#000" strokeWidth={2.2} />
+                  </View>
+                  <View className="flex-1">
+                    <ToolCard
+                      title={message.title}
+                      data={message.data}
+                    />
+                  </View>
+                </View>
               );
             }
 

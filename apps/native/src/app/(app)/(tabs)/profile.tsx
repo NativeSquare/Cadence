@@ -10,6 +10,7 @@ import { api } from "@packages/backend/convex/_generated/api";
 import { Ionicons } from "@expo/vector-icons";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { useMutation, useQuery } from "convex/react";
+
 import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useState } from "react";
@@ -30,6 +31,7 @@ export default function Profile() {
   const router = useRouter();
   const { signOut } = useAuthActions();
   const user = useQuery(api.table.users.currentUser);
+  const runner = useQuery(api.table.runners.getCurrentRunner);
   const deleteAccount = useMutation(api.table.users.deleteAccount);
 
   const logoutSheetRef = React.useRef<BottomSheetModal>(null);
@@ -160,20 +162,36 @@ export default function Profile() {
                 onPress: () => {},
               },
               {
-                label: "Weekly Volume",
-                icon: "time-outline",
-                value: "42-48 km",
-                iconColor: COLORS.ora,
-                iconBgColor: "rgba(255,138,0,0.1)",
-                onPress: () => {},
-              },
-              {
                 label: "Units",
                 icon: "flag-outline",
                 value: "Metric (km)",
                 iconColor: ACTIVITY_COLORS.barHigh,
                 iconBgColor: "rgba(168,217,0,0.1)",
                 onPress: () => {},
+              },
+            ]}
+          />
+
+          {/* Body Section */}
+          <SettingsGroup
+            title="Body"
+            items={[
+              {
+                label: "Physical Profile",
+                icon: "body-outline",
+                value: (() => {
+                  const p = runner?.physical;
+                  if (!p) return "Not set";
+                  const parts: string[] = [];
+                  if (p.gender) parts.push(p.gender === "male" ? "M" : "F");
+                  if (p.weight) parts.push(`${p.weight} kg`);
+                  if (p.height) parts.push(`${p.height} cm`);
+                  if (p.maxHr) parts.push(`${p.maxHr} bpm`);
+                  return parts.length > 0 ? parts.join(" · ") : "Not set";
+                })(),
+                iconColor: COLORS.blu,
+                iconBgColor: "rgba(91,158,255,0.1)",
+                onPress: () => router.push("/account/body"),
               },
             ]}
           />

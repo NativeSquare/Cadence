@@ -7,11 +7,15 @@
 import React, { useMemo } from "react";
 import { View, StyleSheet } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { COLORS } from "@/lib/design-tokens";
 import { PhaseBand } from "./PhaseBand";
 import { SessionCard } from "./SessionCard";
 import { computePhaseSegments } from "./helpers";
 import type { CalSession, CalendarDay, Phase } from "./types";
+
+const HIGHLIGHT_COLORS = [
+  "rgba(200,255,0,0.047)",
+  "rgba(200,255,0,0.024)",
+] as const;
 
 interface WeekRowProps {
   week: CalendarDay[];
@@ -43,6 +47,20 @@ export const WeekRow = React.memo(function WeekRow({
     [week, todayKey]
   );
 
+  const highlightStyle = useMemo(
+    () =>
+      todayColIdx >= 0
+        ? [
+            styles.todayHighlight,
+            {
+              left: `${(todayColIdx / 7) * 100}%` as any,
+              width: `${(1 / 7) * 100}%` as any,
+            },
+          ]
+        : null,
+    [todayColIdx]
+  );
+
   return (
     <View
       style={[
@@ -51,19 +69,10 @@ export const WeekRow = React.memo(function WeekRow({
       ]}
     >
       {/* Today column highlight */}
-      {todayColIdx >= 0 && (
+      {highlightStyle && (
         <LinearGradient
-          colors={[
-            "rgba(200,255,0,0.047)",
-            "rgba(200,255,0,0.024)",
-          ]}
-          style={[
-            styles.todayHighlight,
-            {
-              left: `${(todayColIdx / 7) * 100}%` as any,
-              width: `${(1 / 7) * 100}%` as any,
-            },
-          ]}
+          colors={HIGHLIGHT_COLORS}
+          style={highlightStyle}
           pointerEvents="none"
         />
       )}

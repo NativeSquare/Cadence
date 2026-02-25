@@ -20,6 +20,7 @@
 import { View } from "react-native";
 import { Text } from "@/components/ui/text";
 import Animated, { FadeIn } from "react-native-reanimated";
+import { Bot } from "lucide-react-native";
 
 import type { ChatMessageProps } from "./types";
 
@@ -58,8 +59,15 @@ export function ChatMessage({ message, isCoach }: ChatMessageProps) {
       entering={FadeIn.duration(200)}
       className={`flex-row mb-2.5 ${isCoach ? "justify-start" : "justify-end"}`}
     >
+      {/* Coach avatar */}
+      {isCoach && (
+        <View className="w-7 h-7 rounded-full bg-lime items-center justify-center mr-2 mt-1">
+          <Bot size={16} color="#000" strokeWidth={2.2} />
+        </View>
+      )}
+
       <View
-        className={`max-w-[82%] px-4 py-3.5 ${
+        className={`max-w-[75%] px-4 py-3.5 ${
           isCoach
             ? "bg-w1 border border-wBrd"
             : "bg-wText"

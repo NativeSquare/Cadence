@@ -20,19 +20,16 @@ interface PhaseBandProps {
 /** Memoized segment band to avoid recreating style objects */
 const BandSegment = React.memo(function BandSegment({
   segment,
-  segments,
+  isRightEdge,
 }: {
   segment: PhaseSegment;
-  segments: PhaseSegment[];
+  isRightEdge: boolean;
 }) {
   const s = segment;
   const leftPct = (s.start / 7) * 100;
   const widthPct = ((s.end - s.start + 1) / 7) * 100;
   const c = s.phase.color;
   const isLeftEdge = s.isPhaseStart || s.start === 0;
-  const nextDayIdx = s.end + 1;
-  const isRightEdge =
-    nextDayIdx > 6 || !segments.find((seg) => seg.start === nextDayIdx);
   const spanCols = s.end - s.start + 1;
 
   const segStyle = useMemo(
@@ -42,25 +39,25 @@ const BandSegment = React.memo(function BandSegment({
       bottom: 1,
       left: `${leftPct}%` as any,
       width: `${widthPct}%` as any,
-      backgroundColor: blendWithBg(c, 0.35),
+      backgroundColor: blendWithBg(c, 0.18),
       borderTopLeftRadius: isLeftEdge ? 7 : 2,
       borderBottomLeftRadius: isLeftEdge ? 7 : 2,
       borderTopRightRadius: isRightEdge ? 7 : 2,
       borderBottomRightRadius: isRightEdge ? 7 : 2,
       borderTopWidth: 1,
-      borderTopColor: blendWithBg(c, 0.25),
+      borderTopColor: blendWithBg(c, 0.12),
       borderBottomWidth: 1,
-      borderBottomColor: blendWithBg(c, 0.25),
-      borderLeftWidth: s.isPhaseStart ? 3 : isLeftEdge ? 2 : 1,
+      borderBottomColor: blendWithBg(c, 0.12),
+      borderLeftWidth: s.isPhaseStart ? 2.5 : isLeftEdge ? 1.5 : 1,
       borderLeftColor: s.isPhaseStart
-        ? c
+        ? blendWithBg(c, 0.6)
         : isLeftEdge
-          ? c
-          : blendWithBg(c, 0.15),
+          ? blendWithBg(c, 0.35)
+          : blendWithBg(c, 0.08),
       borderRightWidth: 1,
       borderRightColor: isRightEdge
-        ? blendWithBg(c, 0.25)
-        : blendWithBg(c, 0.15),
+        ? blendWithBg(c, 0.12)
+        : blendWithBg(c, 0.08),
       zIndex: 1,
     }),
     [c, leftPct, widthPct, isLeftEdge, isRightEdge, s.isPhaseStart]
@@ -75,10 +72,10 @@ const BandSegment = React.memo(function BandSegment({
       fontWeight: "700" as const,
       fontFamily: "Outfit-Bold",
       letterSpacing: 0.4,
-      color: c,
+      color: blendWithBg(c, 0.7, [26, 26, 26]),
       textTransform: "uppercase" as const,
       lineHeight: 9,
-      opacity: 0.85,
+      opacity: 0.6,
     }),
     [c]
   );
@@ -102,9 +99,15 @@ export const PhaseBand = React.memo(function PhaseBand({
   return (
     <View style={styles.container}>
       {/* Phase band segments (absolute positioned) */}
-      {segments.map((s, si) => (
-        <BandSegment key={si} segment={s} segments={segments} />
-      ))}
+      {segments.map((s, si) => {
+        const nextDayIdx = s.end + 1;
+        const isRightEdge =
+          nextDayIdx > 6 ||
+          !segments.find((seg) => seg.start === nextDayIdx);
+        return (
+          <BandSegment key={si} segment={s} isRightEdge={isRightEdge} />
+        );
+      })}
 
       {/* Day numbers (z-index 2, above bands) */}
       {week.map((d, di) => {

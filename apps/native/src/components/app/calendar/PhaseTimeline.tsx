@@ -1,82 +1,17 @@
 /**
  * PhaseTimeline - Horizontal progress bar showing training phases.
- * 22pt tall with proportional colored segments and animated "today" dot.
- * Reference: cadence-calendar-final.jsx lines 311-361
+ * 18pt tall with pastel proportional segments and a static "today" dot.
+ * Reference: cadence-calendar-v2 prototype PhaseTimeline
  */
 
-import React, { useEffect, useMemo } from "react";
-import { InteractionManager, View, Text, StyleSheet } from "react-native";
-import Animated, {
-  cancelAnimation,
-  Easing,
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withSequence,
-  withTiming,
-} from "react-native-reanimated";
-import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
-import { useCalendarFocused } from "./CalendarFocusContext";
+import React, { useMemo } from "react";
+import { View, Text, StyleSheet } from "react-native";
+import { LIGHT_THEME } from "@/lib/design-tokens";
+import { blendWithBg } from "./helpers";
 import { PHASES, TODAY_KEY } from "./constants";
 
-/** Animated today dot on the timeline — pauses when tab is not focused */
-const TimelineTodayDot = React.memo(function TimelineTodayDot({
-  offset,
-}: {
-  offset: number;
-}) {
-  const isFocused = useCalendarFocused();
-  const scale = useSharedValue(0.9);
-  const opacity = useSharedValue(0.6);
-
-  useEffect(() => {
-    if (!isFocused) {
-      cancelAnimation(scale);
-      cancelAnimation(opacity);
-      return;
-    }
-    const task = InteractionManager.runAfterInteractions(() => {
-      scale.value = withRepeat(
-        withSequence(
-          withTiming(1.15, {
-            duration: 750,
-            easing: Easing.inOut(Easing.ease),
-          }),
-          withTiming(0.9, {
-            duration: 750,
-            easing: Easing.inOut(Easing.ease),
-          })
-        ),
-        -1,
-        true
-      );
-      opacity.value = withRepeat(
-        withSequence(
-          withTiming(1, {
-            duration: 750,
-            easing: Easing.inOut(Easing.ease),
-          }),
-          withTiming(0.6, {
-            duration: 750,
-            easing: Easing.inOut(Easing.ease),
-          })
-        ),
-        -1,
-        true
-      );
-    });
-    return () => {
-      task.cancel();
-      cancelAnimation(scale);
-      cancelAnimation(opacity);
-    };
-  }, [isFocused, scale, opacity]);
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-    opacity: opacity.value,
-  }));
-
+/** Static today dot on the timeline */
+function TimelineTodayDot({ offset }: { offset: number }) {
   return (
     <View
       style={[
@@ -88,11 +23,11 @@ const TimelineTodayDot = React.memo(function TimelineTodayDot({
       {/* Vertical line behind dot */}
       <View style={styles.todayLine} />
 
-      {/* Pulsing lime dot */}
-      <Animated.View style={[styles.todayDot, animatedStyle]} />
+      {/* Dark dot */}
+      <View style={styles.todayDot} />
     </View>
   );
-});
+}
 
 export const PhaseTimeline = React.memo(function PhaseTimeline() {
   const { segments, todayOffset } = useMemo(() => {
@@ -140,15 +75,28 @@ export const PhaseTimeline = React.memo(function PhaseTimeline() {
               styles.segment,
               {
                 width: `${s.widthPct}%` as any,
-                backgroundColor: s.phase.color,
+                backgroundColor: blendWithBg(s.phase.color, 0.3),
                 borderRightWidth:
-                  i < segments.length - 1 ? 1.5 : 0,
+                  i < segments.length - 1 ? 1 : 0,
                 borderRightColor: LIGHT_THEME.w2,
               },
             ]}
           >
             {s.widthPct > 10 && (
-              <Text style={styles.segmentLabel}>{s.phase.name}</Text>
+              <Text
+                style={[
+                  styles.segmentLabel,
+                  {
+                    color: blendWithBg(
+                      s.phase.color,
+                      0.9,
+                      [26, 26, 26]
+                    ),
+                  },
+                ]}
+              >
+                {s.phase.name}
+              </Text>
             )}
           </View>
         ))}
@@ -168,12 +116,12 @@ const styles = StyleSheet.create({
   },
   barContainer: {
     flexDirection: "row",
-    height: 22,
-    borderRadius: 11,
+    height: 18,
+    borderRadius: 9,
     overflow: "hidden",
     position: "relative",
     borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.06)",
+    borderColor: "rgba(0,0,0,0.05)",
   },
   segment: {
     height: "100%",
@@ -182,22 +130,18 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   segmentLabel: {
-    fontSize: 8,
+    fontSize: 7,
     fontWeight: "700",
     fontFamily: "Outfit-Bold",
-    color: "rgba(255,255,255,0.95)",
     textTransform: "uppercase",
-    letterSpacing: 0.4,
-    textShadowColor: "rgba(0,0,0,0.35)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 3,
+    letterSpacing: 0.3,
   },
   todayContainer: {
     position: "absolute",
-    top: -2,
-    bottom: -2,
-    width: 10,
-    marginLeft: -5,
+    top: -1,
+    bottom: -1,
+    width: 8,
+    marginLeft: -4,
     alignItems: "center",
     justifyContent: "center",
     zIndex: 2,
@@ -206,18 +150,23 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 0,
     bottom: 0,
-    left: 4,
-    width: 2,
+    left: 3.5,
+    width: 1,
     backgroundColor: LIGHT_THEME.wText,
     borderRadius: 1,
-    opacity: 0.5,
+    opacity: 0.25,
   },
   todayDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: COLORS.lime,
-    borderWidth: 2,
-    borderColor: LIGHT_THEME.wText,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: LIGHT_THEME.wText,
+    borderWidth: 1.5,
+    borderColor: LIGHT_THEME.w2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 2,
   },
 });
