@@ -9,6 +9,21 @@
 export type SessionIntensity = "key" | "high" | "low" | "rest";
 
 /**
+ * Sync status for sessions recorded on external wearables
+ */
+export type SyncStatus = "planned" | "exported" | "syncing" | "synced" | "failed";
+
+/**
+ * Actual data recorded by the wearable after sync
+ */
+export interface SyncedData {
+  /** Actual distance recorded */
+  km: string;
+  /** Actual duration recorded */
+  dur: string;
+}
+
+/**
  * Individual training session data
  */
 export interface SessionData {
@@ -28,6 +43,12 @@ export interface SessionData {
   zone: string;
   /** Whether this is today's session */
   today?: boolean;
+  /** Sync state for wearable-recorded sessions */
+  syncStatus?: SyncStatus;
+  /** Source wearable or service (e.g., "garmin", "apple_watch", "strava") */
+  syncSource?: string;
+  /** Actual recorded values after sync completes */
+  syncedData?: SyncedData;
 }
 
 /**

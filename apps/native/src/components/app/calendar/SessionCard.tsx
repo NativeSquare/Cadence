@@ -1,12 +1,10 @@
 /**
  * SessionCard - Colored card for a calendar day cell.
- * 3 visual layers: gradient, diagonal stripes, watermark icon.
  * Reference: cadence-calendar-final.jsx lines 617-656
  */
 
 import React, { useEffect } from "react";
-import { View, Text, StyleSheet } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
+import { InteractionManager, View, Text, StyleSheet } from "react-native";
 import Animated, {
   cancelAnimation,
   Easing,
@@ -18,8 +16,9 @@ import Animated, {
 } from "react-native-reanimated";
 import Svg, { Path } from "react-native-svg";
 import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
-import { DiagonalStripes } from "./DiagonalStripes";
+import { useCalendarFocused } from "./CalendarFocusContext";
 import { WatermarkIcon } from "./WatermarkIcon";
+import { blendWithBg } from "./helpers";
 import { SESSION_COLORS } from "./constants";
 import type { CalSession } from "./types";
 
@@ -44,29 +43,37 @@ const CheckSvg = React.memo(function CheckSvg() {
   );
 });
 
-/** Animated glow ring for today's card */
+/** Animated glow ring for today's card — pauses when tab is not focused */
 const TodayGlowRing = React.memo(function TodayGlowRing() {
+  const isFocused = useCalendarFocused();
   const glowOpacity = useSharedValue(0.2);
 
   useEffect(() => {
-    glowOpacity.value = withRepeat(
-      withSequence(
-        withTiming(0.55, {
-          duration: 1250,
-          easing: Easing.inOut(Easing.ease),
-        }),
-        withTiming(0.2, {
-          duration: 1250,
-          easing: Easing.inOut(Easing.ease),
-        })
-      ),
-      -1,
-      true
-    );
+    if (!isFocused) {
+      cancelAnimation(glowOpacity);
+      return;
+    }
+    const task = InteractionManager.runAfterInteractions(() => {
+      glowOpacity.value = withRepeat(
+        withSequence(
+          withTiming(0.55, {
+            duration: 1250,
+            easing: Easing.inOut(Easing.ease),
+          }),
+          withTiming(0.2, {
+            duration: 1250,
+            easing: Easing.inOut(Easing.ease),
+          })
+        ),
+        -1,
+        true
+      );
+    });
     return () => {
+      task.cancel();
       cancelAnimation(glowOpacity);
     };
-  }, [glowOpacity]);
+  }, [isFocused, glowOpacity]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     opacity: glowOpacity.value,
@@ -82,7 +89,7 @@ const TodayGlowRing = React.memo(function TodayGlowRing() {
 
 export const SessionCard = React.memo(
   function SessionCard({ session, isToday, isOutside }: SessionCardProps) {
-    const color = SESSION_COLORS[session.type];
+    const baseColor = SESSION_COLORS[session.type];
     const cardOpacity = isOutside
       ? 0.15
       : isToday
@@ -91,34 +98,49 @@ export const SessionCard = React.memo(
           ? 1
           : 0.75;
 
+    const bgColor =
+      cardOpacity < 1 ? blendWithBg(baseColor, cardOpacity) : baseColor;
+
     return (
       <View
         style={[
           styles.card,
-          {
-            backgroundColor: color,
-            opacity: cardOpacity,
-          },
+          { backgroundColor: bgColor },
           isToday && styles.todayBorder,
         ]}
       >
-        {/* Layer 1: Gradient overlay */}
-        <LinearGradient
-          colors={["rgba(255,255,255,0.18)", "rgba(0,0,0,0.08)"]}
-          style={StyleSheet.absoluteFill}
-        />
-
-        {/* Layer 2: Diagonal stripes */}
-        <DiagonalStripes />
-
-        {/* Layer 3: Watermark icon */}
+        {/* Watermark icon */}
         <View style={styles.watermarkContainer}>
-          <WatermarkIcon type={session.type} size={30} />
+          <WatermarkIcon
+            type={session.type}
+            size={30}
+            color={
+              cardOpacity < 1
+                ? `rgba(255,255,255,${0.18 * cardOpacity})`
+                : undefined
+            }
+          />
         </View>
 
         {/* Content */}
-        <Text style={styles.kmText}>{session.km}</Text>
-        <Text style={styles.durText}>{session.dur}</Text>
+        <Text
+          style={[
+            styles.kmText,
+            cardOpacity < 1 && { color: `rgba(255,255,255,${cardOpacity})` },
+          ]}
+        >
+          {session.km}
+        </Text>
+        <Text
+          style={[
+            styles.durText,
+            cardOpacity < 1 && {
+              color: `rgba(255,255,255,${0.65 * cardOpacity})`,
+            },
+          ]}
+        >
+          {session.dur}
+        </Text>
 
         {/* Checkmark badge */}
         {session.done && (
@@ -164,10 +186,6 @@ const styles = StyleSheet.create({
     top: "50%",
     left: "50%",
     transform: [{ translateX: -15 }, { translateY: -15 }],
-    shadowColor: "rgba(0,0,0,0.2)",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 1,
-    shadowRadius: 2,
   },
   kmText: {
     fontSize: 12,

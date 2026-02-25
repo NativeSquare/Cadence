@@ -161,11 +161,6 @@ const styles = StyleSheet.create({
   },
   todayCircle: {
     backgroundColor: LIGHT_THEME.wText,
-    shadowColor: COLORS.lime,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 4,
   },
   dayNumber: {
     fontSize: 10,

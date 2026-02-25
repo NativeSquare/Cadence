@@ -5,7 +5,7 @@
  */
 
 import React, { useEffect } from "react";
-import { type ViewStyle } from "react-native";
+import { InteractionManager, type ViewStyle } from "react-native";
 import Animated, {
   cancelAnimation,
   Easing,
@@ -16,6 +16,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { COLORS } from "@/lib/design-tokens";
+import { useCalendarFocused } from "./CalendarFocusContext";
 
 interface TodayMarkerProps {
   /** Diameter of the pulsing circle */
@@ -37,43 +38,52 @@ export const TodayMarker = React.memo(function TodayMarker({
   backgroundColor = "transparent",
   style,
 }: TodayMarkerProps) {
+  const isFocused = useCalendarFocused();
   const opacity = useSharedValue(0.6);
   const scale = useSharedValue(0.9);
 
   useEffect(() => {
-    opacity.value = withRepeat(
-      withSequence(
-        withTiming(1, {
-          duration: 750,
-          easing: Easing.inOut(Easing.ease),
-        }),
-        withTiming(0.6, {
-          duration: 750,
-          easing: Easing.inOut(Easing.ease),
-        })
-      ),
-      -1,
-      true
-    );
-    scale.value = withRepeat(
-      withSequence(
-        withTiming(1.15, {
-          duration: 750,
-          easing: Easing.inOut(Easing.ease),
-        }),
-        withTiming(0.9, {
-          duration: 750,
-          easing: Easing.inOut(Easing.ease),
-        })
-      ),
-      -1,
-      true
-    );
+    if (!isFocused) {
+      cancelAnimation(opacity);
+      cancelAnimation(scale);
+      return;
+    }
+    const task = InteractionManager.runAfterInteractions(() => {
+      opacity.value = withRepeat(
+        withSequence(
+          withTiming(1, {
+            duration: 750,
+            easing: Easing.inOut(Easing.ease),
+          }),
+          withTiming(0.6, {
+            duration: 750,
+            easing: Easing.inOut(Easing.ease),
+          })
+        ),
+        -1,
+        true
+      );
+      scale.value = withRepeat(
+        withSequence(
+          withTiming(1.15, {
+            duration: 750,
+            easing: Easing.inOut(Easing.ease),
+          }),
+          withTiming(0.9, {
+            duration: 750,
+            easing: Easing.inOut(Easing.ease),
+          })
+        ),
+        -1,
+        true
+      );
+    });
     return () => {
+      task.cancel();
       cancelAnimation(opacity);
       cancelAnimation(scale);
     };
-  }, [opacity, scale]);
+  }, [isFocused, opacity, scale]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,

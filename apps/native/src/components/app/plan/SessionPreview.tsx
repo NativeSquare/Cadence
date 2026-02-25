@@ -1,24 +1,31 @@
 /**
  * SessionPreview - Small card for upcoming sessions
- * Reference: cadence-full-v9.jsx SmallCard component (lines 99-114)
  *
  * Features:
  * - Compact card with side accent bar
  * - Session type, zone, and distance
- * - Completion checkmark for done sessions
+ * - Sync-aware status indicator with colored icon circles
  * - slideIn animation with staggered delay
  * - Tappable to navigate to session detail
  */
 
 import { View, Pressable } from "react-native";
 import { Text } from "@/components/ui/text";
-import Animated, { FadeInRight } from "react-native-reanimated";
+import Animated, {
+  FadeInRight,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+  Easing,
+} from "react-native-reanimated";
+import { useEffect } from "react";
 import Svg, { Path } from "react-native-svg";
 import { useRouter } from "expo-router";
 import { ChevronRight } from "lucide-react-native";
 import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
 import { DAYS, DATES, type SessionData } from "./types";
-import { getSessionColor } from "./utils";
+import { getSessionColor, getSyncStatusColor } from "./utils";
 
 interface SessionPreviewProps {
   /** Session data */
@@ -32,28 +39,126 @@ interface SessionPreviewProps {
 }
 
 /**
- * Checkmark icon for completed sessions
- * Reference: prototype line 107
+ * Spinning sync arrows for syncing state (compact version)
  */
-function CheckmarkIcon() {
+function SpinningSyncIcon({ color }: { color: string }) {
+  const rotation = useSharedValue(0);
+
+  useEffect(() => {
+    rotation.value = withRepeat(
+      withTiming(360, { duration: 1500, easing: Easing.linear }),
+      -1,
+      false
+    );
+  }, [rotation]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${rotation.value}deg` }],
+  }));
+
   return (
-    <Svg width={11} height={11} viewBox="0 0 12 12">
-      <Path
-        d="M2.5 6L5 8.5L9.5 3.5"
-        stroke={COLORS.lime}
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        fill="none"
-      />
-    </Svg>
+    <Animated.View style={animatedStyle}>
+      <Svg width={12} height={12} viewBox="0 0 24 24" fill="none">
+        <Path
+          d="M21 12C21 16.97 16.97 21 12 21C9.36 21 7.01 19.88 5.34 18.1L7.5 15.94C8.6 17.22 10.21 18 12 18C15.31 18 18 15.31 18 12H15L19 8L23 12H21Z"
+          fill={color}
+        />
+        <Path
+          d="M3 12C3 7.03 7.03 3 12 3C14.64 3 16.99 4.12 18.66 5.9L16.5 8.06C15.4 6.78 13.79 6 12 6C8.69 6 6 8.69 6 12H9L5 16L1 12H3Z"
+          fill={color}
+        />
+      </Svg>
+    </Animated.View>
   );
 }
 
 /**
+ * Sync-aware status indicator — colored circles with white icons
+ */
+function SessionStatusIndicator({ session }: { session: SessionData }) {
+  const isRest = session.intensity === "rest";
+  const syncStatus = session.syncStatus;
+
+  if (isRest) return null;
+
+  // Sync-aware icons: colored circle with white icon inside
+  if (syncStatus && syncStatus !== "planned") {
+    const color = getSyncStatusColor(syncStatus);
+
+    if (syncStatus === "syncing") {
+      return (
+        <View style={{ width: 22, height: 22 }} className="items-center justify-center">
+          <SpinningSyncIcon color={color} />
+        </View>
+      );
+    }
+
+    // Solid colored circle with white icon
+    return (
+      <View
+        className="items-center justify-center"
+        style={{
+          width: 22,
+          height: 22,
+          borderRadius: 11,
+          backgroundColor: color,
+        }}
+      >
+        {/* Exported = single tick (export succeeded) */}
+        {syncStatus === "exported" && (
+          <Svg width={11} height={11} viewBox="0 0 24 24" fill="none">
+            <Path d="M4 12.5L9.5 18L20 6" stroke="#FFFFFF" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" />
+          </Svg>
+        )}
+        {/* Synced = double tick (data received + confirmed, dark on lime) */}
+        {syncStatus === "synced" && (
+          <Svg width={13} height={11} viewBox="0 0 28 24" fill="none">
+            <Path d="M2 12.5L7.5 18L18 6" stroke="#1A1A1A" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
+            <Path d="M10 12.5L15.5 18L26 6" stroke="#1A1A1A" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
+          </Svg>
+        )}
+        {/* Failed = exclamation */}
+        {syncStatus === "failed" && (
+          <Svg width={11} height={11} viewBox="0 0 24 24" fill="none">
+            <Path d="M12 6V14" stroke="#FFFFFF" strokeWidth={3} strokeLinecap="round" />
+            <Path d="M12 18V18.01" stroke="#FFFFFF" strokeWidth={3} strokeLinecap="round" />
+          </Svg>
+        )}
+      </View>
+    );
+  }
+
+  // Fallback: legacy done/not-done
+  if (session.done) {
+    return (
+      <View
+        className="items-center justify-center"
+        style={{
+          width: 22,
+          height: 22,
+          borderRadius: 11,
+          backgroundColor: LIGHT_THEME.wText,
+        }}
+      >
+        <Svg width={11} height={11} viewBox="0 0 12 12">
+          <Path
+            d="M2.5 6L5 8.5L9.5 3.5"
+            stroke={COLORS.lime}
+            strokeWidth={2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            fill="none"
+          />
+        </Svg>
+      </View>
+    );
+  }
+
+  return <ChevronRight size={14} color={LIGHT_THEME.wMute} strokeWidth={1.5} />;
+}
+
+/**
  * SessionPreview component
- * Small card showing upcoming session preview
- * Tappable to navigate to session detail screen
  */
 export function SessionPreview({
   session,
@@ -63,10 +168,9 @@ export function SessionPreview({
 }: SessionPreviewProps) {
   const router = useRouter();
   const isRest = session.intensity === "rest";
-  const isDone = session.done;
+  const isDone = session.done || session.syncStatus === "synced";
   const accentColor = isDone ? COLORS.lime : getSessionColor(session);
 
-  // Calculate animation delay in ms
   const animationDelay = delay * 1000;
 
   const handlePress = () => {
@@ -100,30 +204,14 @@ export function SessionPreview({
 
         {/* Content */}
         <View className="flex-1 px-4 py-3.5">
-          {/* Top row: Date and checkmark/chevron */}
+          {/* Top row: Date and status indicator */}
           <View className="flex-row items-center justify-between mb-0.5">
             <Text className="text-xs font-coach-medium text-wMute">
               {DAYS[dayIdx]}, Feb {DATES[dayIdx]}
               {!isRest && ` · ${session.dur}`}
             </Text>
 
-            {isDone ? (
-              <View
-                className="w-5.5 h-5.5 rounded-full items-center justify-center"
-                style={{
-                  width: 22,
-                  height: 22,
-                  borderRadius: 11,
-                  backgroundColor: LIGHT_THEME.wText,
-                }}
-              >
-                <CheckmarkIcon />
-              </View>
-            ) : (
-              !isRest && (
-                <ChevronRight size={14} color={LIGHT_THEME.wMute} strokeWidth={1.5} />
-              )
-            )}
+            <SessionStatusIndicator session={session} />
           </View>
 
           {/* Session type */}

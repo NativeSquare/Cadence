@@ -33,11 +33,15 @@ export const WeekRow = React.memo(function WeekRow({
     [week, phaseLookup]
   );
 
-  const weekHasSessions = week.some(
-    (d) => (sessions[d.key] || []).length > 0
+  const weekHasSessions = useMemo(
+    () => week.some((d) => (sessions[d.key] || []).length > 0),
+    [week, sessions]
   );
 
-  const todayColIdx = week.findIndex((d) => d.key === todayKey);
+  const todayColIdx = useMemo(
+    () => week.findIndex((d) => d.key === todayKey),
+    [week, todayKey]
+  );
 
   return (
     <View

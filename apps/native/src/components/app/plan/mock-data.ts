@@ -20,6 +20,9 @@ export const MOCK_SESSIONS: SessionData[] = [
     intensity: "high",
     desc: "4x2km @ 4:55 with 90s recovery",
     zone: "Z4",
+    syncStatus: "synced",
+    syncSource: "garmin",
+    syncedData: { km: "8.6", dur: "47min" },
   },
   {
     type: "Easy Run",
@@ -29,6 +32,9 @@ export const MOCK_SESSIONS: SessionData[] = [
     intensity: "low",
     desc: "Recovery pace, conversational",
     zone: "Z2",
+    syncStatus: "synced",
+    syncSource: "garmin",
+    syncedData: { km: "6.1", dur: "37min" },
   },
   {
     type: "Intervals",
@@ -38,6 +44,9 @@ export const MOCK_SESSIONS: SessionData[] = [
     intensity: "high",
     desc: "8x800m @ 4:30 with 400m jog",
     zone: "Z4-5",
+    syncStatus: "synced",
+    syncSource: "garmin",
+    syncedData: { km: "10.3", dur: "54min" },
   },
   {
     type: "Easy Run",
@@ -48,6 +57,8 @@ export const MOCK_SESSIONS: SessionData[] = [
     desc: "Conversation pace, flat route",
     zone: "Z2",
     today: true,
+    syncStatus: "exported",
+    syncSource: "garmin",
   },
   {
     type: "Rest",

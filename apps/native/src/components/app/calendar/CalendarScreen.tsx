@@ -4,11 +4,13 @@
  * Reference: cadence-calendar-final.jsx lines 366-805
  */
 
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import { View, Text, Pressable, StyleSheet } from "react-native";
+import { useIsFocused } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ChevronLeft, ChevronRight } from "lucide-react-native";
 import { COLORS, GRAYS, LIGHT_THEME } from "@/lib/design-tokens";
+import { CalendarFocusContext } from "./CalendarFocusContext";
 import { MonthView } from "./MonthView";
 import { WeekView } from "./WeekView";
 import { MONTH_NAMES, CAL_SESSIONS, TODAY_KEY } from "./constants";
@@ -21,10 +23,15 @@ const VIEWS: { key: CalendarView; label: string }[] = [
 
 export function CalendarScreen() {
   const insets = useSafeAreaInsets();
+  const isFocused = useIsFocused();
   const [view, setView] = useState<CalendarView>("month");
   const [currentMonth, setCurrentMonth] = useState(1); // February (0-indexed)
   const [currentYear, setCurrentYear] = useState(2026);
   const [selectedDate, setSelectedDate] = useState(TODAY_KEY);
+
+  // Lazy-mount: WeekView only mounts once the user first switches to it
+  const hasShownWeek = useRef(false);
+  if (view === "week") hasShownWeek.current = true;
 
   const prevMonth = useCallback(() => {
     setCurrentMonth((m) => {
@@ -47,6 +54,7 @@ export function CalendarScreen() {
   }, []);
 
   return (
+    <CalendarFocusContext.Provider value={isFocused}>
     <View style={styles.root}>
       {/* Dark header */}
       <View
@@ -111,7 +119,7 @@ export function CalendarScreen() {
       {/* Rounded corner transition */}
       <View style={styles.cornerTransition} />
 
-      {/* Content — both views stay mounted to avoid expensive remount on toggle */}
+      {/* Content — WeekView lazy-mounted on first toggle, then kept alive */}
       <View style={[styles.viewContainer, view !== "month" && styles.hidden]}>
         <MonthView
           year={currentYear}
@@ -119,14 +127,17 @@ export function CalendarScreen() {
           sessions={CAL_SESSIONS}
         />
       </View>
-      <View style={[styles.viewContainer, view !== "week" && styles.hidden]}>
-        <WeekView
-          selectedDate={selectedDate}
-          sessions={CAL_SESSIONS}
-          todayKey={TODAY_KEY}
-        />
-      </View>
+      {hasShownWeek.current && (
+        <View style={[styles.viewContainer, view !== "week" && styles.hidden]}>
+          <WeekView
+            selectedDate={selectedDate}
+            sessions={CAL_SESSIONS}
+            todayKey={TODAY_KEY}
+          />
+        </View>
+      )}
     </View>
+    </CalendarFocusContext.Provider>
   );
 }
 

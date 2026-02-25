@@ -5,7 +5,7 @@
  */
 
 import React, { useEffect, useMemo } from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { InteractionManager, View, Text, StyleSheet } from "react-native";
 import Animated, {
   cancelAnimation,
   Easing,
@@ -16,51 +16,61 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
+import { useCalendarFocused } from "./CalendarFocusContext";
 import { PHASES, TODAY_KEY } from "./constants";
 
-/** Animated today dot on the timeline */
+/** Animated today dot on the timeline — pauses when tab is not focused */
 const TimelineTodayDot = React.memo(function TimelineTodayDot({
   offset,
 }: {
   offset: number;
 }) {
+  const isFocused = useCalendarFocused();
   const scale = useSharedValue(0.9);
   const opacity = useSharedValue(0.6);
 
   useEffect(() => {
-    scale.value = withRepeat(
-      withSequence(
-        withTiming(1.15, {
-          duration: 750,
-          easing: Easing.inOut(Easing.ease),
-        }),
-        withTiming(0.9, {
-          duration: 750,
-          easing: Easing.inOut(Easing.ease),
-        })
-      ),
-      -1,
-      true
-    );
-    opacity.value = withRepeat(
-      withSequence(
-        withTiming(1, {
-          duration: 750,
-          easing: Easing.inOut(Easing.ease),
-        }),
-        withTiming(0.6, {
-          duration: 750,
-          easing: Easing.inOut(Easing.ease),
-        })
-      ),
-      -1,
-      true
-    );
+    if (!isFocused) {
+      cancelAnimation(scale);
+      cancelAnimation(opacity);
+      return;
+    }
+    const task = InteractionManager.runAfterInteractions(() => {
+      scale.value = withRepeat(
+        withSequence(
+          withTiming(1.15, {
+            duration: 750,
+            easing: Easing.inOut(Easing.ease),
+          }),
+          withTiming(0.9, {
+            duration: 750,
+            easing: Easing.inOut(Easing.ease),
+          })
+        ),
+        -1,
+        true
+      );
+      opacity.value = withRepeat(
+        withSequence(
+          withTiming(1, {
+            duration: 750,
+            easing: Easing.inOut(Easing.ease),
+          }),
+          withTiming(0.6, {
+            duration: 750,
+            easing: Easing.inOut(Easing.ease),
+          })
+        ),
+        -1,
+        true
+      );
+    });
     return () => {
+      task.cancel();
       cancelAnimation(scale);
       cancelAnimation(opacity);
     };
-  }, [scale, opacity]);
+  }, [isFocused, scale, opacity]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -209,10 +219,5 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.lime,
     borderWidth: 2,
     borderColor: LIGHT_THEME.wText,
-    shadowColor: COLORS.lime,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 1,
-    shadowRadius: 8,
-    elevation: 4,
   },
 });

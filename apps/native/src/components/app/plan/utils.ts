@@ -4,7 +4,7 @@
  */
 
 import { COLORS, LIGHT_THEME, ACTIVITY_COLORS } from "@/lib/design-tokens";
-import type { SessionData } from "./types";
+import type { SessionData, SyncStatus, SyncedData } from "./types";
 
 /**
  * Get the accent color for a session based on its status and intensity
@@ -98,4 +98,54 @@ export function formatShortDate(date: Date = new Date()): string {
   const dayNum = date.getDate();
 
   return `${dayName}, ${monthName} ${dayNum}`;
+}
+
+/**
+ * Capitalize first letter of a string
+ */
+function capitalize(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1).replace(/_/g, " ");
+}
+
+/**
+ * Get the display color for a sync status
+ */
+export function getSyncStatusColor(status: SyncStatus): string {
+  switch (status) {
+    case "exported":
+      return LIGHT_THEME.wText;
+    case "syncing":
+      return COLORS.ora;
+    case "synced":
+      return COLORS.lime;
+    case "failed":
+      return COLORS.red;
+    default:
+      return LIGHT_THEME.wMute;
+  }
+}
+
+/**
+ * Get the display label for a sync status
+ */
+export function getSyncStatusLabel(
+  status: SyncStatus,
+  syncSource?: string,
+  syncedData?: SyncedData
+): string {
+  const source = syncSource ? capitalize(syncSource) : "Watch";
+  switch (status) {
+    case "exported":
+      return `Exported to ${source}`;
+    case "syncing":
+      return "Syncing\u2026";
+    case "synced":
+      return syncedData
+        ? `Synced \u00B7 ${syncedData.km} km recorded`
+        : "Synced";
+    case "failed":
+      return "Sync failed \u00B7 Retry";
+    default:
+      return "";
+  }
 }
