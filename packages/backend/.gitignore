@@ -1,3 +1,4 @@
 .env.local
 .env
 .env.prod
+.env.preview
