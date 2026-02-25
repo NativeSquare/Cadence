@@ -1,13 +1,14 @@
 import { Tabs } from "expo-router";
 import { View, Text, Pressable } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Home, MessageSquare, Activity, User } from "lucide-react-native";
+import { Home, CalendarDays, MessageSquare, Activity, User } from "lucide-react-native";
 import { LIGHT_THEME } from "@/lib/design-tokens";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 
 /**
- * Main app tab navigation with 4 tabs:
+ * Main app tab navigation with 5 tabs:
  * - Today (Plan) - Daily training plan and session details
+ * - Calendar - Monthly/weekly training calendar
  * - Coach - AI coaching conversation
  * - Analytics - Training metrics and progress charts
  * - Profile - User profile and settings
@@ -28,6 +29,7 @@ import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 // Tab configuration matching prototype (lines 701-706)
 const TAB_CONFIG = [
   { name: "index", label: "Today", Icon: Home },
+  { name: "calendar", label: "Calendar", Icon: CalendarDays },
   { name: "coach", label: "Coach", Icon: MessageSquare },
   { name: "analytics", label: "Analytics", Icon: Activity },
   { name: "profile", label: "Profile", Icon: User },
@@ -98,7 +100,7 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
               alignItems: "center",
               gap: 3,
               paddingVertical: 4,
-              paddingHorizontal: 14,
+              paddingHorizontal: 10,
             }}
           >
             <Icon size={21} color={color} strokeWidth={1.8} />
@@ -130,6 +132,7 @@ export default function TabsLayout() {
       }}
     >
       <Tabs.Screen name="index" />
+      <Tabs.Screen name="calendar" />
       <Tabs.Screen name="coach" />
       <Tabs.Screen name="analytics" />
       <Tabs.Screen name="profile" />

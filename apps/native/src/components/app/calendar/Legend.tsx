@@ -1,0 +1,120 @@
+/**
+ * Legend - Session type colors + phase indicators.
+ * Reference: cadence-calendar-final.jsx lines 666-687
+ */
+
+import React, { useMemo } from "react";
+import { View, Text, StyleSheet } from "react-native";
+import { LIGHT_THEME } from "@/lib/design-tokens";
+import {
+  SESSION_COLORS,
+  SESSION_LABELS,
+  PHASES,
+} from "./constants";
+import { blendWithBg, formatDateKey, getDaysInMonth } from "./helpers";
+import type { CalSessionType } from "./types";
+
+interface LegendProps {
+  currentYear: number;
+  currentMonth: number;
+}
+
+const SESSION_TYPES: CalSessionType[] = ["easy", "specific", "long", "race"];
+
+export const Legend = React.memo(function Legend({
+  currentYear,
+  currentMonth,
+}: LegendProps) {
+  const visiblePhases = useMemo(() => {
+    const monthStart = formatDateKey(currentYear, currentMonth, 1);
+    const monthEnd = formatDateKey(
+      currentYear,
+      currentMonth,
+      getDaysInMonth(currentYear, currentMonth)
+    );
+    return PHASES.filter(
+      (p) => p.end >= monthStart && p.start <= monthEnd
+    );
+  }, [currentYear, currentMonth]);
+
+  return (
+    <View style={styles.container}>
+      {/* Session types row */}
+      <View style={styles.row}>
+        {SESSION_TYPES.map((type) => (
+          <View key={type} style={styles.item}>
+            <View
+              style={[
+                styles.sessionDot,
+                { backgroundColor: SESSION_COLORS[type] },
+              ]}
+            />
+            <Text style={styles.sessionLabel}>
+              {SESSION_LABELS[type]}
+            </Text>
+          </View>
+        ))}
+      </View>
+
+      {/* Phase types row */}
+      <View style={[styles.row, { gap: 12 }]}>
+        {visiblePhases.map((p) => (
+          <View key={p.name} style={styles.item}>
+            <View
+              style={[
+                styles.phasePill,
+                {
+                  backgroundColor: blendWithBg(p.color, 0.35),
+                  borderLeftColor: p.color,
+                },
+              ]}
+            />
+            <Text style={styles.phaseLabel}>{p.name}</Text>
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+});
+
+const styles = StyleSheet.create({
+  container: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 4,
+  },
+  row: {
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 16,
+    marginBottom: 8,
+  },
+  item: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+  },
+  sessionDot: {
+    width: 11,
+    height: 11,
+    borderRadius: 3,
+  },
+  sessionLabel: {
+    fontSize: 12,
+    fontWeight: "500",
+    fontFamily: "Outfit-Medium",
+    color: LIGHT_THEME.wSub,
+  },
+  phasePill: {
+    width: 20,
+    height: 10,
+    borderRadius: 5,
+    borderLeftWidth: 3,
+  },
+  phaseLabel: {
+    fontSize: 11,
+    fontWeight: "600",
+    fontFamily: "Outfit-SemiBold",
+    color: LIGHT_THEME.wSub,
+  },
+});
