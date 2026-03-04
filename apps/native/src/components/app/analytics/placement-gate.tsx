@@ -158,7 +158,7 @@ export function PlacementGate({
             : "Almost there!"}
         </Text>
 
-        {__DEV__ && onSkip && (
+        {onSkip && (
           <View
             className="mt-6 px-5 py-2 rounded-full"
             style={{ backgroundColor: "rgba(255,255,255,0.06)" }}
@@ -168,7 +168,7 @@ export function PlacementGate({
               className="text-xs font-coach-medium"
               style={{ color: GRAYS.g3 }}
             >
-              Skip (dev only)
+              Skip
             </Text>
           </View>
         )}
