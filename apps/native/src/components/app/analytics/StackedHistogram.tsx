@@ -2,9 +2,9 @@
  * StackedHistogram Component - Zone split stacked bar chart with clip-reveal animation
  * Reference: cadence-full-v9.jsx lines 430-452
  *
- * Each bar uses a Skia Group with an animated clip rect that reveals
- * statically-positioned zone segments from bottom to top.
- * Per-bar staggered delay (i * 60ms) matches the prototype.
+ * Supports two modes:
+ * - Daily: 7-day zone split (original)
+ * - Weekly: Multi-week zone evolution (COROS-style)
  */
 
 import React, { useEffect, useMemo } from "react";
@@ -21,14 +21,22 @@ import {
 } from "react-native-reanimated";
 import { Text } from "@/components/ui/text";
 import { COLORS, LIGHT_THEME, ACTIVITY_COLORS } from "@/lib/design-tokens";
-import { DAY_LABELS } from "./mock-data";
+import { DAY_LABELS, WEEK_LABELS } from "./mock-data";
 import type { ZoneChartDatum } from "@/hooks/use-analytics-data";
+import type { WeekZoneData } from "./mock-data";
 
 const BAR_EASING = Easing.bezier(0.4, 0, 0.2, 1);
 
 export interface StackedHistogramProps {
   data: ZoneChartDatum[];
   accentIdx?: number;
+  chartHeight?: number;
+  font?: SkFont | null;
+}
+
+export interface WeeklyZoneChartProps {
+  data: WeekZoneData[];
+  currentWeek?: number;
   chartHeight?: number;
   font?: SkFont | null;
 }
@@ -144,7 +152,7 @@ function StackedBars({
   chartBounds,
   accentIdx,
 }: {
-  data: ZoneChartDatum[];
+  data: Array<{ z2: number; z3: number; z4: number }>;
   xPoints: PointsArray;
   chartBounds: { top: number; bottom: number; left: number; right: number };
   accentIdx?: number;
@@ -172,6 +180,7 @@ function StackedBars({
   );
 }
 
+/** Daily zone split (original component) */
 export function StackedHistogram({
   data,
   accentIdx,
@@ -205,6 +214,47 @@ export function StackedHistogram({
             xPoints={points.total}
             chartBounds={chartBounds}
             accentIdx={accentIdx}
+          />
+        )}
+      </CartesianChart>
+    </View>
+  );
+}
+
+/** COROS-style multi-week zone evolution chart */
+export function WeeklyZoneChart({
+  data,
+  currentWeek,
+  chartHeight = 130,
+  font,
+}: WeeklyZoneChartProps) {
+  const chartData = useMemo(
+    () => data.map((d) => ({ ...d, total: d.z2 + d.z3 + d.z4 })),
+    [data]
+  );
+
+  return (
+    <View style={{ height: chartHeight }}>
+      <CartesianChart
+        data={chartData}
+        xKey="week"
+        yKeys={["total"]}
+        domain={{ y: [0, 100] }}
+        domainPadding={{ left: 20, right: 20, top: 10 }}
+        axisOptions={{
+          font,
+          formatXLabel: (v) => WEEK_LABELS[v - 1] ?? `W${v}`,
+          tickCount: { x: Math.min(data.length, 10), y: 0 },
+          lineColor: "transparent",
+          labelColor: LIGHT_THEME.wMute,
+        }}
+      >
+        {({ points, chartBounds }) => (
+          <StackedBars
+            data={data}
+            xPoints={points.total}
+            chartBounds={chartBounds}
+            accentIdx={currentWeek ? currentWeek - 1 : undefined}
           />
         )}
       </CartesianChart>

@@ -1,4 +1,6 @@
+import { getAuthUserId } from "@convex-dev/auth/server";
 import { query } from "../_generated/server";
+import { components } from "../_generated/api";
 import { v } from "convex/values";
 
 // =============================================================================
@@ -508,6 +510,208 @@ export const getPlanOverview = query({
         day: s.dayOfWeekShort,
         status: s.status,
       })),
+    };
+  },
+});
+
+// =============================================================================
+// Analytics Queries
+// =============================================================================
+
+const PLACEMENT_RUN_THRESHOLD = 10;
+
+/**
+ * Count completed runs for the current user and determine analytics unlock status.
+ * Analytics are gated behind 10 completed runs ("placement runs").
+ */
+export const getCompletedRunCount = query({
+  args: {},
+  returns: v.union(
+    v.null(),
+    v.object({
+      completedRuns: v.number(),
+      threshold: v.number(),
+      isUnlocked: v.boolean(),
+    })
+  ),
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) return null;
+
+    const activities = await ctx.runQuery(
+      components.soma.public.listActivities,
+      {
+        userId: userId as string,
+        limit: PLACEMENT_RUN_THRESHOLD,
+        order: "desc",
+      }
+    );
+
+    const completedRuns = activities.length;
+    return {
+      completedRuns,
+      threshold: PLACEMENT_RUN_THRESHOLD,
+      isUnlocked: completedRuns >= PLACEMENT_RUN_THRESHOLD,
+    };
+  },
+});
+
+// VDOT-to-race-time lookup table (seconds). Based on Daniels' Running Formula.
+const VDOT_TABLE = [
+  { vdot: 30, fiveK: 1620, tenK: 3374, half: 7453, marathon: 15487 },
+  { vdot: 35, fiveK: 1389, tenK: 2890, half: 6396, marathon: 13308 },
+  { vdot: 40, fiveK: 1207, tenK: 2510, half: 5567, marathon: 11551 },
+  { vdot: 45, fiveK: 1062, tenK: 2210, half: 4898, marathon: 10162 },
+  { vdot: 50, fiveK: 946, tenK: 1968, half: 4343, marathon: 9041 },
+  { vdot: 55, fiveK: 850, tenK: 1769, half: 3878, marathon: 8112 },
+  { vdot: 60, fiveK: 770, tenK: 1603, half: 3498, marathon: 7338 },
+  { vdot: 65, fiveK: 703, tenK: 1464, half: 3182, marathon: 6678 },
+  { vdot: 70, fiveK: 647, tenK: 1345, half: 2917, marathon: 6111 },
+] as const;
+
+type VdotEntry = (typeof VDOT_TABLE)[number];
+type RaceKey = "fiveK" | "tenK" | "half" | "marathon";
+
+function interpolateTime(vdot: number, key: RaceKey): number {
+  if (vdot <= VDOT_TABLE[0].vdot) return VDOT_TABLE[0][key];
+  if (vdot >= VDOT_TABLE[VDOT_TABLE.length - 1].vdot)
+    return VDOT_TABLE[VDOT_TABLE.length - 1][key];
+
+  let lower: VdotEntry = VDOT_TABLE[0];
+  let upper: VdotEntry = VDOT_TABLE[1];
+  for (let i = 0; i < VDOT_TABLE.length - 1; i++) {
+    if (vdot >= VDOT_TABLE[i].vdot && vdot <= VDOT_TABLE[i + 1].vdot) {
+      lower = VDOT_TABLE[i];
+      upper = VDOT_TABLE[i + 1];
+      break;
+    }
+  }
+
+  const ratio = (vdot - lower.vdot) / (upper.vdot - lower.vdot);
+  return Math.round(lower[key] + ratio * (upper[key] - lower[key]));
+}
+
+function formatRaceTime(totalSeconds: number): string {
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  if (hours > 0) {
+    return `${hours}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  }
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
+}
+
+/**
+ * Get race time predictions based on the runner's estimated VDOT.
+ * Returns predicted times for 5K, 10K, Half Marathon, and Marathon.
+ */
+export const getRacePredictions = query({
+  args: {},
+  returns: v.union(
+    v.null(),
+    v.object({
+      vdot: v.number(),
+      predictions: v.array(
+        v.object({
+          distance: v.string(),
+          timeSeconds: v.number(),
+          timeFormatted: v.string(),
+          pacePerKm: v.string(),
+        })
+      ),
+    })
+  ),
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) return null;
+
+    const runner = await ctx.db
+      .query("runners")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .first();
+
+    if (!runner) return null;
+
+    const vdot = runner.currentState?.estimatedVdot;
+    if (!vdot) {
+      // Try from active plan snapshot
+      const plan = await ctx.db
+        .query("trainingPlans")
+        .withIndex("by_runnerId", (q) => q.eq("runnerId", runner._id))
+        .filter((q) => q.eq(q.field("status"), "active"))
+        .first();
+
+      const planVdot = plan?.runnerSnapshot?.fitnessIndicators?.estimatedVdot;
+      if (!planVdot) return null;
+
+      return buildPredictions(planVdot);
+    }
+
+    return buildPredictions(vdot);
+  },
+});
+
+function buildPredictions(vdot: number) {
+  const distances: Array<{ key: RaceKey; label: string; distanceKm: number }> =
+    [
+      { key: "fiveK", label: "5K", distanceKm: 5 },
+      { key: "tenK", label: "10K", distanceKm: 10 },
+      { key: "half", label: "Half Marathon", distanceKm: 21.0975 },
+      { key: "marathon", label: "Marathon", distanceKm: 42.195 },
+    ];
+
+  return {
+    vdot: Math.round(vdot * 10) / 10,
+    predictions: distances.map((d) => {
+      const timeSeconds = interpolateTime(vdot, d.key);
+      const paceSeconds = Math.round(timeSeconds / d.distanceKm);
+      const paceMin = Math.floor(paceSeconds / 60);
+      const paceSec = paceSeconds % 60;
+      return {
+        distance: d.label,
+        timeSeconds,
+        timeFormatted: formatRaceTime(timeSeconds),
+        pacePerKm: `${paceMin}:${String(paceSec).padStart(2, "0")}/km`,
+      };
+    }),
+  };
+}
+
+/**
+ * Get health metrics for the current runner from their currentState.
+ */
+export const getHealthMetrics = query({
+  args: {},
+  returns: v.union(
+    v.null(),
+    v.object({
+      restingHr: v.optional(v.number()),
+      hrv: v.optional(v.number()),
+      sleepScore: v.optional(v.number()),
+      readinessScore: v.optional(v.number()),
+      weight: v.optional(v.number()),
+      dataQuality: v.optional(v.string()),
+    })
+  ),
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) return null;
+
+    const runner = await ctx.db
+      .query("runners")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .first();
+
+    if (!runner?.currentState) return null;
+
+    return {
+      restingHr: runner.currentState.latestRestingHr,
+      hrv: runner.currentState.latestHrv,
+      sleepScore: runner.currentState.latestSleepScore,
+      readinessScore: runner.currentState.readinessScore,
+      weight: runner.currentState.latestWeight,
+      dataQuality: runner.currentState.dataQuality,
     };
   },
 });

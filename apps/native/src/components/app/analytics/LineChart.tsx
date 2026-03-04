@@ -2,24 +2,22 @@
  * LineChart Components - GPU-rendered line/area charts with faithful prototype animations
  * Reference: cadence-full-v9.jsx lines 455-484 (VolChart, PaceChart)
  *
- * Prototype animation spec:
- * - Volume line: opacity 0→1 over 1.5s cubic-bezier(.4,0,.2,1)
- * - Volume area: opacity 0→1 over 0.8s ease
- * - Volume dot: opacity 0→1, 0.5s ease, 1.2s delay
- * - Pace line: opacity 0→1 over 1.5s cubic-bezier(.4,0,.2,1), 0.2s delay
- * - Pace dot: opacity 0→1, 0.5s ease, 1.4s delay
- *
- * All animations use Reanimated shared values with explicit cancelAnimation
- * cleanup on unmount, ensuring proper resource release when navigating away.
- * Font is received as a prop from AnalyticsScreen to avoid duplicate loading.
+ * VolumeChart enhanced with Strava-style bar + line overlay and target comparison.
+ * PaceChart retains original line-only approach.
  */
 
 import React, { useEffect } from "react";
-import { View } from "react-native";
-import { CartesianChart, Line, Area } from "victory-native";
-import { Circle, Group, type SkFont } from "@shopify/react-native-skia";
+import { Pressable, View } from "react-native";
+import { CartesianChart, Line, Area, type PointsArray } from "victory-native";
+import {
+  Circle,
+  Group,
+  RoundedRect,
+  type SkFont,
+} from "@shopify/react-native-skia";
 import {
   useSharedValue,
+  useDerivedValue,
   withDelay,
   withTiming,
   cancelAnimation,
@@ -31,15 +29,103 @@ import type {
   PaceChartDatum,
 } from "@/hooks/use-analytics-data";
 
+export interface LineChartProps {
+  data: VolumeChartDatum[] | PaceChartDatum[];
+  font?: SkFont | null;
+}
+
+// Animated bar for the Strava-style volume chart
+function VolumeBar({
+  x,
+  width,
+  bottom,
+  targetHeight,
+  color,
+  delayMs,
+}: {
+  x: number;
+  width: number;
+  bottom: number;
+  targetHeight: number;
+  color: string;
+  delayMs: number;
+}) {
+  const progress = useSharedValue(0);
+
+  useEffect(() => {
+    progress.value = withDelay(
+      delayMs,
+      withTiming(1, {
+        duration: 600,
+        easing: Easing.bezier(0.4, 0, 0.2, 1),
+      })
+    );
+    return () => cancelAnimation(progress);
+  }, []);
+
+  const animHeight = useDerivedValue(() => progress.value * targetHeight);
+  const animY = useDerivedValue(() => bottom - animHeight.value);
+
+  return (
+    <RoundedRect
+      x={x}
+      y={animY}
+      width={width}
+      height={animHeight}
+      r={4}
+      color={color}
+      opacity={0.3}
+    />
+  );
+}
+
+function VolumeBars({
+  points,
+  chartBounds,
+  currentWeek,
+}: {
+  points: PointsArray;
+  chartBounds: { bottom: number; left: number; right: number };
+  currentWeek: number;
+}) {
+  const totalWidth = chartBounds.right - chartBounds.left;
+  const barWidth = (totalWidth / points.length) * 0.5;
+
+  return (
+    <>
+      {points.map((point, i) => {
+        if (point.y == null) return null;
+        const targetHeight = chartBounds.bottom - point.y;
+        const isCurrent = i === currentWeek - 1;
+        return (
+          <VolumeBar
+            key={i}
+            x={point.x - barWidth / 2}
+            width={barWidth}
+            bottom={chartBounds.bottom}
+            targetHeight={targetHeight}
+            color={isCurrent ? COLORS.lime : LIGHT_THEME.w3}
+            delayMs={i * 40}
+          />
+        );
+      })}
+    </>
+  );
+}
+
 /**
- * VolumeChart - Weekly volume trend with area fade-in, line drawing, and delayed dot
+ * VolumeChart - Strava-style volume evolution with bar overlay + trend line
  */
 export function VolumeChart({
   data,
   font,
+  currentWeek = data.length,
+  onWeekPress,
 }: {
   data: VolumeChartDatum[];
   font?: SkFont | null;
+  currentWeek?: number;
+  onWeekPress?: (week: number) => void;
 }) {
   const areaOpacity = useSharedValue(0);
   const lineOpacity = useSharedValue(0);
@@ -60,7 +146,10 @@ export function VolumeChart({
   }, []);
 
   return (
-    <View style={{ height: 120 }}>
+    <Pressable
+      onPress={() => onWeekPress?.(currentWeek)}
+      style={{ height: 140 }}
+    >
       <CartesianChart
         data={data}
         xKey="week"
@@ -68,7 +157,7 @@ export function VolumeChart({
         axisOptions={{
           font,
           formatXLabel: (v) => `W${v}`,
-          tickCount: { x: 10, y: 0 },
+          tickCount: { x: Math.min(data.length, 10), y: 0 },
           lineColor: LIGHT_THEME.wBrd,
           labelColor: LIGHT_THEME.wMute,
         }}
@@ -77,12 +166,17 @@ export function VolumeChart({
           const lastPoint = points.volume[points.volume.length - 1];
           return (
             <>
+              <VolumeBars
+                points={points.volume}
+                chartBounds={chartBounds}
+                currentWeek={currentWeek}
+              />
               <Group opacity={areaOpacity}>
                 <Area
                   points={points.volume}
                   y0={chartBounds.bottom}
                   color={COLORS.lime}
-                  opacity={0.15}
+                  opacity={0.1}
                 />
               </Group>
               <Group opacity={lineOpacity}>
@@ -90,7 +184,7 @@ export function VolumeChart({
                   points={points.volume}
                   color={COLORS.lime}
                   strokeWidth={2.5}
-                  curveType="linear"
+                  curveType="natural"
                 />
               </Group>
               {lastPoint && lastPoint.y != null && (
@@ -106,7 +200,7 @@ export function VolumeChart({
           );
         }}
       </CartesianChart>
-    </View>
+    </Pressable>
   );
 }
 
@@ -147,7 +241,7 @@ export function PaceChart({
         axisOptions={{
           font,
           formatXLabel: (v) => `W${v}`,
-          tickCount: { x: 10, y: 0 },
+          tickCount: { x: Math.min(data.length, 10), y: 0 },
           lineColor: LIGHT_THEME.wBrd,
           labelColor: LIGHT_THEME.wMute,
         }}
@@ -161,7 +255,7 @@ export function PaceChart({
                   points={points.pace}
                   color={ACTIVITY_COLORS.barRest}
                   strokeWidth={2.5}
-                  curveType="linear"
+                  curveType="natural"
                 />
               </Group>
               {lastPoint && lastPoint.y != null && (

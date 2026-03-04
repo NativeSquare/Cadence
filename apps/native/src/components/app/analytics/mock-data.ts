@@ -23,8 +23,25 @@ export const MOCK_ZONE_DATA = [
   { z2: 70, z3: 20, z4: 10 }, // Sun - long run
 ];
 
+/** Multi-week zone data for COROS-style evolution */
+export const MOCK_MULTI_WEEK_ZONE_DATA: WeekZoneData[] = [
+  { week: 1, z2: 65, z3: 20, z4: 15 },
+  { week: 2, z2: 60, z3: 22, z4: 18 },
+  { week: 3, z2: 55, z3: 25, z4: 20 },
+  { week: 4, z2: 58, z3: 22, z4: 20 },
+  { week: 5, z2: 52, z3: 28, z4: 20 },
+  { week: 6, z2: 50, z3: 25, z4: 25 },
+  { week: 7, z2: 48, z3: 27, z4: 25 },
+  { week: 8, z2: 55, z3: 20, z4: 25 },
+  { week: 9, z2: 60, z3: 25, z4: 15 },
+  { week: 10, z2: 70, z3: 20, z4: 10 },
+];
+
 /** Day labels */
 export const DAY_LABELS = ["M", "T", "W", "T", "F", "S", "S"];
+
+/** Week labels for multi-week view */
+export const WEEK_LABELS = ["W1", "W2", "W3", "W4", "W5", "W6", "W7", "W8", "W9", "W10"];
 
 /** Current day index (0-6, Sunday = 6) */
 export const TODAY_INDEX = 6;
@@ -82,3 +99,102 @@ export const MOCK_VOLUME_STATS = {
   streak: 12,
   streakDays: [true, true, true, true, true, false, false], // last 7 days
 };
+
+// =============================================================================
+// Race Predictions
+// =============================================================================
+
+export interface RacePrediction {
+  distance: string;
+  timeSeconds: number;
+  timeFormatted: string;
+  pacePerKm: string;
+}
+
+export const MOCK_PREDICTIONS: RacePrediction[] = [
+  { distance: "5K", timeSeconds: 1062, timeFormatted: "17:42", pacePerKm: "3:32/km" },
+  { distance: "10K", timeSeconds: 2210, timeFormatted: "36:50", pacePerKm: "3:41/km" },
+  { distance: "Half Marathon", timeSeconds: 4898, timeFormatted: "1:21:38", pacePerKm: "3:53/km" },
+  { distance: "Marathon", timeSeconds: 10162, timeFormatted: "2:49:22", pacePerKm: "4:01/km" },
+];
+
+export const MOCK_VDOT = 45;
+
+// =============================================================================
+// Health Metrics
+// =============================================================================
+
+export interface HealthMetric {
+  label: string;
+  value: number;
+  unit?: string;
+  subtitle?: string;
+  trend?: "improving" | "stable" | "declining";
+  dark?: boolean;
+}
+
+export const MOCK_HEALTH_METRICS: HealthMetric[] = [
+  {
+    label: "Resting HR",
+    value: 52,
+    unit: "bpm",
+    subtitle: "-2 bpm this month",
+    trend: "improving",
+  },
+  {
+    label: "HRV",
+    value: 48,
+    unit: "ms",
+    subtitle: "+3 ms this month",
+    trend: "improving",
+    dark: true,
+  },
+  {
+    label: "Sleep Score",
+    value: 82,
+    subtitle: "Consistent",
+    trend: "stable",
+  },
+  {
+    label: "Readiness",
+    value: 74,
+    subtitle: "Good to train",
+    trend: "stable",
+    dark: true,
+  },
+];
+
+// =============================================================================
+// Multi-week Zone Data
+// =============================================================================
+
+export interface WeekZoneData {
+  week: number;
+  z2: number;
+  z3: number;
+  z4: number;
+}
+
+// =============================================================================
+// Volume Evolution (Strava-style)
+// =============================================================================
+
+export interface VolumeWeekDetail {
+  week: number;
+  volume: number;
+  target: number;
+  changePercent: number;
+}
+
+export const MOCK_VOLUME_EVOLUTION: VolumeWeekDetail[] = [
+  { week: 1, volume: 32, target: 30, changePercent: 0 },
+  { week: 2, volume: 38, target: 35, changePercent: 18.8 },
+  { week: 3, volume: 41, target: 40, changePercent: 7.9 },
+  { week: 4, volume: 36, target: 38, changePercent: -12.2 },
+  { week: 5, volume: 45, target: 42, changePercent: 25.0 },
+  { week: 6, volume: 48, target: 45, changePercent: 6.7 },
+  { week: 7, volume: 52, target: 48, changePercent: 8.3 },
+  { week: 8, volume: 44, target: 40, changePercent: -15.4 },
+  { week: 9, volume: 57, target: 52, changePercent: 29.5 },
+  { week: 10, volume: 24.7, target: 55, changePercent: -56.7 },
+];
