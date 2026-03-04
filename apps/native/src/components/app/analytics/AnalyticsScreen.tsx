@@ -23,6 +23,10 @@ import { useFont } from "@shopify/react-native-skia";
 import { Outfit_400Regular } from "@expo-google-fonts/outfit";
 import { Text } from "@/components/ui/text";
 import { ACTIVITY_COLORS, GRAYS } from "@/lib/design-tokens";
+import {
+  TimeFrameSelector,
+  type TimeFrame,
+} from "@/components/shared/time-frame-selector";
 
 import { PlacementGate } from "./placement-gate";
 import { PlanProgress } from "./PlanProgress";
@@ -30,9 +34,7 @@ import { RunnerProfileCard } from "./runner-profile-card";
 import { PredictionCard } from "./prediction-card";
 import { WeekVolumeCard } from "./WeekVolumeCard";
 import { StreakCard } from "./StreakCard";
-import { Histogram } from "./Histogram";
-import { StackedHistogram, WeeklyZoneChart, ZoneLegend } from "./StackedHistogram";
-import { VolumeChart, PaceChart } from "./LineChart";
+import { VolumeChart } from "./LineChart";
 import { ZoneBreakdown } from "./ZoneBreakdown";
 import { ObjectiveSelector } from "./objective-selector";
 import { StatsGrid } from "./StatsGrid";
@@ -80,12 +82,12 @@ export function AnalyticsScreen() {
   const isFocused = useIsFocused();
   const { data, placement, isLoading, error } = useAnalyticsData();
 
-  const chartFont = useFont(Outfit_400Regular, 10);
   const smallChartFont = useFont(Outfit_400Regular, 9);
 
-  const [zoneView, setZoneView] = useState<"daily" | "weekly">("weekly");
   const [objective, setObjective] = useState<RaceObjective>("half");
   const [devSkipGate, setDevSkipGate] = useState(false);
+
+  const [volumeTimeFrame, setVolumeTimeFrame] = useState<TimeFrame>("3mo");
 
   const objectiveOption = useMemo(
     () => OBJECTIVE_OPTIONS.find((o) => o.id === objective)!,
@@ -183,10 +185,9 @@ export function AnalyticsScreen() {
                 />
               </View>
 
-              {/* 3. Race Predictions (hero + all distances + trend) */}
+              {/* 3. Race Predictions (tiles + tap-to-expand trend) */}
               <View className="mb-3">
                 <PredictionCard
-                  vdot={data.vdot}
                   predictions={data.predictions}
                   objective={objective}
                 />
@@ -195,12 +196,22 @@ export function AnalyticsScreen() {
               {/* 4. Volume Evolution (Strava-style) */}
               <View className="p-[18px] rounded-[20px] mb-3" style={{ backgroundColor: "#1A1A1A" }}>
                 <View className="flex-row items-center justify-between mb-4">
-                  <Text
-                    className="text-[11px] font-coach-semibold text-g3 uppercase"
-                    style={{ letterSpacing: 0.05 * 11 }}
-                  >
-                    Volume Over Time
-                  </Text>
+                  <View>
+                    <Text
+                      className="text-[11px] font-coach-semibold text-g3 uppercase"
+                      style={{ letterSpacing: 0.05 * 11 }}
+                    >
+                      Volume Over Time
+                    </Text>
+                    <View className="flex-row items-baseline gap-1 mt-1">
+                      <Text className="text-2xl font-coach-extrabold text-g1">
+                        {Math.round(data.volumeChartData.reduce((sum, d) => sum + d.volume, 0))}
+                      </Text>
+                      <Text className="text-[13px] font-coach text-g3">
+                        km total
+                      </Text>
+                    </View>
+                  </View>
                   <View
                     className="px-[10px] py-[5px] rounded-lg"
                     style={{ backgroundColor: "rgba(168,217,0,0.1)" }}
@@ -216,8 +227,13 @@ export function AnalyticsScreen() {
                 <VolumeChart
                   data={data.volumeChartData}
                   font={smallChartFont}
-                  currentWeek={data.currentWeek}
                 />
+                <View className="mt-4">
+                  <TimeFrameSelector
+                    selected={volumeTimeFrame}
+                    onSelect={setVolumeTimeFrame}
+                  />
+                </View>
               </View>
 
               {/* 5. Training Zones Breakdown (Strava-style) */}
@@ -225,37 +241,6 @@ export function AnalyticsScreen() {
                 <ZoneBreakdown data={data.zoneBreakdown} />
               </View>
 
-              {/* 6. Zone Time Evolution (COROS-style) */}
-              <View className="p-[18px] rounded-[20px] mb-3" style={{ backgroundColor: "#1A1A1A" }}>
-                <View className="flex-row items-center justify-between mb-3">
-                  <Text
-                    className="text-[11px] font-coach-semibold text-g3 uppercase"
-                    style={{ letterSpacing: 0.05 * 11 }}
-                  >
-                    Zone Evolution
-                  </Text>
-                  <View className="flex-row items-center gap-2">
-                    <ZoneViewToggle
-                      active={zoneView}
-                      onToggle={setZoneView}
-                    />
-                    <ZoneLegend />
-                  </View>
-                </View>
-                {zoneView === "weekly" ? (
-                  <WeeklyZoneChart
-                    data={data.multiWeekZoneData}
-                    currentWeek={data.currentWeek}
-                    font={chartFont}
-                  />
-                ) : (
-                  <StackedHistogram
-                    data={data.zoneChartData}
-                    accentIdx={data.todayIndex}
-                    font={chartFont}
-                  />
-                )}
-              </View>
 
               {/* 6. This Week - Volume + Streak + Daily KM */}
               <View className="flex-row gap-2 mb-3">
@@ -270,65 +255,7 @@ export function AnalyticsScreen() {
                 />
               </View>
 
-              <View className="p-[18px] rounded-[20px] mb-3" style={{ backgroundColor: "#1A1A1A" }}>
-                <View className="flex-row items-center justify-between mb-4">
-                  <View>
-                    <Text
-                      className="text-[11px] font-coach-semibold text-g3 uppercase"
-                      style={{ letterSpacing: 0.05 * 11 }}
-                    >
-                      This Week · Daily KM
-                    </Text>
-                    <View className="flex-row items-baseline gap-1 mt-1">
-                      <Text className="text-2xl font-coach-extrabold text-g1">
-                        {data.volumeStats.plannedVolume}
-                      </Text>
-                      <Text className="text-[13px] font-coach text-g3">
-                        km planned
-                      </Text>
-                    </View>
-                  </View>
-                  <View
-                    className="px-[10px] py-[5px] rounded-lg"
-                    style={{ backgroundColor: GRAYS.g5 }}
-                  >
-                    <Text className="text-xs font-coach-medium text-g2">
-                      W{data.currentWeek}
-                    </Text>
-                  </View>
-                </View>
-                <Histogram
-                  data={data.histogramChartData}
-                  accentIdx={data.todayIndex}
-                  font={chartFont}
-                />
-              </View>
-
-              {/* 7. Pace Trend */}
-              <View className="p-[18px] rounded-[20px] mb-3" style={{ backgroundColor: "#1A1A1A" }}>
-                <View className="flex-row items-center justify-between mb-4">
-                  <Text
-                    className="text-[11px] font-coach-semibold text-g3 uppercase"
-                    style={{ letterSpacing: 0.05 * 11 }}
-                  >
-                    Avg Pace Trend
-                  </Text>
-                  <View
-                    className="px-[10px] py-[5px] rounded-lg"
-                    style={{ backgroundColor: "rgba(168,217,0,0.1)" }}
-                  >
-                    <Text
-                      className="text-xs font-coach-semibold"
-                      style={{ color: ACTIVITY_COLORS.barHigh }}
-                    >
-                      -33s
-                    </Text>
-                  </View>
-                </View>
-                <PaceChart data={data.paceChartData} font={smallChartFont} />
-              </View>
-
-              {/* 8. Health Metrics */}
+              {/* 7. Health Metrics */}
               <View className="mb-3">
                 <HealthMetricsCard metrics={data.healthMetrics} />
               </View>
@@ -345,58 +272,3 @@ export function AnalyticsScreen() {
   );
 }
 
-function ZoneViewToggle({
-  active,
-  onToggle,
-}: {
-  active: "daily" | "weekly";
-  onToggle: (view: "daily" | "weekly") => void;
-}) {
-  return (
-    <View
-      className="flex-row rounded-md overflow-hidden"
-      style={{ backgroundColor: "rgba(255,255,255,0.10)" }}
-    >
-      <ToggleButton
-        label="W"
-        isActive={active === "weekly"}
-        onPress={() => onToggle("weekly")}
-      />
-      <ToggleButton
-        label="D"
-        isActive={active === "daily"}
-        onPress={() => onToggle("daily")}
-      />
-    </View>
-  );
-}
-
-function ToggleButton({
-  label,
-  isActive,
-  onPress,
-}: {
-  label: string;
-  isActive: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <View
-      className="px-2 py-[3px]"
-      style={{
-        backgroundColor: isActive ? "rgba(255,255,255,0.15)" : "transparent",
-        borderRadius: isActive ? 4 : 0,
-      }}
-      onTouchEnd={onPress}
-    >
-      <Text
-        className="text-[9px] font-coach-semibold"
-        style={{
-          color: isActive ? GRAYS.g1 : GRAYS.g3,
-        }}
-      >
-        {label}
-      </Text>
-    </View>
-  );
-}

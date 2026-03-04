@@ -123,6 +123,8 @@ function getLabelColor(
 // Value Label Component
 // =============================================================================
 
+const LABEL_HEIGHT = 26;
+
 interface ValueLabelProps {
   data: RadarDataPoint;
   index: number;
@@ -147,9 +149,12 @@ function ValueLabel({
   const [displayValue, setDisplayValue] = useState(0);
   const n = 6;
   const angle = (Math.PI * 2 * index) / n - Math.PI / 2;
-  const labelRadius = radius + 36;
+  const labelRadius = radius + 14;
   const x = center + labelRadius * Math.cos(angle);
   const y = center + labelRadius * Math.sin(angle);
+
+  const sinA = Math.sin(angle);
+  const dynamicMarginTop = -(LABEL_HEIGHT / 2) * (1 - sinA);
 
   useAnimatedReaction(
     () => Math.round(data.value * progress.value),
@@ -176,7 +181,7 @@ function ValueLabel({
       hitSlop={12}
       style={[
         styles.labelContainer,
-        { left: x, top: y },
+        { left: x, top: y, marginTop: dynamicMarginTop },
       ]}
     >
       <Animated.View style={animatedStyle}>
@@ -269,7 +274,7 @@ export function RadarChart({
   onPointSelect,
 }: RadarChartProps) {
   const center = size / 2;
-  const radius = size / 2 - 50;
+  const radius = size / 2 - 40;
   const gridLevels = [25, 50, 75, 100];
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
 
@@ -316,16 +321,6 @@ export function RadarChart({
     };
   });
 
-  const selectedAxisAngle = selectedIndex !== null
-    ? (Math.PI * 2 * selectedIndex) / 6 - Math.PI / 2
-    : null;
-  const selectedAxisEnd = selectedAxisAngle !== null
-    ? {
-        x: center + radius * Math.cos(selectedAxisAngle),
-        y: center + radius * Math.sin(selectedAxisAngle),
-      }
-    : null;
-
   return (
     <View style={[styles.container, { width: size, height: size }]}>
       <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
@@ -360,7 +355,6 @@ export function RadarChart({
             const angle = (Math.PI * 2 * i) / 6 - Math.PI / 2;
             const x2 = center + radius * Math.cos(angle);
             const y2 = center + radius * Math.sin(angle);
-            const isActive = i === selectedIndex;
             return (
               <Line
                 key={i}
@@ -368,8 +362,8 @@ export function RadarChart({
                 y1={center}
                 x2={x2}
                 y2={y2}
-                stroke={isActive ? "rgba(200,255,0,0.5)" : "rgba(255,255,255,0.10)"}
-                strokeWidth={isActive ? 2 : 1}
+                stroke="rgba(255,255,255,0.10)"
+                strokeWidth={1}
               />
             );
           })}
@@ -389,7 +383,7 @@ export function RadarChart({
               stroke="rgba(200,255,0,0.30)"
               strokeWidth={1.5}
               strokeLinejoin="round"
-              strokeDasharray="6,4"
+              strokeDasharray={undefined}
             />
             {targetData.map((d, i) => {
               const pt = getPoint(i, d.value, radius, center, 1);
@@ -479,6 +473,7 @@ const styles = StyleSheet.create({
   labelText: {
     fontFamily: "JetBrainsMono-Medium",
     fontSize: 9,
+    lineHeight: 11,
     fontWeight: "500",
     letterSpacing: 0.4,
     textTransform: "uppercase",
@@ -487,6 +482,7 @@ const styles = StyleSheet.create({
   valueText: {
     fontFamily: "JetBrainsMono-Medium",
     fontSize: 13,
+    lineHeight: 15,
     fontWeight: "500",
     textAlign: "center",
   },

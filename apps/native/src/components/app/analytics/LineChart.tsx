@@ -1,8 +1,9 @@
 /**
  * LineChart Components - GPU-rendered interactive line/area charts
  *
- * VolumeChart: Strava-style bar + line overlay with touch-to-inspect tooltip.
+ * VolumeChart: Volume evolution line + area with touch-to-inspect tooltip.
  * PaceChart: Pace trend line with touch-to-inspect tooltip.
+ * PredictionTrendChart: Race prediction evolution over time.
  *
  * Touch interaction powered by victory-native's useChartPressState.
  */
@@ -14,12 +15,10 @@ import {
   Line,
   Area,
   useChartPressState,
-  type PointsArray,
 } from "victory-native";
 import {
   Circle,
   Group,
-  RoundedRect,
   type SkFont,
 } from "@shopify/react-native-skia";
 import {
@@ -43,97 +42,16 @@ export interface LineChartProps {
   font?: SkFont | null;
 }
 
-function VolumeBar({
-  x,
-  width,
-  bottom,
-  targetHeight,
-  color,
-  delayMs,
-}: {
-  x: number;
-  width: number;
-  bottom: number;
-  targetHeight: number;
-  color: string;
-  delayMs: number;
-}) {
-  const progress = useSharedValue(0);
-
-  useEffect(() => {
-    progress.value = withDelay(
-      delayMs,
-      withTiming(1, {
-        duration: 600,
-        easing: Easing.bezier(0.4, 0, 0.2, 1),
-      })
-    );
-    return () => cancelAnimation(progress);
-  }, []);
-
-  const animHeight = useDerivedValue(() => progress.value * targetHeight);
-  const animY = useDerivedValue(() => bottom - animHeight.value);
-
-  return (
-    <RoundedRect
-      x={x}
-      y={animY}
-      width={width}
-      height={animHeight}
-      r={4}
-      color={color}
-      opacity={0.3}
-    />
-  );
-}
-
-function VolumeBars({
-  points,
-  chartBounds,
-  currentWeek,
-}: {
-  points: PointsArray;
-  chartBounds: { bottom: number; left: number; right: number };
-  currentWeek: number;
-}) {
-  const totalWidth = chartBounds.right - chartBounds.left;
-  const barWidth = (totalWidth / points.length) * 0.5;
-
-  return (
-    <>
-      {points.map((point, i) => {
-        if (point.y == null) return null;
-        const targetHeight = chartBounds.bottom - point.y;
-        const isCurrent = i === currentWeek - 1;
-        return (
-          <VolumeBar
-            key={i}
-            x={point.x - barWidth / 2}
-            width={barWidth}
-            bottom={chartBounds.bottom}
-            targetHeight={targetHeight}
-            color={isCurrent ? COLORS.lime : "rgba(255,255,255,0.10)"}
-            delayMs={i * 40}
-          />
-        );
-      })}
-    </>
-  );
-}
-
 /**
- * VolumeChart - Strava-style volume evolution with touch-to-inspect
+ * VolumeChart - Volume evolution over time with touch-to-inspect
  */
 export function VolumeChart({
   data,
   font,
-  currentWeek = data.length,
 }: {
   data: VolumeChartDatum[];
   font?: SkFont | null;
-  currentWeek?: number;
 }) {
-  const areaOpacity = useSharedValue(0);
   const lineOpacity = useSharedValue(0);
   const dotOpacity = useSharedValue(0);
 
@@ -149,21 +67,22 @@ export function VolumeChart({
   });
 
   useEffect(() => {
-    areaOpacity.value = withTiming(1, { duration: 800 });
-    lineOpacity.value = withTiming(1, {
-      duration: 1500,
-      easing: Easing.bezier(0.4, 0, 0.2, 1),
-    });
+    lineOpacity.value = withDelay(
+      200,
+      withTiming(1, {
+        duration: 1500,
+        easing: Easing.bezier(0.4, 0, 0.2, 1),
+      })
+    );
     dotOpacity.value = withDelay(1200, withTiming(1, { duration: 500 }));
     return () => {
-      cancelAnimation(areaOpacity);
       cancelAnimation(lineOpacity);
       cancelAnimation(dotOpacity);
     };
   }, []);
 
   return (
-    <View style={{ height: 140 }}>
+    <View style={{ height: 180 }}>
       <CartesianChart
         data={data}
         xKey="week"
@@ -180,20 +99,13 @@ export function VolumeChart({
       >
         {({ points, chartBounds }) => (
             <>
-              <VolumeBars
-                points={points.volume}
-                chartBounds={chartBounds}
-                currentWeek={currentWeek}
-              />
-              <Group opacity={areaOpacity}>
+              <Group opacity={lineOpacity}>
                 <Area
                   points={points.volume}
                   y0={chartBounds.bottom}
                   color={COLORS.lime}
-                  opacity={0.1}
+                  opacity={0.06}
                 />
-              </Group>
-              <Group opacity={lineOpacity}>
                 <Line
                   points={points.volume}
                   color={COLORS.lime}
@@ -201,7 +113,6 @@ export function VolumeChart({
                   curveType="natural"
                 />
               </Group>
-              {/* Persistent dots at each data point (Strava-style) */}
               <Group opacity={dotOpacity}>
                 {points.volume.map((point, i) =>
                   point.y != null ? (
@@ -209,7 +120,7 @@ export function VolumeChart({
                       key={i}
                       cx={point.x}
                       cy={point.y as number}
-                      r={3.5}
+                      r={3}
                       color={COLORS.lime}
                     />
                   ) : null
@@ -394,7 +305,7 @@ export function PredictionTrendChart({
   };
 
   return (
-    <View style={{ height: 120 }}>
+    <View style={{ height: 180 }}>
       <CartesianChart
         data={data}
         xKey="week"

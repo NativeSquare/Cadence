@@ -320,7 +320,10 @@ export interface ZoneBreakdownData {
   color: string;
 }
 
-export type ZonePeriod = "7d" | "1mo" | "3mo" | "6mo" | "all";
+export type { TimeFrame } from "@/components/shared/time-frame-selector";
+
+/** @deprecated Use TimeFrame from shared/time-frame-selector instead */
+export type ZonePeriod = "7d" | "1mo" | "3mo" | "6mo" | "1yr";
 
 export const MOCK_ZONE_BREAKDOWN: ZoneBreakdownData[] = [
   { zone: "Z5", label: "VO2max", percentage: 2, bpmRange: ">185 bpm", color: "#FF5A5A" },

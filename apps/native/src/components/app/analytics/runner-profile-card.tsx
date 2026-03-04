@@ -75,33 +75,8 @@ export function RunnerProfileCard({
         />
       </View>
 
-      {/* Dual radar legend */}
-      {targetData && (
-        <View className="flex-row items-center justify-center gap-4 mb-2">
-          <View className="flex-row items-center gap-[6px]">
-            <View
-              className="w-3 h-[3px] rounded-full"
-              style={{ backgroundColor: COLORS.lime }}
-            />
-            <Text className="text-[10px] font-coach text-g3">Current</Text>
-          </View>
-          <View className="flex-row items-center gap-[6px]">
-            <View
-              className="w-3 h-[3px] rounded-full"
-              style={{
-                backgroundColor: "rgba(200,255,0,0.35)",
-                borderStyle: "dashed",
-              }}
-            />
-            <Text className="text-[10px] font-coach text-g3">
-              {objectiveLabel ?? "Goal"} target
-            </Text>
-          </View>
-        </View>
-      )}
-
       {/* Selected point detail */}
-      {selectedPoint != null ? (
+      {selectedPoint != null && (
         <Animated.View
           entering={FadeIn.duration(200)}
           exiting={FadeOut.duration(150)}
@@ -141,34 +116,6 @@ export function RunnerProfileCard({
             )}
           </Text>
         </Animated.View>
-      ) : (
-        <View className="flex-row justify-between mt-2">
-          {data.slice(0, 3).map((point, i) => (
-            <View key={point.label} className="items-center">
-              <View className="flex-row items-baseline gap-1">
-                <Text
-                  className="text-[20px] font-coach-extrabold"
-                  style={{
-                    color:
-                      point.value >= 50
-                        ? GRAYS.g1
-                        : COLORS.red,
-                  }}
-                >
-                  {point.value}
-                </Text>
-                {targetData && (
-                  <Text className="text-[11px] font-coach text-g3">
-                    /{targetData[i]?.value}
-                  </Text>
-                )}
-              </View>
-              <Text className="text-[9px] font-coach text-g3 uppercase">
-                {point.label}
-              </Text>
-            </View>
-          ))}
-        </View>
       )}
     </View>
   );
