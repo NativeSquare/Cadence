@@ -3,6 +3,71 @@
  * Reference: cadence-full-v9.jsx lines 402-405
  */
 
+// =============================================================================
+// Race Objectives
+// =============================================================================
+
+export type RaceObjective = "5k" | "10k" | "half" | "marathon";
+
+export interface ObjectiveOption {
+  id: RaceObjective;
+  label: string;
+  shortLabel: string;
+  planWeeks: number;
+}
+
+export const OBJECTIVE_OPTIONS: ObjectiveOption[] = [
+  { id: "5k", label: "5K", shortLabel: "5K", planWeeks: 8 },
+  { id: "10k", label: "10K", shortLabel: "10K", planWeeks: 10 },
+  { id: "half", label: "Half Marathon", shortLabel: "Half", planWeeks: 10 },
+  { id: "marathon", label: "Marathon", shortLabel: "Marathon", planWeeks: 16 },
+];
+
+export interface RadarTargetProfile {
+  label: string;
+  value: number;
+}
+
+/**
+ * Ideal runner profiles per race objective.
+ * These represent the target polygon on the dual-radar chart.
+ * Order matches the 6 radar axes: Endurance, Speed, Recovery, Consistency, Injury Risk, Race Ready
+ */
+export const TARGET_PROFILES: Record<RaceObjective, RadarTargetProfile[]> = {
+  "5k": [
+    { label: "Endurance", value: 60 },
+    { label: "Speed", value: 90 },
+    { label: "Recovery", value: 70 },
+    { label: "Consistency", value: 80 },
+    { label: "Injury Risk", value: 75 },
+    { label: "Race Ready", value: 85 },
+  ],
+  "10k": [
+    { label: "Endurance", value: 75 },
+    { label: "Speed", value: 80 },
+    { label: "Recovery", value: 65 },
+    { label: "Consistency", value: 80 },
+    { label: "Injury Risk", value: 70 },
+    { label: "Race Ready", value: 80 },
+  ],
+  half: [
+    { label: "Endurance", value: 85 },
+    { label: "Speed", value: 70 },
+    { label: "Recovery", value: 70 },
+    { label: "Consistency", value: 85 },
+    { label: "Injury Risk", value: 65 },
+    { label: "Race Ready", value: 80 },
+  ],
+  marathon: [
+    { label: "Endurance", value: 95 },
+    { label: "Speed", value: 60 },
+    { label: "Recovery", value: 80 },
+    { label: "Consistency", value: 90 },
+    { label: "Injury Risk", value: 60 },
+    { label: "Race Ready", value: 75 },
+  ],
+};
+
 /** Weekly volume data (km) for 10 weeks */
 export const MOCK_VOLUME_DATA = [32, 38, 41, 36, 45, 48, 52, 44, 57, 24.7];
 
@@ -121,6 +186,74 @@ export const MOCK_PREDICTIONS: RacePrediction[] = [
 export const MOCK_VDOT = 45;
 
 // =============================================================================
+// Prediction Trend (weekly predicted times over training plan)
+// =============================================================================
+
+export interface PredictionTrendPoint {
+  week: number;
+  timeSeconds: number;
+}
+
+/**
+ * Weekly predicted race times showing improvement over the training plan.
+ * Each objective has its own trend data.
+ */
+export const MOCK_PREDICTION_TRENDS: Record<RaceObjective, PredictionTrendPoint[]> = {
+  "5k": [
+    { week: 1, timeSeconds: 1140 },
+    { week: 2, timeSeconds: 1128 },
+    { week: 3, timeSeconds: 1110 },
+    { week: 4, timeSeconds: 1098 },
+    { week: 5, timeSeconds: 1092 },
+    { week: 6, timeSeconds: 1080 },
+    { week: 7, timeSeconds: 1074 },
+    { week: 8, timeSeconds: 1062 },
+  ],
+  "10k": [
+    { week: 1, timeSeconds: 2380 },
+    { week: 2, timeSeconds: 2350 },
+    { week: 3, timeSeconds: 2320 },
+    { week: 4, timeSeconds: 2300 },
+    { week: 5, timeSeconds: 2275 },
+    { week: 6, timeSeconds: 2250 },
+    { week: 7, timeSeconds: 2230 },
+    { week: 8, timeSeconds: 2220 },
+    { week: 9, timeSeconds: 2215 },
+    { week: 10, timeSeconds: 2210 },
+  ],
+  half: [
+    { week: 1, timeSeconds: 5280 },
+    { week: 2, timeSeconds: 5200 },
+    { week: 3, timeSeconds: 5140 },
+    { week: 4, timeSeconds: 5080 },
+    { week: 5, timeSeconds: 5020 },
+    { week: 6, timeSeconds: 4980 },
+    { week: 7, timeSeconds: 4950 },
+    { week: 8, timeSeconds: 4930 },
+    { week: 9, timeSeconds: 4910 },
+    { week: 10, timeSeconds: 4898 },
+  ],
+  marathon: [
+    { week: 1, timeSeconds: 11100 },
+    { week: 2, timeSeconds: 10980 },
+    { week: 3, timeSeconds: 10860 },
+    { week: 4, timeSeconds: 10740 },
+    { week: 5, timeSeconds: 10620 },
+    { week: 6, timeSeconds: 10500 },
+    { week: 7, timeSeconds: 10440 },
+    { week: 8, timeSeconds: 10380 },
+    { week: 9, timeSeconds: 10320 },
+    { week: 10, timeSeconds: 10260 },
+    { week: 11, timeSeconds: 10220 },
+    { week: 12, timeSeconds: 10200 },
+    { week: 13, timeSeconds: 10185 },
+    { week: 14, timeSeconds: 10175 },
+    { week: 15, timeSeconds: 10168 },
+    { week: 16, timeSeconds: 10162 },
+  ],
+};
+
+// =============================================================================
 // Health Metrics
 // =============================================================================
 
@@ -174,6 +307,28 @@ export interface WeekZoneData {
   z3: number;
   z4: number;
 }
+
+// =============================================================================
+// Zone Breakdown (Strava-style horizontal bars)
+// =============================================================================
+
+export interface ZoneBreakdownData {
+  zone: string;
+  label: string;
+  percentage: number;
+  bpmRange: string;
+  color: string;
+}
+
+export type ZonePeriod = "7d" | "1mo" | "3mo" | "6mo" | "all";
+
+export const MOCK_ZONE_BREAKDOWN: ZoneBreakdownData[] = [
+  { zone: "Z5", label: "VO2max", percentage: 2, bpmRange: ">185 bpm", color: "#FF5A5A" },
+  { zone: "Z4", label: "Threshold", percentage: 12, bpmRange: "170–184 bpm", color: "#FF9500" },
+  { zone: "Z3", label: "Tempo", percentage: 18, bpmRange: "152–169 bpm", color: "#C8FF00" },
+  { zone: "Z2", label: "Aerobic", percentage: 52, bpmRange: "135–151 bpm", color: "#A8D900" },
+  { zone: "Z1", label: "Easy", percentage: 16, bpmRange: "<134 bpm", color: "#5B9EFF" },
+];
 
 // =============================================================================
 // Volume Evolution (Strava-style)

@@ -1,16 +1,28 @@
 /**
- * StackedHistogram Component - Zone split stacked bar chart with clip-reveal animation
- * Reference: cadence-full-v9.jsx lines 430-452
+ * StackedHistogram Component - Interactive zone split stacked bar charts
  *
  * Supports two modes:
- * - Daily: 7-day zone split (original)
+ * - Daily: 7-day zone split
  * - Weekly: Multi-week zone evolution (COROS-style)
+ *
+ * Touch-to-inspect shows zone breakdown per bar.
  */
 
 import React, { useEffect, useMemo } from "react";
 import { View } from "react-native";
-import { CartesianChart, type PointsArray } from "victory-native";
-import { RoundedRect, Rect, Group, type SkFont } from "@shopify/react-native-skia";
+import {
+  CartesianChart,
+  useChartPressState,
+  type PointsArray,
+} from "victory-native";
+import {
+  RoundedRect,
+  Rect,
+  Group,
+  Line as SkiaLine,
+  Text as SkiaText,
+  type SkFont,
+} from "@shopify/react-native-skia";
 import {
   useSharedValue,
   useDerivedValue,
@@ -18,9 +30,10 @@ import {
   withTiming,
   cancelAnimation,
   Easing,
+  type SharedValue,
 } from "react-native-reanimated";
 import { Text } from "@/components/ui/text";
-import { COLORS, LIGHT_THEME, ACTIVITY_COLORS } from "@/lib/design-tokens";
+import { COLORS, GRAYS, ACTIVITY_COLORS } from "@/lib/design-tokens";
 import { DAY_LABELS, WEEK_LABELS } from "./mock-data";
 import type { ZoneChartDatum } from "@/hooks/use-analytics-data";
 import type { WeekZoneData } from "./mock-data";
@@ -83,7 +96,7 @@ function AnimatedStackedBar({
         width={width}
         height={4}
         r={2}
-        color={LIGHT_THEME.w3}
+        color="rgba(255,255,255,0.10)"
       />
     );
   }
@@ -180,6 +193,77 @@ function StackedBars({
   );
 }
 
+/**
+ * Zone tooltip showing Z2/Z3/Z4 breakdown when touching a bar
+ */
+function ZoneTooltip({
+  xPosition,
+  top,
+  bottom,
+  font,
+  activeValue,
+}: {
+  xPosition: SharedValue<number>;
+  top: number;
+  bottom: number;
+  font: SkFont | null;
+  activeValue: SharedValue<number>;
+}) {
+  const lineP1 = useDerivedValue(() => ({ x: xPosition.value, y: top }));
+  const lineP2 = useDerivedValue(() => ({ x: xPosition.value, y: bottom }));
+
+  const labelText = useDerivedValue(() => {
+    const val = Math.round(activeValue.value);
+    return `${val}%`;
+  });
+
+  const labelWidth = useDerivedValue(() => {
+    if (!font) return 36;
+    return Math.max(font.measureText(labelText.value).width + 18, 36);
+  });
+
+  const pillX = useDerivedValue(() => xPosition.value - labelWidth.value / 2);
+
+  const textX = useDerivedValue(() => {
+    if (!font) return xPosition.value;
+    const tw = font.measureText(labelText.value).width;
+    return xPosition.value - tw / 2;
+  });
+
+  const PILL_Y = top - 6;
+
+  return (
+    <>
+      <SkiaLine
+        p1={lineP1}
+        p2={lineP2}
+        color="rgba(255,255,255,0.08)"
+        strokeWidth={1}
+        style="stroke"
+      />
+      {font && (
+        <>
+          <RoundedRect
+            x={pillX}
+            y={PILL_Y}
+            width={labelWidth}
+            height={22}
+            r={7}
+            color={GRAYS.g1}
+          />
+          <SkiaText
+            x={textX}
+            y={PILL_Y + 15}
+            text={labelText}
+            font={font}
+            color="#1A1A1A"
+          />
+        </>
+      )}
+    </>
+  );
+}
+
 /** Daily zone split (original component) */
 export function StackedHistogram({
   data,
@@ -192,6 +276,11 @@ export function StackedHistogram({
     [data]
   );
 
+  const { state, isActive } = useChartPressState({
+    x: 0,
+    y: { total: 0 },
+  });
+
   return (
     <View style={{ height: chartHeight }}>
       <CartesianChart
@@ -199,22 +288,34 @@ export function StackedHistogram({
         xKey="day"
         yKeys={["total"]}
         domain={{ y: [0, 100] }}
+        chartPressState={state}
         domainPadding={{ left: 20, right: 20, top: 10 }}
         axisOptions={{
           font,
           formatXLabel: (v) => DAY_LABELS[v] ?? "",
           tickCount: { x: 7, y: 0 },
           lineColor: "transparent",
-          labelColor: LIGHT_THEME.wMute,
+          labelColor: "rgba(255,255,255,0.45)",
         }}
       >
         {({ points, chartBounds }) => (
-          <StackedBars
-            data={data}
-            xPoints={points.total}
-            chartBounds={chartBounds}
-            accentIdx={accentIdx}
-          />
+          <>
+            <StackedBars
+              data={data}
+              xPoints={points.total}
+              chartBounds={chartBounds}
+              accentIdx={isActive ? undefined : accentIdx}
+            />
+            {isActive && (
+              <ZoneTooltip
+                xPosition={state.x.position}
+                top={chartBounds.top}
+                bottom={chartBounds.bottom}
+                font={font ?? null}
+                activeValue={state.y.total.value}
+              />
+            )}
+          </>
         )}
       </CartesianChart>
     </View>
@@ -233,6 +334,11 @@ export function WeeklyZoneChart({
     [data]
   );
 
+  const { state, isActive } = useChartPressState({
+    x: 0,
+    y: { total: 0 },
+  });
+
   return (
     <View style={{ height: chartHeight }}>
       <CartesianChart
@@ -240,22 +346,34 @@ export function WeeklyZoneChart({
         xKey="week"
         yKeys={["total"]}
         domain={{ y: [0, 100] }}
+        chartPressState={state}
         domainPadding={{ left: 20, right: 20, top: 10 }}
         axisOptions={{
           font,
           formatXLabel: (v) => WEEK_LABELS[v - 1] ?? `W${v}`,
           tickCount: { x: Math.min(data.length, 10), y: 0 },
           lineColor: "transparent",
-          labelColor: LIGHT_THEME.wMute,
+          labelColor: "rgba(255,255,255,0.45)",
         }}
       >
         {({ points, chartBounds }) => (
-          <StackedBars
-            data={data}
-            xPoints={points.total}
-            chartBounds={chartBounds}
-            accentIdx={currentWeek ? currentWeek - 1 : undefined}
-          />
+          <>
+            <StackedBars
+              data={data}
+              xPoints={points.total}
+              chartBounds={chartBounds}
+              accentIdx={isActive ? undefined : (currentWeek ? currentWeek - 1 : undefined)}
+            />
+            {isActive && (
+              <ZoneTooltip
+                xPosition={state.x.position}
+                top={chartBounds.top}
+                bottom={chartBounds.bottom}
+                font={font ?? null}
+                activeValue={state.y.total.value}
+              />
+            )}
+          </>
         )}
       </CartesianChart>
     </View>
@@ -269,7 +387,7 @@ function ZoneLegendItem({ label, color }: { label: string; color: string }) {
         className="w-[6px] h-[6px] rounded-sm"
         style={{ backgroundColor: color }}
       />
-      <Text className="text-[9px] font-coach text-wMute">{label}</Text>
+      <Text className="text-[9px] font-coach text-g3">{label}</Text>
     </View>
   );
 }

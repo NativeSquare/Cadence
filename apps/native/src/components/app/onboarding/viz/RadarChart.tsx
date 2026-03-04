@@ -2,14 +2,14 @@
  * RadarChart Component - 6-axis spider chart for runner profile visualization.
  *
  * Displays: Endurance, Speed, Recovery, Consistency, Injury Risk, Race Ready
- * with animated polygon fill and count-up value labels.
+ * with animated polygon fill, count-up value labels, and touch-to-select.
  *
  * Source: Story 3.1 - AC#1-#3
  * Reference: cadence-v3.jsx lines 704-726
  */
 
-import { useEffect, useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { useEffect, useState, useCallback } from "react";
+import { StyleSheet, View, Pressable } from "react-native";
 import Animated, {
   Easing,
   runOnJS,
@@ -18,17 +18,21 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withDelay,
+  withSpring,
   withTiming,
   type SharedValue,
 } from "react-native-reanimated";
 import Svg, {
   Circle,
+  Defs,
   G,
   Line,
+  LinearGradient,
   Path,
+  Stop,
 } from "react-native-svg";
 import { Text } from "@/components/ui/text";
-import { PROGRESS_BAR_MS } from "@/lib/animations";
+import { PROGRESS_BAR_MS, SPRING_SNAPPY } from "@/lib/animations";
 import { COLORS, GRAYS } from "@/lib/design-tokens";
 
 // =============================================================================
@@ -44,12 +48,16 @@ export interface RadarDataPoint {
 export interface RadarChartProps {
   /** Array of 6 data points for each axis */
   data: RadarDataPoint[];
+  /** Optional target/ideal profile to show as a ghost overlay */
+  targetData?: RadarDataPoint[];
   /** Chart diameter in pixels (default: 250) */
   size?: number;
   /** Whether to animate on mount (default: true) */
   animate?: boolean;
   /** Callback when animation completes */
   onAnimationComplete?: () => void;
+  /** Callback when a data point is selected */
+  onPointSelect?: (index: number | null) => void;
 }
 
 // =============================================================================
@@ -63,9 +71,6 @@ const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 // Helper Functions
 // =============================================================================
 
-/**
- * Calculate point position on the radar chart.
- */
 function getPoint(
   index: number,
   value: number,
@@ -74,8 +79,8 @@ function getPoint(
   progress: number = 1
 ): { x: number; y: number } {
   "worklet";
-  const n = 6; // Always 6 axes
-  const angle = (Math.PI * 2 * index) / n - Math.PI / 2; // Start from top
+  const n = 6;
+  const angle = (Math.PI * 2 * index) / n - Math.PI / 2;
   const r = (value / 100) * radius * progress;
   return {
     x: center + r * Math.cos(angle),
@@ -83,9 +88,6 @@ function getPoint(
   };
 }
 
-/**
- * Generate SVG path d string for grid hexagons.
- */
 function getGridPathD(
   level: number,
   radius: number,
@@ -100,25 +102,20 @@ function getGridPathD(
     const y = center + r * Math.sin(angle);
     commands.push(i === 0 ? `M ${x} ${y}` : `L ${x} ${y}`);
   }
-  commands.push("Z"); // Close the path
+  commands.push("Z");
   return commands.join(" ");
 }
 
-/**
- * Get color based on value and uncertainty.
- */
-function getValueColor(value: number, uncertain?: boolean): string {
-  if (value < 50) return COLORS.red;
-  if (uncertain) return COLORS.ora;
-  return COLORS.lime;
+function getValueColor(_value: number, _uncertain?: boolean): string {
+  return "#6BBF00";
 }
 
-/**
- * Get label color (slightly dimmer than value color).
- */
-function getLabelColor(value: number, uncertain?: boolean): string {
-  if (value < 50) return COLORS.red;
-  if (uncertain) return COLORS.ora;
+function getLabelColor(
+  _value: number,
+  _uncertain?: boolean,
+  isSelected?: boolean
+): string {
+  if (isSelected) return GRAYS.g1;
   return GRAYS.g3;
 }
 
@@ -133,6 +130,8 @@ interface ValueLabelProps {
   center: number;
   size: number;
   progress: SharedValue<number>;
+  isSelected: boolean;
+  onPress: () => void;
 }
 
 function ValueLabel({
@@ -142,15 +141,16 @@ function ValueLabel({
   center,
   size,
   progress,
+  isSelected,
+  onPress,
 }: ValueLabelProps) {
   const [displayValue, setDisplayValue] = useState(0);
   const n = 6;
   const angle = (Math.PI * 2 * index) / n - Math.PI / 2;
-  const labelRadius = radius + 36; // Position labels well outside the chart
+  const labelRadius = radius + 36;
   const x = center + labelRadius * Math.cos(angle);
   const y = center + labelRadius * Math.sin(angle);
 
-  // Update display value when progress changes
   useAnimatedReaction(
     () => Math.round(data.value * progress.value),
     (result) => {
@@ -159,7 +159,6 @@ function ValueLabel({
     [data.value]
   );
 
-  // Entrance animation
   const animatedStyle = useAnimatedStyle(() => {
     const opacity = withDelay(
       800 + index * 80,
@@ -169,32 +168,91 @@ function ValueLabel({
   });
 
   const valueColor = getValueColor(data.value, data.uncertain);
-  const labelColor = getLabelColor(data.value, data.uncertain);
+  const labelColor = getLabelColor(data.value, data.uncertain, isSelected);
 
   return (
-    <Animated.View
+    <Pressable
+      onPress={onPress}
+      hitSlop={12}
       style={[
         styles.labelContainer,
-        {
-          left: x,
-          top: y,
-        },
-        animatedStyle,
+        { left: x, top: y },
       ]}
     >
-      <Text
-        style={[
-          styles.labelText,
-          { color: labelColor },
-        ]}
-        numberOfLines={1}
-      >
-        {data.label.toUpperCase()}
-      </Text>
-      <Text style={[styles.valueText, { color: valueColor }]}>
-        {displayValue}{data.uncertain ? "?" : ""}
-      </Text>
-    </Animated.View>
+      <Animated.View style={animatedStyle}>
+        <Text
+          style={[
+            styles.labelText,
+            {
+              color: labelColor,
+              fontWeight: isSelected ? "600" : "500",
+            },
+          ]}
+          numberOfLines={1}
+        >
+          {data.label.toUpperCase()}
+        </Text>
+        <Text
+          style={[
+            styles.valueText,
+            {
+              color: valueColor,
+              fontSize: isSelected ? 16 : 13,
+            },
+          ]}
+        >
+          {displayValue}{data.uncertain ? "?" : ""}
+        </Text>
+      </Animated.View>
+    </Pressable>
+  );
+}
+
+// =============================================================================
+// Data Point Circle
+// =============================================================================
+
+function DataPointCircle({
+  index,
+  data,
+  radius,
+  center,
+  progress,
+  isSelected,
+}: {
+  index: number;
+  data: RadarDataPoint[];
+  radius: number;
+  center: number;
+  progress: SharedValue<number>;
+  isSelected: boolean;
+}) {
+  const d = data[index];
+  const fillColor = getValueColor(d.value, d.uncertain);
+
+  const targetR = isSelected ? 7 : 4;
+  const animR = useSharedValue(isSelected ? 4 : 4);
+
+  useEffect(() => {
+    animR.value = withSpring(targetR, SPRING_SNAPPY);
+  }, [isSelected, targetR]);
+
+  const animatedProps = useAnimatedProps(() => {
+    const point = getPoint(index, d.value, radius, center, progress.value);
+    return {
+      cx: point.x,
+      cy: point.y,
+      r: animR.value,
+    };
+  });
+
+  return (
+    <AnimatedCircle
+      animatedProps={animatedProps}
+      fill={fillColor}
+      stroke={isSelected ? fillColor : "#1A1A1A"}
+      strokeWidth={isSelected ? 3 : 2}
+    />
   );
 }
 
@@ -204,26 +262,26 @@ function ValueLabel({
 
 export function RadarChart({
   data,
+  targetData,
   size = 250,
   animate = true,
   onAnimationComplete,
+  onPointSelect,
 }: RadarChartProps) {
   const center = size / 2;
-  const radius = size / 2 - 50; // Leave ample room for labels outside
+  const radius = size / 2 - 50;
   const gridLevels = [25, 50, 75, 100];
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
 
-  // Animation progress (0 to 1)
   const progress = useSharedValue(animate ? 0 : 1);
 
-  // Start animation on mount
   useEffect(() => {
     if (animate) {
-      // Delay before starting animation
       const timer = setTimeout(() => {
         progress.value = withTiming(
           1,
           {
-            duration: PROGRESS_BAR_MS, // 1400ms from design tokens
+            duration: PROGRESS_BAR_MS,
             easing: Easing.out(Easing.cubic),
           },
           (finished) => {
@@ -238,41 +296,71 @@ export function RadarChart({
     }
   }, [animate, progress, onAnimationComplete]);
 
-  // Animated path d string for data polygon
+  const handlePointPress = useCallback((index: number) => {
+    setSelectedIndex((prev) => {
+      const next = prev === index ? null : index;
+      onPointSelect?.(next);
+      return next;
+    });
+  }, [onPointSelect]);
+
   const animatedPathProps = useAnimatedProps(() => {
     const commands: string[] = [];
     data.forEach((d, i) => {
       const point = getPoint(i, d.value, radius, center, progress.value);
       commands.push(i === 0 ? `M ${point.x} ${point.y}` : `L ${point.x} ${point.y}`);
     });
-    commands.push("Z"); // Close the path
+    commands.push("Z");
     return {
       d: commands.join(" "),
     };
   });
 
+  const selectedAxisAngle = selectedIndex !== null
+    ? (Math.PI * 2 * selectedIndex) / 6 - Math.PI / 2
+    : null;
+  const selectedAxisEnd = selectedAxisAngle !== null
+    ? {
+        x: center + radius * Math.cos(selectedAxisAngle),
+        y: center + radius * Math.sin(selectedAxisAngle),
+      }
+    : null;
+
   return (
     <View style={[styles.container, { width: size, height: size }]}>
       <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-        {/* Grid hexagons at 25%, 50%, 75%, 100% */}
+        <Defs>
+          <LinearGradient id="radarFill" x1="0" y1="0" x2="0" y2="1">
+            <Stop offset="0" stopColor={COLORS.lime} stopOpacity="0.28" />
+            <Stop offset="1" stopColor={COLORS.lime} stopOpacity="0.06" />
+          </LinearGradient>
+          <LinearGradient id="targetFill" x1="0" y1="0" x2="0" y2="1">
+            <Stop offset="0" stopColor={COLORS.lime} stopOpacity="0.10" />
+            <Stop offset="1" stopColor={COLORS.lime} stopOpacity="0.03" />
+          </LinearGradient>
+        </Defs>
+
+        {/* Grid hexagons */}
         <G>
           {gridLevels.map((level) => (
             <Path
               key={level}
               d={getGridPathD(level, radius, center)}
               fill="none"
-              stroke={GRAYS.g5}
-              strokeWidth={1}
+              stroke="rgba(255,255,255,0.10)"
+              strokeWidth={level === 100 ? 1.5 : 1}
+              strokeDasharray={level === 50 ? "4,4" : undefined}
             />
           ))}
         </G>
 
-        {/* Axis lines from center to each vertex */}
+        {/* Axis lines */}
         <G>
           {data.map((_, i) => {
             const angle = (Math.PI * 2 * i) / 6 - Math.PI / 2;
             const x2 = center + radius * Math.cos(angle);
             const y2 = center + radius * Math.sin(angle);
+            const isActive = i === selectedIndex;
             return (
               <Line
                 key={i}
@@ -280,25 +368,56 @@ export function RadarChart({
                 y1={center}
                 x2={x2}
                 y2={y2}
-                stroke={GRAYS.g5}
-                strokeWidth={1}
+                stroke={isActive ? "rgba(200,255,0,0.5)" : "rgba(255,255,255,0.10)"}
+                strokeWidth={isActive ? 2 : 1}
               />
             );
           })}
         </G>
 
-        {/* Data polygon with fill - connects all points with lime outline */}
+        {/* Target/ideal polygon (ghost overlay) */}
+        {targetData && targetData.length === data.length && (
+          <G>
+            <Path
+              d={targetData
+                .map((d, i) => {
+                  const pt = getPoint(i, d.value, radius, center, 1);
+                  return i === 0 ? `M ${pt.x} ${pt.y}` : `L ${pt.x} ${pt.y}`;
+                })
+                .join(" ") + " Z"}
+              fill="url(#targetFill)"
+              stroke="rgba(200,255,0,0.30)"
+              strokeWidth={1.5}
+              strokeLinejoin="round"
+              strokeDasharray="6,4"
+            />
+            {targetData.map((d, i) => {
+              const pt = getPoint(i, d.value, radius, center, 1);
+              return (
+                <Circle
+                  key={`target-${i}`}
+                  cx={pt.x}
+                  cy={pt.y}
+                  r={2.5}
+                  fill="rgba(200,255,0,0.30)"
+                />
+              );
+            })}
+          </G>
+        )}
+
+        {/* Current data polygon with gradient fill */}
         <AnimatedPath
           animatedProps={animatedPathProps}
-          fill="rgba(200,255,0,0.07)"
+          fill="url(#radarFill)"
           stroke={COLORS.lime}
-          strokeWidth={1.5}
+          strokeWidth={2}
           strokeLinejoin="round"
         />
 
         {/* Data point circles */}
         <G>
-          {data.map((d, i) => (
+          {data.map((_, i) => (
             <DataPointCircle
               key={i}
               index={i}
@@ -306,9 +425,19 @@ export function RadarChart({
               radius={radius}
               center={center}
               progress={progress}
+              isSelected={i === selectedIndex}
             />
           ))}
         </G>
+
+        {/* Center dot */}
+        <Circle
+          cx={center}
+          cy={center}
+          r={2}
+          fill={GRAYS.g3}
+          opacity={0.3}
+        />
       </Svg>
 
       {/* Value labels positioned outside the chart */}
@@ -321,45 +450,11 @@ export function RadarChart({
           center={center}
           size={size}
           progress={progress}
+          isSelected={i === selectedIndex}
+          onPress={() => handlePointPress(i)}
         />
       ))}
     </View>
-  );
-}
-
-// Separate component for animated circle to use hooks properly
-function DataPointCircle({
-  index,
-  data,
-  radius,
-  center,
-  progress,
-}: {
-  index: number;
-  data: RadarDataPoint[];
-  radius: number;
-  center: number;
-  progress: SharedValue<number>;
-}) {
-  const d = data[index];
-  const fillColor = getValueColor(d.value, d.uncertain);
-
-  const animatedProps = useAnimatedProps(() => {
-    const point = getPoint(index, d.value, radius, center, progress.value);
-    return {
-      cx: point.x,
-      cy: point.y,
-    };
-  });
-
-  return (
-    <AnimatedCircle
-      animatedProps={animatedProps}
-      r={3.5}
-      fill={fillColor}
-      stroke={COLORS.black}
-      strokeWidth={1.5}
-    />
   );
 }
 
@@ -367,7 +462,7 @@ function DataPointCircle({
 // Styles
 // =============================================================================
 
-const LABEL_WIDTH = 90; // Fixed width to allow centering
+const LABEL_WIDTH = 90;
 
 const styles = StyleSheet.create({
   container: {
@@ -378,7 +473,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     width: LABEL_WIDTH,
     marginLeft: -LABEL_WIDTH / 2,
-    marginTop: -18, // Approximate half-height of label+value
+    marginTop: -18,
     alignItems: "center",
   },
   labelText: {

@@ -21,6 +21,7 @@ import {
   MOCK_WEEKLY_KM,
   MOCK_ZONE_DATA,
   MOCK_MULTI_WEEK_ZONE_DATA,
+  MOCK_ZONE_BREAKDOWN,
   MOCK_STATS,
   MOCK_VOLUME_STATS,
   MOCK_PREDICTIONS,
@@ -33,6 +34,7 @@ import {
   type RacePrediction,
   type HealthMetric,
   type WeekZoneData,
+  type ZoneBreakdownData,
 } from "@/components/app/analytics/mock-data";
 
 import type { RadarDataPoint } from "@/components/app/onboarding/viz/RadarChart";
@@ -63,6 +65,12 @@ export type PaceChartDatum = {
   [key: string]: unknown;
 };
 
+export type PredictionTrendDatum = {
+  week: number;
+  timeSeconds: number;
+  [key: string]: unknown;
+};
+
 export interface AnalyticsData {
   planProgress: typeof PLAN_PROGRESS;
   currentWeek: number;
@@ -86,6 +94,7 @@ export interface AnalyticsData {
 
   stats: typeof MOCK_STATS;
 
+  zoneBreakdown: ZoneBreakdownData[];
   radarData: RadarDataPoint[];
   predictions: RacePrediction[];
   vdot: number;
@@ -222,6 +231,7 @@ export function useAnalyticsData(): UseAnalyticsDataResult {
 
       stats: MOCK_STATS,
 
+      zoneBreakdown: MOCK_ZONE_BREAKDOWN,
       radarData: MOCK_PREDICTIONS.length > 0
         ? [
             { label: "Endurance", value: 75 },

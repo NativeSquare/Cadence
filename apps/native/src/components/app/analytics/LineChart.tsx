@@ -1,14 +1,21 @@
 /**
- * LineChart Components - GPU-rendered line/area charts with faithful prototype animations
- * Reference: cadence-full-v9.jsx lines 455-484 (VolChart, PaceChart)
+ * LineChart Components - GPU-rendered interactive line/area charts
  *
- * VolumeChart enhanced with Strava-style bar + line overlay and target comparison.
- * PaceChart retains original line-only approach.
+ * VolumeChart: Strava-style bar + line overlay with touch-to-inspect tooltip.
+ * PaceChart: Pace trend line with touch-to-inspect tooltip.
+ *
+ * Touch interaction powered by victory-native's useChartPressState.
  */
 
 import React, { useEffect } from "react";
-import { Pressable, View } from "react-native";
-import { CartesianChart, Line, Area, type PointsArray } from "victory-native";
+import { View } from "react-native";
+import {
+  CartesianChart,
+  Line,
+  Area,
+  useChartPressState,
+  type PointsArray,
+} from "victory-native";
 import {
   Circle,
   Group,
@@ -23,10 +30,12 @@ import {
   cancelAnimation,
   Easing,
 } from "react-native-reanimated";
-import { COLORS, LIGHT_THEME, ACTIVITY_COLORS } from "@/lib/design-tokens";
+import { COLORS, ACTIVITY_COLORS } from "@/lib/design-tokens";
+import { ActiveValueIndicator } from "./ActiveValueIndicator";
 import type {
   VolumeChartDatum,
   PaceChartDatum,
+  PredictionTrendDatum,
 } from "@/hooks/use-analytics-data";
 
 export interface LineChartProps {
@@ -34,7 +43,6 @@ export interface LineChartProps {
   font?: SkFont | null;
 }
 
-// Animated bar for the Strava-style volume chart
 function VolumeBar({
   x,
   width,
@@ -104,7 +112,7 @@ function VolumeBars({
             width={barWidth}
             bottom={chartBounds.bottom}
             targetHeight={targetHeight}
-            color={isCurrent ? COLORS.lime : LIGHT_THEME.w3}
+            color={isCurrent ? COLORS.lime : "rgba(255,255,255,0.10)"}
             delayMs={i * 40}
           />
         );
@@ -114,22 +122,31 @@ function VolumeBars({
 }
 
 /**
- * VolumeChart - Strava-style volume evolution with bar overlay + trend line
+ * VolumeChart - Strava-style volume evolution with touch-to-inspect
  */
 export function VolumeChart({
   data,
   font,
   currentWeek = data.length,
-  onWeekPress,
 }: {
   data: VolumeChartDatum[];
   font?: SkFont | null;
   currentWeek?: number;
-  onWeekPress?: (week: number) => void;
 }) {
   const areaOpacity = useSharedValue(0);
   const lineOpacity = useSharedValue(0);
   const dotOpacity = useSharedValue(0);
+
+  const { state, isActive } = useChartPressState({
+    x: 0,
+    y: { volume: 0 },
+  });
+
+  const volumeLabel = useDerivedValue(() => {
+    "worklet";
+    const v = Math.round(state.y.volume.value.value);
+    return `${v} km`;
+  });
 
   useEffect(() => {
     areaOpacity.value = withTiming(1, { duration: 800 });
@@ -146,25 +163,22 @@ export function VolumeChart({
   }, []);
 
   return (
-    <Pressable
-      onPress={() => onWeekPress?.(currentWeek)}
-      style={{ height: 140 }}
-    >
+    <View style={{ height: 140 }}>
       <CartesianChart
         data={data}
         xKey="week"
         yKeys={["volume"]}
+        chartPressState={state}
         axisOptions={{
           font,
           formatXLabel: (v) => `W${v}`,
-          tickCount: { x: Math.min(data.length, 10), y: 0 },
-          lineColor: LIGHT_THEME.wBrd,
-          labelColor: LIGHT_THEME.wMute,
+          formatYLabel: (v) => `${Math.round(v)} km`,
+          tickCount: { x: Math.min(data.length, 10), y: 3 },
+          lineColor: "rgba(255,255,255,0.08)",
+          labelColor: "rgba(255,255,255,0.45)",
         }}
       >
-        {({ points, chartBounds }) => {
-          const lastPoint = points.volume[points.volume.length - 1];
-          return (
+        {({ points, chartBounds }) => (
             <>
               <VolumeBars
                 points={points.volume}
@@ -187,25 +201,40 @@ export function VolumeChart({
                   curveType="natural"
                 />
               </Group>
-              {lastPoint && lastPoint.y != null && (
-                <Circle
-                  cx={lastPoint.x}
-                  cy={lastPoint.y as number}
-                  r={5}
+              {/* Persistent dots at each data point (Strava-style) */}
+              <Group opacity={dotOpacity}>
+                {points.volume.map((point, i) =>
+                  point.y != null ? (
+                    <Circle
+                      key={i}
+                      cx={point.x}
+                      cy={point.y as number}
+                      r={3.5}
+                      color={COLORS.lime}
+                    />
+                  ) : null
+                )}
+              </Group>
+              {isActive && (
+                <ActiveValueIndicator
+                  xPosition={state.x.position}
+                  yPosition={state.y.volume.position}
+                  top={chartBounds.top}
+                  bottom={chartBounds.bottom}
+                  label={volumeLabel}
+                  font={font ?? null}
                   color={COLORS.lime}
-                  opacity={dotOpacity}
                 />
               )}
             </>
-          );
-        }}
+          )}
       </CartesianChart>
-    </Pressable>
+    </View>
   );
 }
 
 /**
- * PaceChart - Weekly pace trend with line drawing and delayed dot
+ * PaceChart - Weekly pace trend with touch-to-inspect
  */
 export function PaceChart({
   data,
@@ -216,6 +245,20 @@ export function PaceChart({
 }) {
   const lineOpacity = useSharedValue(0);
   const dotOpacity = useSharedValue(0);
+
+  const { state, isActive } = useChartPressState({
+    x: 0,
+    y: { pace: 0 },
+  });
+
+  const paceLabel = useDerivedValue(() => {
+    "worklet";
+    const seconds = state.y.pace.value.value;
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.round(seconds % 60);
+    const pad = secs < 10 ? "0" : "";
+    return `${mins}:${pad}${secs} /km`;
+  });
 
   useEffect(() => {
     lineOpacity.value = withDelay(
@@ -233,20 +276,26 @@ export function PaceChart({
   }, []);
 
   return (
-    <View style={{ height: 100 }}>
+    <View style={{ height: 110 }}>
       <CartesianChart
         data={data}
         xKey="week"
         yKeys={["pace"]}
+        chartPressState={state}
         axisOptions={{
           font,
           formatXLabel: (v) => `W${v}`,
-          tickCount: { x: Math.min(data.length, 10), y: 0 },
-          lineColor: LIGHT_THEME.wBrd,
-          labelColor: LIGHT_THEME.wMute,
+          formatYLabel: (v) => {
+            const mins = Math.floor(v / 60);
+            const secs = Math.round(v % 60);
+            return `${mins}:${secs < 10 ? "0" : ""}${secs}`;
+          },
+          tickCount: { x: Math.min(data.length, 10), y: 3 },
+          lineColor: "rgba(255,255,255,0.08)",
+          labelColor: "rgba(255,255,255,0.45)",
         }}
       >
-        {({ points }) => {
+        {({ points, chartBounds }) => {
           const lastPoint = points.pace[points.pace.length - 1];
           return (
             <>
@@ -258,7 +307,7 @@ export function PaceChart({
                   curveType="natural"
                 />
               </Group>
-              {lastPoint && lastPoint.y != null && (
+              {!isActive && lastPoint && lastPoint.y != null && (
                 <Circle
                   cx={lastPoint.x}
                   cy={lastPoint.y as number}
@@ -267,9 +316,141 @@ export function PaceChart({
                   opacity={dotOpacity}
                 />
               )}
+              {isActive && (
+                <ActiveValueIndicator
+                  xPosition={state.x.position}
+                  yPosition={state.y.pace.position}
+                  top={chartBounds.top}
+                  bottom={chartBounds.bottom}
+                  label={paceLabel}
+                  font={font ?? null}
+                  color={ACTIVITY_COLORS.barRest}
+                />
+              )}
             </>
           );
         }}
+      </CartesianChart>
+    </View>
+  );
+}
+
+/**
+ * PredictionTrendChart - Race prediction evolution over time.
+ * Y-axis is inverted (lower time = better = higher on chart).
+ */
+export function PredictionTrendChart({
+  data,
+  font,
+  color = COLORS.ora,
+}: {
+  data: PredictionTrendDatum[];
+  font?: SkFont | null;
+  color?: string;
+}) {
+  const lineOpacity = useSharedValue(0);
+  const dotOpacity = useSharedValue(0);
+
+  const { state, isActive } = useChartPressState({
+    x: 0,
+    y: { timeSeconds: 0 },
+  });
+
+  const timeLabel = useDerivedValue(() => {
+    "worklet";
+    const totalSec = state.y.timeSeconds.value.value;
+    const hrs = Math.floor(totalSec / 3600);
+    const mins = Math.floor((totalSec % 3600) / 60);
+    const secs = Math.round(totalSec % 60);
+    const pad = secs < 10 ? "0" : "";
+    if (hrs > 0) {
+      const mPad = mins < 10 ? "0" : "";
+      return `${hrs}:${mPad}${mins}:${pad}${secs}`;
+    }
+    return `${mins}:${pad}${secs}`;
+  });
+
+  useEffect(() => {
+    lineOpacity.value = withDelay(
+      200,
+      withTiming(1, {
+        duration: 1500,
+        easing: Easing.bezier(0.4, 0, 0.2, 1),
+      })
+    );
+    dotOpacity.value = withDelay(1200, withTiming(1, { duration: 500 }));
+    return () => {
+      cancelAnimation(lineOpacity);
+      cancelAnimation(dotOpacity);
+    };
+  }, []);
+
+  const formatTime = (totalSec: number) => {
+    const hrs = Math.floor(totalSec / 3600);
+    const mins = Math.floor((totalSec % 3600) / 60);
+    const secs = Math.round(totalSec % 60);
+    if (hrs > 0) return `${hrs}:${mins < 10 ? "0" : ""}${mins}`;
+    return `${mins}:${secs < 10 ? "0" : ""}${secs}`;
+  };
+
+  return (
+    <View style={{ height: 120 }}>
+      <CartesianChart
+        data={data}
+        xKey="week"
+        yKeys={["timeSeconds"]}
+        chartPressState={state}
+        axisOptions={{
+          font,
+          formatXLabel: (v) => `W${v}`,
+          formatYLabel: (v) => formatTime(v),
+          tickCount: { x: Math.min(data.length, 8), y: 3 },
+          lineColor: "rgba(255,255,255,0.08)",
+          labelColor: "rgba(255,255,255,0.45)",
+        }}
+      >
+        {({ points, chartBounds }) => (
+          <>
+            <Group opacity={lineOpacity}>
+              <Area
+                points={points.timeSeconds}
+                y0={chartBounds.bottom}
+                color={color}
+                opacity={0.06}
+              />
+              <Line
+                points={points.timeSeconds}
+                color={color}
+                strokeWidth={2.5}
+                curveType="natural"
+              />
+            </Group>
+            <Group opacity={dotOpacity}>
+              {points.timeSeconds.map((point, i) =>
+                point.y != null ? (
+                  <Circle
+                    key={i}
+                    cx={point.x}
+                    cy={point.y as number}
+                    r={3}
+                    color={color}
+                  />
+                ) : null
+              )}
+            </Group>
+            {isActive && (
+              <ActiveValueIndicator
+                xPosition={state.x.position}
+                yPosition={state.y.timeSeconds.position}
+                top={chartBounds.top}
+                bottom={chartBounds.bottom}
+                label={timeLabel}
+                font={font ?? null}
+                color={color}
+              />
+            )}
+          </>
+        )}
       </CartesianChart>
     </View>
   );

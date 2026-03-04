@@ -19,7 +19,7 @@ import Animated, {
   Easing,
 } from "react-native-reanimated";
 import { Text } from "@/components/ui/text";
-import { COLORS, LIGHT_THEME, ACTIVITY_COLORS } from "@/lib/design-tokens";
+import { COLORS, ACTIVITY_COLORS } from "@/lib/design-tokens";
 import { MOCK_VOLUME_STATS } from "./mock-data";
 
 interface WeekVolumeCardProps {
@@ -59,23 +59,23 @@ export function WeekVolumeCard({
     : `${weekOverWeekChange}% vs last week`;
 
   return (
-    <View className="flex-[2] px-[18px] py-4 rounded-[20px] bg-w1 border border-wBrd">
-      <Text className="text-[11px] font-coach-medium text-wMute mb-2">
+    <View className="flex-[2] px-[18px] py-4 rounded-[20px]" style={{ backgroundColor: "#1A1A1A" }}>
+      <Text className="text-[11px] font-coach-medium mb-2" style={{ color: "rgba(255,255,255,0.4)" }}>
         Weekly Volume
       </Text>
 
       <View className="flex-row items-baseline gap-1">
-        <Text className="text-[28px] font-coach-extrabold text-wText">
+        <Text className="text-[28px] font-coach-extrabold" style={{ color: COLORS.lime }}>
           {currentVolume}
         </Text>
-        <Text className="text-[13px] font-coach text-wMute">
+        <Text className="text-[13px] font-coach" style={{ color: "rgba(255,255,255,0.35)" }}>
           / {plannedVolume} km
         </Text>
       </View>
 
       <View
         className="h-1 rounded-sm mt-[10px] overflow-hidden"
-        style={{ backgroundColor: LIGHT_THEME.w3 }}
+        style={{ backgroundColor: "rgba(255,255,255,0.10)" }}
       >
         <Animated.View
           className="h-full rounded-sm"

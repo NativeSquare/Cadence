@@ -1,15 +1,17 @@
 /**
- * Histogram Component - Daily KM bar chart with staggered grow animation
- * Reference: cadence-full-v9.jsx lines 407-428
+ * Histogram Component - Interactive daily KM bar chart
  *
- * Each bar grows from bottom with a per-bar staggered delay (i * 60ms),
- * matching the prototype's CSS transition. Uses Reanimated shared values
- * driving Skia RoundedRect elements — all on the GPU thread.
+ * Each bar grows from bottom with staggered delay.
+ * Touch-to-inspect shows the km value for each day.
  */
 
 import React, { useEffect } from "react";
 import { View } from "react-native";
-import { CartesianChart, type PointsArray } from "victory-native";
+import {
+  CartesianChart,
+  useChartPressState,
+  type PointsArray,
+} from "victory-native";
 import { RoundedRect, type SkFont } from "@shopify/react-native-skia";
 import {
   useSharedValue,
@@ -19,8 +21,9 @@ import {
   cancelAnimation,
   Easing,
 } from "react-native-reanimated";
-import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
+import { COLORS } from "@/lib/design-tokens";
 import { DAY_LABELS } from "./mock-data";
+import { ActiveValueIndicator } from "./ActiveValueIndicator";
 import type { HistogramDatum } from "@/hooks/use-analytics-data";
 
 const BAR_EASING = Easing.bezier(0.4, 0, 0.2, 1);
@@ -90,7 +93,8 @@ function HistogramBars({
       {points.map((point, i) => {
         if (point.y == null) return null;
         const targetHeight = chartBounds.bottom - point.y;
-        const color = i === accentIdx ? COLORS.lime : LIGHT_THEME.w3;
+        const color = i === accentIdx ? COLORS.lime : "rgba(255,255,255,0.10)";
+
         return (
           <AnimatedBar
             key={i}
@@ -113,27 +117,53 @@ export function Histogram({
   chartHeight = 124,
   font,
 }: HistogramProps) {
+  const { state, isActive } = useChartPressState({
+    x: 0,
+    y: { km: 0 },
+  });
+
+  const kmLabel = useDerivedValue(() => {
+    "worklet";
+    const v = state.y.km.value.value;
+    const rounded = Math.round(v * 10) / 10;
+    return `${rounded} km`;
+  });
+
   return (
     <View style={{ height: chartHeight }}>
       <CartesianChart
         data={data}
         xKey="day"
         yKeys={["km"]}
+        chartPressState={state}
         domainPadding={{ left: 20, right: 20, top: 20 }}
         axisOptions={{
           font,
           formatXLabel: (v) => DAY_LABELS[v] ?? "",
           tickCount: { x: 7, y: 0 },
           lineColor: "transparent",
-          labelColor: LIGHT_THEME.wMute,
+          labelColor: "rgba(255,255,255,0.45)",
         }}
       >
         {({ points, chartBounds }) => (
-          <HistogramBars
-            points={points.km}
-            chartBounds={chartBounds}
-            accentIdx={accentIdx}
-          />
+          <>
+            <HistogramBars
+              points={points.km}
+              chartBounds={chartBounds}
+              accentIdx={accentIdx}
+            />
+            {isActive && (
+              <ActiveValueIndicator
+                xPosition={state.x.position}
+                yPosition={state.y.km.position}
+                top={chartBounds.top}
+                bottom={chartBounds.bottom}
+                label={kmLabel}
+                font={font ?? null}
+                color={COLORS.lime}
+              />
+            )}
+          </>
         )}
       </CartesianChart>
     </View>

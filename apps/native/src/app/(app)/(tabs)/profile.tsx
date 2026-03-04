@@ -55,9 +55,6 @@ export default function Profile() {
     return (fromName || "?").toUpperCase();
   }, [displayName]);
 
-  // DEBUG: Log avatar image resolution
-  console.log("[Profile] user?.image:", user?.image, "| hasImage:", !!user?.image);
-
   // Mock data for profile
   const profileData = {
     isPro: true,

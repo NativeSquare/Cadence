@@ -20,7 +20,7 @@ import Animated, {
   Easing,
 } from "react-native-reanimated";
 import { Text } from "@/components/ui/text";
-import { LIGHT_THEME, COLORS } from "@/lib/design-tokens";
+import { COLORS, GRAYS } from "@/lib/design-tokens";
 import { PLAN_PROGRESS, PHASE_COLORS, type PlanWeek } from "./mock-data";
 
 interface PlanProgressProps {
@@ -68,7 +68,7 @@ const ProgressSegment = memo(function ProgressSegment({
       <View className="w-full h-[6px] relative">
         <View
           className="absolute inset-0 rounded-[3px]"
-          style={{ backgroundColor: LIGHT_THEME.w3 }}
+          style={{ backgroundColor: "rgba(255,255,255,0.10)" }}
         />
         {week.completed && (
           <Animated.View
@@ -85,7 +85,7 @@ const ProgressSegment = memo(function ProgressSegment({
             style={{
               backgroundColor: COLORS.lime,
               borderWidth: 3,
-              borderColor: LIGHT_THEME.w1,
+              borderColor: "#1A1A1A",
             }}
           />
         )}
@@ -94,7 +94,7 @@ const ProgressSegment = memo(function ProgressSegment({
         className="text-[9px] font-coach"
         style={{
           fontWeight: week.current ? "700" : "400",
-          color: week.current ? LIGHT_THEME.wText : LIGHT_THEME.wMute,
+          color: week.current ? GRAYS.g1 : GRAYS.g3,
         }}
       >
         {week.week}
@@ -110,16 +110,16 @@ function LegendItem({ label, color }: { label: string; color: string }) {
         className="w-2 h-1 rounded-sm"
         style={{ backgroundColor: color }}
       />
-      <Text className="text-[10px] font-coach text-wMute">{label}</Text>
+      <Text className="text-[10px] font-coach text-g3">{label}</Text>
     </View>
   );
 }
 
 export function PlanProgress({ data = PLAN_PROGRESS }: PlanProgressProps) {
   return (
-    <View className="p-[18px] rounded-[20px] bg-w1 border border-wBrd">
+    <View className="p-[18px] rounded-[20px]" style={{ backgroundColor: "#1A1A1A" }}>
       <Text
-        className="text-[11px] font-coach-semibold text-wMute uppercase mb-3"
+        className="text-[11px] font-coach-semibold text-g3 uppercase mb-3"
         style={{ letterSpacing: 0.05 * 11 }}
       >
         Plan Progress

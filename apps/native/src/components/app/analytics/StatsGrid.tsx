@@ -13,7 +13,7 @@ import { memo, useMemo } from "react";
 import { View, useWindowDimensions } from "react-native";
 import Animated, { FadeInUp, Easing } from "react-native-reanimated";
 import { Text } from "@/components/ui/text";
-import { COLORS, LIGHT_THEME, ACTIVITY_COLORS } from "@/lib/design-tokens";
+import { COLORS, ACTIVITY_COLORS } from "@/lib/design-tokens";
 import { MOCK_STATS } from "./mock-data";
 
 export interface StatItem {
@@ -56,16 +56,12 @@ const StatCard = memo(function StatCard({
       className="p-4 rounded-2xl"
       style={{
         width: cardWidth,
-        backgroundColor: isDark ? "#1A1A1A" : LIGHT_THEME.w1,
-        borderWidth: isDark ? 0 : 1,
-        borderColor: isDark ? "transparent" : LIGHT_THEME.wBrd,
+        backgroundColor: "#1A1A1A",
       }}
     >
       <Text
         className="text-[11px] font-coach-medium mb-[6px]"
-        style={{
-          color: isDark ? "rgba(255,255,255,0.4)" : LIGHT_THEME.wMute,
-        }}
+        style={{ color: "rgba(255,255,255,0.4)" }}
       >
         {stat.label}
       </Text>
@@ -73,18 +69,14 @@ const StatCard = memo(function StatCard({
       <View className="flex-row items-baseline gap-[2px]">
         <Text
           className="text-[26px] font-coach-extrabold"
-          style={{
-            color: isDark ? COLORS.lime : LIGHT_THEME.wText,
-          }}
+          style={{ color: isDark ? COLORS.lime : "rgba(255,255,255,0.92)" }}
         >
           {stat.value}
         </Text>
         {stat.unit && (
           <Text
             className="text-[13px] font-coach"
-            style={{
-              color: isDark ? "rgba(255,255,255,0.35)" : LIGHT_THEME.wMute,
-            }}
+            style={{ color: "rgba(255,255,255,0.35)" }}
           >
             {stat.unit}
           </Text>
@@ -93,9 +85,7 @@ const StatCard = memo(function StatCard({
 
       <Text
         className="text-[11px] font-coach mt-1"
-        style={{
-          color: isDark ? ACTIVITY_COLORS.barHigh : LIGHT_THEME.wMute,
-        }}
+        style={{ color: isDark ? ACTIVITY_COLORS.barHigh : "rgba(255,255,255,0.4)" }}
       >
         {stat.sub}
       </Text>
