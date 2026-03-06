@@ -24,16 +24,18 @@ import Animated, {
   Easing,
 } from "react-native-reanimated";
 import { useEffect } from "react";
-import Svg, { Polygon, Path } from "react-native-svg";
+import Svg, { Path, Circle } from "react-native-svg";
 import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
 import { type SessionData, type SyncStatus } from "./types";
-import { getSessionColor, formatShortDate, getSyncStatusLabel, getSyncStatusColor } from "./utils";
+import { getSessionColor, getSyncStatusLabel, getSyncStatusColor } from "./utils";
 import { useStream } from "./use-stream";
 
 interface TodayCardProps {
   session: SessionData;
   coachMessage: string;
   onStartPress?: () => void;
+  onExportPress?: () => void;
+  onCardPress?: () => void;
 }
 
 // ─── Shared animation components ────────────────────────────────────────────
@@ -67,10 +69,15 @@ function BlinkingCursor() {
   );
 }
 
-function PlayIcon() {
+function WatchIcon() {
   return (
-    <Svg width={14} height={14} viewBox="0 0 24 24">
-      <Polygon points="5,3 19,12 5,21" fill={COLORS.lime} />
+    <Svg width={16} height={16} viewBox="0 0 24 24" fill="none">
+      <Path d="M9 2V6" stroke="#1A1A1A" strokeWidth={2} strokeLinecap="round" />
+      <Path d="M15 2V6" stroke="#1A1A1A" strokeWidth={2} strokeLinecap="round" />
+      <Path d="M9 18V22" stroke="#1A1A1A" strokeWidth={2} strokeLinecap="round" />
+      <Path d="M15 18V22" stroke="#1A1A1A" strokeWidth={2} strokeLinecap="round" />
+      <Circle cx={12} cy={12} r={7} stroke="#1A1A1A" strokeWidth={2} />
+      <Path d="M12 9V12L14 14" stroke="#1A1A1A" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
     </Svg>
   );
 }
@@ -159,21 +166,89 @@ function SyncBannerIcon({ status }: { status: SyncStatus }) {
 
 /** Banner background tints */
 const SYNC_BANNER_BG: Record<string, string> = {
-  exported: "rgba(26,26,26,0.06)",
+  exported: "rgba(255,255,255,0.06)",
   syncing: "rgba(255,149,0,0.10)",
   synced: "rgba(200,255,0,0.12)",
   failed: "rgba(255,90,90,0.10)",
 };
 
+/** Icon for the "not synced" state — cloud with an off-slash */
+function NotSyncedIcon() {
+  return (
+    <Svg width={14} height={14} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M12 8V12L14 14"
+        stroke="rgba(255,255,255,0.35)"
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Circle
+        cx={12}
+        cy={12}
+        r={7}
+        stroke="rgba(255,255,255,0.35)"
+        strokeWidth={2}
+      />
+      <Path
+        d="M9 2V5"
+        stroke="rgba(255,255,255,0.35)"
+        strokeWidth={2}
+        strokeLinecap="round"
+      />
+      <Path
+        d="M15 2V5"
+        stroke="rgba(255,255,255,0.35)"
+        strokeWidth={2}
+        strokeLinecap="round"
+      />
+      <Path
+        d="M9 19V22"
+        stroke="rgba(255,255,255,0.35)"
+        strokeWidth={2}
+        strokeLinecap="round"
+      />
+      <Path
+        d="M15 19V22"
+        stroke="rgba(255,255,255,0.35)"
+        strokeWidth={2}
+        strokeLinecap="round"
+      />
+    </Svg>
+  );
+}
+
 /**
  * Full-width sync banner — sits at the top of the card.
- * Icon circle + label, tinted background spanning edge to edge.
+ * Shows "Not synced with watch" when no export, or the sync status after export.
  */
 function SyncBanner({ session }: { session: SessionData }) {
   const { syncStatus, syncSource, syncedData } = session;
-  if (!syncStatus || syncStatus === "planned") return null;
+  const isRest = session.intensity === "rest";
 
-  const color = getSyncStatusColor(syncStatus);
+  if (isRest) return null;
+
+  if (!syncStatus || syncStatus === "planned") {
+    return (
+      <View
+        className="flex-row items-center gap-2.5 px-4 py-2.5"
+        style={{ backgroundColor: "rgba(255,255,255,0.04)" }}
+      >
+        <NotSyncedIcon />
+        <Text
+          className="text-[12px] font-coach-medium"
+          style={{ color: "rgba(255,255,255,0.35)" }}
+        >
+          Not synced with watch
+        </Text>
+      </View>
+    );
+  }
+
+  const rawColor = getSyncStatusColor(syncStatus);
+  const isExported = syncStatus === "exported";
+  const textColor = isExported ? "rgba(255,255,255,0.60)" : rawColor;
+  const circleBg = isExported ? "rgba(255,255,255,0.12)" : rawColor;
   const label = getSyncStatusLabel(syncStatus, syncSource, syncedData);
   const bg = SYNC_BANNER_BG[syncStatus] ?? SYNC_BANNER_BG.exported;
 
@@ -183,19 +258,19 @@ function SyncBanner({ session }: { session: SessionData }) {
       style={{ backgroundColor: bg }}
     >
       {syncStatus === "syncing" ? (
-        <SpinningSyncIcon color={color} size={18} />
+        <SpinningSyncIcon color={textColor} size={18} />
       ) : (
         <View
           style={{
             width: 24, height: 24, borderRadius: 12,
-            backgroundColor: color,
+            backgroundColor: circleBg,
             alignItems: "center", justifyContent: "center",
           }}
         >
           <SyncBannerIcon status={syncStatus} />
         </View>
       )}
-      <Text className="text-[13px] font-coach-bold" style={{ color }}>
+      <Text className="text-[13px] font-coach-bold" style={{ color: textColor }}>
         {label}
       </Text>
     </View>
@@ -232,54 +307,65 @@ function CoachQuote({
   );
 }
 
+function ChevronRight() {
+  return (
+    <Svg width={16} height={16} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M9 6L15 12L9 18"
+        stroke="rgba(255,255,255,0.3)"
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
 function SessionInfo({ session }: { session: SessionData }) {
   const accentColor = getSessionColor(session);
   const isRest = session.intensity === "rest";
-  const dateStr = formatShortDate();
 
   return (
-    <View className="px-4 pt-4 pb-3">
-      <View className="flex-row gap-3.5">
+    <View className="px-5 pt-5 pb-3">
+      <View className="flex-row items-center gap-2.5 mb-2">
         <View
           style={{
-            width: 4, borderRadius: 2,
-            backgroundColor: accentColor, alignSelf: "stretch",
+            width: 8, height: 8, borderRadius: 4,
+            backgroundColor: accentColor,
           }}
         />
-        <View className="flex-1">
-          <Text className="text-xs font-coach-medium text-wMute">
-            {dateStr} · {isRest ? "" : session.dur}
-          </Text>
-          <Text
-            className="text-[22px] font-coach-bold text-wText mt-0.5"
-            style={{ letterSpacing: -0.02 * 22, lineHeight: 26 }}
-          >
-            {session.type}
-          </Text>
-          <Text className="text-[13px] font-coach text-wSub mt-1">
-            {isRest ? session.desc : `${session.zone} · ${session.km} km`}
-          </Text>
-          {!isRest && (
-            <Text className="text-sm font-coach text-wMute mt-2" style={{ lineHeight: 21 }}>
-              {session.desc}
-            </Text>
-          )}
-        </View>
+        <Text className="text-xs font-coach-medium text-g3 uppercase" style={{ letterSpacing: 0.05 * 12 }}>
+          {isRest ? "Rest Day" : `${session.dur} · ${session.km} km · ${session.zone}`}
+        </Text>
+      </View>
+      <View className="flex-row items-center justify-between">
+        <Text
+          className="text-[26px] font-coach-bold text-g1 flex-1"
+          style={{ letterSpacing: -0.02 * 26, lineHeight: 30 }}
+        >
+          {session.type}
+        </Text>
+        <ChevronRight />
       </View>
     </View>
   );
 }
 
-function StartSessionCTA({ onPress }: { onPress?: () => void }) {
+function ExportToWatchCTA({ onPress }: { onPress?: () => void }) {
   return (
     <View className="px-4 pb-4">
       <Pressable
         className="py-[14px] px-5 rounded-[14px] flex-row items-center justify-center gap-2 active:scale-[0.98]"
-        style={{ backgroundColor: "#1A1A1A" }}
-        onPress={onPress}
+        style={{ backgroundColor: "#FFFFFF" }}
+        onPress={(e) => {
+          e.stopPropagation();
+          onPress?.();
+        }}
       >
-        <PlayIcon />
-        <Text className="text-[15px] font-coach-semibold text-w1">Start Session</Text>
+        <WatchIcon />
+        <Text className="text-[15px] font-coach-semibold" style={{ color: "#1A1A1A" }}>
+          Export to Watch
+        </Text>
       </Pressable>
     </View>
   );
@@ -287,13 +373,14 @@ function StartSessionCTA({ onPress }: { onPress?: () => void }) {
 
 // ─── Main component ─────────────────────────────────────────────────────────
 
-export function TodayCard({ session, coachMessage, onStartPress }: TodayCardProps) {
+export function TodayCard({ session, coachMessage, onStartPress, onExportPress, onCardPress }: TodayCardProps) {
   const { displayed, done, started } = useStream(coachMessage, {
     speed: 20, delay: 800,
   });
 
   const isRest = session.intensity === "rest";
   const hasSyncStatus = session.syncStatus && session.syncStatus !== "planned";
+  const isExported = session.syncStatus === "exported" || session.syncStatus === "synced";
   const borderColor = hasSyncStatus
     ? getSyncStatusColor(session.syncStatus!)
     : undefined;
@@ -307,31 +394,33 @@ export function TodayCard({ session, coachMessage, onStartPress }: TodayCardProp
         Today
       </Text>
 
-      {/* Card — border color reflects sync state */}
-      <View
-        className="rounded-[20px] bg-w1 overflow-hidden"
-        style={{
-          borderWidth: hasSyncStatus ? 1.5 : 1,
-          borderColor: borderColor ?? "rgba(0,0,0,0.06)",
-          shadowColor: "#000",
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.04,
-          shadowRadius: 16,
-          elevation: 2,
-        }}
-      >
-        {/* 0. Sync banner — full width, top of card */}
-        <SyncBanner session={session} />
+      <Pressable onPress={onCardPress} className="active:opacity-95">
+        <View
+          className="rounded-[20px] overflow-hidden"
+          style={{
+            backgroundColor: "#1A1A1A",
+            borderWidth: hasSyncStatus ? 1.5 : 1,
+            borderColor: borderColor ?? "rgba(255,255,255,0.08)",
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 8 },
+            shadowOpacity: 0.35,
+            shadowRadius: 24,
+            elevation: 12,
+          }}
+        >
+          {/* 0. Sync banner — full width, top of card */}
+          <SyncBanner session={session} />
 
-        {/* 1. Session info */}
-        <SessionInfo session={session} />
+          {/* 1. Session info */}
+          <SessionInfo session={session} />
 
-        {/* 2. Coach quote */}
-        <CoachQuote displayed={displayed} done={done} started={started} />
+          {/* 2. Coach quote */}
+          <CoachQuote displayed={displayed} done={done} started={started} />
 
-        {/* 3. CTA */}
-        {!isRest && <StartSessionCTA onPress={onStartPress} />}
-      </View>
+          {/* 3. CTA — show export button only when not yet exported */}
+          {!isRest && !isExported && <ExportToWatchCTA onPress={onExportPress} />}
+        </View>
+      </Pressable>
     </View>
   );
 }

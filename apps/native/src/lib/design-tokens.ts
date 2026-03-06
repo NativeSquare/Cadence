@@ -82,6 +82,51 @@ export const ACTIVITY_COLORS = {
 } as const;
 
 /**
+ * Session type category — one of four run categories used across calendar
+ * and plan views to consistently color-code sessions.
+ */
+export type SessionCategory = "easy" | "specific" | "long" | "race";
+
+/**
+ * Vibrant session type colors matched to the energy of the #C8FF00 primary.
+ * Used for accent bars, dots, badges, and legend indicators.
+ */
+export const SESSION_TYPE_COLORS: Record<SessionCategory, string> = {
+  easy: "#00E676",
+  specific: "#FF6D00",
+  long: "#00B0FF",
+  race: "#FF0040",
+} as const;
+
+/**
+ * Dim (15% opacity) variants of session type colors for subtle backgrounds.
+ */
+export const SESSION_TYPE_COLORS_DIM: Record<SessionCategory, string> = {
+  easy: "rgba(0, 230, 118, 0.15)",
+  specific: "rgba(255, 109, 0, 0.15)",
+  long: "rgba(0, 176, 255, 0.15)",
+  race: "rgba(255, 0, 64, 0.15)",
+} as const;
+
+/**
+ * Map a free-form session type string (e.g. "Tempo", "Easy Run", "Long Run")
+ * to one of the four session categories for consistent color-coding.
+ */
+export function getSessionCategory(sessionType: string): SessionCategory {
+  const t = sessionType.toLowerCase();
+  if (t.includes("long")) return "long";
+  if (t.includes("race") || t.includes("marathon") || t.includes("semi")) return "race";
+  if (
+    t.includes("easy") ||
+    t.includes("rest") ||
+    t.includes("recovery") ||
+    t.includes("shakeout")
+  )
+    return "easy";
+  return "specific";
+}
+
+/**
  * Gray scale using white at varying opacities.
  * Used for text hierarchy and subtle UI elements.
  */
@@ -261,6 +306,7 @@ export const tailwindColors = {
   ...SURFACES,
   ...LIGHT_THEME,
   ...ACTIVITY_COLORS,
+  ...SESSION_TYPE_COLORS,
 } as const;
 
 // ═══════════════════════════════════════════════════════════════════════════

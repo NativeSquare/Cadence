@@ -3,24 +3,22 @@
  * Reference: cadence-full-v9.jsx bc() function (line 86)
  */
 
-import { COLORS, LIGHT_THEME, ACTIVITY_COLORS } from "@/lib/design-tokens";
+import {
+  COLORS,
+  LIGHT_THEME,
+  SESSION_TYPE_COLORS,
+  getSessionCategory,
+} from "@/lib/design-tokens";
 import type { SessionData, SyncStatus, SyncedData } from "./types";
 
 /**
- * Get the accent color for a session based on its status and intensity
- * Reference: cadence-full-v9.jsx line 86:
- * const bc=s=>{if(s.done)return T.lime;if(s.intensity==="key")return T.lime;...}
- *
- * @param session - The session data
- * @returns Hex color string for the session accent
+ * Get the accent color for a session based on its type category.
+ * Done sessions keep their type color (no longer overridden to lime)
+ * so the 4-color scheme stays consistent across the app.
  */
 export function getSessionColor(session: SessionData): string {
-  if (session.done) return COLORS.lime;
-  if (session.intensity === "key") return COLORS.lime;
-  if (session.intensity === "high") return ACTIVITY_COLORS.barHigh;
-  if (session.intensity === "low") return ACTIVITY_COLORS.barEasy;
-  if (session.intensity === "rest") return ACTIVITY_COLORS.barRest;
-  return "rgba(255,255,255,0.25)"; // g4 fallback
+  const category = getSessionCategory(session.type);
+  return SESSION_TYPE_COLORS[category];
 }
 
 /**

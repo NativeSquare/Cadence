@@ -4,6 +4,7 @@
  */
 
 import type { SessionIntensity } from "../plan/types";
+import { SESSION_TYPE_COLORS, getSessionCategory } from "@/lib/design-tokens";
 
 /**
  * Session segment (e.g., warm-up, intervals, cool-down)
@@ -78,17 +79,20 @@ export function getZoneColor(zone: string): string {
 }
 
 /**
- * Get session color based on completion and intensity
- * Reference: cadence-full-v10.jsx line 126 (bc function)
+ * Get session color based on session type category.
+ * Uses the centralized 4-color scheme for consistency across the app.
  */
 export function getSessionColor(
-  done: boolean,
-  intensity: SessionIntensity
+  _done: boolean,
+  _intensity: SessionIntensity,
+  sessionType?: string
 ): string {
-  if (done) return "#C8FF00"; // lime
-  if (intensity === "key") return "#C8FF00"; // lime
-  if (intensity === "high") return "#A8D900"; // barHigh
-  if (intensity === "low") return "#7CB342"; // barEasy
-  if (intensity === "rest") return "#5B9EFF"; // barRest
-  return "rgba(255,255,255,0.25)"; // g4
+  if (sessionType) {
+    return SESSION_TYPE_COLORS[getSessionCategory(sessionType)];
+  }
+  if (_intensity === "rest") return SESSION_TYPE_COLORS.easy;
+  if (_intensity === "key") return SESSION_TYPE_COLORS.long;
+  if (_intensity === "high") return SESSION_TYPE_COLORS.specific;
+  if (_intensity === "low") return SESSION_TYPE_COLORS.easy;
+  return "rgba(255,255,255,0.25)";
 }

@@ -78,8 +78,8 @@ export function SessionDetailScreen({
 
   const isRest = session.intensity === "rest";
   const sessionColor = useMemo(
-    () => getSessionColor(session.done, session.intensity),
-    [session.done, session.intensity]
+    () => getSessionColor(session.done, session.intensity, session.type),
+    [session.done, session.intensity, session.type]
   );
 
   const scrollHandler = useAnimatedScrollHandler({

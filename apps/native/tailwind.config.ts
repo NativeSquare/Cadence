@@ -5,6 +5,8 @@ import {
   SURFACES,
   LIGHT_THEME,
   ACTIVITY_COLORS,
+  SESSION_TYPE_COLORS,
+  SESSION_TYPE_COLORS_DIM,
 } from "./src/lib/design-tokens";
 
 const { hairlineWidth } = require("nativewind/theme");
@@ -104,6 +106,24 @@ export default {
         barHigh: ACTIVITY_COLORS.barHigh,
         barEasy: ACTIVITY_COLORS.barEasy,
         barRest: ACTIVITY_COLORS.barRest,
+
+        // Session type colors (4-color scheme)
+        "session-easy": {
+          DEFAULT: SESSION_TYPE_COLORS.easy,
+          dim: SESSION_TYPE_COLORS_DIM.easy,
+        },
+        "session-specific": {
+          DEFAULT: SESSION_TYPE_COLORS.specific,
+          dim: SESSION_TYPE_COLORS_DIM.specific,
+        },
+        "session-long": {
+          DEFAULT: SESSION_TYPE_COLORS.long,
+          dim: SESSION_TYPE_COLORS_DIM.long,
+        },
+        "session-race": {
+          DEFAULT: SESSION_TYPE_COLORS.race,
+          dim: SESSION_TYPE_COLORS_DIM.race,
+        },
       },
       fontFamily: {
         // ═══════════════════════════════════════════════════════════════

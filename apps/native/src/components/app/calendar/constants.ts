@@ -3,14 +3,10 @@
  * Reference: cadence-calendar-final.jsx lines 144-230
  */
 
+import { SESSION_TYPE_COLORS } from "@/lib/design-tokens";
 import type { CalSession, CalSessionType, Phase, PhaseName } from "./types";
 
-export const SESSION_COLORS: Record<CalSessionType, string> = {
-  easy: "#7CB342",
-  specific: "#FF9500",
-  long: "#5B9EFF",
-  race: "#FF5A5A",
-};
+export const SESSION_COLORS: Record<CalSessionType, string> = SESSION_TYPE_COLORS;
 
 export const SESSION_LABELS: Record<CalSessionType, string> = {
   easy: "Easy",

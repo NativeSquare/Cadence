@@ -52,6 +52,26 @@ export interface SessionData {
 }
 
 /**
+ * Primary race goal data for the countdown card
+ */
+export interface RaceGoalData {
+  /** Display name for the race (e.g., "NYC Half Marathon") */
+  raceName: string;
+  /** Race distance label (e.g., "Half Marathon", "Marathon") */
+  raceDistance: string;
+  /** Race date as Unix timestamp in ms */
+  raceDate: number;
+  /** Target finish time formatted (e.g., "1:45:00") */
+  targetTime?: string;
+  /** Current week number within the training plan */
+  currentWeek: number;
+  /** Total weeks in the training plan */
+  totalWeeks: number;
+  /** Current training phase (e.g., "Build", "Peak", "Taper") */
+  phase: string;
+}
+
+/**
  * Overall plan data for the week
  */
 export interface PlanData {
@@ -67,8 +87,14 @@ export interface PlanData {
   volumeCompleted: number;
   /** Total planned kilometers for the week */
   volumePlanned: number;
+  /** Formatted time completed this week (e.g., "2h 45m") */
+  timeCompleted: string;
   /** Current streak in days */
   streak: number;
+  /** Which of the last 7 days had activity (Mon-Sun for current week) */
+  streakDays: boolean[];
+  /** Week-over-week volume change percentage */
+  weekOverWeekChange: number;
   /** Coach message for today */
   coachMessage: string;
 }

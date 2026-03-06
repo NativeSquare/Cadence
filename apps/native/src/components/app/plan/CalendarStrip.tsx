@@ -1,48 +1,109 @@
-/**
- * CalendarStrip - 7-day horizontal calendar with activity indicators
- * Reference: cadence-full-v9.jsx TodayTab calendar section (lines 160-184)
- *
- * Features:
- * - 7-day horizontal grid layout
- * - Day labels (Mon-Sun) and date numbers
- * - Activity dots colored by session type
- * - Selected state: 2px black border, white background
- * - Today state: 2px lime border, bold date text
- * - onDaySelect callback
- */
-
-import { View, Pressable } from "react-native";
+import { useState, useCallback, useMemo } from "react";
+import {
+  View,
+  Pressable,
+  ScrollView,
+  type NativeSyntheticEvent,
+  type NativeScrollEvent,
+  type LayoutChangeEvent,
+} from "react-native";
 import { Text } from "@/components/ui/text";
-import { DAYS, DATES, TODAY_INDEX, type SessionData } from "./types";
+import type { SessionData } from "./types";
 import { getSessionColor } from "./utils";
-import { COLORS, LIGHT_THEME, ACTIVITY_COLORS } from "@/lib/design-tokens";
+import { LIGHT_THEME } from "@/lib/design-tokens";
+
+const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const MONTH_NAMES = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+
+const WEEKS_BUFFER = 12;
+const INITIAL_INDEX = WEEKS_BUFFER;
 
 interface CalendarStripProps {
-  /** Sessions for the week (7 items) */
-  sessions: SessionData[];
-  /** Currently selected day index (0-6) */
-  selectedDay: number;
-  /** Callback when a day is tapped */
-  onDaySelect: (dayIndex: number) => void;
-  /** Current week number */
-  weekNumber: number;
-  /** Current training phase */
-  phase: string;
+  sessionsByDate: Record<string, SessionData>;
+  selectedDate: Date;
+  onDateSelect: (date: Date) => void;
+}
+
+interface WeekData {
+  key: string;
+  days: DayInfo[];
+}
+
+interface DayInfo {
+  date: Date;
+  dayLabel: string;
+  dateNum: number;
 }
 
 interface DayButtonProps {
   dayLabel: string;
   dateNum: number;
-  session: SessionData;
+  session: SessionData | undefined;
   isToday: boolean;
   isSelected: boolean;
   onPress: () => void;
 }
 
-/**
- * Individual day button in the calendar strip
- * Reference: prototype lines 173-182
- */
+function getMonday(d: Date): Date {
+  const date = new Date(d);
+  const day = date.getDay();
+  const diff = date.getDate() - day + (day === 0 ? -6 : 1);
+  date.setDate(diff);
+  date.setHours(0, 0, 0, 0);
+  return date;
+}
+
+function isSameDay(a: Date, b: Date): boolean {
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
+}
+
+function toDateKey(d: Date): string {
+  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+}
+
+function generateWeeks(): WeekData[] {
+  const today = new Date();
+  const currentMonday = getMonday(today);
+  const weeks: WeekData[] = [];
+
+  for (let w = -WEEKS_BUFFER; w <= WEEKS_BUFFER; w++) {
+    const monday = new Date(currentMonday);
+    monday.setDate(monday.getDate() + w * 7);
+
+    const days: DayInfo[] = [];
+    for (let d = 0; d < 7; d++) {
+      const date = new Date(monday);
+      date.setDate(monday.getDate() + d);
+      days.push({
+        date,
+        dayLabel: DAY_LABELS[d],
+        dateNum: date.getDate(),
+      });
+    }
+
+    weeks.push({ key: monday.toISOString(), days });
+  }
+
+  return weeks;
+}
+
 function DayButton({
   dayLabel,
   dateNum,
@@ -51,19 +112,19 @@ function DayButton({
   isSelected,
   onPress,
 }: DayButtonProps) {
-  // Get dot color based on session
-  const dotColor = getSessionColor(session);
-  const dotOpacity = session.done ? 1 : 0.4;
+  const dotColor =
+    session && session.type !== "Rest" ? getSessionColor(session) : "transparent";
 
-  // Determine border style
   const getBorderStyle = () => {
-    if (isSelected) {
-      return { borderWidth: 2, borderColor: LIGHT_THEME.wText };
-    }
-    if (isToday) {
-      return { borderWidth: 2, borderColor: COLORS.lime };
-    }
+    if (isSelected) return { borderWidth: 2, borderColor: LIGHT_THEME.wText };
     return { borderWidth: 2, borderColor: "transparent" };
+  };
+
+  const getTodayBackground = () => {
+    if (isToday && !isSelected) {
+      return { backgroundColor: LIGHT_THEME.w3 };
+    }
+    return {};
   };
 
   return (
@@ -80,9 +141,9 @@ function DayButton({
           backgroundColor: isSelected ? LIGHT_THEME.w1 : "transparent",
         },
         getBorderStyle(),
+        getTodayBackground(),
       ]}
     >
-      {/* Day label */}
       <Text
         className="text-[11px] font-coach-medium"
         style={{ color: isSelected ? LIGHT_THEME.wText : LIGHT_THEME.wMute }}
@@ -90,7 +151,6 @@ function DayButton({
         {dayLabel}
       </Text>
 
-      {/* Date number - use different font family based on isToday */}
       <Text
         className={`text-xl ${isToday ? "font-coach-bold" : "font-coach-medium"}`}
         style={{
@@ -101,14 +161,12 @@ function DayButton({
         {dateNum}
       </Text>
 
-      {/* Activity dot */}
       <View
         style={{
           width: 6,
           height: 6,
           borderRadius: 3,
           backgroundColor: dotColor,
-          opacity: dotOpacity,
           marginTop: 2,
         }}
       />
@@ -116,51 +174,84 @@ function DayButton({
   );
 }
 
-/**
- * CalendarStrip component
- * Shows the week header and 7-day grid
- */
 export function CalendarStrip({
-  sessions,
-  selectedDay,
-  onDaySelect,
-  weekNumber,
-  phase,
+  sessionsByDate,
+  selectedDate,
+  onDateSelect,
 }: CalendarStripProps) {
+  const today = useMemo(() => new Date(), []);
+  const weeks = useMemo(generateWeeks, []);
+  const [containerWidth, setContainerWidth] = useState(0);
+
+  const [displayMonth, setDisplayMonth] = useState(() => ({
+    month: today.getMonth(),
+    year: today.getFullYear(),
+  }));
+
+  const handleMomentumEnd = useCallback(
+    (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+      if (containerWidth === 0) return;
+      const index = Math.round(e.nativeEvent.contentOffset.x / containerWidth);
+      const week = weeks[index];
+      if (!week) return;
+      const ref = week.days[3].date;
+      setDisplayMonth((prev) => {
+        if (
+          prev.month !== ref.getMonth() ||
+          prev.year !== ref.getFullYear()
+        ) {
+          return { month: ref.getMonth(), year: ref.getFullYear() };
+        }
+        return prev;
+      });
+    },
+    [containerWidth, weeks]
+  );
+
+  const handleLayout = useCallback((e: LayoutChangeEvent) => {
+    setContainerWidth(e.nativeEvent.layout.width);
+  }, []);
+
   return (
     <View>
-      {/* Month header row */}
-      <View className="flex-row items-center justify-between px-1 mb-3.5">
-        <View className="flex-row items-baseline gap-2">
-          <Text className="text-xl font-coach-bold text-wText">February</Text>
-          <Text className="text-xl font-coach-light text-wMute">2026</Text>
-        </View>
-        <View className="flex-row items-center gap-1.5">
-          <Text className="text-xs font-coach-medium text-wMute">
-            Week {weekNumber} of 10
-          </Text>
-          <Text
-            className="text-xs font-coach-semibold"
-            style={{ color: ACTIVITY_COLORS.barHigh }}
-          >
-            {phase}
-          </Text>
-        </View>
+      <View className="flex-row items-baseline gap-2 px-1 mb-1">
+        <Text className="text-xl font-coach-bold text-wText">
+          {MONTH_NAMES[displayMonth.month]}
+        </Text>
+        <Text className="text-xl font-coach-light text-wMute">
+          {displayMonth.year}
+        </Text>
       </View>
 
-      {/* 7-day grid */}
-      <View className="flex-row gap-1">
-        {DAYS.map((day, index) => (
-          <DayButton
-            key={day}
-            dayLabel={day}
-            dateNum={DATES[index]}
-            session={sessions[index]}
-            isToday={index === TODAY_INDEX}
-            isSelected={index === selectedDay}
-            onPress={() => onDaySelect(index)}
-          />
-        ))}
+      <View onLayout={handleLayout}>
+        {containerWidth > 0 && (
+          <ScrollView
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            contentOffset={{ x: INITIAL_INDEX * containerWidth, y: 0 }}
+            onMomentumScrollEnd={handleMomentumEnd}
+          >
+            {weeks.map((week) => (
+              <View
+                key={week.key}
+                style={{ width: containerWidth, flexDirection: "row", gap: 4 }}
+              >
+                {week.days.map((day) => (
+                  <DayButton
+                    key={day.date.toISOString()}
+                    dayLabel={day.dayLabel}
+                    dateNum={day.dateNum}
+                    session={sessionsByDate[toDateKey(day.date)]}
+                    isToday={isSameDay(day.date, today)}
+                    isSelected={isSameDay(day.date, selectedDate)}
+                    onPress={() => onDateSelect(day.date)}
+                  />
+                ))}
+              </View>
+            ))}
+          </ScrollView>
+        )}
       </View>
     </View>
   );

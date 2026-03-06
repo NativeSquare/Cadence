@@ -1,14 +1,13 @@
 /**
- * DateHeader - Header showing date, greeting, and notification bell
+ * DateHeader - Header showing date and greeting
  * Reference: cadence-full-v9.jsx TodayTab header (lines 144-156)
  *
  * Two variants:
- * - full: Complete header with date, greeting, and notification bell
+ * - full: Complete header with date and greeting
  * - collapsed: Condensed header for sticky bar when scrolled
  */
 
-import { View, Pressable } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { View } from "react-native";
 import { Text } from "@/components/ui/text";
 import { formatDate, formatShortDate, getGreeting } from "./utils";
 
@@ -19,40 +18,26 @@ interface DateHeaderProps {
   userName: string;
   /** Current week number */
   weekNumber: number;
-  /** Callback when notification bell is pressed */
-  onNotificationPress?: () => void;
 }
 
 /**
  * Full DateHeader variant
- * Shows date, personalized greeting, and notification bell
+ * Shows date and personalized greeting
  */
-function FullDateHeader({ userName, onNotificationPress }: Omit<DateHeaderProps, "variant" | "weekNumber">) {
+function FullDateHeader({ userName }: Omit<DateHeaderProps, "variant" | "weekNumber">) {
   const greeting = getGreeting();
   const dateStr = formatDate();
 
   return (
-    <View className="flex-row items-center justify-between">
-      {/* Left side: Date and greeting */}
-      <View>
-        <Text className="text-sm font-coach text-g4">{dateStr}</Text>
-        <Text
-          className="text-[28px] font-coach-bold text-g1 mt-0.5"
-          style={{ letterSpacing: -0.03 * 28, lineHeight: 31 }}
-        >
-          {greeting},{" "}
-          <Text className="text-[28px] font-coach-bold text-lime">{userName}</Text>
-        </Text>
-      </View>
-
-      {/* Right side: Notification bell */}
-      <Pressable
-        onPress={onNotificationPress}
-        className="p-2 -mr-2 active:opacity-70"
-        hitSlop={8}
+    <View>
+      <Text className="text-sm font-coach text-g4">{dateStr}</Text>
+      <Text
+        className="text-[28px] font-coach-bold text-g1 mt-0.5"
+        style={{ letterSpacing: -0.03 * 28, lineHeight: 31 }}
       >
-        <Ionicons name="notifications-outline" size={24} color="#9CA3AF" />
-      </Pressable>
+        {greeting},{" "}
+        <Text className="text-[28px] font-coach-bold text-lime">{userName}</Text>
+      </Text>
     </View>
   );
 }
@@ -86,9 +71,9 @@ function CollapsedDateHeader({ userName, weekNumber }: Omit<DateHeaderProps, "va
  * DateHeader component
  * Renders either full or collapsed variant based on props
  */
-export function DateHeader({ variant, userName, weekNumber, onNotificationPress }: DateHeaderProps) {
+export function DateHeader({ variant, userName, weekNumber }: DateHeaderProps) {
   if (variant === "collapsed") {
     return <CollapsedDateHeader userName={userName} weekNumber={weekNumber} />;
   }
-  return <FullDateHeader userName={userName} onNotificationPress={onNotificationPress} />;
+  return <FullDateHeader userName={userName} />;
 }

@@ -28,7 +28,14 @@ import {
   type DayAbbrev,
 } from "../viz/CalendarWidget";
 import { Btn } from "../generative/Choice";
-import { COLORS, GRAYS, SURFACES } from "@/lib/design-tokens";
+import {
+  COLORS,
+  GRAYS,
+  SURFACES,
+  SESSION_TYPE_COLORS,
+  SESSION_TYPE_COLORS_DIM,
+  getSessionCategory,
+} from "@/lib/design-tokens";
 
 // =============================================================================
 // Session Type to Color Mapping
@@ -46,16 +53,14 @@ const DAY_FULL_NAMES: Record<DayAbbrev, string> = {
 
 function getSessionColors(
   type: string,
-  isKey: boolean,
+  _isKey: boolean,
   isRest: boolean
 ): { color: string; colorDim: string } {
   if (isRest) {
     return { color: GRAYS.g4, colorDim: "transparent" };
   }
-  if (isKey) {
-    return { color: COLORS.lime, colorDim: COLORS.limeDim };
-  }
-  return { color: GRAYS.g3, colorDim: GRAYS.g6 };
+  const cat = getSessionCategory(type);
+  return { color: SESSION_TYPE_COLORS[cat], colorDim: SESSION_TYPE_COLORS_DIM[cat] };
 }
 
 // =============================================================================

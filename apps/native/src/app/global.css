@@ -164,6 +164,12 @@
       --barHigh: #A8D900;
       --barEasy: #7CB342;
       --barRest: #5B9EFF;
+
+      /* Session type colors */
+      --session-easy: #00E676;
+      --session-specific: #FF6D00;
+      --session-long: #00B0FF;
+      --session-race: #FF0040;
     }
   }
 }

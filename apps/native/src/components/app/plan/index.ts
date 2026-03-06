@@ -11,16 +11,19 @@ export { CalendarStrip } from "./CalendarStrip";
 export { TodayCard } from "./TodayCard";
 export { SessionPreview } from "./SessionPreview";
 export { WeekStatsRow } from "./WeekStatsRow";
+export { RaceCountdown } from "./RaceCountdown";
+export { WeekInsights } from "./WeekInsights";
+export { LogRunSection } from "./QuickActions";
 
 // Types
-export type { SessionData, PlanData, SessionIntensity } from "./types";
+export type { SessionData, PlanData, RaceGoalData, SessionIntensity } from "./types";
 export { DAYS, DATES, TODAY_INDEX } from "./types";
 
 // Utilities
 export { getSessionColor, getGreeting, formatDate, formatShortDate } from "./utils";
 
 // Mock data
-export { MOCK_PLAN_DATA, MOCK_SESSIONS, MOCK_COACH_MESSAGE } from "./mock-data";
+export { MOCK_PLAN_DATA, MOCK_SESSIONS, MOCK_COACH_MESSAGE, MOCK_RACE_GOAL, MOCK_CALENDAR_SESSIONS } from "./mock-data";
 
 // Hooks
 export { useStream } from "./use-stream";
