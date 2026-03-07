@@ -1,18 +1,16 @@
 import { NameField } from "@/components/app/account/name-field";
 import { ProfilePictureField } from "@/components/app/account/profile-picture-field";
-import { Button } from "@/components/ui/button";
-import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import { useUploadImage } from "@/hooks/use-upload-image";
 import { getConvexErrorMessage } from "@/utils/getConvexErrorMessage";
+import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
 import { UserProfileSchema } from "@/validation/account";
 import { api } from "@packages/backend/convex/_generated/api";
+import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery } from "convex/react";
 import { useRouter } from "expo-router";
-import { ChevronLeft } from "lucide-react-native";
-import { useColorScheme } from "nativewind";
 import React from "react";
-import { ActivityIndicator, ScrollView, View } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, View } from "react-native";
 import z from "zod";
 
 type ProfileFormData = {
@@ -21,7 +19,6 @@ type ProfileFormData = {
 };
 
 export default function EditProfileScreen() {
-  const { colorScheme } = useColorScheme();
   const router = useRouter();
   const user = useQuery(api.table.users.currentUser);
   const patchUser = useMutation(api.table.users.patch);
@@ -41,6 +38,8 @@ export default function EditProfileScreen() {
   const hasChanges =
     formData.name.trim() !== (user?.name ?? "") ||
     formData.image !== (user?.image ?? null);
+
+  const isBusy = isLoading || isUploading;
 
   const handleSubmit = async () => {
     setError(null);
@@ -69,7 +68,6 @@ export default function EditProfileScreen() {
     try {
       let imageUrl = formData.image;
 
-      // Upload image if it's a local file (not an HTTP URL)
       if (imageUrl && !imageUrl.startsWith("http")) {
         imageUrl = await uploadImage(imageUrl);
       }
@@ -90,51 +88,34 @@ export default function EditProfileScreen() {
     }
   };
 
-  const renderHeader = () => {
-    return (
-      <View className="flex-row items-center justify-between px-5 pt-6">
-        <Button variant="ghost" size="icon" onPress={() => router.back()}>
-          <Icon as={ChevronLeft} size={24} />
-        </Button>
-        <Text className="text-lg font-semibold">Edit Profile</Text>
-        <View className="size-6" />
-      </View>
-    );
-  };
-
-  const renderFooter = () => {
-    return (
-      <View className="gap-2">
-        {error && (
-          <Text className="text-sm text-destructive text-center">{error}</Text>
-        )}
-        <Button
-          className="w-full"
-          onPress={handleSubmit}
-          disabled={isLoading || isUploading || !hasChanges}
-        >
-          {isLoading || isUploading ? (
-            <ActivityIndicator color={colorScheme === "dark" ? "black" : "white"} />
-          ) : (
-            <Text>Save</Text>
-          )}
-        </Button>
-      </View>
-    );
-  };
-
   return (
-    <View className="flex-1 mt-safe bg-background">
+    <View className="mt-safe flex-1" style={{ backgroundColor: LIGHT_THEME.w2 }}>
+      <View
+        className="flex-row items-center gap-3 px-4 pb-3 pt-4"
+        style={{ borderBottomWidth: 1, borderBottomColor: LIGHT_THEME.wBrd }}
+      >
+        <Pressable
+          onPress={() => router.back()}
+          className="size-9 items-center justify-center rounded-full active:opacity-70"
+          style={{ backgroundColor: LIGHT_THEME.w3 }}
+        >
+          <Ionicons name="chevron-back" size={20} color={LIGHT_THEME.wText} />
+        </Pressable>
+        <Text
+          className="flex-1 font-coach-bold text-lg"
+          style={{ color: LIGHT_THEME.wText }}
+        >
+          Edit Profile
+        </Text>
+      </View>
+
       <ScrollView
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="interactive"
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ flexGrow: 1 }}
-        contentContainerClassName="px-4 pb-6"
+        contentContainerClassName="px-4 py-6"
       >
-        <View className="w-full max-w-md self-center flex flex-1 gap-6">
-          {renderHeader()}
-
+        <View className="w-full max-w-md gap-6 self-center">
           <ProfilePictureField
             image={formData.image}
             name={formData.name}
@@ -156,8 +137,38 @@ export default function EditProfileScreen() {
           />
         </View>
       </ScrollView>
-      <View className="w-full max-w-md self-center px-4 pb-4 mb-safe">
-        {renderFooter()}
+
+      <View className="w-full max-w-md gap-2 self-center px-4 pb-4 mb-safe">
+        {error && (
+          <Text
+            className="text-center font-coach text-sm"
+            style={{ color: COLORS.red }}
+          >
+            {error}
+          </Text>
+        )}
+        <Pressable
+          onPress={handleSubmit}
+          disabled={isBusy || !hasChanges}
+          className="items-center rounded-2xl py-3.5 active:opacity-90"
+          style={{
+            backgroundColor:
+              isBusy || !hasChanges ? LIGHT_THEME.w3 : LIGHT_THEME.wText,
+          }}
+        >
+          {isBusy ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <Text
+              className="font-coach-bold text-sm"
+              style={{
+                color: isBusy || !hasChanges ? LIGHT_THEME.wMute : "#FFFFFF",
+              }}
+            >
+              Save
+            </Text>
+          )}
+        </Pressable>
       </View>
     </View>
   );

@@ -19,7 +19,17 @@ import Animated, {
   Easing,
 } from "react-native-reanimated";
 import { Text } from "@/components/ui/text";
-import { COLORS, ACTIVITY_COLORS } from "@/lib/design-tokens";
+import { COLORS, ACTIVITY_COLORS, LIGHT_THEME } from "@/lib/design-tokens";
+
+const CARD_SHADOW = {
+  borderWidth: 1,
+  borderColor: "rgba(0,0,0,0.08)",
+  shadowColor: "#000",
+  shadowOffset: { width: 0, height: 4 },
+  shadowOpacity: 0.10,
+  shadowRadius: 16,
+  elevation: 4,
+} as const;
 import { MOCK_VOLUME_STATS } from "./mock-data";
 
 interface WeekVolumeCardProps {
@@ -59,27 +69,27 @@ export function WeekVolumeCard({
     : `${weekOverWeekChange}% vs last week`;
 
   return (
-    <View className="flex-[2] px-[18px] py-4 rounded-[20px]" style={{ backgroundColor: "#1A1A1A" }}>
-      <Text className="text-[11px] font-coach-medium mb-2" style={{ color: "rgba(255,255,255,0.4)" }}>
+    <View className="flex-[2] px-5 py-4 rounded-[20px]" style={{ backgroundColor: LIGHT_THEME.w1, ...CARD_SHADOW }}>
+      <Text className="text-[12px] font-coach-medium mb-2" style={{ color: LIGHT_THEME.wSub }}>
         Weekly Volume
       </Text>
 
       <View className="flex-row items-baseline gap-1">
-        <Text className="text-[28px] font-coach-extrabold" style={{ color: COLORS.lime }}>
+        <Text className="text-[32px] font-coach-extrabold" style={{ color: "#4A7300" }}>
           {currentVolume}
         </Text>
-        <Text className="text-[13px] font-coach" style={{ color: "rgba(255,255,255,0.35)" }}>
+        <Text className="text-[14px] font-coach" style={{ color: LIGHT_THEME.wSub }}>
           / {plannedVolume} km
         </Text>
       </View>
 
       <View
         className="h-1 rounded-sm mt-[10px] overflow-hidden"
-        style={{ backgroundColor: "rgba(255,255,255,0.10)" }}
+        style={{ backgroundColor: "rgba(0,0,0,0.12)" }}
       >
         <Animated.View
           className="h-full rounded-sm"
-          style={[{ backgroundColor: COLORS.lime }, progressBarStyle]}
+          style={[{ backgroundColor: "#7CB342" }, progressBarStyle]}
         />
       </View>
 

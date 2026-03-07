@@ -89,10 +89,8 @@ export interface PlanData {
   volumePlanned: number;
   /** Formatted time completed this week (e.g., "2h 45m") */
   timeCompleted: string;
-  /** Current streak in days */
-  streak: number;
-  /** Which of the last 7 days had activity (Mon-Sun for current week) */
-  streakDays: boolean[];
+  /** Average pace this week formatted as "m:ss" (e.g. "5:12") */
+  avgPace: string;
   /** Week-over-week volume change percentage */
   weekOverWeekChange: number;
   /** Coach message for today */

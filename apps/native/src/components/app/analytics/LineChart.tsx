@@ -1,7 +1,6 @@
 /**
  * LineChart Components - GPU-rendered interactive line/area charts
  *
- * VolumeChart: Volume evolution line + area with touch-to-inspect tooltip.
  * PaceChart: Pace trend line with touch-to-inspect tooltip.
  * PredictionTrendChart: Race prediction evolution over time.
  *
@@ -32,116 +31,13 @@ import {
 import { COLORS, ACTIVITY_COLORS } from "@/lib/design-tokens";
 import { ActiveValueIndicator } from "./ActiveValueIndicator";
 import type {
-  VolumeChartDatum,
   PaceChartDatum,
   PredictionTrendDatum,
 } from "@/hooks/use-analytics-data";
 
 export interface LineChartProps {
-  data: VolumeChartDatum[] | PaceChartDatum[];
+  data: PaceChartDatum[];
   font?: SkFont | null;
-}
-
-/**
- * VolumeChart - Volume evolution over time with touch-to-inspect
- */
-export function VolumeChart({
-  data,
-  font,
-}: {
-  data: VolumeChartDatum[];
-  font?: SkFont | null;
-}) {
-  const lineOpacity = useSharedValue(0);
-  const dotOpacity = useSharedValue(0);
-
-  const { state, isActive } = useChartPressState({
-    x: 0,
-    y: { volume: 0 },
-  });
-
-  const volumeLabel = useDerivedValue(() => {
-    "worklet";
-    const v = Math.round(state.y.volume.value.value);
-    return `${v} km`;
-  });
-
-  useEffect(() => {
-    lineOpacity.value = withDelay(
-      200,
-      withTiming(1, {
-        duration: 1500,
-        easing: Easing.bezier(0.4, 0, 0.2, 1),
-      })
-    );
-    dotOpacity.value = withDelay(1200, withTiming(1, { duration: 500 }));
-    return () => {
-      cancelAnimation(lineOpacity);
-      cancelAnimation(dotOpacity);
-    };
-  }, []);
-
-  return (
-    <View style={{ height: 180 }}>
-      <CartesianChart
-        data={data}
-        xKey="week"
-        yKeys={["volume"]}
-        chartPressState={state}
-        axisOptions={{
-          font,
-          formatXLabel: (v) => `W${v}`,
-          formatYLabel: (v) => `${Math.round(v)} km`,
-          tickCount: { x: Math.min(data.length, 10), y: 3 },
-          lineColor: "rgba(255,255,255,0.08)",
-          labelColor: "rgba(255,255,255,0.45)",
-        }}
-      >
-        {({ points, chartBounds }) => (
-            <>
-              <Group opacity={lineOpacity}>
-                <Area
-                  points={points.volume}
-                  y0={chartBounds.bottom}
-                  color={COLORS.lime}
-                  opacity={0.06}
-                />
-                <Line
-                  points={points.volume}
-                  color={COLORS.lime}
-                  strokeWidth={2.5}
-                  curveType="natural"
-                />
-              </Group>
-              <Group opacity={dotOpacity}>
-                {points.volume.map((point, i) =>
-                  point.y != null ? (
-                    <Circle
-                      key={i}
-                      cx={point.x}
-                      cy={point.y as number}
-                      r={3}
-                      color={COLORS.lime}
-                    />
-                  ) : null
-                )}
-              </Group>
-              {isActive && (
-                <ActiveValueIndicator
-                  xPosition={state.x.position}
-                  yPosition={state.y.volume.position}
-                  top={chartBounds.top}
-                  bottom={chartBounds.bottom}
-                  label={volumeLabel}
-                  font={font ?? null}
-                  color={COLORS.lime}
-                />
-              )}
-            </>
-          )}
-      </CartesianChart>
-    </View>
-  );
 }
 
 /**
@@ -202,8 +98,8 @@ export function PaceChart({
             return `${mins}:${secs < 10 ? "0" : ""}${secs}`;
           },
           tickCount: { x: Math.min(data.length, 10), y: 3 },
-          lineColor: "rgba(255,255,255,0.08)",
-          labelColor: "rgba(255,255,255,0.45)",
+          lineColor: "rgba(0,0,0,0.08)",
+          labelColor: "rgba(0,0,0,0.35)",
         }}
       >
         {({ points, chartBounds }) => {
@@ -282,14 +178,11 @@ export function PredictionTrendChart({
   });
 
   useEffect(() => {
-    lineOpacity.value = withDelay(
-      200,
-      withTiming(1, {
-        duration: 1500,
-        easing: Easing.bezier(0.4, 0, 0.2, 1),
-      })
-    );
-    dotOpacity.value = withDelay(1200, withTiming(1, { duration: 500 }));
+    lineOpacity.value = withTiming(1, {
+      duration: 500,
+      easing: Easing.bezier(0.4, 0, 0.2, 1),
+    });
+    dotOpacity.value = withDelay(350, withTiming(1, { duration: 300 }));
     return () => {
       cancelAnimation(lineOpacity);
       cancelAnimation(dotOpacity);
@@ -316,8 +209,8 @@ export function PredictionTrendChart({
           formatXLabel: (v) => `W${v}`,
           formatYLabel: (v) => formatTime(v),
           tickCount: { x: Math.min(data.length, 8), y: 3 },
-          lineColor: "rgba(255,255,255,0.08)",
-          labelColor: "rgba(255,255,255,0.45)",
+          lineColor: "rgba(0,0,0,0.08)",
+          labelColor: "rgba(0,0,0,0.35)",
         }}
       >
         {({ points, chartBounds }) => (
@@ -327,7 +220,7 @@ export function PredictionTrendChart({
                 points={points.timeSeconds}
                 y0={chartBounds.bottom}
                 color={color}
-                opacity={0.06}
+                opacity={0.1}
               />
               <Line
                 points={points.timeSeconds}

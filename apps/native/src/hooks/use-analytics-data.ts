@@ -27,6 +27,9 @@ import {
   MOCK_PREDICTIONS,
   MOCK_VDOT,
   MOCK_HEALTH_METRICS,
+  MOCK_VOLUME_BY_TIMEFRAME,
+  VOLUME_X_LABELS,
+  VOLUME_UNIT_LABELS,
   PLAN_PROGRESS,
   DAY_LABELS,
   TODAY_INDEX,
@@ -36,6 +39,8 @@ import {
   type WeekZoneData,
   type ZoneBreakdownData,
 } from "@/components/app/analytics/mock-data";
+import type { TimeFrame } from "@/components/shared/time-frame-selector";
+import type { VolumeBarDatum } from "@/components/app/analytics/volume-bar-chart";
 
 import type { RadarDataPoint } from "@/components/app/onboarding/viz/RadarChart";
 
@@ -157,6 +162,7 @@ export function useAnalyticsData(): UseAnalyticsDataResult {
           ...(healthResult.restingHr != null
             ? [
                 {
+                  metricKey: "restingHr" as const,
                   label: "Resting HR",
                   value: healthResult.restingHr,
                   unit: "bpm",
@@ -167,33 +173,51 @@ export function useAnalyticsData(): UseAnalyticsDataResult {
           ...(healthResult.hrv != null
             ? [
                 {
+                  metricKey: "hrv" as const,
                   label: "HRV",
                   value: healthResult.hrv,
                   unit: "ms",
                   trend: "stable" as const,
-                  dark: true,
                 },
               ]
             : []),
           ...(healthResult.sleepScore != null
             ? [
                 {
+                  metricKey: "sleepScore" as const,
                   label: "Sleep Score",
                   value: healthResult.sleepScore,
                   trend: "stable" as const,
                 },
               ]
             : []),
-          ...(healthResult.readinessScore != null
+          ...(healthResult.weight != null
             ? [
                 {
-                  label: "Readiness",
-                  value: healthResult.readinessScore,
+                  metricKey: "weight" as const,
+                  label: "Body Weight",
+                  value: healthResult.weight,
+                  unit: "kg",
                   trend: "stable" as const,
-                  dark: true,
                 },
               ]
             : []),
+          {
+            metricKey: "calories" as const,
+            label: "Calories",
+            value: 2450,
+            unit: "kcal",
+            subtitle: "Daily avg",
+            trend: "stable" as const,
+          },
+          {
+            metricKey: "spo2" as const,
+            label: "SpO2",
+            value: 97,
+            unit: "%",
+            subtitle: "Normal range",
+            trend: "stable" as const,
+          },
         ]
       : MOCK_HEALTH_METRICS;
 
@@ -257,4 +281,20 @@ export function useAnalyticsData(): UseAnalyticsDataResult {
     isLoading,
     error: null,
   };
+}
+
+export interface VolumeBarChartData {
+  barData: VolumeBarDatum[];
+  labels: string[];
+  total: number;
+  unitLabel: string;
+}
+
+export function getVolumeBarData(timeFrame: TimeFrame): VolumeBarChartData {
+  const values = MOCK_VOLUME_BY_TIMEFRAME[timeFrame];
+  const labels = VOLUME_X_LABELS[timeFrame];
+  const unitLabel = VOLUME_UNIT_LABELS[timeFrame];
+  const barData = values.map((volume, i) => ({ index: i, volume }));
+  const total = Math.round(values.reduce((sum, v) => sum + v, 0));
+  return { barData, labels, total, unitLabel };
 }

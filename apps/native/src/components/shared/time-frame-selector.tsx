@@ -23,16 +23,24 @@ export const TIME_FRAME_LABELS: Record<TimeFrame, string> = {
 interface TimeFrameSelectorProps {
   selected: TimeFrame;
   onSelect: (timeFrame: TimeFrame) => void;
+  variant?: "dark" | "light";
 }
 
 export function TimeFrameSelector({
   selected,
   onSelect,
+  variant = "dark",
 }: TimeFrameSelectorProps) {
+  const isLight = variant === "light";
+
   return (
     <View
       className="flex-row gap-[6px] rounded-xl p-[3px]"
-      style={{ backgroundColor: "rgba(255,255,255,0.06)" }}
+      style={{
+        backgroundColor: isLight
+          ? "rgba(0,0,0,0.05)"
+          : "rgba(255,255,255,0.06)",
+      }}
     >
       {TIME_FRAME_OPTIONS.map((option) => {
         const isActive = option.value === selected;
@@ -45,14 +53,22 @@ export function TimeFrameSelector({
               paddingVertical: 8,
               borderRadius: 8,
               backgroundColor: isActive
-                ? GRAYS.g1
+                ? isLight
+                  ? "#1A1A1A"
+                  : GRAYS.g1
                 : "transparent",
             }}
           >
             <Text
-              className="text-[13px] font-coach-semibold"
+              className="text-[14px] font-coach-semibold"
               style={{
-                color: isActive ? "#1A1A1A" : GRAYS.g3,
+                color: isActive
+                  ? isLight
+                    ? "#FFFFFF"
+                    : "#1A1A1A"
+                  : isLight
+                    ? "#5C5C5C"
+                    : GRAYS.g3,
               }}
             >
               {option.label}

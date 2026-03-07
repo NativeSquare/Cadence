@@ -1,16 +1,12 @@
 /**
- * Legend - Session type colors + phase indicators.
- * Reference: cadence-calendar-final.jsx lines 666-687
+ * Legend - Session type colors + phase indicators with fade-in entrance.
  */
 
 import React, { useMemo } from "react";
 import { View, Text, StyleSheet } from "react-native";
+import Animated, { FadeIn } from "react-native-reanimated";
 import { LIGHT_THEME } from "@/lib/design-tokens";
-import {
-  SESSION_COLORS,
-  SESSION_LABELS,
-  PHASES,
-} from "./constants";
+import { SESSION_COLORS, SESSION_LABELS, PHASES } from "./constants";
 import { blendWithBg, formatDateKey, getDaysInMonth } from "./helpers";
 import type { CalSessionType } from "./types";
 
@@ -21,59 +17,37 @@ interface LegendProps {
 
 const SESSION_TYPES: CalSessionType[] = ["easy", "specific", "long", "race"];
 
-export const Legend = React.memo(function Legend({
-  currentYear,
-  currentMonth,
-}: LegendProps) {
+export const Legend = React.memo(function Legend({ currentYear, currentMonth }: LegendProps) {
   const visiblePhases = useMemo(() => {
     const monthStart = formatDateKey(currentYear, currentMonth, 1);
-    const monthEnd = formatDateKey(
-      currentYear,
-      currentMonth,
-      getDaysInMonth(currentYear, currentMonth)
-    );
-    return PHASES.filter(
-      (p) => p.end >= monthStart && p.start <= monthEnd
-    );
+    const monthEnd = formatDateKey(currentYear, currentMonth, getDaysInMonth(currentYear, currentMonth));
+    return PHASES.filter((p) => p.end >= monthStart && p.start <= monthEnd);
   }, [currentYear, currentMonth]);
 
   return (
-    <View style={styles.container}>
-      {/* Session types row */}
+    <Animated.View entering={FadeIn.delay(400).duration(400)} style={styles.container}>
       <View style={styles.row}>
         {SESSION_TYPES.map((type) => (
           <View key={type} style={styles.item}>
-            <View
-              style={[
-                styles.sessionDot,
-                { backgroundColor: SESSION_COLORS[type] },
-              ]}
-            />
-            <Text style={styles.sessionLabel}>
-              {SESSION_LABELS[type]}
-            </Text>
+            <View style={[styles.sessionDot, { backgroundColor: SESSION_COLORS[type] }]} />
+            <Text style={styles.sessionLabel}>{SESSION_LABELS[type]}</Text>
           </View>
         ))}
       </View>
-
-      {/* Phase types row */}
       <View style={[styles.row, { gap: 12 }]}>
         {visiblePhases.map((p) => (
           <View key={p.name} style={styles.item}>
             <View
               style={[
                 styles.phasePill,
-                {
-                  backgroundColor: blendWithBg(p.color, 0.25),
-                  borderLeftColor: p.color,
-                },
+                { backgroundColor: blendWithBg(p.color, 0.25), borderLeftColor: p.color },
               ]}
             />
             <Text style={styles.phaseLabel}>{p.name}</Text>
           </View>
         ))}
       </View>
-    </View>
+    </Animated.View>
   );
 });
 

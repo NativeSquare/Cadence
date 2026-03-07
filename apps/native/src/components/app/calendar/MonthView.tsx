@@ -1,13 +1,9 @@
 /**
  * MonthView - Full month grid with PhaseTimeline, DayHeaders, WeekRows, and Legend.
- * Reference: cadence-calendar-final.jsx lines 464-688
- *
- * Uses a plain View (not FlatList) for the weeks container because:
- * - Only 4-6 rows — no virtualization benefit
- * - WeekRows need flex distribution from parent, which FlatList can't provide
+ * Passes staggered entrance delays to WeekRows and session press callbacks.
  */
 
-import React, { useMemo } from "react";
+import React, { useMemo, useRef } from "react";
 import { View, StyleSheet } from "react-native";
 import { LIGHT_THEME } from "@/lib/design-tokens";
 import { PhaseTimeline } from "./PhaseTimeline";
@@ -22,19 +18,21 @@ interface MonthViewProps {
   year: number;
   month: number;
   sessions: Record<string, CalSession[]>;
+  onSessionPress?: (dateKey: string, session: CalSession) => void;
 }
 
 export const MonthView = React.memo(function MonthView({
   year,
   month,
   sessions,
+  onSessionPress,
 }: MonthViewProps) {
   const weeks = useMemo(() => buildWeeks(year, month), [year, month]);
+  const phaseLookup = useMemo(() => buildPhaseLookup(PHASES), []);
 
-  const phaseLookup = useMemo(
-    () => buildPhaseLookup(PHASES),
-    []
-  );
+  const isFirstRender = useRef(true);
+  const stagger = isFirstRender.current;
+  if (isFirstRender.current) isFirstRender.current = false;
 
   return (
     <View style={styles.container}>
@@ -50,6 +48,8 @@ export const MonthView = React.memo(function MonthView({
             phaseLookup={phaseLookup}
             sessions={sessions}
             todayKey={TODAY_KEY}
+            onSessionPress={onSessionPress}
+            enterDelay={stagger ? index * 60 : 0}
           />
         ))}
       </View>

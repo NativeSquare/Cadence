@@ -69,8 +69,8 @@ export function SettingsRow({
       <View className="flex-row items-center gap-1.5">
         {value && (
           <Text
-            className={valueColor ? "font-coach-semibold text-[13px]" : "font-coach text-[13px]"}
-            style={{ color: valueColor || LIGHT_THEME.wMute }}
+            className={valueColor ? "font-coach-semibold text-[13px]" : "font-coach-medium text-[13px]"}
+            style={{ color: valueColor || LIGHT_THEME.wSub }}
           >
             {value}
           </Text>
@@ -79,7 +79,7 @@ export function SettingsRow({
           <Ionicons
             name="chevron-forward"
             size={14}
-            color={LIGHT_THEME.wMute}
+            color={LIGHT_THEME.wSub}
           />
         )}
       </View>

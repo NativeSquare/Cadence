@@ -1,27 +1,37 @@
 /**
- * StatsGrid Component - 2x2 stats display grid
- * Reference: cadence-full-v9.jsx lines 584-596
+ * StatsGrid Component - Training stats display grid
  *
  * Features:
- * - 2x2 grid layout
- * - Cards: Total Distance, Sessions, Longest Run, Avg HR
+ * - 2-column grid: Total Distance, Sessions, Longest Run
  * - Staggered entrance animations via Reanimated entering prop (UI thread)
- * - Avg HR card uses dark theme (inverted colors)
  */
 
 import { memo, useMemo } from "react";
 import { View, useWindowDimensions } from "react-native";
 import Animated, { FadeInUp, Easing } from "react-native-reanimated";
 import { Text } from "@/components/ui/text";
-import { COLORS, ACTIVITY_COLORS } from "@/lib/design-tokens";
+import { LIGHT_THEME } from "@/lib/design-tokens";
+
+const CARD_SHADOW = {
+  borderWidth: 1,
+  borderColor: "rgba(0,0,0,0.08)",
+  shadowColor: "#000",
+  shadowOffset: { width: 0, height: 4 },
+  shadowOpacity: 0.1,
+  shadowRadius: 16,
+  elevation: 4,
+} as const;
+
 import { MOCK_STATS } from "./mock-data";
+
+const PARENT_PX = 20;
+const COLUMN_GAP = 8;
 
 export interface StatItem {
   label: string;
   value: number;
   unit?: string;
   sub: string;
-  dark?: boolean;
 }
 
 export interface StatsGridProps {
@@ -32,8 +42,6 @@ export interface StatsGridProps {
     sessionsPlanned: number;
     longestRun: number;
     longestRunWeek: number;
-    avgHR: number;
-    avgHRChange: number;
   };
 }
 
@@ -46,8 +54,6 @@ const StatCard = memo(function StatCard({
   index: number;
   cardWidth: number;
 }) {
-  const isDark = stat.dark;
-
   return (
     <Animated.View
       entering={FadeInUp.delay(300 + index * 80)
@@ -56,27 +62,28 @@ const StatCard = memo(function StatCard({
       className="p-4 rounded-2xl"
       style={{
         width: cardWidth,
-        backgroundColor: "#1A1A1A",
+        backgroundColor: LIGHT_THEME.w1,
+        ...CARD_SHADOW,
       }}
     >
       <Text
-        className="text-[11px] font-coach-medium mb-[6px]"
-        style={{ color: "rgba(255,255,255,0.4)" }}
+        className="text-[12px] font-coach-medium mb-[6px]"
+        style={{ color: LIGHT_THEME.wSub }}
       >
         {stat.label}
       </Text>
 
       <View className="flex-row items-baseline gap-[2px]">
         <Text
-          className="text-[26px] font-coach-extrabold"
-          style={{ color: isDark ? COLORS.lime : "rgba(255,255,255,0.92)" }}
+          className="text-[28px] font-coach-extrabold"
+          style={{ color: LIGHT_THEME.wText }}
         >
           {stat.value}
         </Text>
         {stat.unit && (
           <Text
-            className="text-[13px] font-coach"
-            style={{ color: "rgba(255,255,255,0.35)" }}
+            className="text-[14px] font-coach"
+            style={{ color: LIGHT_THEME.wMute }}
           >
             {stat.unit}
           </Text>
@@ -84,8 +91,8 @@ const StatCard = memo(function StatCard({
       </View>
 
       <Text
-        className="text-[11px] font-coach mt-1"
-        style={{ color: isDark ? ACTIVITY_COLORS.barHigh : "rgba(255,255,255,0.4)" }}
+        className="text-[12px] font-coach mt-1"
+        style={{ color: LIGHT_THEME.wSub }}
       >
         {stat.sub}
       </Text>
@@ -93,14 +100,11 @@ const StatCard = memo(function StatCard({
   );
 });
 
-export function StatsGrid({
-  stats = MOCK_STATS,
-}: StatsGridProps) {
+export function StatsGrid({ stats = MOCK_STATS }: StatsGridProps) {
   const { width: screenWidth } = useWindowDimensions();
-  const cardWidth = useMemo(() => {
-    const availableWidth = screenWidth - 32 - 8;
-    return (availableWidth / 2) - 4;
-  }, [screenWidth]);
+  const cardWidth = Math.floor(
+    (screenWidth - PARENT_PX * 2 - COLUMN_GAP) / 2
+  );
 
   const statItems: StatItem[] = useMemo(
     () => [
@@ -121,27 +125,28 @@ export function StatsGrid({
         unit: "km",
         sub: `Week ${stats.longestRunWeek}`,
       },
-      {
-        label: "Avg HR",
-        value: stats.avgHR,
-        unit: "bpm",
-        sub: `${stats.avgHRChange >= 0 ? "+" : ""}${stats.avgHRChange} bpm`,
-        dark: true,
-      },
     ],
     [stats]
   );
 
   return (
-    <View className="flex-row flex-wrap gap-2">
-      {statItems.map((stat, index) => (
-        <StatCard
-          key={stat.label}
-          stat={stat}
-          index={index}
-          cardWidth={cardWidth}
-        />
-      ))}
+    <View>
+      <Text
+        className="text-[12px] font-coach-semibold text-wSub uppercase mb-3"
+        style={{ letterSpacing: 0.05 * 12 }}
+      >
+        Training Stats
+      </Text>
+      <View className="flex-row flex-wrap gap-2">
+        {statItems.map((stat, index) => (
+          <StatCard
+            key={stat.label}
+            stat={stat}
+            index={index}
+            cardWidth={cardWidth}
+          />
+        ))}
+      </View>
     </View>
   );
 }

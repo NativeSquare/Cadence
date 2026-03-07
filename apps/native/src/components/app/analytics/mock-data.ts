@@ -3,6 +3,8 @@
  * Reference: cadence-full-v9.jsx lines 402-405
  */
 
+import type { TimeFrame as TF } from "@/components/shared/time-frame-selector";
+
 // =============================================================================
 // Race Objectives
 // =============================================================================
@@ -151,8 +153,6 @@ export const MOCK_STATS = {
   sessionsPlanned: 48,
   longestRun: 18.2,
   longestRunWeek: 3,
-  avgHR: 148,
-  avgHRChange: -4,
 };
 
 /** Volume and streak data */
@@ -257,17 +257,40 @@ export const MOCK_PREDICTION_TRENDS: Record<RaceObjective, PredictionTrendPoint[
 // Health Metrics
 // =============================================================================
 
+export type HealthMetricKey =
+  | "restingHr"
+  | "hrv"
+  | "sleepScore"
+  | "weight"
+  | "calories"
+  | "spo2";
+
 export interface HealthMetric {
+  metricKey: HealthMetricKey;
   label: string;
   value: number;
   unit?: string;
   subtitle?: string;
   trend?: "improving" | "stable" | "declining";
-  dark?: boolean;
 }
+
+export interface HealthMetricStyle {
+  color: string;
+  colorDim: string;
+}
+
+export const HEALTH_METRIC_STYLES: Record<HealthMetricKey, HealthMetricStyle> = {
+  restingHr: { color: "#FF5A5A", colorDim: "rgba(255,90,90,0.12)" },
+  hrv: { color: "#A855F7", colorDim: "rgba(168,85,247,0.12)" },
+  sleepScore: { color: "#5B9EFF", colorDim: "rgba(91,158,255,0.12)" },
+  weight: { color: "#14B8A6", colorDim: "rgba(20,184,166,0.12)" },
+  calories: { color: "#FF9500", colorDim: "rgba(255,149,0,0.12)" },
+  spo2: { color: "#38BDF8", colorDim: "rgba(56,189,248,0.12)" },
+};
 
 export const MOCK_HEALTH_METRICS: HealthMetric[] = [
   {
+    metricKey: "restingHr",
     label: "Resting HR",
     value: 52,
     unit: "bpm",
@@ -275,25 +298,43 @@ export const MOCK_HEALTH_METRICS: HealthMetric[] = [
     trend: "improving",
   },
   {
+    metricKey: "hrv",
     label: "HRV",
     value: 48,
     unit: "ms",
     subtitle: "+3 ms this month",
     trend: "improving",
-    dark: true,
   },
   {
+    metricKey: "sleepScore",
     label: "Sleep Score",
     value: 82,
     subtitle: "Consistent",
     trend: "stable",
   },
   {
-    label: "Readiness",
-    value: 74,
-    subtitle: "Good to train",
+    metricKey: "weight",
+    label: "Body Weight",
+    value: 72,
+    unit: "kg",
+    subtitle: "-0.5 kg this month",
+    trend: "improving",
+  },
+  {
+    metricKey: "calories",
+    label: "Calories",
+    value: 2450,
+    unit: "kcal",
+    subtitle: "Daily avg",
     trend: "stable",
-    dark: true,
+  },
+  {
+    metricKey: "spo2",
+    label: "SpO2",
+    value: 97,
+    unit: "%",
+    subtitle: "Normal range",
+    trend: "stable",
   },
 ];
 
@@ -356,3 +397,37 @@ export const MOCK_VOLUME_EVOLUTION: VolumeWeekDetail[] = [
   { week: 9, volume: 57, target: 52, changePercent: 29.5 },
   { week: 10, volume: 24.7, target: 55, changePercent: -56.7 },
 ];
+
+// =============================================================================
+// Volume By Time Frame (bar chart data)
+// =============================================================================
+
+export const MOCK_VOLUME_BY_TIMEFRAME: Record<TF, number[]> = {
+  "7d": [8.5, 6.0, 10.2, 7.0, 0, 9.0, 16.5],
+  "1mo": [36, 45, 48, 52],
+  "3mo": [32, 38, 41, 36, 45, 48, 52, 44, 57, 24.7, 40, 46],
+  "6mo": [
+    28, 30, 32, 34, 29, 36, 38, 35, 41, 39, 36, 42, 45,
+    48, 52, 44, 47, 50, 53, 46, 57, 54, 49, 51, 48, 24.7,
+  ],
+  "1yr": [120, 135, 148, 162, 155, 170, 185, 178, 192, 180, 165, 105],
+};
+
+export const VOLUME_X_LABELS: Record<TF, string[]> = {
+  "7d": ["M", "T", "W", "T", "F", "S", "S"],
+  "1mo": ["W1", "W2", "W3", "W4"],
+  "3mo": ["W1", "W2", "W3", "W4", "W5", "W6", "W7", "W8", "W9", "W10", "W11", "W12"],
+  "6mo": [
+    "", "", "", "Oct", "", "", "", "", "", "", "", "", "Nov",
+    "", "", "", "", "", "", "", "", "", "", "", "Dec", "",
+  ],
+  "1yr": ["Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec", "Jan", "Feb"],
+};
+
+export const VOLUME_UNIT_LABELS: Record<TF, string> = {
+  "7d": "km today",
+  "1mo": "km this month",
+  "3mo": "km total",
+  "6mo": "km total",
+  "1yr": "km this year",
+};

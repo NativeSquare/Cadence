@@ -1,8 +1,8 @@
 import { ImageUploader } from "@/components/custom/image-uploader";
-import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
+import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
+import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
-import { X } from "lucide-react-native";
 import { Image, Pressable, View } from "react-native";
 
 export type ImageUploaderFieldProps = {
@@ -38,10 +38,16 @@ export function ImageUploaderField({
 
   return (
     <View className="gap-2">
-      {label && <Text className="text-sm font-medium">{label}</Text>}
+      {label && (
+        <Text
+          className="font-coach-semibold text-[11px] uppercase tracking-wider"
+          style={{ color: LIGHT_THEME.wMute }}
+        >
+          {label}
+        </Text>
+      )}
 
       <View className="gap-4">
-        {/* Image Thumbnails */}
         {images.length > 0 && (
           <View className="flex-row gap-3">
             {images.map((uri, index) => (
@@ -53,9 +59,10 @@ export function ImageUploaderField({
                 />
                 <Pressable
                   onPress={() => handleRemoveImage(index)}
-                  className="absolute top-1.5 right-1.5 size-6 items-center justify-center rounded-full bg-background/80"
+                  className="absolute right-1.5 top-1.5 size-6 items-center justify-center rounded-full"
+                  style={{ backgroundColor: "rgba(0,0,0,0.6)" }}
                 >
-                  <Icon as={X} size={14} className="text-foreground" />
+                  <Ionicons name="close" size={14} color="#FFFFFF" />
                 </Pressable>
               </View>
             ))}
@@ -69,7 +76,14 @@ export function ImageUploaderField({
         />
       </View>
 
-      {error && <Text className="text-xs text-destructive mt-1">{error}</Text>}
+      {error && (
+        <Text
+          className="mt-1 font-coach text-xs"
+          style={{ color: COLORS.red }}
+        >
+          {error}
+        </Text>
+      )}
     </View>
   );
 }

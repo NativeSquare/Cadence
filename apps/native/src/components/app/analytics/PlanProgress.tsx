@@ -20,8 +20,18 @@ import Animated, {
   Easing,
 } from "react-native-reanimated";
 import { Text } from "@/components/ui/text";
-import { COLORS, GRAYS } from "@/lib/design-tokens";
+import { COLORS, GRAYS, LIGHT_THEME } from "@/lib/design-tokens";
 import { PLAN_PROGRESS, PHASE_COLORS, type PlanWeek } from "./mock-data";
+
+const CARD_SHADOW = {
+  borderWidth: 1,
+  borderColor: "rgba(0,0,0,0.08)",
+  shadowColor: "#000",
+  shadowOffset: { width: 0, height: 4 },
+  shadowOpacity: 0.10,
+  shadowRadius: 16,
+  elevation: 4,
+} as const;
 
 interface PlanProgressProps {
   data?: PlanWeek[];
@@ -68,7 +78,7 @@ const ProgressSegment = memo(function ProgressSegment({
       <View className="w-full h-[6px] relative">
         <View
           className="absolute inset-0 rounded-[3px]"
-          style={{ backgroundColor: "rgba(255,255,255,0.10)" }}
+          style={{ backgroundColor: "rgba(0,0,0,0.12)" }}
         />
         {week.completed && (
           <Animated.View
@@ -85,16 +95,16 @@ const ProgressSegment = memo(function ProgressSegment({
             style={{
               backgroundColor: COLORS.lime,
               borderWidth: 3,
-              borderColor: "#1A1A1A",
+              borderColor: LIGHT_THEME.w1,
             }}
           />
         )}
       </View>
       <Text
-        className="text-[9px] font-coach"
+        className="text-[10px] font-coach"
         style={{
           fontWeight: week.current ? "700" : "400",
-          color: week.current ? GRAYS.g1 : GRAYS.g3,
+          color: week.current ? LIGHT_THEME.wText : LIGHT_THEME.wMute,
         }}
       >
         {week.week}
@@ -110,17 +120,17 @@ function LegendItem({ label, color }: { label: string; color: string }) {
         className="w-2 h-1 rounded-sm"
         style={{ backgroundColor: color }}
       />
-      <Text className="text-[10px] font-coach text-g3">{label}</Text>
+      <Text className="text-[11px] font-coach text-wSub">{label}</Text>
     </View>
   );
 }
 
 export function PlanProgress({ data = PLAN_PROGRESS }: PlanProgressProps) {
   return (
-    <View className="p-[18px] rounded-[20px]" style={{ backgroundColor: "#1A1A1A" }}>
+    <View className="p-5 rounded-[20px]" style={{ backgroundColor: LIGHT_THEME.w1, ...CARD_SHADOW }}>
       <Text
-        className="text-[11px] font-coach-semibold text-g3 uppercase mb-3"
-        style={{ letterSpacing: 0.05 * 11 }}
+        className="text-[12px] font-coach-semibold text-wSub uppercase mb-3"
+        style={{ letterSpacing: 0.05 * 12 }}
       >
         Plan Progress
       </Text>

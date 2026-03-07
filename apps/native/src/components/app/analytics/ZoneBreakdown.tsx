@@ -20,7 +20,17 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { Text } from "@/components/ui/text";
-import { GRAYS } from "@/lib/design-tokens";
+import { LIGHT_THEME } from "@/lib/design-tokens";
+
+const CARD_SHADOW = {
+  borderWidth: 1,
+  borderColor: "rgba(0,0,0,0.08)",
+  shadowColor: "#000",
+  shadowOffset: { width: 0, height: 4 },
+  shadowOpacity: 0.10,
+  shadowRadius: 16,
+  elevation: 4,
+} as const;
 import {
   TimeFrameSelector,
   type TimeFrame,
@@ -75,7 +85,7 @@ function ZoneBar({
       <View
         className="flex-row items-center py-[10px]"
         style={{
-          backgroundColor: isSelected ? "rgba(255,255,255,0.06)" : "transparent",
+          backgroundColor: isSelected ? "rgba(0,0,0,0.04)" : "transparent",
           borderRadius: isSelected ? 8 : 0,
           paddingHorizontal: isSelected ? 4 : 0,
           marginHorizontal: isSelected ? -4 : 0,
@@ -84,8 +94,8 @@ function ZoneBar({
         {/* Zone label */}
         <View style={{ width: 30 }}>
           <Text
-            className="text-[13px] font-coach-semibold"
-            style={{ color: GRAYS.g1 }}
+            className="text-[14px] font-coach-semibold"
+            style={{ color: LIGHT_THEME.wText }}
           >
             {zone.zone}
           </Text>
@@ -110,8 +120,8 @@ function ZoneBar({
         {/* Percentage */}
         <View style={{ width: 38, alignItems: "flex-end" }}>
           <Text
-            className="text-[13px] font-coach-semibold"
-            style={{ color: GRAYS.g1 }}
+            className="text-[14px] font-coach-semibold"
+            style={{ color: LIGHT_THEME.wText }}
           >
             {zone.percentage}%
           </Text>
@@ -120,8 +130,8 @@ function ZoneBar({
         {/* BPM range */}
         <View style={{ width: 84, alignItems: "flex-end" }}>
           <Text
-            className="text-[11px] font-coach"
-            style={{ color: GRAYS.g3 }}
+            className="text-[12px] font-coach"
+            style={{ color: LIGHT_THEME.wSub }}
           >
             {zone.bpmRange}
           </Text>
@@ -158,12 +168,12 @@ export function ZoneBreakdown({
   const domZone = typeof dominant === "string" ? dominant : dominant.zone;
 
   return (
-    <View className="p-[18px] rounded-[20px]" style={{ backgroundColor: "#1A1A1A" }}>
+    <View className="p-5 rounded-[20px]" style={{ backgroundColor: LIGHT_THEME.w1, ...CARD_SHADOW }}>
       {/* Header */}
       <View className="flex-row items-center justify-between mb-1">
         <Text
-          className="text-[11px] font-coach-semibold text-g3 uppercase"
-          style={{ letterSpacing: 0.05 * 11 }}
+          className="text-[12px] font-coach-semibold text-wSub uppercase"
+          style={{ letterSpacing: 0.05 * 12 }}
         >
           Training Zones
         </Text>
@@ -171,7 +181,7 @@ export function ZoneBreakdown({
 
       {/* Dominant zone headline */}
       <View className="flex-row items-baseline justify-between mb-4">
-        <Text className="text-[22px] font-coach-extrabold text-g1">
+        <Text className="text-[24px] font-coach-extrabold text-wText">
           {domPercent}% in {domZone}
         </Text>
       </View>
@@ -193,7 +203,7 @@ export function ZoneBreakdown({
 
       {/* Period selector */}
       <View className="mb-3">
-        <TimeFrameSelector selected={period} onSelect={handlePeriodChange} />
+        <TimeFrameSelector selected={period} onSelect={handlePeriodChange} variant="light" />
       </View>
 
     </View>

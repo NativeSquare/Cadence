@@ -18,14 +18,14 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import {
   View,
   ScrollView,
+  Image,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { Bot } from "lucide-react-native";
-
+const CADENCE_ICON = require("../../../../assets/icons/ios-icon.png");
 import { ChatHeader } from "./ChatHeader";
 import { ChatMessage } from "./ChatMessage";
 import { ToolCard } from "./ToolCard";
@@ -216,8 +216,8 @@ export function CoachScreen() {
             if (isToolMessage(message)) {
               return (
                 <View key={message.id} className="flex-row mb-2.5">
-                  <View className="w-7 h-7 rounded-full bg-lime items-center justify-center mr-2 mt-1">
-                    <Bot size={16} color="#000" strokeWidth={2.2} />
+                  <View className="w-7 h-7 rounded-full overflow-hidden mr-2 mt-1">
+                    <Image source={CADENCE_ICON} className="w-7 h-7" />
                   </View>
                   <View className="flex-1">
                     <ToolCard
@@ -247,7 +247,7 @@ export function CoachScreen() {
         </ScrollView>
 
         {/* Input area */}
-        <View className="bg-w2 border-t border-wBrd">
+        <View className="bg-w2">
           {isRecording ? (
             <VoiceRecorder
               transcript={transcript}

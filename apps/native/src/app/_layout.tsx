@@ -33,7 +33,13 @@ const secureStorage = {
 };
 
 export default function RootLayout() {
+  const { setColorScheme } = useColorScheme();
   const [fontsLoaded, fontError] = useFonts(fontAssets);
+
+  // Force light mode globally
+  useEffect(() => {
+    setColorScheme("light");
+  }, [setColorScheme]);
 
   const onLayoutRootView = useCallback(async () => {
     if (fontsLoaded || fontError) {
@@ -82,7 +88,6 @@ export default function RootLayout() {
 }
 
 function RootStack() {
-  const { colorScheme } = useColorScheme();
   const { isAuthenticated, isLoading } = useConvexAuth();
   const { signOut } = useAuthActions();
   const user = useQuery(
@@ -141,7 +146,7 @@ function RootStack() {
   if (isLoading) {
     return (
       <View className="flex-1 justify-center items-center bg-background">
-        <ActivityIndicator color={colorScheme === "dark" ? "white" : "black"} />
+        <ActivityIndicator color="black" />
       </View>
     );
   }

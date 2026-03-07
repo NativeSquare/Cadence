@@ -107,12 +107,19 @@ export function TypingIndicator({ visible }: TypingIndicatorProps) {
       className="flex-row justify-start mb-2.5"
     >
       <View
-        className="px-4 py-3.5 flex-row items-center gap-1 bg-w1 border border-wBrd"
+        className="px-4 py-3.5 flex-row items-center gap-1 bg-w1"
         style={{
           borderTopLeftRadius: 18,
           borderTopRightRadius: 18,
           borderBottomLeftRadius: 6,
           borderBottomRightRadius: 18,
+          borderWidth: 1,
+          borderColor: "rgba(0,0,0,0.08)",
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 1 },
+          shadowOpacity: 0.06,
+          shadowRadius: 4,
+          elevation: 1,
         }}
       >
         {/* Three dots with staggered delay: 0ms, 200ms, 400ms */}

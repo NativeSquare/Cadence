@@ -1,63 +1,115 @@
 /**
- * PhaseTimeline - Horizontal progress bar showing training phases.
- * 18pt tall with pastel proportional segments and a static "today" dot.
- * Reference: cadence-calendar-v2 prototype PhaseTimeline
+ * PhaseTimeline - Animated horizontal progress bar showing training phases.
+ * Segments reveal with staggered width growth; today dot springs in.
  */
 
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo } from "react";
 import { View, Text, StyleSheet } from "react-native";
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withSpring,
+  withTiming,
+} from "react-native-reanimated";
 import { LIGHT_THEME } from "@/lib/design-tokens";
 import { blendWithBg } from "./helpers";
 import { PHASES, TODAY_KEY } from "./constants";
 
-/** Static today dot on the timeline */
-function TimelineTodayDot({ offset }: { offset: number }) {
+function AnimatedTodayDot({ offset }: { offset: number }) {
+  const scale = useSharedValue(0);
+  const opacity = useSharedValue(0);
+
+  useEffect(() => {
+    scale.value = withDelay(600, withSpring(1, { damping: 12, stiffness: 150 }));
+    opacity.value = withDelay(600, withTiming(1, { duration: 300 }));
+  }, [scale, opacity]);
+
+  const animStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+    opacity: opacity.value,
+  }));
+
   return (
-    <View
-      style={[
-        styles.todayContainer,
-        { left: `${offset * 100}%` as any },
-      ]}
+    <Animated.View
+      style={[styles.todayContainer, { left: `${offset * 100}%` as any }, animStyle]}
       pointerEvents="none"
     >
-      {/* Vertical line behind dot */}
       <View style={styles.todayLine} />
-
-      {/* Dark dot */}
       <View style={styles.todayDot} />
-    </View>
+    </Animated.View>
+  );
+}
+
+function AnimatedSegment({
+  widthPct,
+  color,
+  name,
+  index,
+  isLast,
+}: {
+  widthPct: number;
+  color: string;
+  name: string;
+  index: number;
+  isLast: boolean;
+}) {
+  const animWidth = useSharedValue(0);
+
+  useEffect(() => {
+    animWidth.value = withDelay(
+      index * 80,
+      withTiming(widthPct, { duration: 500, easing: Easing.out(Easing.cubic) })
+    );
+  }, [animWidth, index, widthPct]);
+
+  const animStyle = useAnimatedStyle(() => ({
+    width: `${animWidth.value}%` as any,
+  }));
+
+  return (
+    <Animated.View
+      style={[
+        styles.segment,
+        {
+          backgroundColor: blendWithBg(color, 0.3),
+          borderRightWidth: isLast ? 0 : 1,
+          borderRightColor: LIGHT_THEME.w2,
+        },
+        animStyle,
+      ]}
+    >
+      {widthPct > 10 && (
+        <Text
+          style={[
+            styles.segmentLabel,
+            { color: blendWithBg(color, 0.9, [26, 26, 26]) },
+          ]}
+        >
+          {name}
+        </Text>
+      )}
+    </Animated.View>
   );
 }
 
 export const PhaseTimeline = React.memo(function PhaseTimeline() {
   const { segments, todayOffset } = useMemo(() => {
     const allStart = new Date(PHASES[0].start + "T00:00:00");
-    const allEnd = new Date(
-      PHASES[PHASES.length - 1].end + "T00:00:00"
-    );
-    const totalDays = Math.max(
-      1,
-      (allEnd.getTime() - allStart.getTime()) / (1000 * 60 * 60 * 24)
-    );
+    const allEnd = new Date(PHASES[PHASES.length - 1].end + "T00:00:00");
+    const totalDays = Math.max(1, (allEnd.getTime() - allStart.getTime()) / (1000 * 60 * 60 * 24));
 
     const todayDate = new Date(TODAY_KEY + "T00:00:00");
     const offset = Math.max(
       0,
-      Math.min(
-        1,
-        (todayDate.getTime() - allStart.getTime()) /
-          (1000 * 60 * 60 * 24) /
-          totalDays
-      )
+      Math.min(1, (todayDate.getTime() - allStart.getTime()) / (1000 * 60 * 60 * 24) / totalDays)
     );
 
     const segs = PHASES.map((p) => {
       const start = new Date(p.start + "T00:00:00");
       const end = new Date(p.end + "T00:00:00");
-      const days = Math.max(
-        1,
-        (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24) + 1
-      );
+      const days = Math.max(1, (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24) + 1);
       const widthPct = (days / totalDays) * 100;
       return { phase: p, widthPct };
     });
@@ -69,40 +121,16 @@ export const PhaseTimeline = React.memo(function PhaseTimeline() {
     <View style={styles.outerContainer}>
       <View style={styles.barContainer}>
         {segments.map((s, i) => (
-          <View
+          <AnimatedSegment
             key={i}
-            style={[
-              styles.segment,
-              {
-                width: `${s.widthPct}%` as any,
-                backgroundColor: blendWithBg(s.phase.color, 0.3),
-                borderRightWidth:
-                  i < segments.length - 1 ? 1 : 0,
-                borderRightColor: LIGHT_THEME.w2,
-              },
-            ]}
-          >
-            {s.widthPct > 10 && (
-              <Text
-                style={[
-                  styles.segmentLabel,
-                  {
-                    color: blendWithBg(
-                      s.phase.color,
-                      0.9,
-                      [26, 26, 26]
-                    ),
-                  },
-                ]}
-              >
-                {s.phase.name}
-              </Text>
-            )}
-          </View>
+            widthPct={s.widthPct}
+            color={s.phase.color}
+            name={s.phase.name}
+            index={i}
+            isLast={i === segments.length - 1}
+          />
         ))}
-
-        {/* Today marker */}
-        <TimelineTodayDot offset={todayOffset} />
+        <AnimatedTodayDot offset={todayOffset} />
       </View>
     </View>
   );

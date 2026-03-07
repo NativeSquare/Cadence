@@ -1,177 +1,126 @@
 /**
- * PredictionCard - Race prediction tiles with tap-to-expand trend chart
+ * PredictionCard - Race prediction tiles as individual cards
  *
- * Single dark card containing a 2x2 grid of predicted race times.
- * Tapping a tile reveals the prediction trend chart inside the same card.
- * Tapping again collapses it; tapping a different tile swaps the chart.
+ * Each distance gets its own card in a 2x2 grid, styled like health metrics.
+ * Tapping a card opens a bottom sheet with the prediction trend chart.
  */
 
-import { useState } from "react";
-import { Pressable, View } from "react-native";
-import Animated, {
-  FadeIn,
-  FadeOut,
-  LinearTransition,
-} from "react-native-reanimated";
-import { useFont } from "@shopify/react-native-skia";
-import { Outfit_400Regular } from "@expo-google-fonts/outfit";
+import { useWindowDimensions, Pressable, View } from "react-native";
+import Animated, { Easing, FadeInUp } from "react-native-reanimated";
 import { Text } from "@/components/ui/text";
-import { COLORS, GRAYS } from "@/lib/design-tokens";
-import {
-  TimeFrameSelector,
-  type TimeFrame,
-} from "@/components/shared/time-frame-selector";
-import { PredictionTrendChart } from "./LineChart";
+import { LIGHT_THEME } from "@/lib/design-tokens";
 import {
   MOCK_PREDICTIONS,
-  MOCK_PREDICTION_TRENDS,
   type RacePrediction,
   type RaceObjective,
 } from "./mock-data";
 
-const DISTANCE_TO_OBJECTIVE: Record<string, RaceObjective> = {
-  "5K": "5k",
-  "10K": "10k",
-  "Half Marathon": "half",
-  Marathon: "marathon",
-};
+const CARD_SHADOW = {
+  borderWidth: 1,
+  borderColor: "rgba(0,0,0,0.08)",
+  shadowColor: "#000",
+  shadowOffset: { width: 0, height: 4 },
+  shadowOpacity: 0.1,
+  shadowRadius: 16,
+  elevation: 4,
+} as const;
+
+const PARENT_PX = 20;
+const COLUMN_GAP = 8;
 
 interface PredictionCardProps {
   predictions?: RacePrediction[];
   objective?: RaceObjective;
+  onTileTap?: (distance: string) => void;
 }
 
 function PredictionTile({
   prediction,
-  isActive,
+  index,
+  cardWidth,
   onPress,
 }: {
   prediction: RacePrediction;
-  isActive: boolean;
+  index: number;
+  cardWidth: number;
   onPress: () => void;
 }) {
   return (
-    <Pressable
-      onPress={onPress}
-      className="flex-1 items-center rounded-xl py-3 px-2"
+    <Animated.View
+      entering={FadeInUp.delay(200 + index * 80)
+        .duration(400)
+        .easing(Easing.out(Easing.cubic))}
+      className="rounded-2xl"
       style={{
-        backgroundColor: isActive
-          ? "rgba(200,255,0,0.06)"
-          : "rgba(255,255,255,0.04)",
+        width: cardWidth,
+        backgroundColor: LIGHT_THEME.w1,
+        ...CARD_SHADOW,
       }}
     >
-      <Text
-        className="text-[11px] font-coach-semibold"
-        style={{ color: isActive ? COLORS.lime : GRAYS.g3 }}
+      <Pressable
+        onPress={onPress}
+        className="items-center rounded-2xl pt-3 px-4 pb-4"
+        style={({ pressed }) => ({
+          opacity: pressed ? 0.85 : 1,
+        })}
       >
-        {prediction.distance}
-      </Text>
-      <Text
-        className="text-[20px] font-coach-extrabold mt-1"
-        style={{ color: isActive ? COLORS.lime : GRAYS.g1 }}
-      >
-        {prediction.timeFormatted}
-      </Text>
-      <Text
-        className="text-[10px] font-coach mt-[2px]"
-        style={{ color: isActive ? "rgba(200,255,0,0.5)" : GRAYS.g3 }}
-      >
-        {prediction.pacePerKm}
-      </Text>
-    </Pressable>
+        <Text
+          className="text-[12px] font-coach-semibold"
+          style={{ color: LIGHT_THEME.wSub }}
+        >
+          {prediction.distance}
+        </Text>
+        <Text
+          className="text-[22px] font-coach-extrabold mt-1"
+          style={{ color: LIGHT_THEME.wText }}
+        >
+          {prediction.timeFormatted}
+        </Text>
+        <Text
+          className="text-[11px] font-coach mt-[2px]"
+          style={{ color: LIGHT_THEME.wSub }}
+        >
+          {prediction.pacePerKm}
+        </Text>
+      </Pressable>
+    </Animated.View>
   );
 }
 
 export function PredictionCard({
   predictions = MOCK_PREDICTIONS,
-  objective = "half",
+  onTileTap,
 }: PredictionCardProps) {
-  const chartFont = useFont(Outfit_400Regular, 9);
-  const [expandedDistance, setExpandedDistance] = useState<string | null>(null);
-  const [timeFrame, setTimeFrame] = useState<TimeFrame>("3mo");
-
-  const handleTilePress = (distance: string) => {
-    setExpandedDistance((prev) => (prev === distance ? null : distance));
-  };
-
-  const expandedObjective = expandedDistance
-    ? DISTANCE_TO_OBJECTIVE[expandedDistance]
-    : null;
-
-  const trendData = expandedObjective
-    ? MOCK_PREDICTION_TRENDS[expandedObjective].map((t) => ({
-        week: t.week,
-        timeSeconds: t.timeSeconds,
-      }))
-    : [];
+  const { width: screenWidth } = useWindowDimensions();
+  const cardWidth = Math.floor(
+    (screenWidth - PARENT_PX * 2 - COLUMN_GAP) / 2
+  );
 
   return (
-    <Animated.View
-      layout={LinearTransition.duration(300)}
-      className="p-[18px] rounded-[20px]"
-      style={{ backgroundColor: "#1A1A1A" }}
-    >
-      {/* Header */}
-      <View className="mb-3">
-        <Text
-          className="text-[11px] font-coach-semibold text-g3 uppercase"
-          style={{ letterSpacing: 0.05 * 11 }}
-        >
-          Race Predictions
-        </Text>
-      </View>
-
-      {/* 2x2 grid */}
-      <View className="gap-2">
-        <View className="flex-row gap-2">
-          {predictions.slice(0, 2).map((pred) => (
-            <PredictionTile
-              key={pred.distance}
-              prediction={pred}
-              isActive={expandedDistance === pred.distance}
-              onPress={() => handleTilePress(pred.distance)}
-            />
-          ))}
-        </View>
-        <View className="flex-row gap-2">
-          {predictions.slice(2, 4).map((pred) => (
-            <PredictionTile
-              key={pred.distance}
-              prediction={pred}
-              isActive={expandedDistance === pred.distance}
-              onPress={() => handleTilePress(pred.distance)}
-            />
-          ))}
-        </View>
-      </View>
-
-      {/* Trend chart (inside the same card) */}
-      {expandedDistance && expandedObjective && (
-        <Animated.View
-          key={expandedDistance}
-          entering={FadeIn.duration(250)}
-          exiting={FadeOut.duration(150)}
-          className="mt-4 pt-4"
-          style={{ borderTopWidth: 1, borderTopColor: "rgba(255,255,255,0.06)" }}
-        >
-          <Text
-            className="text-[11px] font-coach-semibold text-g3 uppercase mb-3"
-            style={{ letterSpacing: 0.05 * 11 }}
-          >
-            {expandedDistance} Trend
-          </Text>
-          <PredictionTrendChart
-            data={trendData}
-            font={chartFont}
-            color={COLORS.ora}
+    <View>
+      <Text
+        className="text-[12px] font-coach-semibold text-wSub uppercase mb-3"
+        style={{ letterSpacing: 0.05 * 12 }}
+      >
+        Race Predictions
+      </Text>
+      <View className="flex-row flex-wrap gap-2">
+        {predictions.map((pred, index) => (
+          <PredictionTile
+            key={pred.distance}
+            prediction={pred}
+            index={index}
+            cardWidth={cardWidth}
+            onPress={() => onTileTap?.(pred.distance)}
           />
-        </Animated.View>
-      )}
-
-      {/* Time frame selector */}
-      <View className="mt-4">
-        <TimeFrameSelector selected={timeFrame} onSelect={setTimeFrame} />
+        ))}
       </View>
-    </Animated.View>
+      <Text
+        className="text-[11px] font-coach text-center mt-3"
+        style={{ color: LIGHT_THEME.wSub }}
+      >
+        Tap a distance to view trend
+      </Text>
+    </View>
   );
 }

@@ -17,6 +17,7 @@ export { DiagonalStripes } from "./DiagonalStripes";
 export { TodayMarker } from "./TodayMarker";
 export { Legend } from "./Legend";
 export { DayHeaders } from "./DayHeaders";
+export { CalendarSessionSheet } from "./CalendarSessionSheet";
 
 // Types
 export type {

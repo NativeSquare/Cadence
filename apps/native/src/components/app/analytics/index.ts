@@ -19,7 +19,8 @@ export {
   type StackedHistogramProps,
   type WeeklyZoneChartProps,
 } from "./StackedHistogram";
-export { VolumeChart, PaceChart, type LineChartProps } from "./LineChart";
+export { PaceChart, type LineChartProps } from "./LineChart";
+export { VolumeBarChart, type VolumeBarDatum } from "./volume-bar-chart";
 export { StatsGrid, type StatsGridProps, type StatItem } from "./StatsGrid";
 
 // Mock data exports for development

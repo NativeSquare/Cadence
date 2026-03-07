@@ -1,21 +1,26 @@
 /**
- * WeekRow - A single week row in the month view.
- * Combines PhaseBand (day numbers with phase strips) and a 7-column session card grid.
- * Reference: cadence-calendar-final.jsx lines 484-661
+ * WeekRow - A single week row in the month view with staggered entrance
+ * and pulsing today column highlight.
  */
 
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo } from "react";
 import { View, StyleSheet } from "react-native";
+import Animated, {
+  Easing,
+  FadeInUp,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
 import { PhaseBand } from "./PhaseBand";
 import { SessionCard } from "./SessionCard";
 import { computePhaseSegments } from "./helpers";
 import type { CalSession, CalendarDay, Phase } from "./types";
 
-const HIGHLIGHT_COLORS = [
-  "rgba(200,255,0,0.047)",
-  "rgba(200,255,0,0.024)",
-] as const;
+const HIGHLIGHT_COLORS = ["rgba(200,255,0,0.047)", "rgba(200,255,0,0.024)"] as const;
 
 interface WeekRowProps {
   week: CalendarDay[];
@@ -23,6 +28,31 @@ interface WeekRowProps {
   phaseLookup: Map<string, Phase>;
   sessions: Record<string, CalSession[]>;
   todayKey: string;
+  onSessionPress?: (dateKey: string, session: CalSession) => void;
+  enterDelay?: number;
+}
+
+function TodayColumnPulse({ style }: { style: any[] }) {
+  const pulseOpacity = useSharedValue(0.7);
+
+  useEffect(() => {
+    pulseOpacity.value = withRepeat(
+      withSequence(
+        withTiming(1, { duration: 2000, easing: Easing.inOut(Easing.ease) }),
+        withTiming(0.5, { duration: 2000, easing: Easing.inOut(Easing.ease) })
+      ),
+      -1,
+      true
+    );
+  }, [pulseOpacity]);
+
+  const animStyle = useAnimatedStyle(() => ({ opacity: pulseOpacity.value }));
+
+  return (
+    <Animated.View style={[...style, animStyle]} pointerEvents="none">
+      <LinearGradient colors={HIGHLIGHT_COLORS} style={StyleSheet.absoluteFill} />
+    </Animated.View>
+  );
 }
 
 export const WeekRow = React.memo(function WeekRow({
@@ -31,23 +61,19 @@ export const WeekRow = React.memo(function WeekRow({
   phaseLookup,
   sessions,
   todayKey,
+  onSessionPress,
+  enterDelay = 0,
 }: WeekRowProps) {
-  const segments = useMemo(
-    () => computePhaseSegments(week, phaseLookup),
-    [week, phaseLookup]
-  );
+  const segments = useMemo(() => computePhaseSegments(week, phaseLookup), [week, phaseLookup]);
 
   const weekHasSessions = useMemo(
     () => week.some((d) => (sessions[d.key] || []).length > 0),
     [week, sessions]
   );
 
-  const todayColIdx = useMemo(
-    () => week.findIndex((d) => d.key === todayKey),
-    [week, todayKey]
-  );
+  const todayColIdx = useMemo(() => week.findIndex((d) => d.key === todayKey), [week, todayKey]);
 
-  const highlightStyle = useMemo(
+  const highlightPositionStyle = useMemo(
     () =>
       todayColIdx >= 0
         ? [
@@ -62,29 +88,17 @@ export const WeekRow = React.memo(function WeekRow({
   );
 
   return (
-    <View
+    <Animated.View
+      entering={FadeInUp.delay(enterDelay).duration(350).easing(Easing.out(Easing.cubic))}
       style={[
         weekHasSessions ? styles.flexRow : styles.autoRow,
         weekIndex > 0 && styles.separator,
       ]}
     >
-      {/* Today column highlight */}
-      {highlightStyle && (
-        <LinearGradient
-          colors={HIGHLIGHT_COLORS}
-          style={highlightStyle}
-          pointerEvents="none"
-        />
-      )}
+      {highlightPositionStyle && <TodayColumnPulse style={highlightPositionStyle} />}
 
-      {/* Phase band with day numbers */}
-      <PhaseBand
-        segments={segments}
-        week={week}
-        todayKey={todayKey}
-      />
+      <PhaseBand segments={segments} week={week} todayKey={todayKey} />
 
-      {/* Session cards grid */}
       <View style={styles.cardsGrid}>
         {week.map((d, di) => {
           const daySessions = sessions[d.key] || [];
@@ -99,6 +113,8 @@ export const WeekRow = React.memo(function WeekRow({
                   session={s}
                   isToday={isToday}
                   isOutside={d.outside}
+                  onPress={onSessionPress ? () => onSessionPress(d.key, s) : undefined}
+                  enterDelay={enterDelay + di * 30}
                 />
               ) : (
                 <View style={styles.emptyCell} />
@@ -107,7 +123,7 @@ export const WeekRow = React.memo(function WeekRow({
           );
         })}
       </View>
-    </View>
+    </Animated.View>
   );
 });
 

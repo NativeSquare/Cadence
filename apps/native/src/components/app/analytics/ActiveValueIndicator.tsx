@@ -14,7 +14,7 @@ import {
   type SkFont,
 } from "@shopify/react-native-skia";
 import { useDerivedValue, type SharedValue } from "react-native-reanimated";
-import { COLORS, GRAYS } from "@/lib/design-tokens";
+import { COLORS } from "@/lib/design-tokens";
 
 interface ActiveValueIndicatorProps {
   xPosition: SharedValue<number>;
@@ -61,7 +61,7 @@ export function ActiveValueIndicator({
       <SkiaLine
         p1={lineP1}
         p2={lineP2}
-        color="rgba(255,255,255,0.08)"
+        color="rgba(0,0,0,0.08)"
         strokeWidth={1}
         style="stroke"
       />
@@ -71,7 +71,7 @@ export function ActiveValueIndicator({
       {/* Filled dot */}
       <Circle cx={xPosition} cy={yPosition} r={5} color={color} />
       {/* Inner highlight */}
-      <Circle cx={xPosition} cy={yPosition} r={2} color="#1A1A1A" />
+      <Circle cx={xPosition} cy={yPosition} r={2} color="#FFFFFF" />
 
       {/* Value pill background */}
       {font && (
@@ -82,14 +82,14 @@ export function ActiveValueIndicator({
             width={labelWidth}
             height={PILL_HEIGHT}
             r={7}
-            color={GRAYS.g1}
+            color="#1A1A1A"
           />
           <SkiaText
             x={textX}
             y={PILL_Y + 15}
             text={label}
             font={font}
-            color="#1A1A1A"
+            color="#FFFFFF"
           />
         </>
       )}

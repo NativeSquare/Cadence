@@ -1,13 +1,9 @@
 import { CalendarScreen } from "@/components/app/calendar";
 
 /**
- * Calendar Tab - Monthly/Weekly training calendar view
- * Renders the CalendarScreen component which shows:
- * - Month view with phase timeline, phase bands, and session cards
- * - Week view with detailed daily cards and week summary
- * - Toggle between Sem. (week) and Mois (month) views
- *
- * Reference: cadence-calendar-final.jsx CalendarTab component
+ * Calendar Tab - Monthly training calendar
+ * Shows a clean month grid with colored session type indicators,
+ * a bottom legend, and a detail sheet on day tap.
  */
 export default function Calendar() {
   return <CalendarScreen />;

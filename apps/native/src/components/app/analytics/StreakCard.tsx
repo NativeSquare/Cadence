@@ -20,7 +20,17 @@ import Animated, {
   Easing,
 } from "react-native-reanimated";
 import { Text } from "@/components/ui/text";
-import { COLORS, GRAYS } from "@/lib/design-tokens";
+import { LIGHT_THEME } from "@/lib/design-tokens";
+
+const CARD_SHADOW = {
+  borderWidth: 1,
+  borderColor: "rgba(0,0,0,0.08)",
+  shadowColor: "#000",
+  shadowOffset: { width: 0, height: 4 },
+  shadowOpacity: 0.10,
+  shadowRadius: 16,
+  elevation: 4,
+} as const;
 import { MOCK_VOLUME_STATS } from "./mock-data";
 
 interface StreakCardProps {
@@ -60,7 +70,7 @@ const ActivityDot = memo(function ActivityDot({
       className="w-[6px] h-[6px] rounded-full"
       style={[
         {
-          backgroundColor: active ? COLORS.lime : "rgba(255,255,255,0.15)",
+          backgroundColor: active ? "#4A7300" : "rgba(0,0,0,0.15)",
         },
         dotStyle,
       ]}
@@ -98,21 +108,21 @@ export function StreakCard({
 
   return (
     <View
-      className="w-[100px] p-4 rounded-[20px] items-center justify-center"
-      style={{ backgroundColor: "#1A1A1A" }}
+      className="w-[110px] p-4 rounded-[20px] items-center justify-center"
+      style={{ backgroundColor: LIGHT_THEME.w1, ...CARD_SHADOW }}
     >
       <Animated.View style={numberStyle}>
         <Text
-          className="text-[36px] font-coach-extrabold leading-none"
-          style={{ color: COLORS.lime }}
+          className="text-[40px] font-coach-extrabold leading-none"
+          style={{ color: "#4A7300" }}
         >
           {streak}
         </Text>
       </Animated.View>
 
       <Text
-        className="text-[10px] font-coach-medium mt-1"
-        style={{ color: "rgba(255,255,255,0.4)" }}
+        className="text-[11px] font-coach-medium mt-1"
+        style={{ color: LIGHT_THEME.wSub }}
       >
         day streak
       </Text>

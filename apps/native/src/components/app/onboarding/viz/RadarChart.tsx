@@ -190,7 +190,7 @@ function ValueLabel({
             styles.labelText,
             {
               color: labelColor,
-              fontWeight: isSelected ? "600" : "500",
+              fontFamily: isSelected ? "Outfit-Bold" : "Outfit-SemiBold",
             },
           ]}
           numberOfLines={1}
@@ -275,7 +275,7 @@ export function RadarChart({
 }: RadarChartProps) {
   const center = size / 2;
   const radius = size / 2 - 40;
-  const gridLevels = [25, 50, 75, 100];
+  const gridLevels = [100];
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
 
   const progress = useSharedValue(animate ? 0 : 1);
@@ -335,21 +335,20 @@ export function RadarChart({
           </LinearGradient>
         </Defs>
 
-        {/* Grid hexagons */}
+        {/* Outer boundary ring */}
         <G>
           {gridLevels.map((level) => (
             <Path
               key={level}
               d={getGridPathD(level, radius, center)}
               fill="none"
-              stroke="rgba(255,255,255,0.10)"
-              strokeWidth={level === 100 ? 1.5 : 1}
-              strokeDasharray={level === 50 ? "4,4" : undefined}
+              stroke="rgba(255,255,255,0.08)"
+              strokeWidth={1}
             />
           ))}
         </G>
 
-        {/* Axis lines */}
+        {/* Axis spokes */}
         <G>
           {data.map((_, i) => {
             const angle = (Math.PI * 2 * i) / 6 - Math.PI / 2;
@@ -362,7 +361,7 @@ export function RadarChart({
                 y1={center}
                 x2={x2}
                 y2={y2}
-                stroke="rgba(255,255,255,0.10)"
+                stroke="rgba(255,255,255,0.06)"
                 strokeWidth={1}
               />
             );
@@ -471,19 +470,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   labelText: {
-    fontFamily: "JetBrainsMono-Medium",
+    fontFamily: "Outfit-SemiBold",
     fontSize: 9,
     lineHeight: 11,
-    fontWeight: "500",
-    letterSpacing: 0.4,
+    letterSpacing: 0.45,
     textTransform: "uppercase",
     textAlign: "center",
   },
   valueText: {
-    fontFamily: "JetBrainsMono-Medium",
+    fontFamily: "Outfit-ExtraBold",
     fontSize: 13,
     lineHeight: 15,
-    fontWeight: "500",
     textAlign: "center",
   },
 });

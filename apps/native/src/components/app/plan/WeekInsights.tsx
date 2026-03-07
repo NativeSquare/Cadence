@@ -1,12 +1,13 @@
 /**
  * WeekInsights - "This Week" section for the Plan tab
  *
- * Two side-by-side insight cards:
+ * Three side-by-side insight cards:
  * - Volume: weekly km + time progress with animated bar
- * - Streak & Sessions: consecutive training days with session-type-colored dots
+ * - Sessions: completed vs total training sessions with check indicators
+ * - Streak: consecutive training days with flame icon
  */
 
-import { memo, useEffect } from "react";
+import { useEffect } from "react";
 import { View } from "react-native";
 import Animated, {
   cancelAnimation,
@@ -14,17 +15,11 @@ import Animated, {
   useSharedValue,
   withTiming,
   withDelay,
-  withSequence,
   Easing,
 } from "react-native-reanimated";
+import { Gauge, Check } from "lucide-react-native";
 import { Text } from "@/components/ui/text";
-import {
-  COLORS,
-  LIGHT_THEME,
-  SESSION_TYPE_COLORS,
-  SESSION_TYPE_COLORS_DIM,
-  getSessionCategory,
-} from "@/lib/design-tokens";
+import { COLORS } from "@/lib/design-tokens";
 import type { SessionData } from "./types";
 
 const CARD_SHADOW = {
@@ -101,97 +96,67 @@ function VolumeInsight({
   );
 }
 
-// ─── Streak & Sessions Card ──────────────────────────────────────────────────
+// ─── Sessions Card ────────────────────────────────────────────────────────────
 
-const ActivityDot = memo(function ActivityDot({
-  active,
-  index,
-}: {
-  active: boolean;
-  index: number;
-}) {
-  const scale = useSharedValue(0);
-
-  useEffect(() => {
-    scale.value = withDelay(
-      400 + index * 50,
-      withSequence(
-        withTiming(1.3, { duration: 100 }),
-        withTiming(1, { duration: 150 })
-      )
-    );
-    return () => cancelAnimation(scale);
-  }, []);
-
-  const dotStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
-
+function SessionCheckDot({ done }: { done: boolean }) {
   return (
-    <Animated.View
-      className="w-[5px] h-[5px] rounded-full"
-      style={[
-        {
-          backgroundColor: active
-            ? LIGHT_THEME.wText
-            : LIGHT_THEME.wBrd,
-        },
-        dotStyle,
-      ]}
-    />
-  );
-});
-
-function SessionDot({
-  session,
-  index,
-}: {
-  session: SessionData;
-  index: number;
-}) {
-  const scale = useSharedValue(0);
-  const category = getSessionCategory(session.type);
-  const color = session.done
-    ? SESSION_TYPE_COLORS[category]
-    : SESSION_TYPE_COLORS_DIM[category];
-
-  useEffect(() => {
-    scale.value = withDelay(
-      500 + index * 60,
-      withSequence(
-        withTiming(1.2, { duration: 100 }),
-        withTiming(1, { duration: 150 })
-      )
-    );
-    return () => cancelAnimation(scale);
-  }, []);
-
-  const dotStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
-
-  return (
-    <Animated.View
-      className="w-[10px] h-[10px] rounded-full"
-      style={[{ backgroundColor: color }, dotStyle]}
-    />
+    <View
+      className="w-[18px] h-[18px] rounded-full items-center justify-center"
+      style={{
+        backgroundColor: done ? COLORS.lime : "transparent",
+        borderWidth: done ? 0 : 1.5,
+        borderColor: done ? undefined : "rgba(0,0,0,0.12)",
+      }}
+    >
+      {done && <Check size={11} strokeWidth={3} color="#1A1A1A" />}
+    </View>
   );
 }
 
-function StreakSessionsInsight({
-  streak,
-  streakDays,
-  sessions,
-}: {
-  streak: number;
-  streakDays: boolean[];
-  sessions: SessionData[];
-}) {
-  const numberOpacity = useSharedValue(0);
-  const numberTranslateY = useSharedValue(8);
-
+function SessionsInsight({ sessions }: { sessions: SessionData[] }) {
   const trainingSessions = sessions.filter((s) => s.intensity !== "rest");
   const completed = trainingSessions.filter((s) => s.done).length;
+
+  return (
+    <View
+      className="flex-1 py-4 rounded-2xl items-center justify-between bg-w1"
+      style={CARD_SHADOW}
+    >
+      <Text
+        className="text-[11px] font-coach-semibold text-wSub uppercase"
+        style={{ letterSpacing: 0.05 * 11 }}
+      >
+        Sessions
+      </Text>
+
+      <View className="items-center mt-2">
+        <View className="flex-row items-baseline">
+          <Text className="text-[28px] font-coach-extrabold leading-none text-wText">
+            {completed}
+          </Text>
+          <Text className="text-[14px] font-coach-medium text-wMute">
+            /{trainingSessions.length}
+          </Text>
+        </View>
+        <Text className="text-[11px] font-coach-medium text-wSub mt-0.5">
+          done
+        </Text>
+      </View>
+
+      <View className="flex-row gap-1.5 mt-2.5">
+        {trainingSessions.map((session, i) => (
+          <SessionCheckDot key={i} done={session.done} />
+        ))}
+      </View>
+    </View>
+  );
+}
+
+// ─── Avg Pace Card ────────────────────────────────────────────────────────────
+
+function AvgPaceInsight({ avgPace }: { avgPace: string }) {
+  const numberOpacity = useSharedValue(0);
+  const numberTranslateY = useSharedValue(8);
 
   useEffect(() => {
     numberOpacity.value = withDelay(
@@ -215,43 +180,26 @@ function StreakSessionsInsight({
 
   return (
     <View
-      className="w-[110px] py-4 rounded-2xl items-center justify-between bg-w1"
+      className="flex-1 py-4 rounded-2xl items-center justify-center bg-wText"
       style={CARD_SHADOW}
     >
-      {/* Streak */}
-      <View className="items-center">
-        <Animated.View style={numberStyle}>
-          <Text className="text-[32px] font-coach-extrabold leading-none text-wText">
-            {streak}
-          </Text>
-        </Animated.View>
+      <Gauge size={16} color={COLORS.lime} />
+
+      <Animated.View style={numberStyle} className="mt-1">
         <Text
-          className="text-[10px] font-coach-medium mt-1 text-wSub uppercase"
-          style={{ letterSpacing: 0.05 * 10 }}
+          className="text-[28px] font-coach-extrabold leading-none"
+          style={{ color: COLORS.lime }}
         >
-          day streak
+          {avgPace}
         </Text>
-        <View className="flex-row gap-[3px] mt-1.5">
-          {streakDays.map((active, index) => (
-            <ActivityDot key={index} active={active} index={index} />
-          ))}
-        </View>
-      </View>
+      </Animated.View>
 
-      {/* Divider */}
-      <View className="w-10 h-px bg-wBrd my-2.5" />
-
-      {/* Sessions */}
-      <View className="items-center">
-        <View className="flex-row gap-2 mb-1.5">
-          {trainingSessions.map((session, i) => (
-            <SessionDot key={i} session={session} index={i} />
-          ))}
-        </View>
-        <Text className="text-[11px] font-coach-medium text-wSub">
-          {completed}/{trainingSessions.length} sessions
-        </Text>
-      </View>
+      <Text
+        className="text-[10px] font-coach-medium mt-1 uppercase"
+        style={{ color: "rgba(255,255,255,0.5)", letterSpacing: 0.05 * 10 }}
+      >
+        /km avg
+      </Text>
     </View>
   );
 }
@@ -262,8 +210,7 @@ interface WeekInsightsProps {
   volumeCompleted: number;
   volumePlanned: number;
   timeCompleted: string;
-  streak: number;
-  streakDays: boolean[];
+  avgPace: string;
   sessions: SessionData[];
 }
 
@@ -271,8 +218,7 @@ export function WeekInsights({
   volumeCompleted,
   volumePlanned,
   timeCompleted,
-  streak,
-  streakDays,
+  avgPace,
   sessions,
 }: WeekInsightsProps) {
   return (
@@ -284,17 +230,15 @@ export function WeekInsights({
         This Week
       </Text>
 
-      <View className="flex-row gap-2.5">
-        <VolumeInsight
-          completed={volumeCompleted}
-          planned={volumePlanned}
-          timeCompleted={timeCompleted}
-        />
-        <StreakSessionsInsight
-          streak={streak}
-          streakDays={streakDays}
-          sessions={sessions}
-        />
+      <VolumeInsight
+        completed={volumeCompleted}
+        planned={volumePlanned}
+        timeCompleted={timeCompleted}
+      />
+
+      <View className="flex-row gap-2.5 mt-2.5">
+        <SessionsInsight sessions={sessions} />
+        <AvgPaceInsight avgPace={avgPace} />
       </View>
     </View>
   );

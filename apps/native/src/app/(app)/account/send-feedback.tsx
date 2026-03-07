@@ -1,19 +1,17 @@
 import { DescribeFeedbackField } from "@/components/app/feedback/describe-feedback";
 import { FeedbackTypeField } from "@/components/app/feedback/feedback-type";
 import { ImageUploaderField } from "@/components/app/feedback/image-uploader-field";
-import { Button } from "@/components/ui/button";
-import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import { useUploadImage } from "@/hooks/use-upload-image";
 import { getConvexErrorMessage } from "@/utils/getConvexErrorMessage";
+import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
 import { FeedbackSchema } from "@/validation/feedback";
 import { api } from "@packages/backend/convex/_generated/api";
+import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery } from "convex/react";
-import { router } from "expo-router";
-import { ChevronLeft } from "lucide-react-native";
-import { useColorScheme } from "nativewind";
+import { useRouter } from "expo-router";
 import React from "react";
-import { ActivityIndicator, ScrollView, View } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, View } from "react-native";
 import z from "zod";
 
 export type FeedbackFormData = {
@@ -23,7 +21,7 @@ export type FeedbackFormData = {
 };
 
 export default function SendFeedback() {
-  const { colorScheme } = useColorScheme();
+  const router = useRouter();
   const [formData, setFormData] = React.useState<FeedbackFormData>();
   const [isLoading, setIsLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
@@ -39,7 +37,6 @@ export default function SendFeedback() {
     setError(null);
     setFieldErrors({});
 
-    // Field Validation
     const result = FeedbackSchema.safeParse({
       type: formData?.type ?? "",
       feedbackText: formData?.feedbackText ?? "",
@@ -65,7 +62,6 @@ export default function SendFeedback() {
     setIsLoading(true);
 
     try {
-      // Upload images and convert URIs to storage IDs
       const feedbackImageIds =
         formData?.feedbackImages && formData.feedbackImages.length > 0
           ? await uploadImages(formData.feedbackImages)
@@ -92,48 +88,38 @@ export default function SendFeedback() {
     });
   };
 
-  const renderHeader = () => {
-    return (
-      <View className="flex-row items-center justify-between px-5 pt-6">
-        <Button variant="ghost" size="icon" onPress={() => router.back()}>
-          <Icon as={ChevronLeft} size={24} />
-        </Button>
-        <Text className="text-lg font-semibold">Send Feedback</Text>
-        <View className="size-6" />
-      </View>
-    );
-  };
-
-  const renderFooter = () => {
-    return (
-      <View className="gap-2">
-        {error && (
-          <Text className="text-sm text-destructive text-center">{error}</Text>
-        )}
-        <Button className="w-full" onPress={handleSubmit} disabled={isLoading}>
-          {isLoading ? (
-            <ActivityIndicator color={colorScheme === "dark" ? "black" : "white"} />
-          ) : (
-            <Text>Submit</Text>
-          )}
-        </Button>
-      </View>
-    );
-  };
-
   return (
-    <View className="flex-1 mt-safe bg-background">
+    <View className="mt-safe flex-1" style={{ backgroundColor: LIGHT_THEME.w2 }}>
+      <View
+        className="flex-row items-center gap-3 px-4 pb-3 pt-4"
+        style={{ borderBottomWidth: 1, borderBottomColor: LIGHT_THEME.wBrd }}
+      >
+        <Pressable
+          onPress={() => router.back()}
+          className="size-9 items-center justify-center rounded-full active:opacity-70"
+          style={{ backgroundColor: LIGHT_THEME.w3 }}
+        >
+          <Ionicons name="chevron-back" size={20} color={LIGHT_THEME.wText} />
+        </Pressable>
+        <Text
+          className="flex-1 font-coach-bold text-lg"
+          style={{ color: LIGHT_THEME.wText }}
+        >
+          Send Feedback
+        </Text>
+      </View>
+
       <ScrollView
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="interactive"
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ flexGrow: 1 }}
-        contentContainerClassName="px-4 pb-6"
+        contentContainerClassName="px-4 py-6"
       >
-        <View className="w-full max-w-md self-center flex flex-1 gap-6">
-          {renderHeader()}
-
-          <Text className="text-muted-foreground text-sm">
+        <View className="w-full max-w-md gap-6 self-center">
+          <Text
+            className="font-coach text-[13px]"
+            style={{ color: LIGHT_THEME.wMute }}
+          >
             Tell us what you think. Your feedback helps improve the app.
           </Text>
 
@@ -168,8 +154,36 @@ export default function SendFeedback() {
         </View>
       </ScrollView>
 
-      <View className="w-full max-w-md self-center px-4 pb-4 mb-safe">
-        {renderFooter()}
+      <View className="w-full max-w-md gap-2 self-center px-4 pb-4 mb-safe">
+        {error && (
+          <Text
+            className="text-center font-coach text-sm"
+            style={{ color: COLORS.red }}
+          >
+            {error}
+          </Text>
+        )}
+        <Pressable
+          onPress={handleSubmit}
+          disabled={isLoading}
+          className="items-center rounded-2xl py-3.5 active:opacity-90"
+          style={{
+            backgroundColor: isLoading ? LIGHT_THEME.w3 : LIGHT_THEME.wText,
+          }}
+        >
+          {isLoading ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <Text
+              className="font-coach-bold text-sm"
+              style={{
+                color: isLoading ? LIGHT_THEME.wMute : "#FFFFFF",
+              }}
+            >
+              Submit
+            </Text>
+          )}
+        </Pressable>
       </View>
     </View>
   );

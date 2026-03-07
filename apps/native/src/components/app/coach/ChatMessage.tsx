@@ -17,12 +17,13 @@
  * Source: Story 10.3 - AC#1, AC#3, Task 3
  */
 
-import { View } from "react-native";
+import { View, Image } from "react-native";
 import { Text } from "@/components/ui/text";
 import Animated, { FadeIn } from "react-native-reanimated";
-import { Bot } from "lucide-react-native";
 
 import type { ChatMessageProps } from "./types";
+
+const CADENCE_ICON = require("../../../../assets/icons/ios-icon.png");
 
 // =============================================================================
 // Sub-components
@@ -59,26 +60,33 @@ export function ChatMessage({ message, isCoach }: ChatMessageProps) {
       entering={FadeIn.duration(200)}
       className={`flex-row mb-2.5 ${isCoach ? "justify-start" : "justify-end"}`}
     >
-      {/* Coach avatar */}
+      {/* Coach avatar — Cadence app icon */}
       {isCoach && (
-        <View className="w-7 h-7 rounded-full bg-lime items-center justify-center mr-2 mt-1">
-          <Bot size={16} color="#000" strokeWidth={2.2} />
+        <View className="w-7 h-7 rounded-full overflow-hidden mr-2 mt-1">
+          <Image source={CADENCE_ICON} className="w-7 h-7" />
         </View>
       )}
 
       <View
         className={`max-w-[75%] px-4 py-3.5 ${
           isCoach
-            ? "bg-w1 border border-wBrd"
+            ? "bg-w1"
             : "bg-wText"
         }`}
         style={{
-          // Coach: 18px top corners, 6px bottom-left
-          // User: 18px top corners, 6px bottom-right
           borderTopLeftRadius: 18,
           borderTopRightRadius: 18,
           borderBottomLeftRadius: isCoach ? 6 : 18,
           borderBottomRightRadius: isCoach ? 18 : 6,
+          ...(isCoach && {
+            borderWidth: 1,
+            borderColor: "rgba(0,0,0,0.08)",
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 1 },
+            shadowOpacity: 0.06,
+            shadowRadius: 4,
+            elevation: 1,
+          }),
         }}
       >
         {/* Coach badge only for assistant messages */}

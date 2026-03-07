@@ -189,8 +189,7 @@ export const MOCK_PLAN_DATA: PlanData = {
   volumeCompleted: 18.7,
   volumePlanned: 42.2,
   timeCompleted: "2h 25m",
-  streak: 5,
-  streakDays: [true, false, true, false, false, false, false],
+  avgPace: "5:12",
   weekOverWeekChange: 8,
   coachMessage: MOCK_COACH_MESSAGE,
 };

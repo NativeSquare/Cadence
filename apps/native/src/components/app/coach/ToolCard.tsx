@@ -74,7 +74,7 @@ export function ToolCard({ title, data }: ToolCardProps) {
         style={{
           borderRadius: 18,
           borderWidth: 1.5,
-          borderColor: "#C8FF00", // lime
+          borderColor: "#C8FF00",
         }}
       >
         {/* Title bar - lime background */}
