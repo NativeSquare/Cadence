@@ -1,14 +1,13 @@
 /**
- * CalendarScreen - Clean monthly calendar with session type indicators.
+ * CalendarScreen - Monthly calendar with two toggleable perspectives:
  *
- * Training days show a tinted circle + colored dot beneath the day number,
- * colored by session type (easy / specific / long / race).
- * Rest days appear plain so the contrast is immediately scannable.
+ * 1. **Sessions** – rounded-square tiles with colored dots for each session type.
+ * 2. **Blocks** – same tile grid but tiles are tinted by training phase color
+ *    (Base / Build / Taper / Race / Recovery) with a phase legend.
  *
  * - Animated month navigation with haptic feedback
  * - Tap month name to return to today
  * - Tap a training day to view session details in a bottom sheet
- * - Legend card at the bottom for the four session type colors
  */
 
 import React, { useCallback, useMemo, useRef, useState } from "react";
@@ -18,6 +17,7 @@ import {
   Pressable,
   StyleSheet,
   ScrollView,
+  useWindowDimensions,
 } from "react-native";
 import Animated, {
   runOnJS,
@@ -43,19 +43,91 @@ import {
   DAY_HEADERS,
   CAL_SESSIONS,
   SESSION_LABELS,
+  PHASES,
   TODAY_KEY,
 } from "./constants";
-import { buildWeeks } from "./helpers";
+import { buildWeeks, buildPhaseLookup, blendWithBg } from "./helpers";
 import type { CalSession, CalSessionType } from "./types";
 
-const CIRCLE_SIZE = 40;
+type ViewMode = "sessions" | "blocks";
+
+const GRID_GAP = 6;
+const GRID_PADDING = 10;
+
+function ViewToggle({
+  value,
+  onChange,
+}: {
+  value: ViewMode;
+  onChange: (v: ViewMode) => void;
+}) {
+  const indicatorX = useSharedValue(value === "sessions" ? 0 : 1);
+
+  const handlePress = useCallback(
+    (mode: ViewMode) => {
+      if (mode === value) return;
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      indicatorX.value = withSpring(mode === "sessions" ? 0 : 1, {
+        damping: 20,
+        stiffness: 200,
+      });
+      onChange(mode);
+    },
+    [value, onChange, indicatorX],
+  );
+
+  const indicatorStyle = useAnimatedStyle(() => ({
+    left: `${indicatorX.value * 50}%` as unknown as number,
+  }));
+
+  return (
+    <View style={toggleStyles.container}>
+      <Animated.View style={[toggleStyles.indicator, indicatorStyle]} />
+      <Pressable
+        style={toggleStyles.option}
+        onPress={() => handlePress("sessions")}
+        hitSlop={4}
+      >
+        <Text
+          style={[
+            toggleStyles.label,
+            value === "sessions" && toggleStyles.labelActive,
+          ]}
+        >
+          Sessions
+        </Text>
+      </Pressable>
+      <Pressable
+        style={toggleStyles.option}
+        onPress={() => handlePress("blocks")}
+        hitSlop={4}
+      >
+        <Text
+          style={[
+            toggleStyles.label,
+            value === "blocks" && toggleStyles.labelActive,
+          ]}
+        >
+          Blocks
+        </Text>
+      </Pressable>
+    </View>
+  );
+}
 
 export function CalendarScreen() {
   const insets = useSafeAreaInsets();
+  const { width: screenWidth } = useWindowDimensions();
   const todayDate = useMemo(() => new Date(TODAY_KEY + "T00:00:00"), []);
+
+  const tileSize = useMemo(
+    () => Math.floor((screenWidth - GRID_PADDING * 2 - GRID_GAP * 6) / 7),
+    [screenWidth],
+  );
 
   const [currentMonth, setCurrentMonth] = useState(todayDate.getMonth());
   const [currentYear, setCurrentYear] = useState(todayDate.getFullYear());
+  const [viewMode, setViewMode] = useState<ViewMode>("sessions");
 
   const sheetRef = useRef<GorhomBottomSheetModal>(null);
   const [selectedSession, setSelectedSession] = useState<CalSession | null>(
@@ -70,6 +142,15 @@ export function CalendarScreen() {
     () => buildWeeks(currentYear, currentMonth),
     [currentYear, currentMonth],
   );
+
+  const phaseLookup = useMemo(() => buildPhaseLookup(PHASES), []);
+
+  const visiblePhases = useMemo(() => {
+    const monthStart = `${currentYear}-${String(currentMonth + 1).padStart(2, "0")}-01`;
+    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+    const monthEnd = `${currentYear}-${String(currentMonth + 1).padStart(2, "0")}-${String(daysInMonth).padStart(2, "0")}`;
+    return PHASES.filter((p) => p.end >= monthStart && p.start <= monthEnd);
+  }, [currentYear, currentMonth]);
 
   // ─── Month navigation ──────────────────────────────────────────────
 
@@ -98,19 +179,15 @@ export function CalendarScreen() {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       const exit = direction === "next" ? -1 : 1;
       contentFade.value = withTiming(0, { duration: 100 });
-      contentTranslateX.value = withTiming(
-        exit * 40,
-        { duration: 100 },
-        () => {
-          runOnJS(updateMonth)(direction);
-          contentTranslateX.value = exit * -40;
-          contentFade.value = withTiming(1, { duration: 200 });
-          contentTranslateX.value = withSpring(0, {
-            damping: 18,
-            stiffness: 180,
-          });
-        },
-      );
+      contentTranslateX.value = withTiming(exit * 40, { duration: 100 }, () => {
+        runOnJS(updateMonth)(direction);
+        contentTranslateX.value = exit * -40;
+        contentFade.value = withTiming(1, { duration: 200 });
+        contentTranslateX.value = withSpring(0, {
+          damping: 18,
+          stiffness: 180,
+        });
+      });
     },
     [contentFade, contentTranslateX, updateMonth],
   );
@@ -134,7 +211,7 @@ export function CalendarScreen() {
     transform: [{ translateX: contentTranslateX.value }],
   }));
 
-  // ─── Day press ────────────────────────────────────────────────────
+  // ─── Day / session press ─────────────────────────────────────────
 
   const handleDayPress = useCallback((dateKey: string) => {
     const sessions = CAL_SESSIONS[dateKey];
@@ -166,9 +243,7 @@ export function CalendarScreen() {
           </Pressable>
           <Pressable onPress={handleReturnToToday} hitSlop={8}>
             <View style={st.monthRow}>
-              <Text style={st.monthText}>
-                {MONTH_NAMES[currentMonth]}
-              </Text>
+              <Text style={st.monthText}>{MONTH_NAMES[currentMonth]}</Text>
               <Text style={st.yearText}>{currentYear}</Text>
               {!isCurrentMonth && <View style={st.returnDot} />}
             </View>
@@ -180,6 +255,10 @@ export function CalendarScreen() {
           >
             <ChevronRight size={20} color={GRAYS.g2} strokeWidth={2} />
           </Pressable>
+        </View>
+
+        <View style={st.toggleRow}>
+          <ViewToggle value={viewMode} onChange={setViewMode} />
         </View>
       </View>
 
@@ -203,77 +282,145 @@ export function CalendarScreen() {
             ))}
           </View>
 
-          {/* Week rows */}
+          {/* Week rows — tile grid */}
           {weeks.map((week, wi) => (
             <View key={`w-${wi}`} style={st.weekRow}>
               {week.map((day) => {
                 const sessions = CAL_SESSIONS[day.key];
                 const hasSession = sessions && sessions.length > 0;
-                const type = hasSession ? sessions[0].type : null;
-                const color = type ? SESSION_TYPE_COLORS[type] : null;
                 const isToday = day.key === TODAY_KEY;
+                const phase = phaseLookup.get(day.key);
+                const isBlocks = viewMode === "blocks";
+
+                const tileStyle = {
+                  width: tileSize,
+                  height: tileSize,
+                };
+
+                if (day.outside) {
+                  return (
+                    <View key={day.key} style={st.cellWrapper}>
+                      <View style={[st.tile, tileStyle]}>
+                        <Text style={[st.dayNum, st.dayNumOutside]}>
+                          {day.day}
+                        </Text>
+                      </View>
+                    </View>
+                  );
+                }
+
+                const blockTileBg =
+                  isBlocks && phase
+                    ? {
+                        backgroundColor: blendWithBg(phase.color, 0.18),
+                        borderWidth: 1,
+                        borderColor: blendWithBg(phase.color, 0.25),
+                      }
+                    : undefined;
 
                 return (
-                  <Pressable
-                    key={day.key}
-                    style={st.cell}
-                    onPress={() => !day.outside && handleDayPress(day.key)}
-                  >
-                    <View
-                      style={[
-                        st.circle,
-                        isToday && st.circleToday,
-                        hasSession &&
-                          !isToday &&
-                          !day.outside &&
-                          color != null && {
-                            backgroundColor: color + "26",
-                          },
-                      ]}
-                    >
-                      <Text
+                  <View key={day.key} style={st.cellWrapper}>
+                    <Pressable onPress={() => handleDayPress(day.key)}>
+                      <View
                         style={[
-                          st.dayNum,
-                          day.outside && st.dayNumOutside,
-                          isToday && st.dayNumToday,
-                          hasSession &&
-                            !isToday &&
-                            !day.outside &&
-                            st.dayNumActive,
+                          st.tile,
+                          tileStyle,
+                          isBlocks
+                            ? blockTileBg ?? st.tileEmpty
+                            : hasSession
+                              ? st.tileWithSession
+                              : st.tileEmpty,
+                          isToday && st.tileToday,
                         ]}
                       >
-                        {day.day}
-                      </Text>
-                    </View>
-                    {hasSession && !day.outside ? (
-                      <View
-                        style={[st.dot, { backgroundColor: color! }]}
-                      />
-                    ) : (
-                      <View style={st.dotSpacer} />
-                    )}
-                  </Pressable>
+                        <Text
+                          style={[
+                            st.dayNum,
+                            isToday && st.dayNumToday,
+                            !isToday &&
+                              ((isBlocks && phase) ||
+                                (!isBlocks && hasSession)) &&
+                              st.dayNumActive,
+                          ]}
+                        >
+                          {day.day}
+                        </Text>
+
+                        {isBlocks ? (
+                          phase && day.key === phase.start ? (
+                            <Text
+                              style={[
+                                st.blockLabel,
+                                { color: blendWithBg(phase.color, 0.85, [26, 26, 26]) },
+                              ]}
+                              numberOfLines={1}
+                            >
+                              {phase.name}
+                            </Text>
+                          ) : (
+                            <View style={st.dotsSpacer} />
+                          )
+                        ) : hasSession ? (
+                          <View style={st.dotsRow}>
+                            {sessions!.map((s, si) => (
+                              <View
+                                key={si}
+                                style={[
+                                  st.sessionDot,
+                                  {
+                                    backgroundColor:
+                                      SESSION_TYPE_COLORS[s.type],
+                                  },
+                                  s.done && st.sessionDotDone,
+                                ]}
+                              />
+                            ))}
+                          </View>
+                        ) : (
+                          <View style={st.dotsSpacer} />
+                        )}
+                      </View>
+                    </Pressable>
+                  </View>
                 );
               })}
             </View>
           ))}
 
-          {/* Session type legend */}
+          {/* Legend — swaps between session types and training blocks */}
           <View style={st.legend}>
             <View style={st.legendCard}>
-              {(
-                Object.entries(SESSION_LABELS) as [CalSessionType, string][]
-              ).map(([type, label]) => (
-                <View key={type} style={st.legendItem}>
-                  <View
-                    style={[
-                      st.legendDot,
-                      { backgroundColor: SESSION_TYPE_COLORS[type] },
-                    ]}
-                  />
-                  <Text style={st.legendLabel}>{label}</Text>
-                </View>
-              ))}
+              {viewMode === "sessions"
+                ? (
+                    Object.entries(SESSION_LABELS) as [
+                      CalSessionType,
+                      string,
+                    ][]
+                  ).map(([type, label]) => (
+                    <View key={type} style={st.legendItem}>
+                      <View
+                        style={[
+                          st.legendDot,
+                          { backgroundColor: SESSION_TYPE_COLORS[type] },
+                        ]}
+                      />
+                      <Text style={st.legendLabel}>{label}</Text>
+                    </View>
+                  ))
+                : visiblePhases.map((p) => (
+                    <View key={p.key} style={st.legendItem}>
+                      <View
+                        style={[
+                          st.legendPill,
+                          {
+                            backgroundColor: blendWithBg(p.color, 0.25),
+                            borderLeftColor: p.color,
+                          },
+                        ]}
+                      />
+                      <Text style={st.legendLabel}>{p.name}</Text>
+                    </View>
+                  ))}
             </View>
           </View>
         </Animated.View>
@@ -335,6 +482,10 @@ const st = StyleSheet.create({
     top: -2,
     right: -10,
   },
+  toggleRow: {
+    alignItems: "center",
+    marginTop: 14,
+  },
 
   cornerTransition: {
     height: 24,
@@ -348,13 +499,14 @@ const st = StyleSheet.create({
     backgroundColor: LIGHT_THEME.w2,
   },
   bodyContent: {
-    paddingHorizontal: 12,
+    paddingHorizontal: GRID_PADDING,
     paddingBottom: 32,
   },
 
   dayHeaders: {
     flexDirection: "row",
-    marginBottom: 8,
+    marginBottom: 6,
+    gap: GRID_GAP,
   },
   dayHeaderCell: {
     flex: 1,
@@ -369,49 +521,56 @@ const st = StyleSheet.create({
 
   weekRow: {
     flexDirection: "row",
+    justifyContent: "center",
+    gap: GRID_GAP,
+    marginBottom: GRID_GAP,
   },
 
-  cell: {
-    flex: 1,
+  // ─── Tile styles ────────────────────────────────────────────────────
+
+  cellWrapper: {
     alignItems: "center",
-    paddingVertical: 2,
-    minHeight: 54,
   },
-  circle: {
-    width: CIRCLE_SIZE,
-    height: CIRCLE_SIZE,
-    borderRadius: CIRCLE_SIZE / 2,
+  tile: {
+    borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
+    overflow: "hidden",
   },
-  circleToday: {
-    backgroundColor: LIGHT_THEME.wText,
+  tileEmpty: {
+    backgroundColor: "#EAEAE8",
   },
-  dot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    marginTop: 3,
+  tileWithSession: {
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.06)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
   },
-  dotSpacer: {
-    width: 6,
-    height: 6,
-    marginTop: 3,
+  tileToday: {
+    backgroundColor: LIGHT_THEME.w1,
+    borderWidth: 2,
+    borderColor: LIGHT_THEME.wText,
   },
 
+  // ─── Day number ─────────────────────────────────────────────────────
+
   dayNum: {
-    fontSize: 15,
+    fontSize: 16,
     fontFamily: "Outfit-Regular",
     fontWeight: "400",
-    color: LIGHT_THEME.wSub,
+    color: LIGHT_THEME.wMute,
   },
   dayNumOutside: {
-    opacity: 0.25,
+    opacity: 0.2,
   },
   dayNumToday: {
     fontFamily: "Outfit-Bold",
     fontWeight: "700",
-    color: "#FFFFFF",
+    color: LIGHT_THEME.wText,
   },
   dayNumActive: {
     fontFamily: "Outfit-SemiBold",
@@ -419,8 +578,40 @@ const st = StyleSheet.create({
     color: LIGHT_THEME.wText,
   },
 
+  // ─── Session dots inside tile ───────────────────────────────────────
+
+  dotsRow: {
+    flexDirection: "row",
+    gap: 3,
+    marginTop: 4,
+  },
+  sessionDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  sessionDotDone: {
+    opacity: 0.45,
+  },
+  dotsSpacer: {
+    height: 10,
+  },
+
+  // ─── Block label inside tile (Blocks mode) ────────────────────────
+
+  blockLabel: {
+    fontSize: 7,
+    fontFamily: "Outfit-Bold",
+    fontWeight: "700",
+    letterSpacing: 0.3,
+    textTransform: "uppercase",
+    marginTop: 2,
+  },
+
+  // ─── Legend ─────────────────────────────────────────────────────────
+
   legend: {
-    marginTop: 24,
+    marginTop: 18,
   },
   legendCard: {
     flexDirection: "row",
@@ -444,10 +635,53 @@ const st = StyleSheet.create({
     height: 10,
     borderRadius: 5,
   },
+  legendPill: {
+    width: 18,
+    height: 10,
+    borderRadius: 5,
+    borderLeftWidth: 2.5,
+  },
   legendLabel: {
     fontSize: 13,
     fontFamily: "Outfit-Regular",
     fontWeight: "400",
     color: LIGHT_THEME.wSub,
+  },
+});
+
+const toggleStyles = StyleSheet.create({
+  container: {
+    flexDirection: "row",
+    backgroundColor: "rgba(255,255,255,0.08)",
+    borderRadius: 10,
+    padding: 2,
+    width: 200,
+    position: "relative",
+  },
+  indicator: {
+    position: "absolute",
+    top: 2,
+    bottom: 2,
+    width: "50%",
+    backgroundColor: "rgba(255,255,255,0.12)",
+    borderRadius: 8,
+  },
+  option: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 6,
+    zIndex: 1,
+  },
+  label: {
+    fontSize: 13,
+    fontFamily: "Outfit-Medium",
+    fontWeight: "500",
+    color: GRAYS.g3,
+  },
+  labelActive: {
+    fontFamily: "Outfit-SemiBold",
+    fontWeight: "600",
+    color: GRAYS.g1,
   },
 });
