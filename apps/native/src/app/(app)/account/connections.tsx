@@ -1,5 +1,6 @@
 import { Text } from "@/components/ui/text";
 import { useStrava } from "@/hooks/use-strava";
+import { useGarmin } from "@/hooks/use-garmin";
 import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
 import { getConvexErrorMessage } from "@/utils/getConvexErrorMessage";
 import { Ionicons } from "@expo/vector-icons";
@@ -60,8 +61,13 @@ export default function ConnectionsScreen() {
   const disconnectStrava = useAction(
     api.integrations.strava.sync.disconnectStravaAccount,
   );
+  const disconnectGarmin = useAction(
+    api.integrations.garmin.sync.disconnectGarminAccount,
+  );
   const { connect: connectStrava, isConnecting: stravaConnecting, error: stravaError } =
     useStrava();
+  const { connect: connectGarminFlow, isConnecting: garminConnecting, error: garminError } =
+    useGarmin();
 
   const [saving, setSaving] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
@@ -81,11 +87,15 @@ export default function ConnectionsScreen() {
   const handleConnectStrava = async () => {
     setError(null);
     const result = await connectStrava();
-    if (result) {
-      // Success: runner is marked connected and activities synced by backend
-      return;
-    }
+    if (result) return;
     if (stravaError) setError(stravaError);
+  };
+
+  const handleConnectGarmin = async () => {
+    setError(null);
+    const result = await connectGarminFlow();
+    if (result) return;
+    if (garminError) setError(garminError);
   };
 
   const handleToggle = async (conn: ConnectionDef) => {
@@ -93,13 +103,26 @@ export default function ConnectionsScreen() {
 
     const currentlyConnected = isConnected(conn);
 
-    // Strava: "connect" is handled by Connect button (OAuth + sync). Toggle only disconnects.
     if (conn.key === "strava") {
       if (!currentlyConnected) return;
       setSaving(conn.key);
       setError(null);
       try {
         await disconnectStrava();
+      } catch (err) {
+        setError(getConvexErrorMessage(err));
+      } finally {
+        setSaving(null);
+      }
+      return;
+    }
+
+    if (conn.key === "garmin") {
+      if (!currentlyConnected) return;
+      setSaving(conn.key);
+      setError(null);
+      try {
+        await disconnectGarmin();
       } catch (err) {
         setError(getConvexErrorMessage(err));
       } finally {
@@ -177,9 +200,13 @@ export default function ConnectionsScreen() {
               const connected = isConnected(conn);
               const isLast = index === CONNECTIONS.length - 1;
               const isStrava = conn.key === "strava";
+              const isGarmin = conn.key === "garmin";
               const showConnectButton =
-                isStrava && !connected && !stravaConnecting;
-              const showStravaLoading = isStrava && !connected && stravaConnecting;
+                (isStrava && !connected && !stravaConnecting) ||
+                (isGarmin && !connected && !garminConnecting);
+              const showLoading =
+                (isStrava && !connected && stravaConnecting) ||
+                (isGarmin && !connected && garminConnecting);
 
               return (
                 <View
@@ -224,11 +251,11 @@ export default function ConnectionsScreen() {
                     </Text>
                   </View>
 
-                  {showStravaLoading ? (
+                  {showLoading ? (
                     <ActivityIndicator size="small" color={LIGHT_THEME.wMute} />
                   ) : showConnectButton ? (
                     <Pressable
-                      onPress={handleConnectStrava}
+                      onPress={isStrava ? handleConnectStrava : handleConnectGarmin}
                       className="rounded-full px-4 py-2 active:opacity-80"
                       style={{ backgroundColor: conn.color }}
                     >
@@ -236,7 +263,7 @@ export default function ConnectionsScreen() {
                         className="font-coach-semibold text-[13px]"
                         style={{ color: "#fff" }}
                       >
-                        Connect Strava
+                        Connect {conn.name}
                       </Text>
                     </Pressable>
                   ) : saving === conn.key ? (
@@ -265,12 +292,12 @@ export default function ConnectionsScreen() {
             })}
           </View>
 
-          {(error || stravaError) && (
+          {(error || stravaError || garminError) && (
             <Text
               className="text-center font-coach text-sm"
               style={{ color: COLORS.red }}
             >
-              {error ?? stravaError}
+              {error ?? stravaError ?? garminError}
             </Text>
           )}
         </View>

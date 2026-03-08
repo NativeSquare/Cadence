@@ -20,6 +20,7 @@ import { Text } from "@/components/ui/text";
 import { useStream } from "@/hooks/use-stream";
 import { useHealthKit } from "@/hooks/use-healthkit";
 import { useStrava } from "@/hooks/use-strava";
+import { useGarmin } from "@/hooks/use-garmin";
 import { useMutation } from "convex/react";
 import { api } from "@packages/backend/convex/_generated/api";
 import { Cursor } from "../Cursor";
@@ -63,12 +64,13 @@ export function WearableScreen({ onComplete, testID }: WearableScreenProps) {
   const [mockError, setMockError] = useState<string | null>(null);
   const { connect: connectHealthKit, error: healthKitError } = useHealthKit();
   const { connect: connectStrava, error: stravaError } = useStrava();
+  const { connect: connectGarmin, error: garminError } = useGarmin();
 
   // Mock wearable seeder for dev mode (Story 4.2)
   const seedMockWearable = useMutation(api.seeds.mockActivities.seedMockWearableData);
 
   const hasConnected = connectedIds.length > 0;
-  const connectionError = healthKitError || stravaError || mockError;
+  const connectionError = healthKitError || stravaError || garminError || mockError;
 
   const s1 = useStream({
     text: "I'm your running coach. I learn, I adapt, and I get better the more I know.",
@@ -111,13 +113,20 @@ export function WearableScreen({ onComplete, testID }: WearableScreenProps) {
           setConnectedIds((prev) => [...prev, "strava"]);
           setHasActivityData(true);
         }
+      } else if (id === "garmin") {
+        setConnectingId("garmin");
+        const success = await connectGarmin();
+        setConnectingId(null);
+        if (success) {
+          setConnectedIds((prev) => [...prev, "garmin"]);
+          setHasActivityData(true);
+        }
       } else {
-        // Other providers (Garmin, etc.) - seed mock data in dev mode (Story 4.2)
+        // Other providers (COROS, etc.) - seed mock data in dev mode (Story 4.2)
         setConnectingId(id);
         setMockError(null);
         try {
           if (__DEV__) {
-            // Dev mode: seed mock activity data
             await seedMockWearable({
               provider: id,
               profile: "intermediate",
@@ -126,7 +135,6 @@ export function WearableScreen({ onComplete, testID }: WearableScreenProps) {
             setConnectedIds((prev) => [...prev, id]);
             setHasActivityData(true);
           } else {
-            // Production: provider not implemented yet
             setMockError(`${id} integration coming soon`);
           }
         } catch (err) {
@@ -137,7 +145,7 @@ export function WearableScreen({ onComplete, testID }: WearableScreenProps) {
         }
       }
     },
-    [connectedIds, connectingId, connectHealthKit, connectStrava, seedMockWearable],
+    [connectedIds, connectingId, connectHealthKit, connectStrava, connectGarmin, seedMockWearable],
   );
 
   const handleContinue = useCallback(() => {

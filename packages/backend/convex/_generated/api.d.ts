@@ -16,6 +16,7 @@ import type * as auth from "../auth.js";
 import type * as crons from "../crons.js";
 import type * as emails from "../emails.js";
 import type * as http from "../http.js";
+import type * as integrations_garmin_sync from "../integrations/garmin/sync.js";
 import type * as integrations_healthkit_sync from "../integrations/healthkit/sync.js";
 import type * as integrations_strava_sync from "../integrations/strava/sync.js";
 import type * as knowledge_index from "../knowledge/index.js";
@@ -70,6 +71,7 @@ declare const fullApi: ApiFromModules<{
   crons: typeof crons;
   emails: typeof emails;
   http: typeof http;
+  "integrations/garmin/sync": typeof integrations_garmin_sync;
   "integrations/healthkit/sync": typeof integrations_healthkit_sync;
   "integrations/strava/sync": typeof integrations_strava_sync;
   "knowledge/index": typeof knowledge_index;
@@ -373,6 +375,90 @@ export declare const components: {
     };
   };
   soma: {
+    garmin: {
+      completeGarminOAuth: FunctionReference<
+        "action",
+        "internal",
+        {
+          consumerKey: string;
+          consumerSecret: string;
+          oauthToken: string;
+          oauthVerifier: string;
+        },
+        {
+          connectionId: string;
+          errors: Array<{ error: string; id: string; type: string }>;
+          synced: {
+            activities: number;
+            body: number;
+            dailies: number;
+            menstruation: number;
+            sleep: number;
+          };
+        }
+      >;
+      connectGarmin: FunctionReference<
+        "action",
+        "internal",
+        {
+          consumerKey: string;
+          consumerSecret: string;
+          token: string;
+          tokenSecret: string;
+          userId: string;
+          verifier: string;
+        },
+        {
+          connectionId: string;
+          errors: Array<{ error: string; id: string; type: string }>;
+          synced: {
+            activities: number;
+            body: number;
+            dailies: number;
+            menstruation: number;
+            sleep: number;
+          };
+        }
+      >;
+      disconnectGarmin: FunctionReference<
+        "action",
+        "internal",
+        { userId: string },
+        null
+      >;
+      getGarminRequestToken: FunctionReference<
+        "action",
+        "internal",
+        {
+          callbackUrl?: string;
+          consumerKey: string;
+          consumerSecret: string;
+          userId?: string;
+        },
+        { authUrl: string; token: string; tokenSecret: string }
+      >;
+      syncGarmin: FunctionReference<
+        "action",
+        "internal",
+        {
+          consumerKey: string;
+          consumerSecret: string;
+          endTimeInSeconds?: number;
+          startTimeInSeconds?: number;
+          userId: string;
+        },
+        {
+          errors: Array<{ error: string; id: string; type: string }>;
+          synced: {
+            activities: number;
+            body: number;
+            dailies: number;
+            menstruation: number;
+            sleep: number;
+          };
+        }
+      >;
+    };
     public: {
       connect: FunctionReference<
         "mutation",
