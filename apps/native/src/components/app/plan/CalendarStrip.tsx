@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useRef } from "react";
 import {
   View,
   Pressable,
@@ -182,6 +182,8 @@ export function CalendarStrip({
   const today = useMemo(() => new Date(), []);
   const weeks = useMemo(generateWeeks, []);
   const [containerWidth, setContainerWidth] = useState(0);
+  const scrollRef = useRef<ScrollView>(null);
+  const didInitialScroll = useRef(false);
 
   const [displayMonth, setDisplayMonth] = useState(() => ({
     month: today.getMonth(),
@@ -212,6 +214,15 @@ export function CalendarStrip({
     setContainerWidth(e.nativeEvent.layout.width);
   }, []);
 
+  const handleScrollViewLayout = useCallback(() => {
+    if (didInitialScroll.current || containerWidth === 0) return;
+    didInitialScroll.current = true;
+    scrollRef.current?.scrollTo({
+      x: INITIAL_INDEX * containerWidth,
+      animated: false,
+    });
+  }, [containerWidth]);
+
   return (
     <View>
       <View className="flex-row items-baseline gap-2 px-1 mb-1">
@@ -226,10 +237,11 @@ export function CalendarStrip({
       <View onLayout={handleLayout}>
         {containerWidth > 0 && (
           <ScrollView
+            ref={scrollRef}
             horizontal
             pagingEnabled
             showsHorizontalScrollIndicator={false}
-            contentOffset={{ x: INITIAL_INDEX * containerWidth, y: 0 }}
+            onLayout={handleScrollViewLayout}
             onMomentumScrollEnd={handleMomentumEnd}
           >
             {weeks.map((week) => (

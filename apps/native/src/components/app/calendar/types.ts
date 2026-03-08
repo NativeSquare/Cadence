@@ -13,7 +13,10 @@ export type PhaseName =
   | "build2"
   | "taper"
   | "race"
-  | "recovery";
+  | "recovery"
+  | "foundation"
+  | "development"
+  | "consolidation";
 
 /** View toggle state */
 export type CalendarView = "month" | "week";

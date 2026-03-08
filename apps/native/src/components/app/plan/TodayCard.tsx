@@ -27,12 +27,14 @@ import { useEffect } from "react";
 import Svg, { Path, Circle } from "react-native-svg";
 import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
 import { type SessionData, type SyncStatus } from "./types";
-import { getSessionColor, getSyncStatusLabel, getSyncStatusColor } from "./utils";
+import { getSessionColor, getSyncStatusLabel, getSyncStatusColor, formatShortDate } from "./utils";
 import { useStream } from "./use-stream";
 
 interface TodayCardProps {
   session: SessionData;
   coachMessage: string;
+  selectedDate?: Date;
+  isToday?: boolean;
   onStartPress?: () => void;
   onExportPress?: () => void;
   onCardPress?: () => void;
@@ -40,7 +42,7 @@ interface TodayCardProps {
 
 // ─── Shared animation components ────────────────────────────────────────────
 
-function CoachPulsingDot({ isStreaming }: { isStreaming: boolean }) {
+function CoachPulsingDot({ isStreaming, color = "#000000" }: { isStreaming: boolean; color?: string }) {
   const opacity = useSharedValue(0.25);
   useEffect(() => {
     if (isStreaming) {
@@ -53,7 +55,12 @@ function CoachPulsingDot({ isStreaming }: { isStreaming: boolean }) {
     }
   }, [isStreaming, opacity]);
   const animatedStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
-  return <Animated.View style={animatedStyle} className="w-1.5 h-1.5 rounded-full bg-black" />;
+  return (
+    <Animated.View
+      style={[animatedStyle, { backgroundColor: color }]}
+      className="w-1.5 h-1.5 rounded-full"
+    />
+  );
 }
 
 function BlinkingCursor() {
@@ -373,12 +380,78 @@ function ExportToWatchCTA({ onPress }: { onPress?: () => void }) {
 
 // ─── Main component ─────────────────────────────────────────────────────────
 
-export function TodayCard({ session, coachMessage, onStartPress, onExportPress, onCardPress }: TodayCardProps) {
+function RestDayCard({
+  dateLabel,
+  onCardPress,
+}: {
+  dateLabel: string;
+  onCardPress?: () => void;
+}) {
+  return (
+    <View>
+      <Text
+        className="text-[11px] font-coach-semibold text-wMute px-1 mb-2 uppercase"
+        style={{ letterSpacing: 0.05 * 11 }}
+      >
+        {dateLabel}
+      </Text>
+
+      <Pressable onPress={onCardPress} className="active:opacity-95">
+        <View
+          className="rounded-[20px] overflow-hidden px-5 pt-5 pb-5"
+          style={{
+            backgroundColor: LIGHT_THEME.w3,
+            borderWidth: 1,
+            borderColor: LIGHT_THEME.wBrd,
+          }}
+        >
+          <View className="flex-row items-center gap-2.5 mb-1.5">
+            <View
+              style={{
+                width: 8,
+                height: 8,
+                borderRadius: 4,
+                backgroundColor: LIGHT_THEME.wMute,
+              }}
+            />
+            <Text
+              className="text-xs font-coach-medium uppercase"
+              style={{ letterSpacing: 0.05 * 12, color: LIGHT_THEME.wMute }}
+            >
+              Rest Day
+            </Text>
+          </View>
+
+          <Text
+            className="text-[22px] font-coach-semibold"
+            style={{
+              letterSpacing: -0.02 * 22,
+              lineHeight: 28,
+              color: LIGHT_THEME.wSub,
+            }}
+          >
+            No session scheduled
+          </Text>
+        </View>
+      </Pressable>
+    </View>
+  );
+}
+
+export function TodayCard({ session, coachMessage, selectedDate, isToday = true, onStartPress, onExportPress, onCardPress }: TodayCardProps) {
+  const dateLabel = isToday ? "Today" : formatShortDate(selectedDate ?? new Date());
+  const isRest = session.intensity === "rest";
+
+  if (isRest) {
+    return (
+      <RestDayCard dateLabel={dateLabel} onCardPress={onCardPress} />
+    );
+  }
+
   const { displayed, done, started } = useStream(coachMessage, {
     speed: 20, delay: 800,
   });
 
-  const isRest = session.intensity === "rest";
   const hasSyncStatus = session.syncStatus && session.syncStatus !== "planned";
   const isExported = session.syncStatus === "exported" || session.syncStatus === "synced";
   const borderColor = hasSyncStatus
@@ -391,7 +464,7 @@ export function TodayCard({ session, coachMessage, onStartPress, onExportPress, 
         className="text-[11px] font-coach-semibold text-wMute px-1 mb-2 uppercase"
         style={{ letterSpacing: 0.05 * 11 }}
       >
-        Today
+        {dateLabel}
       </Text>
 
       <Pressable onPress={onCardPress} className="active:opacity-95">
@@ -417,8 +490,8 @@ export function TodayCard({ session, coachMessage, onStartPress, onExportPress, 
           {/* 2. Coach quote */}
           <CoachQuote displayed={displayed} done={done} started={started} />
 
-          {/* 3. CTA — show export button only when not yet exported */}
-          {!isRest && !isExported && <ExportToWatchCTA onPress={onExportPress} />}
+          {/* 3. CTA — show export button for any non-exported session */}
+          {!isExported && <ExportToWatchCTA onPress={onExportPress} />}
         </View>
       </Pressable>
     </View>

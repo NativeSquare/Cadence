@@ -3,22 +3,26 @@
  * Opens when tapping SessionPreview cards or TodayCard Start button
  *
  * Content:
- * 1. Session title and date header
- * 2. IntensityProfileChart
- * 3. OverviewGrid (Distance, Duration, Intensity)
- * 4. Start Session CTA button
+ * 1. Hero header with session type, distance, and duration
+ * 2. SegmentBarChart (zone-colored vertical bars)
+ * 3. PaceProfileChart (line + area chart)
+ * 4. SessionZoneSplit (horizontal zone distribution)
+ * 5. Start Session CTA button
  */
 
-import React from "react";
+import React, { useMemo } from "react";
 import { View, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import { BottomSheetModal as GorhomBottomSheetModal } from "@gorhom/bottom-sheet";
+import { useFont } from "@shopify/react-native-skia";
+import { Outfit_400Regular } from "@expo-google-fonts/outfit";
 import Svg, { Polygon } from "react-native-svg";
 
 import { BottomSheetModal } from "@/components/custom/bottom-sheet";
 import { Text } from "@/components/ui/text";
-import { IntensityProfileChart } from "@/components/app/session/IntensityProfileChart";
-import { OverviewGrid } from "@/components/app/session/OverviewGrid";
+import { SegmentBarChart } from "@/components/app/session/SegmentBarChart";
+import { PaceProfileChart } from "@/components/app/session/PaceProfileChart";
+import { SessionZoneSplit } from "@/components/app/session/SessionZoneSplit";
 import { COLORS, LIGHT_THEME, FONT_WEIGHTS } from "@/lib/design-tokens";
 import { getSessionDetail } from "@/components/app/session/mock-data";
 import type { SessionData } from "./types";
@@ -26,22 +30,83 @@ import { getSessionColor } from "./utils";
 import { DAYS, DATES } from "./types";
 
 export interface SessionBriefSheetProps {
-  /** Ref for controlling the bottom sheet */
   sheetRef: React.RefObject<GorhomBottomSheetModal | null>;
-  /** The session to display (null when not shown) */
   session: SessionData | null;
-  /** Day index for date display and navigation */
   dayIdx: number;
 }
 
-/**
- * Play icon for the Start Session button
- */
 function PlayIcon() {
   return (
     <Svg width={14} height={14} viewBox="0 0 24 24">
       <Polygon points="5,3 19,12 5,21" fill="#000" />
     </Svg>
+  );
+}
+
+function HeroStat({
+  label,
+  value,
+  unit,
+  isHero = false,
+}: {
+  label: string;
+  value: string;
+  unit?: string;
+  isHero?: boolean;
+}) {
+  const bgColor = isHero ? COLORS.lime : LIGHT_THEME.w1;
+  const textColor = isHero ? "#000000" : LIGHT_THEME.wText;
+  const labelColor = isHero ? "rgba(0,0,0,0.45)" : LIGHT_THEME.wMute;
+  const unitColor = isHero ? "rgba(0,0,0,0.4)" : LIGHT_THEME.wMute;
+
+  return (
+    <View
+      style={{
+        flex: 1,
+        padding: 14,
+        paddingHorizontal: 12,
+        borderRadius: 16,
+        backgroundColor: bgColor,
+        borderWidth: isHero ? 0 : 1,
+        borderColor: LIGHT_THEME.wBrd,
+        alignItems: "center",
+      }}
+    >
+      <Text
+        style={{
+          fontSize: 10,
+          fontFamily: FONT_WEIGHTS.medium,
+          color: labelColor,
+          textTransform: "uppercase",
+          letterSpacing: 0.04 * 10,
+          marginBottom: 6,
+        }}
+      >
+        {label}
+      </Text>
+      <View className="flex-row items-baseline">
+        <Text
+          style={{
+            fontSize: 22,
+            fontFamily: FONT_WEIGHTS.extrabold,
+            color: textColor,
+          }}
+        >
+          {value}
+        </Text>
+        {unit && (
+          <Text
+            style={{
+              fontSize: 13,
+              color: unitColor,
+              marginLeft: 2,
+            }}
+          >
+            {unit}
+          </Text>
+        )}
+      </View>
+    </View>
   );
 }
 
@@ -51,11 +116,17 @@ export function SessionBriefSheet({
   dayIdx,
 }: SessionBriefSheetProps) {
   const router = useRouter();
+  const chartFont = useFont(Outfit_400Regular, 9);
 
-  // Get full session detail with segments for the chart
   const sessionDetail = getSessionDetail(dayIdx);
   const accentColor = session ? getSessionColor(session) : COLORS.lime;
   const isRest = session?.intensity === "rest";
+
+  const segments = useMemo(
+    () => sessionDetail?.segments ?? [],
+    [sessionDetail]
+  );
+  const hasSegments = !isRest && segments.length > 0;
 
   const handleStartSession = () => {
     sheetRef.current?.dismiss();
@@ -65,7 +136,6 @@ export function SessionBriefSheet({
     });
   };
 
-  // Don't render content if no session
   if (!session) {
     return (
       <BottomSheetModal ref={sheetRef} backgroundColor="#FFFFFF" borderRadius={28}>
@@ -75,9 +145,15 @@ export function SessionBriefSheet({
   }
 
   return (
-    <BottomSheetModal ref={sheetRef} backgroundColor="#FFFFFF" borderRadius={28}>
+    <BottomSheetModal
+      ref={sheetRef}
+      backgroundColor="#FFFFFF"
+      borderRadius={28}
+      scrollable={hasSegments}
+      snapPoints={hasSegments ? ["85%"] : undefined}
+    >
       <View className="px-5 pb-2">
-        {/* Header: Date and Session Type */}
+        {/* Header: Accent bar + Type + Date */}
         <View className="flex-row items-center mb-4">
           <View
             style={{
@@ -90,33 +166,36 @@ export function SessionBriefSheet({
           />
           <View className="flex-1">
             <Text
+              className="text-[26px] font-coach-bold"
+              style={{ color: LIGHT_THEME.wText, letterSpacing: -0.52 }}
+            >
+              {session.type}
+            </Text>
+            <Text
               className="text-xs font-coach-medium"
               style={{ color: LIGHT_THEME.wMute }}
             >
               {DAYS[dayIdx]}, Feb {DATES[dayIdx]}
-              {!isRest && ` \u00B7 ${session.dur}`}
-            </Text>
-            <Text
-              className="text-[22px] font-coach-bold"
-              style={{ color: LIGHT_THEME.wText, letterSpacing: -0.44 }}
-            >
-              {session.type}
+              {!isRest && session.desc ? ` \u00B7 ${session.desc}` : ""}
             </Text>
           </View>
         </View>
 
-        {/* Intensity Profile Chart */}
-        {sessionDetail?.segments && !isRest && sessionDetail.segments.length > 0 && (
-          <IntensityProfileChart segments={sessionDetail.segments} />
+        {/* Hero Stats: Distance + Duration */}
+        {!isRest && (
+          <View className="flex-row gap-2 mb-4">
+            <HeroStat label="Distance" value={session.km} unit="km" isHero />
+            <HeroStat label="Duration" value={session.dur} />
+          </View>
         )}
 
-        {/* Overview Grid */}
-        {!isRest && (
-          <OverviewGrid
-            km={session.km}
-            duration={session.dur}
-            intensity={session.intensity}
-          />
+        {/* Charts */}
+        {hasSegments && (
+          <>
+            <SegmentBarChart segments={segments} font={chartFont} />
+            <PaceProfileChart segments={segments} font={chartFont} />
+            <SessionZoneSplit segments={segments} />
+          </>
         )}
 
         {/* Start Session CTA */}

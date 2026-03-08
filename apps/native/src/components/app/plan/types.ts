@@ -107,11 +107,7 @@ export interface PlanData {
 export const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
 
 /**
- * Date numbers for the calendar strip (example week)
+ * @deprecated Legacy mock date numbers -- used by SessionBriefSheet/SessionPreview
+ * until those components are wired to real session dates.
  */
 export const DATES = [17, 18, 19, 20, 21, 22, 23] as const;
-
-/**
- * Index of today in the week (0-6, Thursday = 3)
- */
-export const TODAY_INDEX = 3;

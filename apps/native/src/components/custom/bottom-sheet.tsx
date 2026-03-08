@@ -3,6 +3,7 @@ import {
   BottomSheetBackdrop as GorhomBottomSheetBackdrop,
   BottomSheetModal as GorhomBottomSheetModal,
   BottomSheetView as GorhomBottomSheetView,
+  BottomSheetScrollView as GorhomBottomSheetScrollView,
 } from "@gorhom/bottom-sheet";
 import { useColorScheme } from "nativewind";
 import React from "react";
@@ -17,6 +18,10 @@ interface BottomSheetModalProps {
   borderRadius?: number;
   /** Called when the sheet is dismissed */
   onDismiss?: () => void;
+  /** Use scrollable content area instead of fixed view */
+  scrollable?: boolean;
+  /** Snap points (e.g. ["85%"]). Omit for dynamic sizing. */
+  snapPoints?: (string | number)[];
 }
 
 export type BottomSheetModalType = BottomSheetModalProps;
@@ -27,6 +32,8 @@ export function BottomSheetModal({
   backgroundColor,
   borderRadius = 12,
   onDismiss,
+  scrollable = false,
+  snapPoints,
 }: BottomSheetModalProps) {
   const { colorScheme } = useColorScheme();
   const insets = useSafeAreaInsets();
@@ -37,11 +44,16 @@ export function BottomSheetModal({
       ? "#121212"
       : THEME[colorScheme ?? "light"].background);
 
+  const ContentWrapper = scrollable
+    ? GorhomBottomSheetScrollView
+    : GorhomBottomSheetView;
+
   return (
     <GorhomBottomSheetModal
       ref={ref}
       stackBehavior="replace"
       onDismiss={onDismiss}
+      {...(snapPoints ? { snapPoints, enableDynamicSizing: false } : {})}
       backgroundStyle={{
         backgroundColor: bgColor,
       }}
@@ -67,9 +79,9 @@ export function BottomSheetModal({
         />
       )}
     >
-      <GorhomBottomSheetView style={{ paddingBottom: insets.bottom + 10 }}>
+      <ContentWrapper style={{ paddingBottom: insets.bottom + 10 }}>
         {children}
-      </GorhomBottomSheetView>
+      </ContentWrapper>
     </GorhomBottomSheetModal>
   );
 }

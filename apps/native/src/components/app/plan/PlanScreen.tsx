@@ -1,6 +1,5 @@
 /**
  * PlanScreen - Main container for the Today/Plan tab
- * Reference: cadence-full-v9.jsx TodayTab component (lines 119-244)
  *
  * Features:
  * - Scroll-based header collapse animation
@@ -10,8 +9,8 @@
  * - This Week insights (volume, streak, adherence)
  */
 
-import { useState, useCallback, useRef } from "react";
-import { View, StatusBar, type LayoutChangeEvent } from "react-native";
+import { useState, useCallback, useMemo, useRef } from "react";
+import { View, StatusBar, ActivityIndicator, type LayoutChangeEvent } from "react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -34,19 +33,24 @@ import { LogRunSection } from "./QuickActions";
 import { SessionBriefSheet } from "./SessionBriefSheet";
 import { ExportToWatchSheet, type WatchProvider } from "./ExportToWatchSheet";
 import { LIGHT_THEME } from "@/lib/design-tokens";
-import { MOCK_PLAN_DATA, MOCK_RACE_GOAL, MOCK_CALENDAR_SESSIONS } from "./mock-data";
-import { TODAY_INDEX } from "./types";
+import {
+  buildSessionsByDate,
+  buildRaceGoal,
+  computeWeekInsights,
+} from "./utils";
 import type { SessionData, SyncStatus } from "./types";
 
-/**
- * PlanScreen main component
- *
- * Scroll behavior from prototype (lines 143-156):
- * - Track scroll position with onScroll
- * - Calculate progress: p = Math.min(1, Math.max(0, (scrollY - 20) / 60))
- * - Full header fades/translates based on progress
- * - Collapsed header appears at p > 0.85
- */
+const REST_FALLBACK: SessionData = {
+  type: "Rest",
+  km: "-",
+  dur: "-",
+  done: false,
+  intensity: "rest",
+  desc: "No session scheduled for today.",
+  zone: "-",
+  today: true,
+};
+
 export function PlanScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -54,9 +58,44 @@ export function PlanScreen() {
   const scrollY = useSharedValue(0);
   const headerHeight = useSharedValue(0);
 
-  // Fetch runner data for personalized greeting
   const runner = useQuery(api.table.runners.getCurrentRunner);
   const userName = runner?.identity?.name || "there";
+
+  const planData = useQuery(api.training.queries.getPlanScreenData);
+
+  const today = useMemo(() => new Date(), []);
+
+  const sessionsByDate = useMemo(
+    () => (planData ? buildSessionsByDate(planData.sessions, today) : {}),
+    [planData, today]
+  );
+
+  const isSelectedToday =
+    selectedDate.getFullYear() === today.getFullYear() &&
+    selectedDate.getMonth() === today.getMonth() &&
+    selectedDate.getDate() === today.getDate();
+
+  const selectedDateKey = `${selectedDate.getFullYear()}-${selectedDate.getMonth()}-${selectedDate.getDate()}`;
+
+  const baseSelectedSession: SessionData =
+    sessionsByDate[selectedDateKey] ?? REST_FALLBACK;
+
+  const weekInsights = useMemo(
+    () =>
+      planData
+        ? computeWeekInsights(planData.sessions, planData.plan)
+        : null,
+    [planData]
+  );
+
+  const raceGoal = useMemo(
+    () => (planData ? buildRaceGoal(planData.plan) : null),
+    [planData]
+  );
+
+  const weekNumber = planData?.plan.currentWeek ?? 0;
+  const coachMessage =
+    planData?.plan.coachSummary ?? "Your coach is preparing your plan...";
 
   // Bottom sheet state and refs
   const sessionBriefSheetRef = useRef<BottomSheetModal>(null);
@@ -66,11 +105,20 @@ export function PlanScreen() {
     dayIdx: number;
   } | null>(null);
 
-  // Export-to-watch state for the today session
-  const [exportStatus, setExportStatus] = useState<{
-    syncStatus?: SyncStatus;
-    syncSource?: string;
-  }>({});
+  const [exportedSessions, setExportedSessions] = useState<
+    Record<string, { syncStatus: SyncStatus; syncSource: string }>
+  >({});
+
+  const sessionExport = baseSelectedSession.sessionId
+    ? exportedSessions[baseSelectedSession.sessionId]
+    : undefined;
+
+  const selectedSession_: SessionData = {
+    ...baseSelectedSession,
+    ...(sessionExport
+      ? { syncStatus: sessionExport.syncStatus, syncSource: sessionExport.syncSource }
+      : {}),
+  };
 
   const handleOpenSessionBrief = useCallback(
     (session: SessionData, dayIdx: number) => {
@@ -85,11 +133,13 @@ export function PlanScreen() {
   }, []);
 
   const handleExportComplete = useCallback((provider: WatchProvider) => {
-    setExportStatus({
-      syncStatus: "exported",
-      syncSource: provider,
-    });
-  }, []);
+    const sid = baseSelectedSession.sessionId;
+    if (!sid) return;
+    setExportedSessions((prev) => ({
+      ...prev,
+      [sid]: { syncStatus: "exported" as SyncStatus, syncSource: provider },
+    }));
+  }, [baseSelectedSession.sessionId]);
 
   const handleScroll = useAnimatedScrollHandler({
     onScroll: (event) => {
@@ -101,19 +151,13 @@ export function PlanScreen() {
     setSelectedDate(date);
   }, []);
 
-  const baseTodaySession = MOCK_PLAN_DATA.sessions[TODAY_INDEX];
-  const todaySession: SessionData = {
-    ...baseTodaySession,
-    ...(exportStatus.syncStatus
-      ? { syncStatus: exportStatus.syncStatus, syncSource: exportStatus.syncSource }
-      : {}),
-  };
+  const handleHeaderLayout = useCallback(
+    (e: LayoutChangeEvent) => {
+      headerHeight.value = e.nativeEvent.layout.height;
+    },
+    [headerHeight]
+  );
 
-  const handleHeaderLayout = useCallback((e: LayoutChangeEvent) => {
-    headerHeight.value = e.nativeEvent.layout.height;
-  }, [headerHeight]);
-
-  // Animated style for full header (fade out on scroll)
   const headerAnimatedStyle = useAnimatedStyle(() => {
     const progress = Math.min(1, Math.max(0, (scrollY.value - 20) / 60));
     return {
@@ -122,9 +166,6 @@ export function PlanScreen() {
     };
   });
 
-  // Sticky CalendarStrip overlay: appears when the in-scroll strip would
-  // scroll behind the safe area, positioned off-screen otherwise so it
-  // doesn't intercept touches.
   const stickyOverlayStyle = useAnimatedStyle(() => {
     const threshold = headerHeight.value - insets.top;
     const isSticky = headerHeight.value > 0 && scrollY.value >= threshold;
@@ -137,7 +178,8 @@ export function PlanScreen() {
 
   useAnimatedReaction(
     () => {
-      const threshold = headerHeight.value > 0 ? headerHeight.value - insets.top : 1;
+      const threshold =
+        headerHeight.value > 0 ? headerHeight.value - insets.top : 1;
       return scrollY.value / threshold >= 0.95;
     },
     (isLight, prev) => {
@@ -148,7 +190,8 @@ export function PlanScreen() {
   );
 
   const safeAreaCoverStyle = useAnimatedStyle(() => {
-    const threshold = headerHeight.value > 0 ? headerHeight.value - insets.top : 1;
+    const threshold =
+      headerHeight.value > 0 ? headerHeight.value - insets.top : 1;
     const progress = Math.min(1, Math.max(0, scrollY.value / threshold));
     const backgroundColor = interpolateColor(
       progress,
@@ -157,6 +200,15 @@ export function PlanScreen() {
     );
     return { backgroundColor };
   });
+
+  // Loading state -- planData is undefined while the query is in flight
+  if (planData === undefined) {
+    return (
+      <View className="flex-1 bg-w2 items-center justify-center">
+        <ActivityIndicator size="large" color={LIGHT_THEME.wMute} />
+      </View>
+    );
+  }
 
   return (
     <View className="flex-1 bg-w2">
@@ -179,7 +231,7 @@ export function PlanScreen() {
               <DateHeader
                 variant="full"
                 userName={userName}
-                weekNumber={MOCK_PLAN_DATA.weekNumber}
+                weekNumber={weekNumber}
               />
             </Animated.View>
           </View>
@@ -189,10 +241,10 @@ export function PlanScreen() {
           />
         </View>
 
-        {/* CalendarStrip - scrolls normally, overlay takes over when sticky */}
+        {/* CalendarStrip */}
         <View className="bg-w2 px-4">
           <CalendarStrip
-            sessionsByDate={MOCK_CALENDAR_SESSIONS}
+            sessionsByDate={sessionsByDate}
             selectedDate={selectedDate}
             onDateSelect={handleDateSelect}
           />
@@ -204,29 +256,35 @@ export function PlanScreen() {
           {/* Today's Session Card */}
           <View className="px-4 pt-4">
             <TodayCard
-              session={todaySession}
-              coachMessage={MOCK_PLAN_DATA.coachMessage}
-              onStartPress={() => handleOpenSessionBrief(todaySession, TODAY_INDEX)}
+              session={selectedSession_}
+              coachMessage={coachMessage}
+              selectedDate={selectedDate}
+              isToday={isSelectedToday}
+              onStartPress={() => handleOpenSessionBrief(selectedSession_, 0)}
               onExportPress={handleOpenExportSheet}
-              onCardPress={() => handleOpenSessionBrief(todaySession, TODAY_INDEX)}
+              onCardPress={() => handleOpenSessionBrief(selectedSession_, 0)}
             />
           </View>
 
           {/* This Week Insights */}
-          <View className="px-4 mt-5">
-            <WeekInsights
-              volumeCompleted={MOCK_PLAN_DATA.volumeCompleted}
-              volumePlanned={MOCK_PLAN_DATA.volumePlanned}
-              timeCompleted={MOCK_PLAN_DATA.timeCompleted}
-              avgPace={MOCK_PLAN_DATA.avgPace}
-              sessions={MOCK_PLAN_DATA.sessions}
-            />
-          </View>
+          {weekInsights && (
+            <View className="px-4 mt-5">
+              <WeekInsights
+                volumeCompleted={weekInsights.volumeCompleted}
+                volumePlanned={weekInsights.volumePlanned}
+                timeCompleted={weekInsights.timeCompleted}
+                avgPace={weekInsights.avgPace}
+                sessions={weekInsights.currentWeekSessions}
+              />
+            </View>
+          )}
 
           {/* Primary Race Countdown */}
-          <View className="px-4 mt-5">
-            <RaceCountdown race={MOCK_RACE_GOAL} />
-          </View>
+          {raceGoal && (
+            <View className="px-4 mt-5">
+              <RaceCountdown race={raceGoal} />
+            </View>
+          )}
 
           {/* Log a Run */}
           <View className="px-4 mt-5">
@@ -237,7 +295,7 @@ export function PlanScreen() {
         </View>
       </Animated.ScrollView>
 
-      {/* Safe area cover - prevents content from scrolling behind the status bar */}
+      {/* Safe area cover */}
       <Animated.View
         pointerEvents="none"
         style={[
@@ -253,8 +311,7 @@ export function PlanScreen() {
         ]}
       />
 
-      {/* Sticky CalendarStrip overlay - appears when the in-scroll strip
-          scrolls behind the safe area */}
+      {/* Sticky CalendarStrip overlay */}
       <Animated.View
         style={[
           { position: "absolute", top: 0, left: 0, right: 0, zIndex: 2 },
@@ -264,7 +321,7 @@ export function PlanScreen() {
         <View className="bg-w2" style={{ paddingTop: insets.top }}>
           <View className="px-4">
             <CalendarStrip
-              sessionsByDate={MOCK_CALENDAR_SESSIONS}
+              sessionsByDate={sessionsByDate}
               selectedDate={selectedDate}
               onDateSelect={handleDateSelect}
             />
@@ -283,8 +340,8 @@ export function PlanScreen() {
       {/* Export to Watch Bottom Sheet */}
       <ExportToWatchSheet
         sheetRef={exportSheetRef}
-        sessionType={todaySession.type}
-        sessionId={todaySession.sessionId}
+        sessionType={selectedSession_.type}
+        sessionId={selectedSession_.sessionId}
         onExportComplete={handleExportComplete}
       />
     </View>
