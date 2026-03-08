@@ -1,13 +1,14 @@
 /**
  * ExportToWatchSheet - Bottom sheet for exporting a session to a watch provider.
  *
- * 3-step flow:
+ * 4-step flow:
  * 1. Provider selection (Garmin, Coros)
- * 2. Exporting animation (spinning icon + progress feel)
+ * 2. Exporting animation (real API call to Garmin)
  * 3. Success confirmation (checkmark + auto-dismiss)
+ * 4. Error state (if export fails)
  */
 
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
 import { View, Pressable } from "react-native";
 import { BottomSheetModal as GorhomBottomSheetModal } from "@gorhom/bottom-sheet";
 import Animated, {
@@ -19,6 +20,9 @@ import Animated, {
   Easing,
 } from "react-native-reanimated";
 import Svg, { Path, Circle, Rect } from "react-native-svg";
+import { useAction, useQuery } from "convex/react";
+import { api } from "@packages/backend/convex/_generated/api";
+import type { Id } from "@packages/backend/convex/_generated/dataModel";
 
 import { BottomSheetModal } from "@/components/custom/bottom-sheet";
 import { Text } from "@/components/ui/text";
@@ -29,12 +33,12 @@ export type WatchProvider = "garmin" | "coros";
 export interface ExportToWatchSheetProps {
   sheetRef: React.RefObject<GorhomBottomSheetModal | null>;
   sessionType: string;
+  sessionId?: Id<"plannedSessions">;
   onExportComplete: (provider: WatchProvider) => void;
 }
 
-type ExportStep = "select" | "exporting" | "success";
+type ExportStep = "select" | "exporting" | "success" | "error";
 
-const EXPORT_DURATION_MS = 2200;
 const SUCCESS_DISMISS_MS = 1400;
 
 // ─── Provider logos ──────────────────────────────────────────────────────────
@@ -192,20 +196,25 @@ function SuccessCheckmark() {
 function ProviderCard({
   name,
   logo,
+  subtitle,
+  disabled,
   onPress,
 }: {
   name: string;
   logo: React.ReactNode;
+  subtitle?: string;
+  disabled?: boolean;
   onPress: () => void;
 }) {
   return (
     <Pressable
-      onPress={onPress}
+      onPress={disabled ? undefined : onPress}
       className="flex-row items-center px-5 py-4 rounded-2xl active:scale-[0.98]"
       style={{
         backgroundColor: LIGHT_THEME.w2,
         borderWidth: 1,
         borderColor: LIGHT_THEME.wBrd,
+        opacity: disabled ? 0.45 : 1,
       }}
     >
       <View
@@ -233,7 +242,7 @@ function ProviderCard({
           className="text-[13px] font-coach"
           style={{ color: LIGHT_THEME.wMute }}
         >
-          Export workout to {name}
+          {subtitle ?? `Export workout to ${name}`}
         </Text>
       </View>
       <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
@@ -250,8 +259,10 @@ function ProviderCard({
 }
 
 function SelectStep({
+  garminConnected,
   onSelectProvider,
 }: {
+  garminConnected: boolean;
   onSelectProvider: (p: WatchProvider) => void;
 }) {
   return (
@@ -272,11 +283,19 @@ function SelectStep({
         <ProviderCard
           name="Garmin"
           logo={<GarminLogo />}
+          subtitle={
+            garminConnected
+              ? "Export workout to Garmin"
+              : "Connect Garmin in Settings first"
+          }
+          disabled={!garminConnected}
           onPress={() => onSelectProvider("garmin")}
         />
         <ProviderCard
           name="Coros"
           logo={<CorosLogo />}
+          subtitle="Coming soon"
+          disabled
           onPress={() => onSelectProvider("coros")}
         />
       </View>
@@ -345,32 +364,132 @@ function SuccessStep({ provider }: { provider: WatchProvider }) {
   );
 }
 
+function ErrorStep({
+  message,
+  onRetry,
+}: {
+  message: string;
+  onRetry: () => void;
+}) {
+  return (
+    <View className="px-5 pb-2 items-center py-6">
+      <View
+        style={{
+          width: 56,
+          height: 56,
+          borderRadius: 28,
+          backgroundColor: "#FF5A5A",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <Svg width={28} height={28} viewBox="0 0 24 24" fill="none">
+          <Path
+            d="M12 6V14"
+            stroke="#FFFFFF"
+            strokeWidth={3}
+            strokeLinecap="round"
+          />
+          <Path
+            d="M12 18V18.01"
+            stroke="#FFFFFF"
+            strokeWidth={3}
+            strokeLinecap="round"
+          />
+        </Svg>
+      </View>
+      <Text
+        className="text-[16px] font-coach-semibold mt-5"
+        style={{ color: LIGHT_THEME.wText }}
+      >
+        Export failed
+      </Text>
+      <Text
+        className="text-[13px] font-coach mt-2 text-center"
+        style={{ color: LIGHT_THEME.wMute }}
+      >
+        {message}
+      </Text>
+      <Pressable
+        onPress={onRetry}
+        className="mt-4 px-6 py-2.5 rounded-xl active:scale-[0.97]"
+        style={{ backgroundColor: LIGHT_THEME.w2 }}
+      >
+        <Text
+          className="text-[14px] font-coach-semibold"
+          style={{ color: LIGHT_THEME.wText }}
+        >
+          Try again
+        </Text>
+      </Pressable>
+    </View>
+  );
+}
+
 // ─── Main component ──────────────────────────────────────────────────────────
 
 export function ExportToWatchSheet({
   sheetRef,
   sessionType,
+  sessionId,
   onExportComplete,
 }: ExportToWatchSheetProps) {
   const [step, setStep] = useState<ExportStep>("select");
   const [selectedProvider, setSelectedProvider] =
     useState<WatchProvider | null>(null);
+  const [errorMessage, setErrorMessage] = useState("");
+
+  const providers = useQuery(
+    api.integrations.connections.getConnectedProviders,
+  );
+  const garminConnected = providers?.garmin.connected ?? false;
+
+  const exportToGarmin = useAction(
+    api.integrations.garmin.sync.exportSessionToGarmin,
+  );
+
+  const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current);
+    };
+  }, []);
+
+  const resetState = useCallback(() => {
+    setStep("select");
+    setSelectedProvider(null);
+    setErrorMessage("");
+  }, []);
 
   const handleSelectProvider = useCallback(
-    (provider: WatchProvider) => {
+    async (provider: WatchProvider) => {
       setSelectedProvider(provider);
       setStep("exporting");
+      setErrorMessage("");
 
-      setTimeout(() => {
-        setStep("success");
-        onExportComplete(provider);
+      if (provider === "garmin" && sessionId) {
+        try {
+          await exportToGarmin({ sessionId });
+          setStep("success");
+          onExportComplete(provider);
 
-        setTimeout(() => {
-          sheetRef.current?.dismiss();
-        }, SUCCESS_DISMISS_MS);
-      }, EXPORT_DURATION_MS);
+          dismissTimerRef.current = setTimeout(() => {
+            sheetRef.current?.dismiss();
+            resetState();
+          }, SUCCESS_DISMISS_MS);
+        } catch (err) {
+          const msg =
+            err instanceof Error ? err.message : "Something went wrong";
+          setErrorMessage(msg);
+          setStep("error");
+        }
+      } else {
+        setErrorMessage("No session available to export");
+        setStep("error");
+      }
     },
-    [onExportComplete, sheetRef]
+    [exportToGarmin, sessionId, onExportComplete, sheetRef, resetState],
   );
 
   return (
@@ -378,15 +497,22 @@ export function ExportToWatchSheet({
       ref={sheetRef}
       backgroundColor="#FFFFFF"
       borderRadius={28}
+      onDismiss={resetState}
     >
       {step === "select" && (
-        <SelectStep onSelectProvider={handleSelectProvider} />
+        <SelectStep
+          garminConnected={garminConnected}
+          onSelectProvider={handleSelectProvider}
+        />
       )}
       {step === "exporting" && selectedProvider && (
         <ExportingStep provider={selectedProvider} sessionType={sessionType} />
       )}
       {step === "success" && selectedProvider && (
         <SuccessStep provider={selectedProvider} />
+      )}
+      {step === "error" && (
+        <ErrorStep message={errorMessage} onRetry={resetState} />
       )}
     </BottomSheetModal>
   );

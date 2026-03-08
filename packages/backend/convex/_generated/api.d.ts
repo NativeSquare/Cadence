@@ -18,6 +18,7 @@ import type * as emails from "../emails.js";
 import type * as http from "../http.js";
 import type * as integrations_connections from "../integrations/connections.js";
 import type * as integrations_garmin_sync from "../integrations/garmin/sync.js";
+import type * as integrations_garmin_transform from "../integrations/garmin/transform.js";
 import type * as integrations_healthkit_sync from "../integrations/healthkit/sync.js";
 import type * as integrations_strava_sync from "../integrations/strava/sync.js";
 import type * as knowledge_index from "../knowledge/index.js";
@@ -74,6 +75,7 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   "integrations/connections": typeof integrations_connections;
   "integrations/garmin/sync": typeof integrations_garmin_sync;
+  "integrations/garmin/transform": typeof integrations_garmin_transform;
   "integrations/healthkit/sync": typeof integrations_healthkit_sync;
   "integrations/strava/sync": typeof integrations_strava_sync;
   "knowledge/index": typeof knowledge_index;

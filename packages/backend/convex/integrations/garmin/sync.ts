@@ -5,6 +5,7 @@
  * - OAuth 2.0 code exchange + initial sync  (connectGarminOAuth)
  * - Incremental data sync                   (syncGarminData)
  * - Disconnect                              (disconnectGarminAccount)
+ * - Export planned session to watch          (exportSessionToGarmin)
  *
  * All Garmin API communication, token storage, and data normalization
  * is managed internally by the Soma component. The GARMIN_CLIENT_ID
@@ -18,9 +19,11 @@ import { ConvexError, v } from "convex/values";
 import { components, internal } from "../../_generated/api";
 import {
   action,
+  internalMutation,
   internalQuery,
   mutation,
 } from "../../_generated/server";
+import { transformSessionToSomaWorkout } from "./transform";
 
 const soma = new Soma(components.soma);
 
@@ -198,5 +201,113 @@ export const getGarminStatus = mutation({
       connected: true,
       connectionId: connection._id,
     };
+  },
+});
+
+// ─── Export to Garmin ─────────────────────────────────────────────────────────
+
+export const getPlannedSessionInternal = internalQuery({
+  args: { sessionId: v.id("plannedSessions") },
+  returns: v.any(),
+  handler: async (ctx, args) => {
+    return await ctx.db.get(args.sessionId);
+  },
+});
+
+export const getGarminConnectionInternal = internalMutation({
+  args: { userId: v.string() },
+  returns: v.any(),
+  handler: async (ctx, args) => {
+    return await soma.getConnectionByProvider(ctx, {
+      userId: args.userId,
+      provider: "GARMIN",
+    });
+  },
+});
+
+export const ingestSomaPlannedWorkout = internalMutation({
+  args: {
+    connectionId: v.string(),
+    userId: v.string(),
+    steps: v.any(),
+    metadata: v.any(),
+  },
+  returns: v.string(),
+  handler: async (ctx, args): Promise<string> => {
+    return await soma.ingestPlannedWorkout(ctx, {
+      connectionId: args.connectionId as never,
+      userId: args.userId,
+      steps: args.steps,
+      metadata: args.metadata,
+    });
+  },
+});
+
+/**
+ * Export a planned session to Garmin Connect.
+ *
+ * Transforms the Cadence planned session into Soma's format,
+ * ingests it as a Soma planned workout, then pushes it to
+ * Garmin via the Training API V2. The workout will appear on
+ * the user's Garmin watch after they sync with Garmin Connect.
+ */
+export const exportSessionToGarmin = action({
+  args: { sessionId: v.id("plannedSessions") },
+  returns: v.object({
+    garminWorkoutId: v.number(),
+    garminScheduleId: v.union(v.number(), v.null()),
+  }),
+  handler: async (ctx, args) => {
+    const userId: string | null = await ctx.runQuery(
+      internal.integrations.garmin.sync.getAuthenticatedUserId,
+    );
+    if (!userId) {
+      throw new ConvexError({
+        code: "UNAUTHORIZED",
+        message: "Not authenticated",
+      });
+    }
+
+    const connection = await ctx.runMutation(
+      internal.integrations.garmin.sync.getGarminConnectionInternal,
+      { userId },
+    );
+    if (!connection || !connection.active) {
+      throw new ConvexError({
+        code: "NOT_CONNECTED",
+        message: "No active Garmin connection. Connect Garmin first in Settings.",
+      });
+    }
+
+    const session = await ctx.runQuery(
+      internal.integrations.garmin.sync.getPlannedSessionInternal,
+      { sessionId: args.sessionId },
+    );
+    if (!session) {
+      throw new ConvexError({
+        code: "NOT_FOUND",
+        message: "Planned session not found",
+      });
+    }
+
+    const somaWorkout = transformSessionToSomaWorkout(session);
+
+    const plannedWorkoutId: string = await ctx.runMutation(
+      internal.integrations.garmin.sync.ingestSomaPlannedWorkout,
+      {
+        connectionId: connection._id,
+        userId,
+        steps: somaWorkout.steps,
+        metadata: somaWorkout.metadata,
+      },
+    );
+
+    const result = await soma.pushPlannedWorkoutToGarmin(ctx, {
+      userId,
+      plannedWorkoutId,
+      workoutProvider: "Cadence",
+    });
+
+    return result;
   },
 });

@@ -15,6 +15,8 @@ interface BottomSheetModalProps {
   backgroundColor?: string;
   /** Custom border radius for top corners */
   borderRadius?: number;
+  /** Called when the sheet is dismissed */
+  onDismiss?: () => void;
 }
 
 export type BottomSheetModalType = BottomSheetModalProps;
@@ -24,6 +26,7 @@ export function BottomSheetModal({
   children,
   backgroundColor,
   borderRadius = 12,
+  onDismiss,
 }: BottomSheetModalProps) {
   const { colorScheme } = useColorScheme();
   const insets = useSafeAreaInsets();
@@ -38,6 +41,7 @@ export function BottomSheetModal({
     <GorhomBottomSheetModal
       ref={ref}
       stackBehavior="replace"
+      onDismiss={onDismiss}
       backgroundStyle={{
         backgroundColor: bgColor,
       }}

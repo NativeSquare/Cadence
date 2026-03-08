@@ -284,6 +284,7 @@ export function PlanScreen() {
       <ExportToWatchSheet
         sheetRef={exportSheetRef}
         sessionType={todaySession.type}
+        sessionId={todaySession.sessionId}
         onExportComplete={handleExportComplete}
       />
     </View>
