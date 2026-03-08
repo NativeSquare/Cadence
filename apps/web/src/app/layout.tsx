@@ -1,15 +1,20 @@
 import type { Metadata } from "next";
-import { Outfit, JetBrains_Mono } from "next/font/google";
+import { Barlow_Condensed, DM_Sans, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { ConvexAuthNextjsServerProvider } from "@convex-dev/auth/nextjs/server";
 import { ConvexClientProvider } from "@/providers/convex-client-provider";
-import { Nav } from "@/components/nav";
-import { Footer } from "@/components/footer";
 
-const outfit = Outfit({
+const barlowCondensed = Barlow_Condensed({
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
-  variable: "--font-outfit",
+  weight: ["700", "800", "900"],
+  variable: "--font-barlow-condensed",
+  display: "swap",
+});
+
+const dmSans = DM_Sans({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+  variable: "--font-dm-sans",
   display: "swap",
 });
 
@@ -62,13 +67,11 @@ export default function RootLayout({
     <ConvexAuthNextjsServerProvider>
       <html lang="en">
         <body
-          className={`${outfit.variable} ${jetbrainsMono.variable} antialiased font-sans`}
+          className={`${barlowCondensed.variable} ${dmSans.variable} ${jetbrainsMono.variable} antialiased font-sans`}
         >
           <ConvexClientProvider>
-            <div className="min-h-screen bg-black text-white/[0.92] antialiased">
-              <Nav />
+            <div className="min-h-screen bg-dark-base text-[#F5F5F5] antialiased">
               <main>{children}</main>
-              <Footer />
             </div>
           </ConvexClientProvider>
         </body>
