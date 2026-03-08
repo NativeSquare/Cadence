@@ -315,23 +315,6 @@ export const seedMockWearableData = mutation({
       synced++;
     }
 
-    // Mark runner as wearable-connected with provider type
-    // Schema uses wearableType enum: "garmin" | "coros" | "apple_watch" | "polar" | "none"
-    const wearableTypeMap: Record<string, "garmin" | "coros" | "apple_watch" | "polar"> = {
-      garmin: "garmin",
-      coros: "coros",
-      polar: "polar",
-      apple: "apple_watch",
-    };
-
-    await ctx.db.patch(runner._id, {
-      connections: {
-        ...runner.connections,
-        wearableConnected: true,
-        wearableType: wearableTypeMap[args.provider] ?? undefined,
-      },
-    });
-
     return {
       connectionId,
       synced,

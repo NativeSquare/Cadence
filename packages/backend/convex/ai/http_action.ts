@@ -233,11 +233,13 @@ export const streamChat = httpAction(async (ctx, request) => {
   console.log(`[AI] Stream request started [${requestId}]`);
 
   try {
-    // Get runner context for system prompt
-    const runner = await ctx.runQuery(api.table.runners.getCurrentRunner, {});
+    // Get runner context and connected providers for system prompt
+    const [runner, providers] = await Promise.all([
+      ctx.runQuery(api.table.runners.getCurrentRunner, {}),
+      ctx.runQuery(api.integrations.connections.getConnectedProviders, {}),
+    ]);
 
-    // Build system prompt with runner context
-    const systemPrompt = buildSystemPrompt(runner);
+    const systemPrompt = buildSystemPrompt(runner, providers);
 
     // Stream response using Vercel AI SDK
     const result = streamText({

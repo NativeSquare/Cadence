@@ -247,13 +247,6 @@ export const syncHealthKitData = mutation({
       }
     }
 
-    // Build updated connections
-    const updatedConnections = {
-      ...runner.connections,
-      wearableConnected: true,
-      wearableType: "apple_watch" as const,
-    };
-
     // Build updated inferred data from aggregates (if provided)
     const updatedInferred = args.aggregates
       ? {
@@ -271,7 +264,6 @@ export const syncHealthKitData = mutation({
     // Build merged runner for recalculation
     const mergedRunner = {
       ...runner,
-      connections: updatedConnections,
       inferred: updatedInferred,
     };
 
@@ -280,9 +272,8 @@ export const syncHealthKitData = mutation({
     const fieldsMissing = getMissingFields(mergedRunner);
     const currentPhase = determinePhase(mergedRunner);
 
-    // Update runner with connections, inferred data, and conversation state
+    // Update runner with inferred data and conversation state
     await ctx.db.patch(runner._id, {
-      connections: updatedConnections,
       inferred: updatedInferred,
       conversationState: {
         ...runner.conversationState,

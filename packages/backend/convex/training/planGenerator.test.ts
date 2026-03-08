@@ -62,8 +62,6 @@ function createMockRunner(overrides: Partial<Doc<"runners">> = {}): Doc<"runners
       stressLevel: "moderate",
     },
     connections: {
-      stravaConnected: false,
-      wearableConnected: false,
       calendarConnected: false,
     },
     conversationState: {

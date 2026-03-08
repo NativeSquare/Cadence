@@ -17,18 +17,17 @@ import {
 
 type ConnectionDef = {
   key: "strava" | "appleHealth" | "garmin";
-  backendField: "stravaConnected" | "wearableConnected";
+  providerKey: "strava" | "healthkit" | "garmin";
   name: string;
   description: string;
   icon: string;
   color: string;
-  wearableType?: "garmin" | "apple_watch";
 };
 
 const CONNECTIONS: ConnectionDef[] = [
   {
     key: "strava",
-    backendField: "stravaConnected",
+    providerKey: "strava",
     name: "Strava",
     description: "Sync activities, routes & training",
     icon: "S",
@@ -36,33 +35,33 @@ const CONNECTIONS: ConnectionDef[] = [
   },
   {
     key: "appleHealth",
-    backendField: "wearableConnected",
+    providerKey: "healthkit",
     name: "Apple Health",
     description: "Heart rate, sleep & recovery data",
     icon: "♥",
     color: "#FF2D55",
-    wearableType: "apple_watch",
   },
   {
     key: "garmin",
-    backendField: "wearableConnected",
+    providerKey: "garmin",
     name: "Garmin",
     description: "GPS watch & wearable data",
     icon: "G",
     color: "#007CC3",
-    wearableType: "garmin",
   },
 ];
 
 export default function ConnectionsScreen() {
   const router = useRouter();
-  const runner = useQuery(api.table.runners.getCurrentRunner);
-  const updateRunner = useMutation(api.table.runners.updateRunner);
+  const providers = useQuery(api.integrations.connections.getConnectedProviders);
   const disconnectStrava = useAction(
     api.integrations.strava.sync.disconnectStravaAccount,
   );
   const disconnectGarmin = useAction(
     api.integrations.garmin.sync.disconnectGarminAccount,
+  );
+  const disconnectAppleHealth = useMutation(
+    api.integrations.connections.disconnectAppleHealth,
   );
   const { connect: connectStrava, isConnecting: stravaConnecting, error: stravaError } =
     useStrava();
@@ -73,15 +72,8 @@ export default function ConnectionsScreen() {
   const [error, setError] = React.useState<string | null>(null);
 
   const isConnected = (conn: ConnectionDef): boolean => {
-    if (!runner?.connections) return false;
-    if (conn.key === "strava") return runner.connections.stravaConnected;
-    if (conn.wearableType) {
-      return (
-        runner.connections.wearableConnected &&
-        runner.connections.wearableType === conn.wearableType
-      );
-    }
-    return false;
+    if (!providers) return false;
+    return providers[conn.providerKey].connected;
   };
 
   const handleConnectStrava = async () => {
@@ -99,8 +91,6 @@ export default function ConnectionsScreen() {
   };
 
   const handleToggle = async (conn: ConnectionDef) => {
-    if (!runner?._id) return;
-
     const currentlyConnected = isConnected(conn);
 
     if (conn.key === "strava") {
@@ -131,27 +121,19 @@ export default function ConnectionsScreen() {
       return;
     }
 
-    setSaving(conn.key);
-    setError(null);
-    try {
-      if (conn.wearableType) {
-        await updateRunner({
-          runnerId: runner._id,
-          fields: {
-            connections: {
-              ...runner.connections,
-              wearableConnected: !currentlyConnected,
-              wearableType: currentlyConnected
-                ? runner.connections.wearableType
-                : conn.wearableType,
-            },
-          },
-        });
+    if (conn.key === "appleHealth") {
+      setSaving(conn.key);
+      setError(null);
+      try {
+        if (currentlyConnected) {
+          await disconnectAppleHealth();
+        }
+      } catch (err) {
+        setError(getConvexErrorMessage(err));
+      } finally {
+        setSaving(null);
       }
-    } catch (err) {
-      setError(getConvexErrorMessage(err));
-    } finally {
-      setSaving(null);
+      return;
     }
   };
 

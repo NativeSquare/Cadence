@@ -16,6 +16,7 @@ import type * as auth from "../auth.js";
 import type * as crons from "../crons.js";
 import type * as emails from "../emails.js";
 import type * as http from "../http.js";
+import type * as integrations_connections from "../integrations/connections.js";
 import type * as integrations_garmin_sync from "../integrations/garmin/sync.js";
 import type * as integrations_healthkit_sync from "../integrations/healthkit/sync.js";
 import type * as integrations_strava_sync from "../integrations/strava/sync.js";
@@ -71,6 +72,7 @@ declare const fullApi: ApiFromModules<{
   crons: typeof crons;
   emails: typeof emails;
   http: typeof http;
+  "integrations/connections": typeof integrations_connections;
   "integrations/garmin/sync": typeof integrations_garmin_sync;
   "integrations/healthkit/sync": typeof integrations_healthkit_sync;
   "integrations/strava/sync": typeof integrations_strava_sync;
@@ -380,10 +382,11 @@ export declare const components: {
         "action",
         "internal",
         {
-          consumerKey: string;
-          consumerSecret: string;
-          oauthToken: string;
-          oauthVerifier: string;
+          clientId: string;
+          clientSecret: string;
+          code: string;
+          redirectUri?: string;
+          state: string;
         },
         {
           connectionId: string;
@@ -401,12 +404,12 @@ export declare const components: {
         "action",
         "internal",
         {
-          consumerKey: string;
-          consumerSecret: string;
-          token: string;
-          tokenSecret: string;
+          clientId: string;
+          clientSecret: string;
+          code: string;
+          codeVerifier: string;
+          redirectUri?: string;
           userId: string;
-          verifier: string;
         },
         {
           connectionId: string;
@@ -426,23 +429,30 @@ export declare const components: {
         { userId: string },
         null
       >;
-      getGarminRequestToken: FunctionReference<
+      getGarminAuthUrl: FunctionReference<
+        "action",
+        "internal",
+        { clientId: string; redirectUri?: string; userId?: string },
+        { authUrl: string; codeVerifier: string; state: string }
+      >;
+      pushPlannedWorkout: FunctionReference<
         "action",
         "internal",
         {
-          callbackUrl?: string;
-          consumerKey: string;
-          consumerSecret: string;
-          userId?: string;
+          clientId: string;
+          clientSecret: string;
+          plannedWorkoutId: string;
+          userId: string;
+          workoutProvider?: string;
         },
-        { authUrl: string; token: string; tokenSecret: string }
+        { garminScheduleId: number | null; garminWorkoutId: number }
       >;
       syncGarmin: FunctionReference<
         "action",
         "internal",
         {
-          consumerKey: string;
-          consumerSecret: string;
+          clientId: string;
+          clientSecret: string;
           endTimeInSeconds?: number;
           startTimeInSeconds?: number;
           userId: string;
@@ -470,6 +480,12 @@ export declare const components: {
         "mutation",
         "internal",
         { connectionId: string },
+        null
+      >;
+      deletePlannedWorkout: FunctionReference<
+        "mutation",
+        "internal",
+        { plannedWorkoutId: string },
         null
       >;
       disconnect: FunctionReference<
@@ -509,6 +525,12 @@ export declare const components: {
           provider: string;
           userId: string;
         }
+      >;
+      getPlannedWorkout: FunctionReference<
+        "query",
+        "internal",
+        { plannedWorkoutId: string },
+        any
       >;
       ingestActivity: FunctionReference<
         "mutation",
@@ -1358,6 +1380,88 @@ export declare const components: {
         },
         string
       >;
+      ingestPlannedWorkout: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          connectionId: string;
+          metadata: {
+            created_date?: string;
+            description?: string;
+            estimated_calories?: number;
+            estimated_distance_meters?: number;
+            estimated_duration_seconds?: number;
+            estimated_elevation_gain_meters?: number;
+            estimated_energy_kj?: number;
+            estimated_if?: number;
+            estimated_pace_minutes_per_kilometer?: number;
+            estimated_speed_meters_per_second?: number;
+            estimated_tscore?: number;
+            estimated_tss?: number;
+            id?: string;
+            name?: string;
+            planned_date?: string;
+            pool_length_meters?: number;
+            provider?: string;
+            type?: string;
+          };
+          steps?: Array<{
+            description?: string;
+            durations?: Array<{
+              calories?: number;
+              distance_meters?: number;
+              duration_type?: string;
+              hr_above_bpm?: number;
+              hr_below_bpm?: number;
+              power_above_watts?: number;
+              power_below_watts?: number;
+              reps?: number;
+              rest_seconds?: number;
+              seconds?: number;
+              steps?: number;
+            }>;
+            equipment_type?: string;
+            exercise_category?: string;
+            exercise_name?: string;
+            intensity?: string | number;
+            name?: string;
+            order?: number;
+            steps?: Array<any>;
+            stroke_type?: string;
+            targets?: Array<{
+              cadence?: number;
+              cadence_high?: number;
+              cadence_low?: number;
+              hr_bpm_high?: number;
+              hr_bpm_low?: number;
+              hr_percentage?: number;
+              hr_percentage_high?: number;
+              hr_percentage_low?: number;
+              if_high?: number;
+              if_low?: number;
+              pace_minutes_per_kilometer?: number;
+              power_percentage?: number;
+              power_percentage_high?: number;
+              power_percentage_low?: number;
+              power_watt?: number;
+              power_watt_high?: number;
+              power_watt_low?: number;
+              repetitions?: number;
+              speed_meters_per_second?: number;
+              speed_percentage?: number;
+              speed_percentage_high?: number;
+              speed_percentage_low?: number;
+              swim_strokes?: number;
+              target_type?: string;
+              tss?: number;
+            }>;
+            type?: string;
+            weight_kg?: number;
+          }>;
+          userId: string;
+        },
+        string
+      >;
       ingestSleep: FunctionReference<
         "mutation",
         "internal",
@@ -1574,6 +1678,18 @@ export declare const components: {
         },
         any
       >;
+      listPlannedWorkouts: FunctionReference<
+        "query",
+        "internal",
+        {
+          endDate?: string;
+          limit?: number;
+          order?: "asc" | "desc";
+          startDate?: string;
+          userId: string;
+        },
+        any
+      >;
       listSleep: FunctionReference<
         "query",
         "internal",
@@ -1672,6 +1788,24 @@ export declare const components: {
             numItems: number;
           };
           startTime?: string;
+          userId: string;
+        },
+        any
+      >;
+      paginatePlannedWorkouts: FunctionReference<
+        "query",
+        "internal",
+        {
+          endDate?: string;
+          paginationOpts: {
+            cursor: string | null;
+            endCursor?: string | null;
+            id?: number;
+            maximumBytesRead?: number;
+            maximumRowsRead?: number;
+            numItems: number;
+          };
+          startDate?: string;
           userId: string;
         },
         any

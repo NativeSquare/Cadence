@@ -136,9 +136,13 @@ const coachingSchema = v.optional(
 );
 
 // Data Connections
+// Provider connection status (Strava, Garmin, HealthKit) is tracked by the
+// Soma component. Query via api.integrations.connections.getConnectedProviders.
+// Legacy fields kept optional for backwards compatibility with existing documents.
 const connectionsSchema = v.object({
-  stravaConnected: v.boolean(),
-  wearableConnected: v.boolean(),
+  calendarConnected: v.boolean(),
+  stravaConnected: v.optional(v.boolean()),
+  wearableConnected: v.optional(v.boolean()),
   wearableType: v.optional(
     v.union(
       v.literal("garmin"),
@@ -148,7 +152,6 @@ const connectionsSchema = v.object({
       v.literal("none")
     )
   ),
-  calendarConnected: v.boolean(),
 });
 
 // Inferred Data (from wearable analysis)
@@ -582,8 +585,6 @@ export const createRunner = mutation({
         nameConfirmed: false,
       },
       connections: args.connections ?? {
-        stravaConnected: false,
-        wearableConnected: false,
         calendarConnected: false,
       },
       conversationState: args.conversationState ?? {
@@ -748,8 +749,6 @@ export const confirmName = mutation({
         userId,
         identity: newIdentity,
         connections: {
-          stravaConnected: false,
-          wearableConnected: false,
           calendarConnected: false,
         },
         conversationState: {
@@ -795,8 +794,8 @@ export const confirmName = mutation({
 
 /**
  * Skip wearable connection (Story 2.7)
- * Sets connection fields to indicate user skipped wearable setup.
- * Automatically transitions phase to "profile" via determinePhase.
+ * Recalculates completeness and phase when user skips wearable setup.
+ * Provider connection status is managed by Soma, not runner.connections.
  */
 export const skipWearableConnection = mutation({
   args: {},
@@ -815,27 +814,12 @@ export const skipWearableConnection = mutation({
       throw new ConvexError({ code: "RUNNER_NOT_FOUND", message: "Runner not found" });
     }
 
-    // Update connections to reflect skip
-    const updatedConnections = {
-      stravaConnected: false,
-      wearableConnected: false,
-      wearableType: "none" as const,
-      calendarConnected: runner.connections.calendarConnected,
-    };
-
-    // Build merged runner for phase calculation
-    const mergedRunner = {
-      ...runner,
-      connections: updatedConnections,
-    };
-
     // Recalculate completeness and phase
-    const dataCompleteness = calculateDataCompleteness(mergedRunner);
-    const fieldsMissing = getMissingFields(mergedRunner);
-    const currentPhase = determinePhase(mergedRunner);
+    const dataCompleteness = calculateDataCompleteness(runner);
+    const fieldsMissing = getMissingFields(runner);
+    const currentPhase = determinePhase(runner);
 
     await ctx.db.patch(runner._id, {
-      connections: updatedConnections,
       conversationState: {
         ...runner.conversationState,
         dataCompleteness,

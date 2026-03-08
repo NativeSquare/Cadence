@@ -11,11 +11,17 @@ import type { Doc } from "../../_generated/dataModel";
 
 type Runner = Doc<"runners"> | null;
 
+type ConnectedProviders = {
+  strava: { connected: boolean };
+  garmin: { connected: boolean };
+  healthkit: { connected: boolean };
+} | null;
+
 /**
  * Build system prompt with runner context injected
  */
-export function buildSystemPrompt(runner: Runner): string {
-  const runnerContext = runner ? buildRunnerContext(runner) : getDefaultContext();
+export function buildSystemPrompt(runner: Runner, providers?: ConnectedProviders): string {
+  const runnerContext = runner ? buildRunnerContext(runner, providers ?? null) : getDefaultContext();
   const coachingStyle = runner?.coaching?.coachingVoice ?? "encouraging";
 
   return `${BASE_PROMPT}
@@ -121,7 +127,7 @@ Use renderProgress periodically to show completion status.`;
 /**
  * Build context string from runner data
  */
-function buildRunnerContext(runner: Runner): string {
+function buildRunnerContext(runner: Runner, providers: ConnectedProviders): string {
   if (!runner) return getDefaultContext();
 
   const sections: string[] = [];
@@ -193,14 +199,15 @@ function buildRunnerContext(runner: Runner): string {
     );
   }
 
-  // Data Connections
-  if (runner.connections) {
-    const conn = runner.connections;
+  // Data Connections (from Soma)
+  if (providers) {
+    const connectedNames: string[] = [];
+    if (providers.strava.connected) connectedNames.push("Strava");
+    if (providers.garmin.connected) connectedNames.push("Garmin");
+    if (providers.healthkit.connected) connectedNames.push("Apple Health");
     sections.push(
       `**Data Connections:**
-- Strava connected: ${conn.stravaConnected ? "Yes" : "No"}
-- Wearable connected: ${conn.wearableConnected ? "Yes" : "No"}
-- Wearable type: ${conn.wearableType || "None"}`
+- Connected providers: ${connectedNames.length > 0 ? connectedNames.join(", ") : "None"}`
     );
   }
 

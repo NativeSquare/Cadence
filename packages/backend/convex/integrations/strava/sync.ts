@@ -18,7 +18,6 @@ import { ConvexError, v } from "convex/values";
 import { components, internal } from "../../_generated/api";
 import {
   action,
-  internalMutation,
   internalQuery,
   mutation,
 } from "../../_generated/server";
@@ -36,66 +35,6 @@ export const getAuthenticatedUserId = internalQuery({
   returns: v.union(v.id("users"), v.null()),
   handler: async (ctx) => {
     return await getAuthUserId(ctx);
-  },
-});
-
-/**
- * Mark the runner's Strava connection as active after a successful sync.
- */
-export const markStravaConnected = internalMutation({
-  args: {
-    userId: v.id("users"),
-  },
-  returns: v.null(),
-  handler: async (ctx, args) => {
-    const runner = await ctx.db
-      .query("runners")
-      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
-      .first();
-
-    if (!runner) {
-      throw new ConvexError({
-        code: "RUNNER_NOT_FOUND",
-        message: "Runner not found. Complete initial onboarding first.",
-      });
-    }
-
-    await ctx.db.patch(runner._id, {
-      connections: {
-        ...runner.connections,
-        stravaConnected: true,
-        wearableConnected: true,
-      },
-    });
-
-    return null;
-  },
-});
-
-/**
- * Mark the runner's Strava connection as inactive after disconnect.
- */
-export const markStravaDisconnected = internalMutation({
-  args: {
-    userId: v.id("users"),
-  },
-  returns: v.null(),
-  handler: async (ctx, args) => {
-    const runner = await ctx.db
-      .query("runners")
-      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
-      .first();
-
-    if (!runner) return null;
-
-    await ctx.db.patch(runner._id, {
-      connections: {
-        ...runner.connections,
-        stravaConnected: false,
-      },
-    });
-
-    return null;
   },
 });
 
@@ -139,12 +78,6 @@ export const connectStravaOAuth = action({
       userId,
       code: args.code,
     });
-
-    // Mark runner as Strava-connected
-    await ctx.runMutation(
-      internal.integrations.strava.sync.markStravaConnected,
-      { userId: userId as any },
-    );
 
     return result;
   },
@@ -211,12 +144,6 @@ export const disconnectStravaAccount = action({
     }
 
     await soma.disconnectStrava(ctx, { userId });
-
-    // Mark runner as disconnected
-    await ctx.runMutation(
-      internal.integrations.strava.sync.markStravaDisconnected,
-      { userId: userId as any },
-    );
 
     return null;
   },

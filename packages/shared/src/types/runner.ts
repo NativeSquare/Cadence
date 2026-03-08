@@ -110,17 +110,9 @@ export interface RunnerCoaching {
 // Data Connections
 // =============================================================================
 
-export type WearableType =
-  | "garmin"
-  | "coros"
-  | "apple_watch"
-  | "polar"
-  | "none";
-
+// Provider connection status (Strava, Garmin, HealthKit) is tracked by the
+// Soma component. Query via api.integrations.connections.getConnectedProviders.
 export interface RunnerConnections {
-  stravaConnected: boolean;
-  wearableConnected: boolean;
-  wearableType?: WearableType;
   calendarConnected: boolean;
 }
 
@@ -215,8 +207,6 @@ export interface UpdateRunnerInput {
 // =============================================================================
 
 export const initialRunnerConnections: RunnerConnections = {
-  stravaConnected: false,
-  wearableConnected: false,
   calendarConnected: false,
 };
 

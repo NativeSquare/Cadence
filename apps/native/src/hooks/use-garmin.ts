@@ -1,9 +1,9 @@
 /**
- * useGarmin - Hook for connecting to Garmin via the Soma component (v0.5.0).
+ * useGarmin - Hook for connecting to Garmin via the Soma component (v0.6.0).
  *
- * Uses the Garmin OAuth 1.0a flow via useGarminAuth. With Soma's
- * registerRoutes the token exchange and data sync happen server-side;
- * the hook only drives the browser session and confirms the connection.
+ * Uses the Garmin OAuth 2.0 flow via useGarminAuth. The native app
+ * handles the OAuth redirect and code exchange with PKCE, then calls
+ * the backend to complete the connection and initial data sync.
  */
 
 import { useState, useCallback } from "react";
@@ -12,6 +12,24 @@ import { useGarminAuth } from "./use-garmin-auth";
 export type GarminSyncStatus = {
   phase: "idle" | "connecting" | "syncing" | "complete" | "error";
   message: string;
+  synced?: {
+    activities: number;
+    dailies: number;
+    sleep: number;
+    body: number;
+    menstruation: number;
+  };
+};
+
+export type GarminResult = {
+  connectionId: string;
+  synced: {
+    activities: number;
+    dailies: number;
+    sleep: number;
+    body: number;
+    menstruation: number;
+  };
 };
 
 function extractErrorMessage(err: unknown): string {
@@ -51,7 +69,7 @@ export function useGarmin() {
     message: "",
   });
 
-  const connect = useCallback(async (): Promise<boolean> => {
+  const connect = useCallback(async (): Promise<GarminResult | null> => {
     setIsConnecting(true);
     setError(null);
     setSyncStatus({
@@ -65,27 +83,38 @@ export function useGarmin() {
         message: "Syncing data from Garmin...",
       });
 
-      const success = await garminAuth.connect();
+      const result = await garminAuth.connect();
 
-      if (!success) {
+      if (!result) {
         if (garminAuth.error) {
           throw new Error(garminAuth.error);
         }
         setSyncStatus({ phase: "idle", message: "" });
-        return false;
+        return null;
       }
+
+      const totalSynced =
+        result.synced.activities +
+        result.synced.dailies +
+        result.synced.sleep +
+        result.synced.body +
+        result.synced.menstruation;
 
       setSyncStatus({
         phase: "complete",
-        message: "Connected to Garmin",
+        message: `Synced ${totalSynced} records from Garmin`,
+        synced: result.synced,
       });
 
-      return true;
+      return {
+        connectionId: result.connectionId,
+        synced: result.synced,
+      };
     } catch (err) {
       const message = extractErrorMessage(err);
       setError(message);
       setSyncStatus({ phase: "error", message });
-      return false;
+      return null;
     } finally {
       setIsConnecting(false);
     }

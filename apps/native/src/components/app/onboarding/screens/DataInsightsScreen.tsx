@@ -60,23 +60,18 @@ function getAccentColor(accent: AccentColor): string {
 // Provider Name Helper
 // =============================================================================
 
-type WearableType = "garmin" | "coros" | "apple_watch" | "none" | undefined;
+type ProviderStatus = {
+  strava: { connected: boolean };
+  garmin: { connected: boolean };
+  healthkit: { connected: boolean };
+} | undefined;
 
-function getProviderDisplayName(
-  stravaConnected: boolean,
-  wearableType: WearableType
-): string {
-  if (stravaConnected) return "Strava";
-  switch (wearableType) {
-    case "apple_watch":
-      return "Apple Health";
-    case "garmin":
-      return "Garmin";
-    case "coros":
-      return "COROS";
-    default:
-      return "your wearable";
-  }
+function getProviderDisplayName(providers: ProviderStatus): string {
+  if (!providers) return "your wearable";
+  if (providers.strava.connected) return "Strava";
+  if (providers.garmin.connected) return "Garmin";
+  if (providers.healthkit.connected) return "Apple Health";
+  return "your wearable";
 }
 
 // =============================================================================
@@ -319,12 +314,9 @@ export function DataInsightsScreen({ onNext, onNoData }: DataInsightsScreenProps
     order: "desc",
   });
 
-  // Query runner to get wearable type
-  const runner = useQuery(api.table.runners.getCurrentRunner);
-  const providerName = getProviderDisplayName(
-    runner?.connections?.stravaConnected ?? false,
-    runner?.connections?.wearableType as WearableType
-  );
+  // Query connected providers from Soma
+  const providers = useQuery(api.integrations.connections.getConnectedProviders);
+  const providerName = getProviderDisplayName(providers);
 
   // Compute insights when data loads
   const insights = useMemo(() => {

@@ -57,6 +57,7 @@ export default function Profile() {
   const { signOut } = useAuthActions();
   const user = useQuery(api.table.users.currentUser);
   const runner = useQuery(api.table.runners.getCurrentRunner);
+  const providers = useQuery(api.integrations.connections.getConnectedProviders);
   const deleteAccount = useMutation(api.table.users.deleteAccount);
 
   const logoutSheetRef = React.useRef<BottomSheetModal>(null);
@@ -111,19 +112,11 @@ export default function Profile() {
   })();
 
   const connectionsValue = (() => {
-    const c = runner?.connections;
-    if (!c) return "Not set";
+    if (!providers) return "Not set";
     const connected: string[] = [];
-    if (c.stravaConnected) connected.push("Strava");
-    if (c.wearableConnected && c.wearableType) {
-      const wLabels: Record<string, string> = {
-        apple_watch: "Apple Health",
-        garmin: "Garmin",
-        coros: "Coros",
-        polar: "Polar",
-      };
-      connected.push(wLabels[c.wearableType] ?? c.wearableType);
-    }
+    if (providers.strava.connected) connected.push("Strava");
+    if (providers.garmin.connected) connected.push("Garmin");
+    if (providers.healthkit.connected) connected.push("Apple Health");
     return connected.length > 0 ? connected.join(", ") : "None";
   })();
 

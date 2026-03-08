@@ -1,7 +1,5 @@
 import { httpRouter } from "convex/server";
-import { registerRoutes } from "@nativesquare/soma";
 import { httpAction } from "./_generated/server";
-import { components } from "./_generated/api";
 import { auth } from "./auth";
 import { resend } from "./emails";
 import { streamChat } from "./ai/http_action";
@@ -29,15 +27,6 @@ http.route({
   path: "/api/ai/stream",
   method: "POST",
   handler: streamChat,
-});
-
-// Soma OAuth callback routes (Garmin OAuth 1.0a).
-// Soma handles the token exchange, connection creation, and initial data sync
-// inside the callback handler, then redirects to onSuccess.
-registerRoutes(http, components.soma, {
-  garmin: {
-    onSuccess: "cadence://localhost/garmin-oauth",
-  },
 });
 
 export default http;
