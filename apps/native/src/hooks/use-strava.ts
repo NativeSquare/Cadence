@@ -1,17 +1,10 @@
 /**
  * useStrava - Hook for connecting to Strava via the Soma component.
  *
- * Development mode (__DEV__):
- * - Bypasses real Strava OAuth entirely
- * - Seeds mock activity data using the mock data generator (Story 4.2)
- * - Marks runner as Strava-connected
- *
- * Production mode:
- * - Uses real Strava OAuth flow via useStravaAuth hook
+ * Uses real Strava OAuth flow via useStravaAuth; exchanges the code with
+ * Convex (connectStravaOAuth) and marks the runner as Strava-connected.
  */
 
-import { api } from "@packages/backend/convex/_generated/api";
-import { useMutation } from "convex/react";
 import { useState, useCallback } from "react";
 import { useStravaAuth } from "./use-strava-auth";
 
@@ -40,7 +33,6 @@ function extractErrorMessage(err: unknown): string {
 
   // Handle Convex action errors which include "Uncaught" prefix and stack traces
   if (message.includes("Uncaught")) {
-    // Extract just the error type and message
     const match = message.match(/Uncaught (\w+Error): (.+?)(?:\n|$)/);
     if (match) {
       return match[2].trim();
@@ -57,18 +49,11 @@ function extractErrorMessage(err: unknown): string {
     }
   }
 
-  // Return first line only (before any stack trace)
   const firstLine = message.split("\n")[0];
   return firstLine || "Failed to connect to Strava";
 }
 
 export function useStrava() {
-  // Mock mutation for development
-  const seedMockStrava = useMutation(
-    api.integrations.strava.sync.seedMockStravaData,
-  );
-
-  // Real auth for production
   const stravaAuth = useStravaAuth();
 
   const [isConnecting, setIsConnecting] = useState(false);
@@ -87,28 +72,6 @@ export function useStrava() {
     });
 
     try {
-      // In development, use mock data instead of real Strava API
-      if (__DEV__) {
-        setSyncStatus({
-          phase: "syncing",
-          message: "Generating mock Strava data...",
-        });
-
-        const result = await seedMockStrava({
-          profile: "intermediate",
-          weeks: 12,
-        });
-
-        setSyncStatus({
-          phase: "complete",
-          message: `Synced ${result.synced} mock activities`,
-          synced: result.synced,
-        });
-
-        return result;
-      }
-
-      // Production: use real Strava OAuth
       setSyncStatus({
         phase: "syncing",
         message: "Syncing activities from Strava...",
@@ -117,7 +80,6 @@ export function useStrava() {
       const result = await stravaAuth.connect();
 
       if (!result) {
-        // User cancelled or auth failed
         if (stravaAuth.error) {
           throw new Error(stravaAuth.error);
         }
@@ -144,7 +106,7 @@ export function useStrava() {
     } finally {
       setIsConnecting(false);
     }
-  }, [seedMockStrava, stravaAuth]);
+  }, [stravaAuth]);
 
   return {
     connect,

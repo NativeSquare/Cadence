@@ -23,7 +23,6 @@ import {
 /**
  * Transform flat MockActivity to Soma/Terra ingestActivity format.
  * Maps the flat generator output to nested Terra schema.
- * Exported for reuse in mock Strava seeding (sync.ts).
  */
 export function toSomaActivity(
   mock: MockActivity,

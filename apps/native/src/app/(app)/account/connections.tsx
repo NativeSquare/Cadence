@@ -1,9 +1,10 @@
 import { Text } from "@/components/ui/text";
+import { useStrava } from "@/hooks/use-strava";
 import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
 import { getConvexErrorMessage } from "@/utils/getConvexErrorMessage";
 import { Ionicons } from "@expo/vector-icons";
 import { api } from "@packages/backend/convex/_generated/api";
-import { useMutation, useQuery } from "convex/react";
+import { useAction, useMutation, useQuery } from "convex/react";
 import { useRouter } from "expo-router";
 import React from "react";
 import {
@@ -56,6 +57,12 @@ export default function ConnectionsScreen() {
   const router = useRouter();
   const runner = useQuery(api.table.runners.getCurrentRunner);
   const updateRunner = useMutation(api.table.runners.updateRunner);
+  const disconnectStrava = useAction(
+    api.integrations.strava.sync.disconnectStravaAccount,
+  );
+  const { connect: connectStrava, isConnecting: stravaConnecting, error: stravaError } =
+    useStrava();
+
   const [saving, setSaving] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
 
@@ -71,25 +78,40 @@ export default function ConnectionsScreen() {
     return false;
   };
 
+  const handleConnectStrava = async () => {
+    setError(null);
+    const result = await connectStrava();
+    if (result) {
+      // Success: runner is marked connected and activities synced by backend
+      return;
+    }
+    if (stravaError) setError(stravaError);
+  };
+
   const handleToggle = async (conn: ConnectionDef) => {
     if (!runner?._id) return;
-    setSaving(conn.key);
-    setError(null);
 
     const currentlyConnected = isConnected(conn);
 
+    // Strava: "connect" is handled by Connect button (OAuth + sync). Toggle only disconnects.
+    if (conn.key === "strava") {
+      if (!currentlyConnected) return;
+      setSaving(conn.key);
+      setError(null);
+      try {
+        await disconnectStrava();
+      } catch (err) {
+        setError(getConvexErrorMessage(err));
+      } finally {
+        setSaving(null);
+      }
+      return;
+    }
+
+    setSaving(conn.key);
+    setError(null);
     try {
-      if (conn.key === "strava") {
-        await updateRunner({
-          runnerId: runner._id,
-          fields: {
-            connections: {
-              ...runner.connections,
-              stravaConnected: !currentlyConnected,
-            },
-          },
-        });
-      } else if (conn.wearableType) {
+      if (conn.wearableType) {
         await updateRunner({
           runnerId: runner._id,
           fields: {
@@ -154,6 +176,10 @@ export default function ConnectionsScreen() {
             {CONNECTIONS.map((conn, index) => {
               const connected = isConnected(conn);
               const isLast = index === CONNECTIONS.length - 1;
+              const isStrava = conn.key === "strava";
+              const showConnectButton =
+                isStrava && !connected && !stravaConnecting;
+              const showStravaLoading = isStrava && !connected && stravaConnecting;
 
               return (
                 <View
@@ -198,7 +224,22 @@ export default function ConnectionsScreen() {
                     </Text>
                   </View>
 
-                  {saving === conn.key ? (
+                  {showStravaLoading ? (
+                    <ActivityIndicator size="small" color={LIGHT_THEME.wMute} />
+                  ) : showConnectButton ? (
+                    <Pressable
+                      onPress={handleConnectStrava}
+                      className="rounded-full px-4 py-2 active:opacity-80"
+                      style={{ backgroundColor: conn.color }}
+                    >
+                      <Text
+                        className="font-coach-semibold text-[13px]"
+                        style={{ color: "#fff" }}
+                      >
+                        Connect Strava
+                      </Text>
+                    </Pressable>
+                  ) : saving === conn.key ? (
                     <ActivityIndicator size="small" color={LIGHT_THEME.wMute} />
                   ) : (
                     <Pressable
@@ -224,12 +265,12 @@ export default function ConnectionsScreen() {
             })}
           </View>
 
-          {error && (
+          {(error || stravaError) && (
             <Text
               className="text-center font-coach text-sm"
               style={{ color: COLORS.red }}
             >
-              {error}
+              {error ?? stravaError}
             </Text>
           )}
         </View>
