@@ -113,7 +113,10 @@ export const requestGarminToken = action({
     tokenSecret: v.string(),
     authUrl: v.string(),
   }),
-  handler: async (ctx, args) => {
+  handler: async (
+    ctx,
+    args,
+  ): Promise<{ token: string; tokenSecret: string; authUrl: string }> => {
     const userId: string | null = await ctx.runQuery(
       internal.integrations.garmin.sync.getAuthenticatedUserId,
     );
@@ -141,7 +144,7 @@ export const requestGarminToken = action({
 export const confirmGarminConnection = mutation({
   args: {},
   returns: v.null(),
-  handler: async (ctx) => {
+  handler: async (ctx): Promise<null> => {
     const userId = await getAuthUserId(ctx);
     if (!userId) {
       throw new ConvexError({
@@ -197,7 +200,19 @@ export const syncGarminData = action({
       }),
     ),
   }),
-  handler: async (ctx, args) => {
+  handler: async (
+    ctx,
+    args,
+  ): Promise<{
+    synced: {
+      activities: number;
+      dailies: number;
+      sleep: number;
+      body: number;
+      menstruation: number;
+    };
+    errors: Array<{ type: string; id: string; error: string }>;
+  }> => {
     const userId: string | null = await ctx.runQuery(
       internal.integrations.garmin.sync.getAuthenticatedUserId,
     );
@@ -224,7 +239,7 @@ export const syncGarminData = action({
 export const disconnectGarminAccount = action({
   args: {},
   returns: v.null(),
-  handler: async (ctx) => {
+  handler: async (ctx): Promise<null> => {
     const userId: string | null = await ctx.runQuery(
       internal.integrations.garmin.sync.getAuthenticatedUserId,
     );
