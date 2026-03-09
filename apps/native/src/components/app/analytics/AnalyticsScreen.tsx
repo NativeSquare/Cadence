@@ -12,7 +12,7 @@
  * Gated behind placement runs (10 completed runs to unlock).
  */
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { View } from "react-native";
 import Animated from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -31,7 +31,7 @@ import { PlacementGate } from "./placement-gate";
 import { RunnerProfileCard } from "./runner-profile-card";
 import { PredictionCard } from "./prediction-card";
 import { PredictionTrendSheet } from "./prediction-trend-sheet";
-import { VolumeBarChart } from "./volume-bar-chart";
+import { VolumeBarChart, type VolumeSelection } from "./volume-bar-chart";
 import { ZoneBreakdown } from "./ZoneBreakdown";
 import { ObjectiveSelector } from "./objective-selector";
 import { StatsGrid } from "./StatsGrid";
@@ -84,6 +84,7 @@ export function AnalyticsScreen() {
   const [devSkipGate, setDevSkipGate] = useState(false);
 
   const [volumeTimeFrame, setVolumeTimeFrame] = useState<TimeFrame>("3mo");
+  const [volumeSelection, setVolumeSelection] = useState<VolumeSelection>(null);
   const volumeBar = useMemo(
     () => getVolumeBarData(volumeTimeFrame, data?.volumeByTimeframe),
     [volumeTimeFrame, data?.volumeByTimeframe],
@@ -94,7 +95,18 @@ export function AnalyticsScreen() {
 
   const handlePredictionTap = useCallback((distance: string) => {
     setTrendDistance(distance);
-    trendSheetRef.current?.present();
+  }, []);
+
+  // Present sheet after state is committed so content has the correct distance.
+  // (Calling present() in the same handler as setState opens the sheet before re-render.)
+  useEffect(() => {
+    if (trendDistance) {
+      trendSheetRef.current?.present();
+    }
+  }, [trendDistance]);
+
+  const handleTrendSheetDismiss = useCallback(() => {
+    setTrendDistance(null);
   }, []);
 
   const objectiveOption = useMemo(
@@ -192,12 +204,19 @@ export function AnalyticsScreen() {
                     </Text>
                     <View className="flex-row items-baseline gap-1 mt-1">
                       <Text className="text-[28px] font-coach-extrabold text-wText">
-                        {volumeBar.total}
+                        {volumeSelection != null
+                          ? volumeSelection.volume.toFixed(1)
+                          : volumeBar.total}
                       </Text>
                       <Text className="text-[14px] font-coach text-wSub">
                         {volumeBar.unitLabel}
                       </Text>
                     </View>
+                    {volumeSelection != null && (
+                      <Text className="text-[13px] font-coach text-wMute mt-0.5">
+                        {volumeSelection.label}
+                      </Text>
+                    )}
                   </View>
                   <View
                     className="px-[10px] py-[5px] rounded-lg"
@@ -216,6 +235,7 @@ export function AnalyticsScreen() {
                   data={volumeBar.barData}
                   labels={volumeBar.labels}
                   font={smallChartFont}
+                  onSelectionChange={setVolumeSelection}
                 />
                 <View className="mt-4">
                   <TimeFrameSelector
@@ -264,6 +284,7 @@ export function AnalyticsScreen() {
       <PredictionTrendSheet
         sheetRef={trendSheetRef}
         distance={trendDistance}
+        onDismiss={handleTrendSheetDismiss}
       />
     </View>
   );

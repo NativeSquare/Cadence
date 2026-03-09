@@ -34,11 +34,14 @@ const DISTANCE_TO_OBJECTIVE: Record<string, RaceObjective> = {
 export interface PredictionTrendSheetProps {
   sheetRef: React.RefObject<GorhomBottomSheetModal | null>;
   distance: string | null;
+  /** Called when the sheet is dismissed (e.g. to clear selection) */
+  onDismiss?: () => void;
 }
 
 export function PredictionTrendSheet({
   sheetRef,
   distance,
+  onDismiss,
 }: PredictionTrendSheetProps) {
   const chartFont = useFont(Outfit_400Regular, 9);
   const [timeFrame, setTimeFrame] = useState<TimeFrame>("3mo");
@@ -54,7 +57,11 @@ export function PredictionTrendSheet({
   if (!distance || !objective) return null;
 
   return (
-    <BottomSheetModal ref={sheetRef} backgroundColor={LIGHT_THEME.w1}>
+    <BottomSheetModal
+      ref={sheetRef}
+      backgroundColor={LIGHT_THEME.w1}
+      onDismiss={onDismiss}
+    >
       <View className="pt-2 pb-4">
         <Text
           className="text-[12px] font-coach-semibold text-wSub uppercase px-6"

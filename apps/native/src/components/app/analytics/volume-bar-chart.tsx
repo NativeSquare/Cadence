@@ -1,34 +1,34 @@
 /**
- * VolumeBarChart - Strava-style animated bar chart for volume over time
+ * VolumeLineChart - Strava-style line chart for volume over time
  *
- * Bars grow from bottom with staggered entrance animation.
- * Touch-to-inspect shows value pill via ActiveValueIndicator.
- * Light-theme variant designed for white card backgrounds.
+ * - Line with visible data points (dots) at each value
+ * - On touch: vertical line + highlighted dot; no floating tooltip
+ * - Selected period and value are shown in a flat summary above the chart
+ *   (parent controls that display via onSelectionChange)
  */
 
-import React, { useEffect } from "react";
+import React, { useRef } from "react";
 import { View } from "react-native";
 import {
   CartesianChart,
+  Line,
   useChartPressState,
   type PointsArray,
 } from "victory-native";
-import { RoundedRect, type SkFont } from "@shopify/react-native-skia";
+import { Circle, Line as SkiaLine } from "@shopify/react-native-skia";
 import {
-  useSharedValue,
   useDerivedValue,
-  withDelay,
-  withTiming,
-  cancelAnimation,
-  Easing,
+  useAnimatedReaction,
+  runOnJS,
+  type SharedValue,
 } from "react-native-reanimated";
 import { COLORS } from "@/lib/design-tokens";
-import { ActiveValueIndicator } from "./ActiveValueIndicator";
+import { selectionFeedback } from "@/lib/haptics";
 
-const BAR_EASING = Easing.bezier(0.4, 0, 0.2, 1);
-const BAR_COLOR = COLORS.lime;
-const BAR_OPACITY = 0.55;
-const BAR_HIGHLIGHT = COLORS.lime;
+const LINE_COLOR = COLORS.lime;
+const DOT_R = 4;
+const DOT_HIGHLIGHT_R = 6;
+const VERTICAL_LINE_COLOR = "rgba(0,0,0,0.12)";
 
 export interface VolumeBarDatum {
   index: number;
@@ -36,92 +36,44 @@ export interface VolumeBarDatum {
   [key: string]: unknown;
 }
 
-function AnimatedBar({
-  targetHeight,
-  x,
-  width,
-  bottom,
-  color,
-  opacity = 1,
-  delayMs,
-}: {
-  targetHeight: number;
-  x: number;
-  width: number;
-  bottom: number;
-  color: string;
-  opacity?: number;
-  delayMs: number;
-}) {
-  const progress = useSharedValue(0);
+export type VolumeSelection = {
+  index: number;
+  volume: number;
+  label: string;
+} | null;
 
-  useEffect(() => {
-    progress.value = withDelay(
-      delayMs,
-      withTiming(1, { duration: 500, easing: BAR_EASING })
-    );
-    return () => cancelAnimation(progress);
-  }, []);
-
-  const animHeight = useDerivedValue(() => progress.value * targetHeight);
-  const animY = useDerivedValue(() => bottom - animHeight.value);
-
-  return (
-    <RoundedRect
-      x={x}
-      y={animY}
-      width={width}
-      height={animHeight}
-      r={4}
-      color={color}
-      opacity={opacity}
-    />
-  );
+function reportSelection(
+  active: boolean,
+  xValue: number,
+  data: VolumeBarDatum[],
+  labels: string[],
+  onSelectionChange: (s: VolumeSelection) => void,
+  lastIndexRef: React.MutableRefObject<number | null>
+) {
+  if (!active) {
+    lastIndexRef.current = null;
+    onSelectionChange(null);
+    return;
+  }
+  const idx = Math.round(xValue);
+  const clamped = Math.max(0, Math.min(idx, data.length - 1));
+  if (lastIndexRef.current !== clamped) {
+    lastIndexRef.current = clamped;
+    selectionFeedback();
+  }
+  const datum = data[clamped];
+  const label = labels[clamped] ?? "";
+  const volume = datum ? datum.volume : 0;
+  onSelectionChange({ index: clamped, volume, label });
 }
 
-function VolumeBars({
-  points,
-  chartBounds,
-}: {
-  points: PointsArray;
-  chartBounds: { bottom: number; left: number; right: number };
-}) {
-  const barCount = points.length;
-  const totalWidth = chartBounds.right - chartBounds.left;
-  const gapRatio = barCount <= 7 ? 0.55 : barCount <= 14 ? 0.60 : 0.65;
-  const barWidth = Math.max((totalWidth / barCount) * gapRatio, 4);
-  const lastIdx = barCount - 1;
-
-  return (
-    <>
-      {points.map((point, i) => {
-        if (point.y == null) return null;
-        const targetHeight = Math.max(chartBounds.bottom - point.y, 0);
-        if (targetHeight < 1) return null;
-
-        const isLast = i === lastIdx;
-        return (
-          <AnimatedBar
-            key={i}
-            targetHeight={targetHeight}
-            x={point.x - barWidth / 2}
-            width={barWidth}
-            bottom={chartBounds.bottom}
-            color={isLast ? BAR_HIGHLIGHT : BAR_COLOR}
-            opacity={isLast ? 1 : BAR_OPACITY}
-            delayMs={i * 35}
-          />
-        );
-      })}
-    </>
-  );
-}
-
-interface VolumeBarChartProps {
+interface VolumeLineChartProps {
   data: VolumeBarDatum[];
   labels: string[];
-  font?: SkFont | null;
+  font?: import("@shopify/react-native-skia").SkFont | null;
   chartHeight?: number;
+  /** Called when user selects a point or releases (null). Use to show flat summary. */
+  onSelectionChange?: (selection: VolumeSelection) => void;
 }
 
 export function VolumeBarChart({
@@ -129,22 +81,40 @@ export function VolumeBarChart({
   labels,
   font,
   chartHeight = 180,
-}: VolumeBarChartProps) {
+  onSelectionChange,
+}: VolumeLineChartProps) {
   const { state, isActive } = useChartPressState({
     x: 0,
     y: { volume: 0 },
   });
 
-  const volumeLabel = useDerivedValue(() => {
-    "worklet";
-    const v = Math.round(state.y.volume.value.value * 10) / 10;
-    const idx = Math.round(state.x.value.value);
-    const periodLabel = labels[idx] ?? "";
-    if (periodLabel) return `${periodLabel} · ${v} km`;
-    return `${v} km`;
-  });
+  const lastIndexRef = useRef<number | null>(null);
+
+  // Sync selection to parent for flat summary and haptic when crossing points
+  useAnimatedReaction(
+    () => ({ active: isActive.value, x: state.x.value.value }),
+    ({ active, x }) => {
+      if (onSelectionChange) {
+        runOnJS(reportSelection)(
+          active,
+          x,
+          data,
+          labels,
+          onSelectionChange,
+          lastIndexRef
+        );
+      }
+    },
+    [data, labels, onSelectionChange]
+  );
 
   const tickCount = Math.min(data.length, data.length <= 7 ? 7 : 12);
+
+  const maxVolume = data.length
+    ? Math.max(...data.map((d) => d.volume), 0)
+    : 0;
+  const yDomain: [number, number] =
+    maxVolume === 0 ? [0, 1] : [0, Math.max(maxVolume * 1.05, 1)];
 
   return (
     <View style={{ height: chartHeight }}>
@@ -153,32 +123,117 @@ export function VolumeBarChart({
         xKey="index"
         yKeys={["volume"]}
         chartPressState={state}
-        domainPadding={{ left: 16, right: 16, top: 24 }}
+        domain={{ y: yDomain }}
+        domainPadding={{ left: 16, right: 16, top: 24, bottom: 16 }}
         axisOptions={{
           font,
           formatXLabel: (v) => labels[v] ?? "",
-          tickCount: { x: tickCount, y: 0 },
-          lineColor: "transparent",
+          formatYLabel: (v) => `${v} km`,
+          tickCount: { x: tickCount, y: 4 },
+          lineColor: "rgba(0,0,0,0.08)",
           labelColor: "rgba(0,0,0,0.35)",
         }}
       >
         {({ points, chartBounds }) => (
           <>
-            <VolumeBars points={points.volume} chartBounds={chartBounds} />
-            {isActive && (
-              <ActiveValueIndicator
-                xPosition={state.x.position}
-                yPosition={state.y.volume.position}
-                top={chartBounds.top}
-                bottom={chartBounds.bottom}
-                label={volumeLabel}
-                font={font ?? null}
-                color={COLORS.lime}
-              />
-            )}
+            <VolumeLine points={points.volume} color={LINE_COLOR} />
+            <VolumeDots
+              points={points.volume}
+              isActive={isActive}
+              stateXPosition={state.x.position}
+              stateYPosition={state.y.volume.position}
+            />
+            <VerticalLine
+              xPosition={state.x.position}
+              top={chartBounds.top}
+              bottom={chartBounds.bottom}
+              isActive={isActive}
+            />
           </>
         )}
       </CartesianChart>
     </View>
+  );
+}
+
+function VerticalLine({
+  xPosition,
+  top,
+  bottom,
+  isActive,
+}: {
+  xPosition: SharedValue<number>;
+  top: number;
+  bottom: number;
+  isActive: SharedValue<boolean>;
+}) {
+  const p1 = useDerivedValue(() => ({ x: xPosition.value, y: top }));
+  const p2 = useDerivedValue(() => ({ x: xPosition.value, y: bottom }));
+  const opacity = useDerivedValue(() => (isActive.value ? 1 : 0));
+  return (
+    <SkiaLine
+      p1={p1}
+      p2={p2}
+      color={VERTICAL_LINE_COLOR}
+      strokeWidth={1}
+      style="stroke"
+      opacity={opacity}
+    />
+  );
+}
+
+function VolumeLine({
+  points,
+  color,
+}: {
+  points: PointsArray;
+  color: string;
+}) {
+  return (
+    <Line
+      points={points}
+      color={color}
+      strokeWidth={2}
+      curveType="linear"
+    />
+  );
+}
+
+function VolumeDots({
+  points,
+  isActive,
+  stateXPosition,
+  stateYPosition,
+}: {
+  points: PointsArray;
+  isActive: SharedValue<boolean>;
+  stateXPosition: SharedValue<number>;
+  stateYPosition: SharedValue<number>;
+}) {
+  const highlightOpacity = useDerivedValue(() => (isActive.value ? 1 : 0));
+  return (
+    <>
+      {points.map((point, i) => {
+        if (point.y == null) return null;
+        const y = point.y as number;
+        return (
+          <Circle
+            key={i}
+            cx={point.x}
+            cy={y}
+            r={DOT_R}
+            color={LINE_COLOR}
+            opacity={0.7}
+          />
+        );
+      })}
+      <Circle
+        cx={stateXPosition}
+        cy={stateYPosition}
+        r={DOT_HIGHLIGHT_R}
+        color={LINE_COLOR}
+        opacity={highlightOpacity}
+      />
+    </>
   );
 }
