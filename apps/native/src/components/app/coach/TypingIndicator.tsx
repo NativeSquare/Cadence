@@ -17,7 +17,8 @@
  * Source: Story 10.3 - AC#3, Task 5
  */
 
-import { View } from "react-native";
+import { View, Image } from "react-native";
+import { Text } from "@/components/ui/text";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -32,6 +33,8 @@ import Animated, {
 import { useEffect } from "react";
 
 import type { TypingIndicatorProps } from "./types";
+
+const CADENCE_ICON = require("../../../../assets/icons/ios-icon.png");
 
 // =============================================================================
 // Sub-components
@@ -106,8 +109,13 @@ export function TypingIndicator({ visible }: TypingIndicatorProps) {
       exiting={FadeOut.duration(150)}
       className="flex-row justify-start mb-2.5"
     >
+      {/* Coach avatar */}
+      <View className="w-7 h-7 rounded-full overflow-hidden mr-2 mt-1">
+        <Image source={CADENCE_ICON} className="w-7 h-7" />
+      </View>
+
       <View
-        className="px-4 py-3.5 flex-row items-center gap-1 bg-w1"
+        className="px-4 py-3.5 bg-w1"
         style={{
           borderTopLeftRadius: 18,
           borderTopRightRadius: 18,
@@ -122,10 +130,20 @@ export function TypingIndicator({ visible }: TypingIndicatorProps) {
           elevation: 1,
         }}
       >
+        {/* Coach badge */}
+        <View className="flex-row items-center gap-1.5 mb-4">
+          <View className="w-[5px] h-[5px] rounded-full bg-lime" />
+          <Text className="text-[10px] font-coach-semibold text-primary">
+            Coach
+          </Text>
+        </View>
+
         {/* Three dots with staggered delay: 0ms, 200ms, 400ms */}
-        <AnimatedDot delay={0} />
-        <AnimatedDot delay={200} />
-        <AnimatedDot delay={400} />
+        <View className="flex-row items-center gap-1">
+          <AnimatedDot delay={0} />
+          <AnimatedDot delay={200} />
+          <AnimatedDot delay={400} />
+        </View>
       </View>
     </Animated.View>
   );

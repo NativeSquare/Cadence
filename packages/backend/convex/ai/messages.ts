@@ -1,7 +1,7 @@
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { defineTable } from "convex/server";
 import { ConvexError, v } from "convex/values";
-import { mutation, query } from "../_generated/server";
+import { internalMutation, mutation, query } from "../_generated/server";
 
 /**
  * AI Conversation Messages Schema
@@ -55,9 +55,9 @@ const messageSchema = {
   toolCalls: v.optional(v.array(toolCallSchema)),
   toolResults: v.optional(v.array(toolResultSchema)),
   createdAt: v.number(),
-  // Delta streaming support
   isComplete: v.boolean(),
-  streamedContent: v.optional(v.string()), // Partial content during streaming
+  streamedContent: v.optional(v.string()),
+  archived: v.optional(v.boolean()),
 };
 
 // Conversation schema
@@ -295,17 +295,15 @@ export const getConversationHistory = query({
       return [];
     }
 
-    // Get messages ordered by creation time
-    const messagesQuery = ctx.db
+    const allMessages = await ctx.db
       .query("messages")
       .withIndex("by_conversation_time", (q) => q.eq("conversationId", args.conversationId))
-      .order("asc");
+      .order("asc")
+      .collect();
 
-    const messages = await messagesQuery.collect();
-
-    // Apply limit from the end (most recent messages)
+    const activeMessages = allMessages.filter((m) => !m.archived);
     const limit = args.limit ?? 20;
-    return messages.slice(-limit);
+    return activeMessages.slice(-limit);
   },
 });
 
@@ -337,5 +335,39 @@ export const getLastIncompleteMessage = query({
       .first();
 
     return messages;
+  },
+});
+
+// =============================================================================
+// Message Archival (Seshat Compaction)
+// =============================================================================
+
+/**
+ * Archive old messages after compaction, keeping only the most recent N.
+ * Called internally by the agent loop when Seshat triggers compaction.
+ */
+export const archiveMessages = internalMutation({
+  args: {
+    conversationId: v.id("conversations"),
+    keepCount: v.number(),
+  },
+  returns: v.number(),
+  handler: async (ctx, args) => {
+    const allMessages = await ctx.db
+      .query("messages")
+      .withIndex("by_conversation_time", (q) =>
+        q.eq("conversationId", args.conversationId),
+      )
+      .order("asc")
+      .collect();
+
+    const activeMessages = allMessages.filter((m) => !m.archived);
+    const archiveCount = Math.max(0, activeMessages.length - args.keepCount);
+
+    for (let i = 0; i < archiveCount; i++) {
+      await ctx.db.patch(activeMessages[i]._id, { archived: true });
+    }
+
+    return archiveCount;
   },
 });

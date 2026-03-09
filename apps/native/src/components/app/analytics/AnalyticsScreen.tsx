@@ -84,7 +84,10 @@ export function AnalyticsScreen() {
   const [devSkipGate, setDevSkipGate] = useState(false);
 
   const [volumeTimeFrame, setVolumeTimeFrame] = useState<TimeFrame>("3mo");
-  const volumeBar = useMemo(() => getVolumeBarData(volumeTimeFrame), [volumeTimeFrame]);
+  const volumeBar = useMemo(
+    () => getVolumeBarData(volumeTimeFrame, data?.volumeByTimeframe),
+    [volumeTimeFrame, data?.volumeByTimeframe],
+  );
 
   const trendSheetRef = useRef<GorhomBottomSheetModal>(null);
   const [trendDistance, setTrendDistance] = useState<string | null>(null);

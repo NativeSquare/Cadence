@@ -416,11 +416,10 @@ export function useAIChat(options: UseAIChatOptions = {}): UseAIChatReturn {
               };
             }
 
-            // For errors or empty aborts, show error state
+            // For errors or empty aborts, mark as failed (content stays empty)
             return {
               ...m,
               isStreaming: false,
-              content: m.content || "[Error]",
             };
           })
         );

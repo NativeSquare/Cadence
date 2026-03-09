@@ -24,7 +24,6 @@ import Animated, {
   runOnJS,
   useAnimatedStyle,
   useSharedValue,
-  withSpring,
   withTiming,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -74,9 +73,8 @@ function ViewToggle({
     (mode: ViewMode) => {
       if (mode === value) return;
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      indicatorX.value = withSpring(mode === "sessions" ? 0 : 1, {
-        damping: 20,
-        stiffness: 200,
+      indicatorX.value = withTiming(mode === "sessions" ? 0 : 1, {
+        duration: 180,
       });
       onChange(mode);
     },
@@ -197,15 +195,12 @@ export function CalendarScreen() {
     (direction: "prev" | "next") => {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       const exit = direction === "next" ? -1 : 1;
-      contentFade.value = withTiming(0, { duration: 100 });
-      contentTranslateX.value = withTiming(exit * 40, { duration: 100 }, () => {
+      contentFade.value = withTiming(0, { duration: 80 });
+      contentTranslateX.value = withTiming(exit * 16, { duration: 80 }, () => {
         runOnJS(updateMonth)(direction);
-        contentTranslateX.value = exit * -40;
-        contentFade.value = withTiming(1, { duration: 200 });
-        contentTranslateX.value = withSpring(0, {
-          damping: 18,
-          stiffness: 180,
-        });
+        contentTranslateX.value = exit * -16;
+        contentFade.value = withTiming(1, { duration: 150 });
+        contentTranslateX.value = withTiming(0, { duration: 150 });
       });
     },
     [contentFade, contentTranslateX, updateMonth],
