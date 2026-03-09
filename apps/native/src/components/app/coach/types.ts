@@ -76,11 +76,22 @@ export interface TypingIndicatorProps {
   visible: boolean;
 }
 
+export interface PendingAttachment {
+  /** Local file URI or uploaded image URL for preview */
+  uri: string;
+  /** Uploaded URL sent to the API (when present, upload is done) */
+  url?: string;
+}
+
 export interface ChatInputProps {
   value: string;
   onChange: (text: string) => void;
   onSend: () => void;
   onMicPress: () => void;
+  onAttachmentPress?: () => void;
+  /** Pending media attachments (local uri + optional uploaded url) */
+  attachments?: PendingAttachment[];
+  onRemoveAttachment?: (index: number) => void;
   disabled?: boolean;
 }
 

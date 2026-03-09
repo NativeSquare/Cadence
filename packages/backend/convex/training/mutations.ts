@@ -316,3 +316,173 @@ export const hasActivePlan = mutation({
 
 // Note: To regenerate a plan, simply call generateAndPersistPlan again.
 // It automatically deactivates existing plans before creating a new one.
+
+// =============================================================================
+// User-Planned Run (Ad-Hoc Session)
+// =============================================================================
+
+const SESSION_CATEGORY_MAP: Record<
+  string,
+  { sessionType: string; sessionTypeDisplay: string; physiologicalTarget: string }
+> = {
+  easy: { sessionType: "easy", sessionTypeDisplay: "Easy", physiologicalTarget: "aerobic_base" },
+  specific: { sessionType: "tempo", sessionTypeDisplay: "Specific", physiologicalTarget: "lactate_threshold" },
+  long: { sessionType: "long_run", sessionTypeDisplay: "Long Run", physiologicalTarget: "aerobic_base" },
+  race: { sessionType: "race", sessionTypeDisplay: "Race", physiologicalTarget: "race_performance" },
+};
+
+const DAYS_FULL = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"] as const;
+const DAYS_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
+
+/**
+ * Create a user-planned run and insert it into the runner's active plan.
+ * If no active plan exists, a lightweight "My Runs" ad-hoc plan is created.
+ *
+ * The session is stored in `plannedSessions` with `sessionSubtype: "user_planned"`
+ * so it can be distinguished from AI-generated sessions in queries/UI.
+ */
+export const createUserPlannedRun = mutation({
+  args: {
+    scheduledDate: v.number(),
+    sessionType: v.union(
+      v.literal("easy"),
+      v.literal("specific"),
+      v.literal("long"),
+      v.literal("race")
+    ),
+    targetDurationMinutes: v.optional(v.number()),
+    targetDistanceKm: v.optional(v.number()),
+    targetPace: v.optional(v.string()),
+    notes: v.optional(v.string()),
+  },
+  returns: v.id("plannedSessions"),
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      throw new ConvexError({ code: "UNAUTHORIZED", message: "Must be authenticated" });
+    }
+
+    if (!args.targetDurationMinutes && !args.targetDistanceKm) {
+      throw new ConvexError({
+        code: "VALIDATION",
+        message: "Provide at least a target duration or distance",
+      });
+    }
+
+    const runner = await ctx.db
+      .query("runners")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .first();
+    if (!runner) {
+      throw new ConvexError({ code: "RUNNER_NOT_FOUND", message: "Runner profile not found" });
+    }
+
+    // --- Resolve plan: use active plan, or create ad-hoc plan ---
+    let plan = await ctx.db
+      .query("trainingPlans")
+      .withIndex("by_runnerId", (q) => q.eq("runnerId", runner._id))
+      .filter((q) => q.eq(q.field("status"), "active"))
+      .first();
+
+    if (!plan) {
+      const now = Date.now();
+      const oneYear = 52 * 7 * 24 * 60 * 60 * 1000;
+      const planId = await ctx.db.insert("trainingPlans", {
+        runnerId: runner._id,
+        userId,
+        name: "My Runs",
+        goalType: "ad_hoc",
+        startDate: now,
+        endDate: now + oneYear,
+        durationWeeks: 52,
+        status: "active",
+        seasonView: {
+          coachSummary: "Your personal collection of planned runs.",
+          periodizationJustification: "User-directed training",
+          volumeStrategyJustification: "User-directed volume",
+          keyMilestones: [],
+          identifiedRisks: [],
+          expectedOutcomes: {
+            primaryGoal: "User-defined goals",
+            confidenceLevel: 100,
+            confidenceReason: "User-planned sessions",
+            secondaryOutcomes: [],
+          },
+        },
+        weeklyPlan: [],
+        runnerSnapshot: {
+          capturedAt: now,
+          profileRadar: [],
+          fitnessIndicators: {},
+          planInfluencers: ["User-planned runs"],
+        },
+        generatedAt: now,
+        generatorVersion: "user_planned_v1",
+        createdAt: now,
+        updatedAt: now,
+      });
+      plan = (await ctx.db.get(planId))!;
+    }
+
+    // --- Derive date fields ---
+    const date = new Date(args.scheduledDate);
+    const dayIdx = date.getUTCDay();
+    const dayOfWeek = DAYS_FULL[dayIdx];
+    const dayOfWeekShort = DAYS_SHORT[dayIdx];
+
+    const msPerWeek = 7 * 24 * 60 * 60 * 1000;
+    const weekNumber = Math.max(
+      1,
+      Math.floor((args.scheduledDate - plan.startDate) / msPerWeek) + 1
+    );
+
+    // --- Map category to session type ---
+    const typeInfo = SESSION_CATEGORY_MAP[args.sessionType];
+
+    const targetDurationSeconds = args.targetDurationMinutes
+      ? args.targetDurationMinutes * 60
+      : undefined;
+    const targetDurationDisplay = args.targetDurationMinutes
+      ? `${args.targetDurationMinutes} min`
+      : "-";
+    const targetDistanceMeters = args.targetDistanceKm
+      ? args.targetDistanceKm * 1000
+      : undefined;
+
+    const parts: string[] = [];
+    if (args.targetDurationMinutes) parts.push(`${args.targetDurationMinutes} min`);
+    if (args.targetDistanceKm) parts.push(`${args.targetDistanceKm} km`);
+
+    const description = args.notes
+      ? `${typeInfo.sessionTypeDisplay} run — ${parts.join(", ")}. ${args.notes}`
+      : `${typeInfo.sessionTypeDisplay} run — ${parts.join(", ") || "open duration"}`;
+
+    // --- Insert session ---
+    const sessionId = await ctx.db.insert("plannedSessions", {
+      planId: plan._id,
+      runnerId: runner._id,
+      weekNumber,
+      dayOfWeek,
+      dayOfWeekShort,
+      scheduledDate: args.scheduledDate,
+      sessionType: typeInfo.sessionType,
+      sessionTypeDisplay: typeInfo.sessionTypeDisplay,
+      sessionSubtype: "user_planned",
+      isKeySession: args.sessionType === "specific" || args.sessionType === "race",
+      isRestDay: false,
+      targetDurationSeconds,
+      targetDurationDisplay,
+      targetDistanceMeters,
+      effortLevel: undefined,
+      effortDisplay: "-",
+      targetPaceDisplay: args.targetPace,
+      description,
+      justification: "Planned by user",
+      physiologicalTarget: typeInfo.physiologicalTarget,
+      isMoveable: true,
+      status: "scheduled",
+    });
+
+    return sessionId;
+  },
+});

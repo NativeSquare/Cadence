@@ -125,13 +125,24 @@ export interface StreamMessage {
   completionReason?: StreamCompletionReason;
 }
 
+/** User message content: plain text or multimodal (text + image URLs) for vision */
+export type StreamMessageContent =
+  | string
+  | Array<
+      | { type: "text"; text: string }
+      | { type: "file"; url: string; mediaType?: string }
+    >;
+
 export interface StreamOptions {
   /** Convex HTTP site URL */
   convexSiteUrl: string;
   /** Auth token for authenticated requests */
   authToken: string;
-  /** Messages to send to the AI */
-  messages: Array<{ role: "user" | "assistant" | "system"; content: string }>;
+  /** Messages to send to the AI (content may be string or multimodal parts) */
+  messages: Array<{
+    role: "user" | "assistant" | "system";
+    content: StreamMessageContent;
+  }>;
   /** Conversation ID for persistence */
   conversationId?: string;
   /** Called for each text chunk */

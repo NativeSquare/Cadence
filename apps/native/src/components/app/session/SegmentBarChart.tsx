@@ -196,8 +196,9 @@ export function SegmentBarChart({
           axisOptions={{
             font,
             formatXLabel: (v) => labels[v] ?? "",
-            tickCount: { x: segments.length, y: 0 },
-            lineColor: "transparent",
+            formatYLabel: (v) => (v >= 0 && v <= 1 ? `${Math.round(v * 100)}%` : ""),
+            tickCount: { x: segments.length, y: 4 },
+            lineColor: "rgba(0,0,0,0.08)",
             labelColor: "rgba(0,0,0,0.35)",
           }}
         >

@@ -166,7 +166,7 @@ export function PaceProfileChart({
                     points={points.paceSeconds}
                     color={ACTIVITY_COLORS.barRest}
                     strokeWidth={2.5}
-                    curveType="natural"
+                    curveType="linear"
                   />
                 </Group>
                 {!isActive && lastPoint && lastPoint.y != null && (

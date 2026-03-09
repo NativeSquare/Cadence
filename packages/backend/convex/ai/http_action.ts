@@ -207,8 +207,16 @@ export const streamChat = httpAction(async (ctx, request) => {
     );
   }
 
+  /** User/assistant message content: plain text or multimodal parts (text + image) */
+  type MessageContent =
+    | string
+    | Array<
+        | { type: "text"; text: string }
+        | { type: "file"; url: string; mediaType?: string }
+      >;
+
   let body: {
-    messages: Array<{ role: "user" | "assistant" | "system"; content: string }>;
+    messages: Array<{ role: "user" | "assistant" | "system"; content: MessageContent }>;
     conversationId?: string;
   };
 
@@ -247,12 +255,24 @@ export const streamChat = httpAction(async (ctx, request) => {
     const userId = user._id as string;
     const isOnboarding = !user.hasCompletedOnboarding;
 
+    /** Normalize content to string for memory/compaction (multimodal → text summary) */
+    const contentToString = (c: MessageContent): string =>
+      typeof c === "string"
+        ? c
+        : c
+            .map((p) =>
+              p.type === "text" ? p.text : "[Image attached]"
+            )
+            .join(" ");
+
     const currentMessage = body.messages
       .filter((m) => m.role === "user")
       .at(-1)?.content;
+    const currentMessageStr =
+      currentMessage !== undefined ? contentToString(currentMessage) : undefined;
 
     const [memoryContext, memoryTools] = await Promise.all([
-      seshat.assembleMemoryContext(ctx, { userId, currentMessage }),
+      seshat.assembleMemoryContext(ctx, { userId, currentMessage: currentMessageStr }),
       seshat.getMemoryTools(ctx, { userId }),
     ]);
 
@@ -264,7 +284,7 @@ export const streamChat = httpAction(async (ctx, request) => {
 
     const result = streamText({
       model: openai("gpt-4o"),
-      messages: body.messages,
+      messages: body.messages as Parameters<typeof streamText>[0]["messages"] & {},
       tools: allTools,
       system: systemPrompt,
       stopWhen: stepCountIs(5),
@@ -282,7 +302,7 @@ export const streamChat = httpAction(async (ctx, request) => {
             tokensUsed: usage.totalTokens ?? 0,
             messages: body.messages.map((m) => ({
               role: m.role,
-              content: m.content,
+              content: contentToString(m.content),
             })),
           });
 

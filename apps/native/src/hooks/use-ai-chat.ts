@@ -89,8 +89,8 @@ export interface UseAIChatReturn {
   maxRetries: number;
   /** Whether retries are exhausted (Story 8.3 AC#3) */
   isRetriesExhausted: boolean;
-  /** Send a message and get streaming response */
-  sendMessage: (content: string) => Promise<void>;
+  /** Send a message and get streaming response. Optionally include image URLs for vision. */
+  sendMessage: (content: string, imageUrls?: string[]) => Promise<void>;
   /** Append a message without sending (for system messages) */
   appendMessage: (message: Omit<ChatMessage, "id" | "createdAt">) => void;
   /** Clear all messages */
@@ -226,7 +226,7 @@ export function useAIChat(options: UseAIChatOptions = {}): UseAIChatReturn {
    * Send a message and stream the response
    */
   const sendMessage = useCallback(
-    async (content: string) => {
+    async (content: string, imageUrls?: string[]) => {
       if (!authToken) {
         const authError = new Error("Not authenticated");
         setError(authError);
@@ -294,16 +294,28 @@ export function useAIChat(options: UseAIChatOptions = {}): UseAIChatReturn {
       }, timeoutMs);
 
       try {
-        // Build message history for context
+        // Build message history for context (content may be string or multimodal parts)
         const messageHistory = messages
           .filter((m) => m.role === "user" || m.role === "assistant")
           .map((m) => ({
             role: m.role as "user" | "assistant",
-            content: m.content,
+            content: m.content as string,
           }));
 
-        // Add current user message
-        messageHistory.push({ role: "user", content });
+        // Build current user message: text only or text + images for vision
+        const hasImages = imageUrls && imageUrls.length > 0;
+        const currentUserContent: import("@/lib/ai-stream").StreamMessageContent = hasImages
+          ? [
+              ...(content.trim() ? [{ type: "text" as const, text: content }] : []),
+              ...imageUrls.map((url) => ({
+                type: "file" as const,
+                url,
+                mediaType: "image/jpeg" as const,
+              })),
+            ]
+          : content;
+
+        messageHistory.push({ role: "user", content: currentUserContent });
 
         const streamMessage = await streamWithReconnect({
           convexSiteUrl,

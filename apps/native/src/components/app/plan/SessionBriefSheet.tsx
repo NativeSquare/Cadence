@@ -43,68 +43,91 @@ function PlayIcon() {
   );
 }
 
-function HeroStat({
-  label,
-  value,
-  unit,
-  isHero = false,
+function DistanceDurationCard({
+  distance,
+  duration,
 }: {
-  label: string;
-  value: string;
-  unit?: string;
-  isHero?: boolean;
+  distance: string;
+  duration: string;
 }) {
-  const bgColor = isHero ? COLORS.lime : LIGHT_THEME.w1;
-  const textColor = isHero ? "#000000" : LIGHT_THEME.wText;
-  const labelColor = isHero ? "rgba(0,0,0,0.45)" : LIGHT_THEME.wMute;
-  const unitColor = isHero ? "rgba(0,0,0,0.4)" : LIGHT_THEME.wMute;
-
   return (
     <View
       style={{
-        flex: 1,
-        padding: 14,
-        paddingHorizontal: 12,
+        flexDirection: "row",
+        padding: 16,
+        paddingHorizontal: 20,
         borderRadius: 16,
-        backgroundColor: bgColor,
-        borderWidth: isHero ? 0 : 1,
-        borderColor: LIGHT_THEME.wBrd,
+        backgroundColor: "rgba(0,0,0,0.06)",
         alignItems: "center",
+        justifyContent: "space-around",
+        marginBottom: 16,
       }}
     >
-      <Text
-        style={{
-          fontSize: 10,
-          fontFamily: FONT_WEIGHTS.medium,
-          color: labelColor,
-          textTransform: "uppercase",
-          letterSpacing: 0.04 * 10,
-          marginBottom: 6,
-        }}
-      >
-        {label}
-      </Text>
-      <View className="flex-row items-baseline">
+      <View style={{ alignItems: "center" }}>
         <Text
           style={{
-            fontSize: 22,
-            fontFamily: FONT_WEIGHTS.extrabold,
-            color: textColor,
+            fontSize: 10,
+            fontFamily: FONT_WEIGHTS.medium,
+            color: LIGHT_THEME.wMute,
+            textTransform: "uppercase",
+            letterSpacing: 0.04 * 10,
+            marginBottom: 4,
           }}
         >
-          {value}
+          Distance
         </Text>
-        {unit && (
+        <View className="flex-row items-baseline">
+          <Text
+            style={{
+              fontSize: 22,
+              fontFamily: FONT_WEIGHTS.extrabold,
+              color: LIGHT_THEME.wText,
+            }}
+          >
+            {distance}
+          </Text>
           <Text
             style={{
               fontSize: 13,
-              color: unitColor,
+              color: LIGHT_THEME.wMute,
               marginLeft: 2,
             }}
           >
-            {unit}
+            km
           </Text>
-        )}
+        </View>
+      </View>
+      <View
+        style={{
+          width: 1,
+          height: 32,
+          backgroundColor: LIGHT_THEME.wBrd,
+        }}
+      />
+      <View style={{ alignItems: "center" }}>
+        <Text
+          style={{
+            fontSize: 10,
+            fontFamily: FONT_WEIGHTS.medium,
+            color: LIGHT_THEME.wMute,
+            textTransform: "uppercase",
+            letterSpacing: 0.04 * 10,
+            marginBottom: 4,
+          }}
+        >
+          Duration
+        </Text>
+        <View className="flex-row items-baseline">
+          <Text
+            style={{
+              fontSize: 22,
+              fontFamily: FONT_WEIGHTS.extrabold,
+              color: LIGHT_THEME.wText,
+            }}
+          >
+            {duration}
+          </Text>
+        </View>
       </View>
     </View>
   );
@@ -181,12 +204,9 @@ export function SessionBriefSheet({
           </View>
         </View>
 
-        {/* Hero Stats: Distance + Duration */}
+        {/* Distance + Duration in single darkened card */}
         {!isRest && (
-          <View className="flex-row gap-2 mb-4">
-            <HeroStat label="Distance" value={session.km} unit="km" isHero />
-            <HeroStat label="Duration" value={session.dur} />
-          </View>
+          <DistanceDurationCard distance={session.km} duration={session.dur} />
         )}
 
         {/* Charts */}

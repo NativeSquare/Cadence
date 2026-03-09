@@ -4,7 +4,11 @@
  */
 
 import type { SessionIntensity } from "../plan/types";
-import { SESSION_TYPE_COLORS, getSessionCategory } from "@/lib/design-tokens";
+import {
+  SESSION_TYPE_COLORS,
+  getSessionCategory,
+  getZoneColor as getZoneColorFromTokens,
+} from "@/lib/design-tokens";
 
 /**
  * Session segment (e.g., warm-up, intervals, cool-down)
@@ -63,19 +67,13 @@ export const ZONE_HEIGHT: Record<string, number> = {
 };
 
 /**
- * Get zone color based on zone string
- * Reference: cadence-full-v10.jsx line 161
+ * Get zone color based on zone string.
+ * Uses analytics-style ZONE_COLORS from design-tokens for consistency.
  * @param zone Zone string (e.g., "Z4", "Z2-3")
  * @returns Hex color string
  */
 export function getZoneColor(zone: string): string {
-  if (zone.includes("4") || zone.includes("5")) {
-    return "#A8D900"; // barHigh
-  }
-  if (zone.includes("3")) {
-    return "#9ACD32";
-  }
-  return "#7CB342"; // barEasy
+  return getZoneColorFromTokens(zone);
 }
 
 /**

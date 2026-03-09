@@ -79,6 +79,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     bundler: "metro",
   },
   plugins: [
+    "expo-audio",
     "expo-camera",
     "expo-image-picker",
     "expo-media-library",

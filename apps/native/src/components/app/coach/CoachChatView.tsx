@@ -12,8 +12,10 @@ import {
   Keyboard,
   KeyboardAvoidingView,
   Platform,
+  Alert,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { BottomSheetModal as GorhomBottomSheetModal } from "@gorhom/bottom-sheet";
 import { ChatHeader } from "./ChatHeader";
 import { ChatMessage as ChatMessageBubble } from "./ChatMessage";
 import { ChatErrorCard } from "./ChatErrorCard";
@@ -21,7 +23,10 @@ import { TypingIndicator } from "./TypingIndicator";
 import { ChatInput } from "./ChatInput";
 import { VoiceRecorder } from "./VoiceRecorder";
 import { CoachEmptyState } from "./CoachEmptyState";
+import { UploadMediaBottomSheetModal } from "@/components/shared/upload-media-bottom-sheet-modal";
 import { useAIChat, type ChatMessage } from "@/hooks/use-ai-chat";
+import { useUploadImage } from "@/hooks/use-upload-image";
+import type { PendingAttachment } from "./types";
 
 export interface CoachChatViewProps {
   conversationId: string;
@@ -38,6 +43,11 @@ export function CoachChatView({
 }: CoachChatViewProps) {
   const insets = useSafeAreaInsets();
   const scrollViewRef = useRef<ScrollView>(null);
+  const mediaSheetRef = useRef<GorhomBottomSheetModal>(null);
+  const { uploadImage, isUploading } = useUploadImage();
+
+  // Pending media attachments (local uri → upload → url for API)
+  const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([]);
 
   // Capture history snapshot on mount (ignore reactive updates)
   const [stableInitialMessages] = useState<ChatMessage[]>(() => initialHistory);
@@ -76,15 +86,47 @@ export function CoachChatView({
 
   const handleSend = useCallback(async () => {
     const text = inputValue.trim();
-    if (!text || isStreaming) return;
+    const attachmentUrls = pendingAttachments
+      .map((a) => a.url)
+      .filter((u): u is string => !!u);
+    const hasContent = text.length > 0 || attachmentUrls.length > 0;
+    if (!hasContent || isStreaming) return;
 
     Keyboard.dismiss();
     setInputValue("");
+    setPendingAttachments([]);
 
-    // Persist to Convex in background (for Seshat compaction), don't block UI
-    persistUserMessage(text);
-    await sendMessage(text);
-  }, [inputValue, isStreaming, sendMessage, persistUserMessage]);
+    // Persist text to Convex (images are sent in stream; compaction sees "[Image attached]")
+    persistUserMessage(text || "[Image attached]");
+    await sendMessage(text || "What do you see?", attachmentUrls);
+  }, [inputValue, pendingAttachments, isStreaming, sendMessage, persistUserMessage]);
+
+  const handleAttachmentPress = useCallback(() => {
+    mediaSheetRef.current?.present();
+  }, []);
+
+  const handleMediaSelected = useCallback(
+    async (asset: { uri: string; width?: number; height?: number }) => {
+      const uri = asset.uri;
+      const placeholder: PendingAttachment = { uri };
+      setPendingAttachments((prev) => [...prev, placeholder]);
+      try {
+        const url = await uploadImage(uri);
+        setPendingAttachments((prev) =>
+          prev.map((a) => (a.uri === uri ? { ...a, url } : a))
+        );
+      } catch (err) {
+        console.error("[CoachChatView] Upload failed:", err);
+        setPendingAttachments((prev) => prev.filter((a) => a.uri !== uri));
+        Alert.alert("Upload failed", "Could not upload the image. Please try again.");
+      }
+    },
+    [uploadImage]
+  );
+
+  const handleRemoveAttachment = useCallback((index: number) => {
+    setPendingAttachments((prev) => prev.filter((_, i) => i !== index));
+  }, []);
 
   const handleSuggestionPress = useCallback(
     async (text: string) => {
@@ -223,13 +265,23 @@ export function CoachChatView({
               onSend={handleVoiceSend}
             />
           ) : (
-            <ChatInput
-              value={inputValue}
-              onChange={setInputValue}
-              onSend={handleSend}
-              onMicPress={handleMicPress}
-              disabled={isStreaming || isOffline}
-            />
+            <>
+              <ChatInput
+                value={inputValue}
+                onChange={setInputValue}
+                onSend={handleSend}
+                onMicPress={handleMicPress}
+                onAttachmentPress={handleAttachmentPress}
+                attachments={pendingAttachments}
+                onRemoveAttachment={handleRemoveAttachment}
+                disabled={isStreaming || isOffline || isUploading}
+              />
+              <UploadMediaBottomSheetModal
+                bottomSheetModalRef={mediaSheetRef}
+                onImageSelected={handleMediaSelected}
+                options={["camera", "gallery", "files"]}
+              />
+            </>
           )}
         </View>
       </View>

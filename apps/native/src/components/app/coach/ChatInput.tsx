@@ -4,14 +4,14 @@
  * Layout:
  * - Single rounded container with subtle elevation
  * - Attachment/plus button on the left
- * - Expandable text input in the center
+ * - Optional attachment thumbnails, then expandable text input in the center
  * - Mic button (when empty) or Send button (when has text) on the right
  *
  * Source: Story 10.3 - AC#1, AC#3, Task 6
  */
 
-import { View, TextInput, Pressable } from "react-native";
-import { Mic, ArrowUp, Plus } from "lucide-react-native";
+import { View, TextInput, Pressable, Image } from "react-native";
+import { Mic, ArrowUp, Plus, X } from "lucide-react-native";
 import { LIGHT_THEME } from "@/lib/design-tokens";
 import Animated, {
   useAnimatedStyle,
@@ -25,17 +25,24 @@ import type { ChatInputProps } from "./types";
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
+const ATTACHMENT_SIZE = 36;
+
 export function ChatInput({
   value,
   onChange,
   onSend,
   onMicPress,
+  onAttachmentPress,
+  attachments = [],
+  onRemoveAttachment,
   disabled,
 }: ChatInputProps) {
   const hasText = value.trim().length > 0;
+  const hasAttachments = attachments.length > 0;
+  const canSend = hasText || hasAttachments;
 
   const handleSubmitEditing = () => {
-    if (hasText && !disabled) {
+    if (canSend && !disabled) {
       onSend();
     }
   };
@@ -68,11 +75,38 @@ export function ChatInput({
       >
         {/* Plus / attachment button */}
         <Pressable
+          onPress={onAttachmentPress}
           disabled={disabled}
           className="w-9 h-9 rounded-full bg-w3 items-center justify-center mb-[1px] active:opacity-60"
+          accessibilityLabel="Add photo or file"
+          accessibilityHint="Opens options to take a photo, choose from library, or browse files"
         >
           <Plus size={18} color={LIGHT_THEME.wSub} strokeWidth={2} />
         </Pressable>
+
+        {/* Attachment thumbnails */}
+        {attachments.length > 0 && (
+          <View className="flex-row items-center gap-1.5 mr-1">
+            {attachments.map((att, index) => (
+              <View key={`${att.uri}-${index}`} className="relative">
+                <Image
+                  source={{ uri: att.uri }}
+                  className="rounded-lg bg-w3"
+                  style={{ width: ATTACHMENT_SIZE, height: ATTACHMENT_SIZE }}
+                  resizeMode="cover"
+                />
+                {onRemoveAttachment && (
+                  <Pressable
+                    onPress={() => onRemoveAttachment(index)}
+                    className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-wText items-center justify-center"
+                  >
+                    <X size={10} color="#C8FF00" strokeWidth={2} />
+                  </Pressable>
+                )}
+              </View>
+            ))}
+          </View>
+        )}
 
         {/* Text input */}
         <TextInput
@@ -95,8 +129,8 @@ export function ChatInput({
           accessibilityHint="Type a message to your coach"
         />
 
-        {/* Right action: Mic (empty) or Send (has text) */}
-        {hasText ? (
+        {/* Right action: Mic (empty) or Send (has text or attachments) */}
+        {canSend ? (
           <AnimatedPressable
             key="send"
             entering={FadeIn.duration(150)}
