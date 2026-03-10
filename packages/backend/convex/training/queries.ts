@@ -717,6 +717,163 @@ export const getHealthMetrics = query({
 });
 
 // =============================================================================
+// Session Detail Query
+// =============================================================================
+
+/**
+ * Get a single session by ID with plan context.
+ * Used by the unified Session Detail page.
+ */
+export const getSessionById = query({
+  args: { sessionId: v.id("plannedSessions") },
+  returns: v.union(
+    v.null(),
+    v.object({
+      _id: v.id("plannedSessions"),
+      planId: v.id("trainingPlans"),
+      runnerId: v.id("runners"),
+      weekNumber: v.number(),
+      dayOfWeek: v.string(),
+      dayOfWeekShort: v.string(),
+      scheduledDate: v.number(),
+      sessionType: v.string(),
+      sessionTypeDisplay: v.string(),
+      sessionSubtype: v.optional(v.string()),
+      isKeySession: v.boolean(),
+      isRestDay: v.boolean(),
+      targetDurationSeconds: v.optional(v.number()),
+      targetDurationDisplay: v.string(),
+      targetDistanceMeters: v.optional(v.number()),
+      effortLevel: v.optional(v.number()),
+      effortDisplay: v.string(),
+      targetPaceMin: v.optional(v.string()),
+      targetPaceMax: v.optional(v.string()),
+      targetPaceDisplay: v.optional(v.string()),
+      targetHeartRateZone: v.optional(v.number()),
+      targetHeartRateMin: v.optional(v.number()),
+      targetHeartRateMax: v.optional(v.number()),
+      description: v.string(),
+      structureDisplay: v.optional(v.string()),
+      structureSegments: v.optional(
+        v.array(
+          v.object({
+            segmentType: v.string(),
+            durationSeconds: v.optional(v.number()),
+            distanceMeters: v.optional(v.number()),
+            targetPace: v.optional(v.string()),
+            targetHeartRate: v.optional(v.number()),
+            targetEffort: v.optional(v.number()),
+            repetitions: v.optional(v.number()),
+            recoverySeconds: v.optional(v.number()),
+            notes: v.optional(v.string()),
+          })
+        )
+      ),
+      justification: v.string(),
+      physiologicalTarget: v.string(),
+      placementRationale: v.optional(v.string()),
+      keyPoints: v.optional(v.array(v.string())),
+      isMoveable: v.boolean(),
+      canBeSplit: v.optional(v.boolean()),
+      alternatives: v.optional(
+        v.array(
+          v.object({
+            sessionType: v.string(),
+            description: v.string(),
+            whenToUse: v.string(),
+          })
+        )
+      ),
+      status: v.string(),
+      completedActivityId: v.optional(v.string()),
+      completedAt: v.optional(v.number()),
+      adherenceScore: v.optional(v.number()),
+      skipReason: v.optional(v.string()),
+      modificationNotes: v.optional(v.string()),
+      actualDurationSeconds: v.optional(v.number()),
+      actualDistanceMeters: v.optional(v.number()),
+      userFeedback: v.optional(v.string()),
+      userRating: v.optional(v.number()),
+      planName: v.string(),
+      planCurrentWeek: v.number(),
+    })
+  ),
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) return null;
+
+    const session = await ctx.db.get(args.sessionId);
+    if (!session) return null;
+
+    const runner = await ctx.db
+      .query("runners")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .first();
+    if (!runner || session.runnerId !== runner._id) return null;
+
+    const plan = await ctx.db.get(session.planId);
+    if (!plan) return null;
+
+    const msPerWeek = 7 * 24 * 60 * 60 * 1000;
+    const currentWeek = Math.max(
+      1,
+      Math.min(
+        plan.durationWeeks,
+        Math.floor((Date.now() - plan.startDate) / msPerWeek) + 1
+      )
+    );
+
+    return {
+      _id: session._id,
+      planId: session.planId,
+      runnerId: session.runnerId,
+      weekNumber: session.weekNumber,
+      dayOfWeek: session.dayOfWeek,
+      dayOfWeekShort: session.dayOfWeekShort,
+      scheduledDate: session.scheduledDate,
+      sessionType: session.sessionType,
+      sessionTypeDisplay: session.sessionTypeDisplay,
+      sessionSubtype: session.sessionSubtype,
+      isKeySession: session.isKeySession,
+      isRestDay: session.isRestDay,
+      targetDurationSeconds: session.targetDurationSeconds,
+      targetDurationDisplay: session.targetDurationDisplay,
+      targetDistanceMeters: session.targetDistanceMeters,
+      effortLevel: session.effortLevel,
+      effortDisplay: session.effortDisplay,
+      targetPaceMin: session.targetPaceMin,
+      targetPaceMax: session.targetPaceMax,
+      targetPaceDisplay: session.targetPaceDisplay,
+      targetHeartRateZone: session.targetHeartRateZone,
+      targetHeartRateMin: session.targetHeartRateMin,
+      targetHeartRateMax: session.targetHeartRateMax,
+      description: session.description,
+      structureDisplay: session.structureDisplay,
+      structureSegments: session.structureSegments,
+      justification: session.justification,
+      physiologicalTarget: session.physiologicalTarget,
+      placementRationale: session.placementRationale,
+      keyPoints: session.keyPoints,
+      isMoveable: session.isMoveable,
+      canBeSplit: session.canBeSplit,
+      alternatives: session.alternatives,
+      status: session.status,
+      completedActivityId: session.completedActivityId,
+      completedAt: session.completedAt,
+      adherenceScore: session.adherenceScore,
+      skipReason: session.skipReason,
+      modificationNotes: session.modificationNotes,
+      actualDurationSeconds: session.actualDurationSeconds,
+      actualDistanceMeters: session.actualDistanceMeters,
+      userFeedback: session.userFeedback,
+      userRating: session.userRating,
+      planName: plan.name,
+      planCurrentWeek: currentWeek,
+    };
+  },
+});
+
+// =============================================================================
 // Plan Screen Composite Query
 // =============================================================================
 

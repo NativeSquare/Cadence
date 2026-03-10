@@ -33,6 +33,7 @@ export interface CoachChatViewProps {
   initialHistory: ChatMessage[];
   persistUserMessage: (content: string) => Promise<void>;
   persistAssistantMessage: (message: ChatMessage) => Promise<void>;
+  initialPrompt?: string;
 }
 
 export function CoachChatView({
@@ -40,6 +41,7 @@ export function CoachChatView({
   initialHistory,
   persistUserMessage,
   persistAssistantMessage,
+  initialPrompt,
 }: CoachChatViewProps) {
   const insets = useSafeAreaInsets();
   const scrollViewRef = useRef<ScrollView>(null);
@@ -72,7 +74,7 @@ export function CoachChatView({
   });
 
   // Voice recording state
-  const [inputValue, setInputValue] = useState("");
+  const [inputValue, setInputValue] = useState(initialPrompt ?? "");
   const [isRecording, setIsRecording] = useState(false);
   const [transcript, setTranscript] = useState("");
 

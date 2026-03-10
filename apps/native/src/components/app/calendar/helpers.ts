@@ -205,6 +205,7 @@ export function buildCalendarSessions(
     const date = new Date(s.scheduledDate);
     const key = formatDateKey(date.getFullYear(), date.getMonth(), date.getDate());
     const calSession: CalSession = {
+      sessionId: s._id as string,
       type: getSessionCategory(s.sessionTypeDisplay) as CalSessionType,
       label: s.sessionTypeDisplay,
       km: s.targetDistanceMeters != null

@@ -23,6 +23,7 @@ export type CalendarView = "month" | "week";
 
 /** A single calendar session */
 export interface CalSession {
+  sessionId: string;
   type: CalSessionType;
   label: string;
   km: string;

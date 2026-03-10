@@ -314,6 +314,55 @@ export const hasActivePlan = mutation({
   },
 });
 
+/**
+ * Mark a session as completed with optional user feedback.
+ */
+export const markSessionComplete = mutation({
+  args: {
+    sessionId: v.id("plannedSessions"),
+    userRating: v.optional(v.number()),
+    userFeedback: v.optional(v.string()),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      throw new ConvexError({
+        code: "UNAUTHORIZED",
+        message: "Must be authenticated",
+      });
+    }
+
+    const runner = await ctx.db
+      .query("runners")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .first();
+    if (!runner) {
+      throw new ConvexError({
+        code: "RUNNER_NOT_FOUND",
+        message: "Runner profile not found",
+      });
+    }
+
+    const session = await ctx.db.get(args.sessionId);
+    if (!session || session.runnerId !== runner._id) {
+      throw new ConvexError({
+        code: "NOT_FOUND",
+        message: "Session not found",
+      });
+    }
+
+    await ctx.db.patch(args.sessionId, {
+      status: "completed" as const,
+      completedAt: Date.now(),
+      ...(args.userRating !== undefined ? { userRating: args.userRating } : {}),
+      ...(args.userFeedback !== undefined ? { userFeedback: args.userFeedback } : {}),
+    });
+
+    return null;
+  },
+});
+
 // Note: To regenerate a plan, simply call generateAndPersistPlan again.
 // It automatically deactivates existing plans before creating a new one.
 

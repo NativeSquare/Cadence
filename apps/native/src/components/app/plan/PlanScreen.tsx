@@ -30,7 +30,6 @@ import { TodayCard } from "./TodayCard";
 import { RaceCountdown } from "./RaceCountdown";
 import { WeekInsights } from "./WeekInsights";
 import { LogRunSection } from "./QuickActions";
-import { SessionBriefSheet } from "./SessionBriefSheet";
 import { ExportToWatchSheet, type WatchProvider } from "./ExportToWatchSheet";
 import { LIGHT_THEME } from "@/lib/design-tokens";
 import {
@@ -97,13 +96,7 @@ export function PlanScreen() {
   const coachMessage =
     planData?.plan.coachSummary ?? "Your coach is preparing your plan...";
 
-  // Bottom sheet state and refs
-  const sessionBriefSheetRef = useRef<BottomSheetModal>(null);
   const exportSheetRef = useRef<BottomSheetModal>(null);
-  const [selectedSession, setSelectedSession] = useState<{
-    session: SessionData;
-    dayIdx: number;
-  } | null>(null);
 
   const [exportedSessions, setExportedSessions] = useState<
     Record<string, { syncStatus: SyncStatus; syncSource: string }>
@@ -120,13 +113,12 @@ export function PlanScreen() {
       : {}),
   };
 
-  const handleOpenSessionBrief = useCallback(
-    (session: SessionData, dayIdx: number) => {
-      setSelectedSession({ session, dayIdx });
-      sessionBriefSheetRef.current?.present();
-    },
-    []
-  );
+  const handleOpenSessionDetail = useCallback(() => {
+    const sid = baseSelectedSession.sessionId;
+    if (sid) {
+      router.push({ pathname: "/(app)/session/[id]", params: { id: sid } });
+    }
+  }, [router, baseSelectedSession.sessionId]);
 
   const handleOpenExportSheet = useCallback(() => {
     exportSheetRef.current?.present();
@@ -260,9 +252,9 @@ export function PlanScreen() {
               coachMessage={coachMessage}
               selectedDate={selectedDate}
               isToday={isSelectedToday}
-              onStartPress={() => handleOpenSessionBrief(selectedSession_, 0)}
+              onStartPress={handleOpenSessionDetail}
               onExportPress={handleOpenExportSheet}
-              onCardPress={() => handleOpenSessionBrief(selectedSession_, 0)}
+              onCardPress={handleOpenSessionDetail}
             />
           </View>
 
@@ -289,7 +281,12 @@ export function PlanScreen() {
           {/* Log a Run */}
           <View className="px-4 mt-5">
             <LogRunSection
-              onSelectType={(category) => router.push("/session")}
+              onSelectType={(category) => {
+                const sid = baseSelectedSession.sessionId;
+                if (sid) {
+                  router.push({ pathname: "/(app)/session/[id]", params: { id: sid } });
+                }
+              }}
             />
           </View>
         </View>
@@ -329,13 +326,6 @@ export function PlanScreen() {
           </View>
         </View>
       </Animated.View>
-
-      {/* Session Brief Bottom Sheet */}
-      <SessionBriefSheet
-        sheetRef={sessionBriefSheetRef}
-        session={selectedSession?.session ?? null}
-        dayIdx={selectedSession?.dayIdx ?? 0}
-      />
 
       {/* Export to Watch Bottom Sheet */}
       <ExportToWatchSheet

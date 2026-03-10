@@ -13,7 +13,7 @@ import { Text } from "@/components/ui/text";
 import { useCoachChat } from "@/hooks/use-coach-chat";
 import { CoachChatView } from "./CoachChatView";
 
-export function CoachScreen() {
+export function CoachScreen({ initialPrompt }: { initialPrompt?: string }) {
   const insets = useSafeAreaInsets();
   const {
     phase,
@@ -57,6 +57,7 @@ export function CoachScreen() {
       initialHistory={initialMessages}
       persistUserMessage={persistUserMessage}
       persistAssistantMessage={persistAssistantMessage}
+      initialPrompt={initialPrompt}
     />
   );
 }

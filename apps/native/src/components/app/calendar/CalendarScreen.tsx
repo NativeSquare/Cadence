@@ -10,7 +10,7 @@
  * - Tap a training day to view session details in a bottom sheet
  */
 
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -28,9 +28,9 @@ import Animated, {
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ChevronLeft, ChevronRight } from "lucide-react-native";
-import { BottomSheetModal as GorhomBottomSheetModal } from "@gorhom/bottom-sheet";
 import * as Haptics from "expo-haptics";
 import { useQuery } from "convex/react";
+import { useRouter } from "expo-router";
 import { api } from "@packages/backend/convex/_generated/api";
 
 import {
@@ -39,7 +39,6 @@ import {
   LIGHT_THEME,
   SESSION_TYPE_COLORS,
 } from "@/lib/design-tokens";
-import { CalendarSessionSheet } from "./CalendarSessionSheet";
 import {
   MONTH_NAMES,
   DAY_HEADERS,
@@ -123,6 +122,7 @@ function ViewToggle({
 export function CalendarScreen() {
   const insets = useSafeAreaInsets();
   const { width: screenWidth } = useWindowDimensions();
+  const router = useRouter();
   const todayDate = useMemo(() => new Date(TODAY_KEY + "T00:00:00"), []);
 
   const tileSize = useMemo(
@@ -133,12 +133,6 @@ export function CalendarScreen() {
   const [currentMonth, setCurrentMonth] = useState(todayDate.getMonth());
   const [currentYear, setCurrentYear] = useState(todayDate.getFullYear());
   const [viewMode, setViewMode] = useState<ViewMode>("sessions");
-
-  const sheetRef = useRef<GorhomBottomSheetModal>(null);
-  const [selectedSession, setSelectedSession] = useState<CalSession | null>(
-    null,
-  );
-  const [selectedDateKey, setSelectedDateKey] = useState<string | null>(null);
 
   const contentFade = useSharedValue(1);
   const contentTranslateX = useSharedValue(0);
@@ -231,11 +225,9 @@ export function CalendarScreen() {
     const sessions = calSessions[dateKey];
     if (sessions && sessions.length > 0) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      setSelectedSession(sessions[0]);
-      setSelectedDateKey(dateKey);
-      sheetRef.current?.present();
+      router.push({ pathname: "/(app)/session/[id]", params: { id: sessions[0].sessionId } });
     }
-  }, [calSessions]);
+  }, [calSessions, router]);
 
   // ─── Render ───────────────────────────────────────────────────────
 
@@ -444,12 +436,6 @@ export function CalendarScreen() {
         </Animated.View>
       </ScrollView>
 
-      {/* Session detail sheet */}
-      <CalendarSessionSheet
-        sheetRef={sheetRef}
-        session={selectedSession}
-        dateKey={selectedDateKey}
-      />
     </View>
   );
 }

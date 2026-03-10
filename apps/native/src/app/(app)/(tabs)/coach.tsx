@@ -1,3 +1,4 @@
+import { useLocalSearchParams } from "expo-router";
 import { CoachScreen } from "@/components/app/coach";
 
 /**
@@ -14,5 +15,6 @@ import { CoachScreen } from "@/components/app/coach";
  * Source: Story 10.3
  */
 export default function Coach() {
-  return <CoachScreen />;
+  const { sessionContext } = useLocalSearchParams<{ sessionContext?: string }>();
+  return <CoachScreen initialPrompt={sessionContext} />;
 }
