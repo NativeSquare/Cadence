@@ -56,12 +56,14 @@ jobs:
 // Maestro smoke-test flow
 // ---------------------------------------------------------------------------
 export const MAESTRO_SMOKE_FLOW_YAML = `# Maestro E2E smoke test for Cadence
-# Validates that the app launches and renders the home screen
+# Validates that the app launches and renders the home screen with tab bar
 
 appId: com.nativesquare.cadence.preview
 ---
 - launchApp
-- assertVisible: ".*"
+- waitForAnimationToEnd
+- assertVisible: "Today"
+- assertVisible: "Profile"
 - takeScreenshot: smoke-test-home
 `;
 

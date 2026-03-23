@@ -49,6 +49,9 @@ afterEach(() => {
 // Task 1 — EAS prerequisites
 // =========================================================================
 describe("Task 1: EAS prerequisites", () => {
+  // Tests for 1.1 (checkEasCli) and 1.2 (checkEasAuth) are in
+  // e2e-validation-mocked.test.ts (require child_process mocking)
+
   describe("1.3: checkProjectLinked", () => {
     it("returns ok when eas.json + projectId exist", () => {
       writeFileSync(join(tmpDir, "eas.json"), "{}", "utf-8");
@@ -356,4 +359,7 @@ describe("Task 3: Workflow YAML validation", () => {
       expect(result.valid).toBe(true);
     });
   });
+
+  // Tests for 3.1 (validateWorkflow entry point) are in
+  // e2e-validation-mocked.test.ts (require child_process mocking)
 });
