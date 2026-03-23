@@ -3,7 +3,9 @@ import { defineSchema } from "convex/server";
 import { conversations, messages } from "./ai/messages";
 import { adminInvites } from "./table/adminInvites";
 import { feedback } from "./table/feedback";
+import { garminUserMappings } from "./table/garminUserMappings";
 import { knowledgeBase } from "./table/knowledgeBase";
+import { pushTokens } from "./table/pushTokens";
 import { runners } from "./table/runners";
 import { safeguards } from "./table/safeguards";
 import { plannedSessions } from "./table/plannedSessions";
@@ -23,9 +25,11 @@ export default defineSchema({
   adminInvites,
   conversations,
   feedback,
+  garminUserMappings,
   knowledgeBase,
   messages,
   plannedSessions,
+  pushTokens,
   runners,
   safeguards,
   trainingPlans,

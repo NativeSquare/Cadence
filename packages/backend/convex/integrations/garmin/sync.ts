@@ -88,6 +88,12 @@ export const connectGarminOAuth = action({
       codeVerifier: args.codeVerifier,
     } as any);
 
+    // Store the Garmin → Cadence user mapping for webhook resolution
+    await ctx.runMutation(
+      internal.integrations.garmin.sync.storeGarminUserMapping,
+      { cadenceUserId: userId },
+    );
+
     return result;
   },
 });
@@ -309,5 +315,46 @@ export const exportSessionToGarmin = action({
     });
 
     return result;
+  },
+});
+
+// ─── Garmin User Mapping ──────────────────────────────────────────────────────
+
+/**
+ * After a successful Garmin OAuth connect, read the Soma connection to
+ * extract the Garmin-side `providerUserId` and persist the mapping so
+ * that incoming webhooks can be resolved to a Cadence user quickly.
+ */
+export const storeGarminUserMapping = internalMutation({
+  args: { cadenceUserId: v.string() },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const connection = await soma.getConnectionByProvider(ctx, {
+      userId: args.cadenceUserId,
+      provider: "GARMIN",
+    });
+
+    if (!connection?.providerUserId) return null;
+
+    // Upsert — avoid duplicates if the user reconnects
+    const existing = await ctx.db
+      .query("garminUserMappings")
+      .withIndex("by_garminUserId", (q) =>
+        q.eq("garminUserId", connection.providerUserId!),
+      )
+      .first();
+
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        cadenceUserId: args.cadenceUserId as any,
+      });
+    } else {
+      await ctx.db.insert("garminUserMappings", {
+        garminUserId: connection.providerUserId,
+        cadenceUserId: args.cadenceUserId as any,
+      });
+    }
+
+    return null;
   },
 });

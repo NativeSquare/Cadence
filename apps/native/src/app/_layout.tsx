@@ -1,6 +1,7 @@
 import "@/lib/nativewind-interop";
 import { fontAssets } from "@/lib/fonts";
 import { ThemeStatusBar } from "@/lib/theme-status-bar";
+import { usePushNotifications } from "@/hooks/use-push-notifications";
 import { checkForUpdates } from "@/utils/expo/check-for-updates";
 import { NetworkProvider } from "@/contexts/network-context";
 import { ConvexAuthProvider, useAuthActions } from "@convex-dev/auth/react";
@@ -126,6 +127,9 @@ function RootStack() {
       runnerCreationAttempted.current = false;
     }
   }, [isAuthenticated, user, runner, createRunner]);
+
+  // Register push notifications when authenticated and onboarded
+  usePushNotifications(isAuthenticated && hasCompletedOnboarding);
 
   // Detect banned users and show alert before signing them out
   const isBanned =

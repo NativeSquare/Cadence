@@ -32,7 +32,7 @@ const fullOutput = (deployResult.stdout || "") + (deployResult.stderr || "");
 process.stdout.write(deployResult.stdout || "");
 process.stderr.write(deployResult.stderr || "");
 
-const urlMatch = fullOutput.match(/https:\/\/[a-zA-Z0-9-]+\.convex\.cloud/);
+const urlMatch = fullOutput.match(/https:\/\/[a-zA-Z0-9.-]+\.convex\.cloud/);
 if (!urlMatch) {
   console.error(
     "\nFailed to extract Convex preview URL from deploy output.",

@@ -20,7 +20,9 @@ import type * as http from "../http.js";
 import type * as integrations_connections from "../integrations/connections.js";
 import type * as integrations_garmin_sync from "../integrations/garmin/sync.js";
 import type * as integrations_garmin_transform from "../integrations/garmin/transform.js";
+import type * as integrations_garmin_webhook from "../integrations/garmin/webhook.js";
 import type * as integrations_healthkit_sync from "../integrations/healthkit/sync.js";
+import type * as integrations_notifications from "../integrations/notifications.js";
 import type * as integrations_strava_sync from "../integrations/strava/sync.js";
 import type * as knowledge_index from "../knowledge/index.js";
 import type * as knowledge_query from "../knowledge/query.js";
@@ -41,8 +43,10 @@ import type * as table_activities from "../table/activities.js";
 import type * as table_admin from "../table/admin.js";
 import type * as table_adminInvites from "../table/adminInvites.js";
 import type * as table_feedback from "../table/feedback.js";
+import type * as table_garminUserMappings from "../table/garminUserMappings.js";
 import type * as table_knowledgeBase from "../table/knowledgeBase.js";
 import type * as table_plannedSessions from "../table/plannedSessions.js";
+import type * as table_pushTokens from "../table/pushTokens.js";
 import type * as table_runners from "../table/runners.js";
 import type * as table_safeguards from "../table/safeguards.js";
 import type * as table_trainingPlans from "../table/trainingPlans.js";
@@ -79,7 +83,9 @@ declare const fullApi: ApiFromModules<{
   "integrations/connections": typeof integrations_connections;
   "integrations/garmin/sync": typeof integrations_garmin_sync;
   "integrations/garmin/transform": typeof integrations_garmin_transform;
+  "integrations/garmin/webhook": typeof integrations_garmin_webhook;
   "integrations/healthkit/sync": typeof integrations_healthkit_sync;
+  "integrations/notifications": typeof integrations_notifications;
   "integrations/strava/sync": typeof integrations_strava_sync;
   "knowledge/index": typeof knowledge_index;
   "knowledge/query": typeof knowledge_query;
@@ -100,8 +106,10 @@ declare const fullApi: ApiFromModules<{
   "table/admin": typeof table_admin;
   "table/adminInvites": typeof table_adminInvites;
   "table/feedback": typeof table_feedback;
+  "table/garminUserMappings": typeof table_garminUserMappings;
   "table/knowledgeBase": typeof table_knowledgeBase;
   "table/plannedSessions": typeof table_plannedSessions;
+  "table/pushTokens": typeof table_pushTokens;
   "table/runners": typeof table_runners;
   "table/safeguards": typeof table_safeguards;
   "table/trainingPlans": typeof table_trainingPlans;
@@ -529,10 +537,17 @@ export declare const components: {
           errors: Array<{ error: string; id: string; type: string }>;
           synced: {
             activities: number;
+            bloodPressures: number;
             body: number;
             dailies: number;
+            hrv: number;
             menstruation: number;
+            pulseOx: number;
+            respiration: number;
+            skinTemp: number;
             sleep: number;
+            stressDetails: number;
+            userMetrics: number;
           };
         }
       >;
@@ -552,10 +567,17 @@ export declare const components: {
           errors: Array<{ error: string; id: string; type: string }>;
           synced: {
             activities: number;
+            bloodPressures: number;
             body: number;
             dailies: number;
+            hrv: number;
             menstruation: number;
+            pulseOx: number;
+            respiration: number;
+            skinTemp: number;
             sleep: number;
+            stressDetails: number;
+            userMetrics: number;
           };
         }
       >;
@@ -570,6 +592,114 @@ export declare const components: {
         "internal",
         { clientId: string; redirectUri?: string; userId?: string },
         { authUrl: string; codeVerifier: string; state: string }
+      >;
+      handleGarminWebhookActivities: FunctionReference<
+        "action",
+        "internal",
+        { payload: any },
+        {
+          errors: Array<{ error: string; id: string; type: string }>;
+          processed: number;
+        }
+      >;
+      handleGarminWebhookBloodPressures: FunctionReference<
+        "action",
+        "internal",
+        { payload: any },
+        {
+          errors: Array<{ error: string; id: string; type: string }>;
+          processed: number;
+        }
+      >;
+      handleGarminWebhookBody: FunctionReference<
+        "action",
+        "internal",
+        { payload: any },
+        {
+          errors: Array<{ error: string; id: string; type: string }>;
+          processed: number;
+        }
+      >;
+      handleGarminWebhookDailies: FunctionReference<
+        "action",
+        "internal",
+        { payload: any },
+        {
+          errors: Array<{ error: string; id: string; type: string }>;
+          processed: number;
+        }
+      >;
+      handleGarminWebhookHRV: FunctionReference<
+        "action",
+        "internal",
+        { payload: any },
+        {
+          errors: Array<{ error: string; id: string; type: string }>;
+          processed: number;
+        }
+      >;
+      handleGarminWebhookMenstruation: FunctionReference<
+        "action",
+        "internal",
+        { payload: any },
+        {
+          errors: Array<{ error: string; id: string; type: string }>;
+          processed: number;
+        }
+      >;
+      handleGarminWebhookPulseOx: FunctionReference<
+        "action",
+        "internal",
+        { payload: any },
+        {
+          errors: Array<{ error: string; id: string; type: string }>;
+          processed: number;
+        }
+      >;
+      handleGarminWebhookRespiration: FunctionReference<
+        "action",
+        "internal",
+        { payload: any },
+        {
+          errors: Array<{ error: string; id: string; type: string }>;
+          processed: number;
+        }
+      >;
+      handleGarminWebhookSkinTemp: FunctionReference<
+        "action",
+        "internal",
+        { payload: any },
+        {
+          errors: Array<{ error: string; id: string; type: string }>;
+          processed: number;
+        }
+      >;
+      handleGarminWebhookSleeps: FunctionReference<
+        "action",
+        "internal",
+        { payload: any },
+        {
+          errors: Array<{ error: string; id: string; type: string }>;
+          processed: number;
+        }
+      >;
+      handleGarminWebhookStressDetails: FunctionReference<
+        "action",
+        "internal",
+        { payload: any },
+        {
+          errors: Array<{ error: string; id: string; type: string }>;
+          processed: number;
+        }
+      >;
+      handleGarminWebhookUserMetrics: FunctionReference<
+        "action",
+        "internal",
+        { payload: any },
+        {
+          errors: Array<{ error: string; id: string; type: string }>;
+          processed: number;
+        }
       >;
       pushPlannedWorkout: FunctionReference<
         "action",
@@ -597,10 +727,17 @@ export declare const components: {
           errors: Array<{ error: string; id: string; type: string }>;
           synced: {
             activities: number;
+            bloodPressures: number;
             body: number;
             dailies: number;
+            hrv: number;
             menstruation: number;
+            pulseOx: number;
+            respiration: number;
+            skinTemp: number;
             sleep: number;
+            stressDetails: number;
+            userMetrics: number;
           };
         }
       >;
@@ -609,7 +746,7 @@ export declare const components: {
       connect: FunctionReference<
         "mutation",
         "internal",
-        { provider: string; userId: string },
+        { provider: string; providerUserId?: string; userId: string },
         string
       >;
       deleteConnection: FunctionReference<
@@ -646,6 +783,7 @@ export declare const components: {
           active?: boolean;
           lastDataUpdate?: string;
           provider: string;
+          providerUserId?: string;
           userId: string;
         }
       >;
@@ -659,6 +797,7 @@ export declare const components: {
           active?: boolean;
           lastDataUpdate?: string;
           provider: string;
+          providerUserId?: string;
           userId: string;
         }
       >;
@@ -1300,6 +1439,14 @@ export declare const components: {
             }>;
             vo2max_ml_per_min_per_kg?: number;
           };
+          respiration_data?: {
+            breaths_data?: {
+              avg_breaths_per_min?: number;
+              max_breaths_per_min?: number;
+              min_breaths_per_min?: number;
+              samples?: Array<{ breaths_per_min?: number; timestamp?: string }>;
+            };
+          };
           scores?: {
             activity?: number;
             biological_age?: number;
@@ -1539,6 +1686,8 @@ export declare const components: {
             planned_date?: string;
             pool_length_meters?: number;
             provider?: string;
+            provider_schedule_id?: string;
+            provider_workout_id?: string;
             type?: string;
           };
           steps?: Array<{
@@ -1775,6 +1924,7 @@ export declare const components: {
           active?: boolean;
           lastDataUpdate?: string;
           provider: string;
+          providerUserId?: string;
           userId: string;
         }>
       >;
@@ -1967,7 +2117,12 @@ export declare const components: {
       updateConnection: FunctionReference<
         "mutation",
         "internal",
-        { active?: boolean; connectionId: string; lastDataUpdate?: string },
+        {
+          active?: boolean;
+          connectionId: string;
+          lastDataUpdate?: string;
+          providerUserId?: string;
+        },
         null
       >;
     };
