@@ -2,16 +2,20 @@ import { BottomSheetModal } from "@/components/custom/bottom-sheet";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import { BottomSheetModal as GorhomBottomSheetModal } from "@gorhom/bottom-sheet";
+import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
-import { Camera, Image, LucideIcon } from "lucide-react-native";
+import { Camera, FileImage, Image, LucideIcon } from "lucide-react-native";
 import * as React from "react";
-import { Alert, Linking, Pressable, View } from "react-native";
+import { Alert, Linking, Platform, Pressable, View } from "react-native";
+
+/** Asset-like shape for a single selected image (picker or document) */
+export type SelectedImageAsset = { uri: string; width?: number; height?: number };
 
 interface UploadMediaBottomSheetModalProps {
   bottomSheetModalRef: React.RefObject<GorhomBottomSheetModal | null>;
-  onImageSelected?: (image: ImagePicker.ImagePickerAsset) => void;
-  onImagesSelected?: (images: ImagePicker.ImagePickerAsset[]) => void;
-  options?: ("camera" | "gallery")[];
+  onImageSelected?: (image: ImagePicker.ImagePickerAsset | SelectedImageAsset) => void;
+  onImagesSelected?: (images: (ImagePicker.ImagePickerAsset | SelectedImageAsset)[]) => void;
+  options?: ("camera" | "gallery" | "files")[];
   allowsEditing?: boolean;
   allowsMultipleSelection?: boolean;
   aspect?: [number, number];
@@ -110,8 +114,38 @@ export function UploadMediaBottomSheetModal({
     }
   };
 
+  const handlePickFromFiles = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: Platform.OS === "ios" ? "public.image" : "image/*",
+        copyToCacheDirectory: true,
+        multiple: allowsMultipleSelection,
+      });
+
+      if (result.canceled) return;
+
+      const assets = (result.assets ?? []).map((f) => ({
+        uri: f.uri,
+        width: undefined,
+        height: undefined,
+      })) as SelectedImageAsset[];
+
+      if (assets.length > 0) {
+        if (onImagesSelected && assets.length > 1) {
+          onImagesSelected(assets);
+        } else if (onImageSelected) {
+          onImageSelected(assets[0]);
+        }
+        bottomSheetModalRef.current?.dismiss();
+      }
+    } catch (error) {
+      console.error("Error picking document:", error);
+      Alert.alert("Error", "Failed to pick file.");
+    }
+  };
+
   const optionMap: Record<
-    "camera" | "gallery",
+    "camera" | "gallery" | "files",
     {
       icon: LucideIcon;
       label: string;
@@ -125,8 +159,13 @@ export function UploadMediaBottomSheetModal({
     },
     gallery: {
       icon: Image,
-      label: "Upload From Gallery",
+      label: "Photo Library",
       onPress: handlePickFromGallery,
+    },
+    files: {
+      icon: FileImage,
+      label: "Browse Files",
+      onPress: handlePickFromFiles,
     },
   };
 

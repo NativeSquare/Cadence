@@ -10,6 +10,7 @@
 
 import type * as ai_http_action from "../ai/http_action.js";
 import type * as ai_messages from "../ai/messages.js";
+import type * as ai_prompts_coach_os from "../ai/prompts/coach_os.js";
 import type * as ai_prompts_onboarding_coach from "../ai/prompts/onboarding_coach.js";
 import type * as ai_tools_index from "../ai/tools/index.js";
 import type * as auth from "../auth.js";
@@ -46,6 +47,7 @@ import type * as table_runners from "../table/runners.js";
 import type * as table_safeguards from "../table/safeguards.js";
 import type * as table_trainingPlans from "../table/trainingPlans.js";
 import type * as table_users from "../table/users.js";
+import type * as training_analytics from "../training/analytics.js";
 import type * as training_mutations from "../training/mutations.js";
 import type * as training_planGenerator from "../training/planGenerator.js";
 import type * as training_queries from "../training/queries.js";
@@ -67,6 +69,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   "ai/http_action": typeof ai_http_action;
   "ai/messages": typeof ai_messages;
+  "ai/prompts/coach_os": typeof ai_prompts_coach_os;
   "ai/prompts/onboarding_coach": typeof ai_prompts_onboarding_coach;
   "ai/tools/index": typeof ai_tools_index;
   auth: typeof auth;
@@ -103,6 +106,7 @@ declare const fullApi: ApiFromModules<{
   "table/safeguards": typeof table_safeguards;
   "table/trainingPlans": typeof table_trainingPlans;
   "table/users": typeof table_users;
+  "training/analytics": typeof training_analytics;
   "training/mutations": typeof training_mutations;
   "training/planGenerator": typeof training_planGenerator;
   "training/queries": typeof training_queries;
@@ -376,6 +380,136 @@ export declare const components: {
         },
         null
       >;
+    };
+  };
+  seshat: {
+    memory: {
+      core: {
+        getCoreMemory: FunctionReference<
+          "query",
+          "internal",
+          { userId: string },
+          {
+            _creationTime: number;
+            _id: string;
+            content: string;
+            updatedAt: number;
+            userId: string;
+            version: number;
+          } | null
+        >;
+        writeCoreMemory: FunctionReference<
+          "mutation",
+          "internal",
+          { content: string; userId: string },
+          string
+        >;
+      };
+      daily: {
+        getDailyLog: FunctionReference<
+          "query",
+          "internal",
+          { date: string; userId: string },
+          null | {
+            _creationTime: number;
+            _id: string;
+            content: string;
+            createdAt: number;
+            date: string;
+            metrics?: any;
+            updatedAt: number;
+            userId: string;
+          }
+        >;
+        getDailyLogs: FunctionReference<
+          "query",
+          "internal",
+          { dates: Array<string>; userId: string },
+          Array<{
+            _creationTime: number;
+            _id: string;
+            content: string;
+            createdAt: number;
+            date: string;
+            metrics?: any;
+            updatedAt: number;
+            userId: string;
+          }>
+        >;
+        writeDailyLog: FunctionReference<
+          "mutation",
+          "internal",
+          { content: string; date: string; metrics?: any; userId: string },
+          string
+        >;
+      };
+      episodic: {
+        addEpisode: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            content: string;
+            embedding?: Array<number>;
+            importance: number;
+            sourceConversationId?: string;
+            tags: Array<string>;
+            userId: string;
+          },
+          string
+        >;
+        searchEpisodes: FunctionReference<
+          "action",
+          "internal",
+          {
+            limit?: number;
+            mmrLambda?: number;
+            query?: string;
+            queryEmbedding: Array<number>;
+            temporalDecayHalfLife?: number;
+            textWeight?: number;
+            userId: string;
+            vectorWeight?: number;
+          },
+          Array<{
+            _id: string;
+            content: string;
+            createdAt: number;
+            importance: number;
+            score: number;
+            sourceConversationId?: string;
+            tags: Array<string>;
+          }>
+        >;
+      };
+      state: {
+        getAgentState: FunctionReference<
+          "query",
+          "internal",
+          { userId: string },
+          null | {
+            _creationTime: number;
+            _id: string;
+            compactionCount: number;
+            lastCompactionAt?: number;
+            lastInteractionAt: number;
+            memoryVersion: number;
+            totalTokensUsed: number;
+            userId: string;
+          }
+        >;
+        recordCompaction: FunctionReference<
+          "mutation",
+          "internal",
+          { userId: string },
+          null
+        >;
+        updateTokenCount: FunctionReference<
+          "mutation",
+          "internal",
+          { tokens: number; userId: string },
+          string
+        >;
+      };
     };
   };
   soma: {

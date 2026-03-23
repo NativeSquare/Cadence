@@ -4,6 +4,7 @@
  */
 
 import type { TimeFrame as TF } from "@/components/shared/time-frame-selector";
+import { getZoneColor } from "@/lib/design-tokens";
 
 // =============================================================================
 // Race Objectives
@@ -367,11 +368,11 @@ export type { TimeFrame } from "@/components/shared/time-frame-selector";
 export type ZonePeriod = "7d" | "1mo" | "3mo" | "6mo" | "1yr";
 
 export const MOCK_ZONE_BREAKDOWN: ZoneBreakdownData[] = [
-  { zone: "Z5", label: "VO2max", percentage: 2, bpmRange: ">185 bpm", color: "#FF5A5A" },
-  { zone: "Z4", label: "Threshold", percentage: 12, bpmRange: "170–184 bpm", color: "#FF9500" },
-  { zone: "Z3", label: "Tempo", percentage: 18, bpmRange: "152–169 bpm", color: "#C8FF00" },
-  { zone: "Z2", label: "Aerobic", percentage: 52, bpmRange: "135–151 bpm", color: "#A8D900" },
-  { zone: "Z1", label: "Easy", percentage: 16, bpmRange: "<134 bpm", color: "#5B9EFF" },
+  { zone: "Z5", label: "VO2max", percentage: 2, bpmRange: ">185 bpm", color: getZoneColor("Z5") },
+  { zone: "Z4", label: "Threshold", percentage: 12, bpmRange: "170–184 bpm", color: getZoneColor("Z4") },
+  { zone: "Z3", label: "Tempo", percentage: 18, bpmRange: "152–169 bpm", color: getZoneColor("Z3") },
+  { zone: "Z2", label: "Aerobic", percentage: 52, bpmRange: "135–151 bpm", color: getZoneColor("Z2") },
+  { zone: "Z1", label: "Easy", percentage: 16, bpmRange: "<134 bpm", color: getZoneColor("Z1") },
 ];
 
 // =============================================================================

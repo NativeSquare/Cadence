@@ -17,8 +17,6 @@ export { DiagonalStripes } from "./DiagonalStripes";
 export { TodayMarker } from "./TodayMarker";
 export { Legend } from "./Legend";
 export { DayHeaders } from "./DayHeaders";
-export { CalendarSessionSheet } from "./CalendarSessionSheet";
-
 // Types
 export type {
   CalSession,
@@ -36,8 +34,6 @@ export {
   SESSION_COLORS,
   SESSION_LABELS,
   PHASE_COLORS,
-  CAL_SESSIONS,
-  PHASES,
   TODAY_KEY,
   MONTH_NAMES,
   DAY_HEADERS,

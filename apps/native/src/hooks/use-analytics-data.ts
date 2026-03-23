@@ -1,14 +1,9 @@
 /**
  * useAnalyticsData Hook - Data fetching and computation for Analytics screen
  *
- * Features:
- * - Placement gate check via getCompletedRunCount
- * - Radar chart data via getRadarChartData
- * - Race predictions via getRacePredictions
- * - Health metrics via getHealthMetrics
- * - Activities for volume/pace/zone computation
- * - Mock data fallback for development
- * - Pre-computed chart data arrays for victory-native (stable refs)
+ * Fetches all analytics data from the backend composite query and maps it
+ * into the shapes expected by chart components. Falls back to mock data
+ * when the backend has no real data (no plan, no activities).
  */
 
 import { useMemo } from "react";
@@ -76,8 +71,18 @@ export type PredictionTrendDatum = {
   [key: string]: unknown;
 };
 
+export type VolumeTimeframeBucket = {
+  values: number[];
+  labels: string[];
+};
+
 export interface AnalyticsData {
-  planProgress: typeof PLAN_PROGRESS;
+  planProgress: Array<{
+    week: number;
+    completed: boolean;
+    current: boolean;
+    phase: string;
+  }>;
   currentWeek: number;
 
   volumeStats: {
@@ -97,13 +102,22 @@ export interface AnalyticsData {
   volumeChartData: VolumeChartDatum[];
   paceChartData: PaceChartDatum[];
 
-  stats: typeof MOCK_STATS;
+  stats: {
+    totalDistance: number;
+    totalPlanned: number;
+    sessions: number;
+    sessionsPlanned: number;
+    longestRun: number;
+    longestRunWeek: number;
+  };
 
   zoneBreakdown: ZoneBreakdownData[];
   radarData: RadarDataPoint[];
   predictions: RacePrediction[];
   vdot: number;
   healthMetrics: HealthMetric[];
+
+  volumeByTimeframe: Record<string, VolumeTimeframeBucket>;
 }
 
 export interface PlacementStatus {
@@ -121,8 +135,8 @@ export interface UseAnalyticsDataResult {
 
 /**
  * Hook to fetch and compute analytics data.
- * Queries placement gate, radar, predictions, health metrics, and activities.
- * Falls back to mock data when real data is unavailable.
+ * Queries the composite analytics endpoint plus placement, predictions,
+ * and health metrics. Falls back to mock data when real data is unavailable.
  */
 export function useAnalyticsData(): UseAnalyticsDataResult {
   const placementResult = useQuery(
@@ -137,13 +151,9 @@ export function useAnalyticsData(): UseAnalyticsDataResult {
     api.training.queries.getHealthMetrics
   );
 
-  // Activities for chart data (uncomment when ready for real data):
-  // const activities = useQuery(api.table.activities.listMyActivities, {
-  //   startTime: getWeekStartTimestamp(),
-  //   endTime: new Date().toISOString(),
-  //   order: "asc",
-  // });
-  // const runner = useQuery(api.table.runners.getCurrentRunner);
+  const analyticsResult = useQuery(
+    api.training.analytics.getAnalyticsScreenData
+  );
 
   const placement = useMemo<PlacementStatus | null>(() => {
     if (placementResult === undefined) return null;
@@ -221,59 +231,110 @@ export function useAnalyticsData(): UseAnalyticsDataResult {
         ]
       : MOCK_HEALTH_METRICS;
 
+    // When backend data is available, use it; otherwise fall back to mocks
+    const hasBackend = analyticsResult != null;
+    const be = analyticsResult;
+
+    const planProgress = hasBackend && be.planProgress.length > 0
+      ? be.planProgress
+      : PLAN_PROGRESS;
+
+    const currentWeek = hasBackend && be.currentWeek > 0
+      ? be.currentWeek
+      : CURRENT_WEEK;
+
+    const volumeStats = hasBackend
+      ? be.volumeStats
+      : {
+          currentVolume: MOCK_VOLUME_STATS.currentVolume,
+          plannedVolume: MOCK_VOLUME_STATS.plannedVolume,
+          weekOverWeekChange: MOCK_VOLUME_STATS.weekOverWeekChange,
+          streak: MOCK_VOLUME_STATS.streak,
+          streakDays: MOCK_VOLUME_STATS.streakDays,
+        };
+
+    const dayLabels = hasBackend ? be.dayLabels : DAY_LABELS;
+    const todayIndex = hasBackend ? be.todayIndex : TODAY_INDEX;
+
+    const histogramChartData: HistogramDatum[] = hasBackend
+      ? be.dailyKm.map((km, i) => ({ day: i, km }))
+      : MOCK_WEEKLY_KM.map((km, i) => ({ day: i, km }));
+
+    const zoneChartData: ZoneChartDatum[] = hasBackend
+      ? be.dailyZones.map((z, i) => ({ day: i, z2: z.z2, z3: z.z3, z4: z.z4 }))
+      : MOCK_ZONE_DATA.map((zone, i) => ({
+          day: i,
+          z2: zone.z2,
+          z3: zone.z3,
+          z4: zone.z4,
+        }));
+
+    const multiWeekZoneData: WeekZoneData[] = hasBackend
+      ? be.multiWeekZones
+      : MOCK_MULTI_WEEK_ZONE_DATA;
+
+    const volumeChartData: VolumeChartDatum[] = hasBackend
+      ? be.weeklyVolumes.map((volume, i) => ({ week: i + 1, volume }))
+      : MOCK_VOLUME_DATA.map((volume, i) => ({ week: i + 1, volume }));
+
+    const paceChartData: PaceChartDatum[] = hasBackend
+      ? be.weeklyPaces.map((pace, i) => ({ week: i + 1, pace }))
+      : MOCK_PACE_DATA.map((pace, i) => ({ week: i + 1, pace }));
+
+    const stats = hasBackend
+      ? be.stats
+      : MOCK_STATS;
+
+    const zoneBreakdown: ZoneBreakdownData[] = hasBackend
+      ? be.zoneBreakdown
+      : MOCK_ZONE_BREAKDOWN;
+
+    const radarData: RadarDataPoint[] = hasBackend && be.radarData.length > 0
+      ? be.radarData
+      : [
+          { label: "Endurance", value: 75 },
+          { label: "Speed", value: 65 },
+          { label: "Recovery", value: 40 },
+          { label: "Consistency", value: 85 },
+          { label: "Injury Risk", value: 55 },
+          { label: "Race Ready", value: 50 },
+        ];
+
+    const volumeByTimeframe: Record<string, VolumeTimeframeBucket> = hasBackend
+      ? be.volumeByTimeframe
+      : Object.fromEntries(
+          (["7d", "1mo", "3mo", "6mo", "1yr"] as const).map((tf) => [
+            tf,
+            {
+              values: MOCK_VOLUME_BY_TIMEFRAME[tf],
+              labels: VOLUME_X_LABELS[tf],
+            },
+          ]),
+        );
+
     return {
-      planProgress: PLAN_PROGRESS,
-      currentWeek: CURRENT_WEEK,
-
-      volumeStats: {
-        currentVolume: MOCK_VOLUME_STATS.currentVolume,
-        plannedVolume: MOCK_VOLUME_STATS.plannedVolume,
-        weekOverWeekChange: MOCK_VOLUME_STATS.weekOverWeekChange,
-        streak: MOCK_VOLUME_STATS.streak,
-        streakDays: MOCK_VOLUME_STATS.streakDays,
-      },
-
-      dayLabels: DAY_LABELS,
-      todayIndex: TODAY_INDEX,
-
-      histogramChartData: MOCK_WEEKLY_KM.map((km, i) => ({ day: i, km })),
-      zoneChartData: MOCK_ZONE_DATA.map((zone, i) => ({
-        day: i,
-        z2: zone.z2,
-        z3: zone.z3,
-        z4: zone.z4,
-      })),
-      multiWeekZoneData: MOCK_MULTI_WEEK_ZONE_DATA,
-      volumeChartData: MOCK_VOLUME_DATA.map((volume, i) => ({
-        week: i + 1,
-        volume,
-      })),
-      paceChartData: MOCK_PACE_DATA.map((pace, i) => ({
-        week: i + 1,
-        pace,
-      })),
-
-      stats: MOCK_STATS,
-
-      zoneBreakdown: MOCK_ZONE_BREAKDOWN,
-      radarData: MOCK_PREDICTIONS.length > 0
-        ? [
-            { label: "Endurance", value: 75 },
-            { label: "Speed", value: 65 },
-            { label: "Recovery", value: 40 },
-            { label: "Consistency", value: 85 },
-            { label: "Injury Risk", value: 55 },
-            { label: "Race Ready", value: 50 },
-          ]
-        : [],
+      planProgress,
+      currentWeek,
+      volumeStats,
+      dayLabels,
+      todayIndex,
+      histogramChartData,
+      zoneChartData,
+      multiWeekZoneData,
+      volumeChartData,
+      paceChartData,
+      stats,
+      zoneBreakdown,
+      radarData,
       predictions,
       vdot,
       healthMetrics,
+      volumeByTimeframe,
     };
-  }, [radarResult, healthResult]);
+  }, [radarResult, healthResult, analyticsResult]);
 
   const isLoading =
-    placementResult === undefined;
+    placementResult === undefined || analyticsResult === undefined;
 
   return {
     data,
@@ -290,7 +351,17 @@ export interface VolumeBarChartData {
   unitLabel: string;
 }
 
-export function getVolumeBarData(timeFrame: TimeFrame): VolumeBarChartData {
+export function getVolumeBarData(
+  timeFrame: TimeFrame,
+  volumeByTimeframe?: Record<string, VolumeTimeframeBucket>,
+): VolumeBarChartData {
+  const bucket = volumeByTimeframe?.[timeFrame];
+  if (bucket) {
+    const barData = bucket.values.map((volume, i) => ({ index: i, volume }));
+    const total = Math.round(bucket.values.reduce((sum, v) => sum + v, 0));
+    return { barData, labels: bucket.labels, total, unitLabel: VOLUME_UNIT_LABELS[timeFrame] };
+  }
+
   const values = MOCK_VOLUME_BY_TIMEFRAME[timeFrame];
   const labels = VOLUME_X_LABELS[timeFrame];
   const unitLabel = VOLUME_UNIT_LABELS[timeFrame];

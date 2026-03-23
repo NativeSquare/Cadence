@@ -12,7 +12,7 @@ export default function AppLayout() {
       >
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen
-          name="session"
+          name="session/[id]"
           options={{
             headerShown: false,
             presentation: "fullScreenModal",

@@ -5,11 +5,16 @@
 
 import type {
   Phase,
+  PhaseName,
+  CalSession,
+  CalSessionType,
   CalendarDay,
   WeekDate,
   PhaseSegment,
 } from "./types";
-import { DAY_HEADERS_FULL } from "./constants";
+import { DAY_HEADERS_FULL, PHASE_COLORS } from "./constants";
+import { getSessionCategory } from "@/lib/design-tokens";
+import type { BackendSession, BackendPlan } from "../plan/utils";
 
 /**
  * Blend hex color with off-white background (#F8F8F6) to produce a solid RGB color.
@@ -185,4 +190,88 @@ export function getWeekDates(dateKey: string): WeekDate[] {
     });
   }
   return dates;
+}
+
+/**
+ * Transform backend sessions into the calendar's date-keyed lookup.
+ * Rest days are excluded so they show as empty tiles.
+ */
+export function buildCalendarSessions(
+  sessions: BackendSession[],
+): Record<string, CalSession[]> {
+  const result: Record<string, CalSession[]> = {};
+  for (const s of sessions) {
+    if (s.isRestDay) continue;
+    const date = new Date(s.scheduledDate);
+    const key = formatDateKey(date.getFullYear(), date.getMonth(), date.getDate());
+    const calSession: CalSession = {
+      sessionId: s._id as string,
+      type: getSessionCategory(s.sessionTypeDisplay) as CalSessionType,
+      label: s.sessionTypeDisplay,
+      km: s.targetDistanceMeters != null
+        ? (s.targetDistanceMeters / 1000).toFixed(1)
+        : "-",
+      dur: s.targetDurationDisplay,
+      done: s.status === "completed",
+    };
+    if (!result[key]) {
+      result[key] = [];
+    }
+    result[key].push(calSession);
+  }
+  return result;
+}
+
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+function mapPhaseKey(phaseName: string): PhaseName {
+  const lower = phaseName.toLowerCase();
+  if (lower.includes("foundation")) return "foundation";
+  if (lower.includes("development")) return "development";
+  if (lower.includes("consolidation")) return "consolidation";
+  if (lower.includes("base")) return "base";
+  if (lower.includes("build") && lower.includes("2")) return "build2";
+  if (lower.includes("build")) return "build1";
+  if (lower.includes("taper")) return "taper";
+  if (lower.includes("race")) return "race";
+  if (lower.includes("recovery")) return "recovery";
+  return "base";
+}
+
+/**
+ * Derive training phase date ranges from the plan's weekly schedule.
+ * Groups consecutive weeks with the same phase name into Phase objects.
+ */
+export function buildPhasesFromPlan(plan: BackendPlan): Phase[] {
+  const weeks = plan.weeklyPlan;
+  if (weeks.length === 0) return [];
+
+  const phases: Phase[] = [];
+  let groupStart = 0;
+
+  for (let i = 0; i <= weeks.length; i++) {
+    if (i === weeks.length || weeks[i].phaseName !== weeks[groupStart].phaseName) {
+      const phaseName = weeks[groupStart].phaseName;
+      const firstWeek = weeks[groupStart].weekNumber;
+      const lastWeek = weeks[i - 1].weekNumber;
+
+      const startMs = plan.startDate + (firstWeek - 1) * 7 * MS_PER_DAY;
+      const endMs = plan.startDate + (lastWeek - 1) * 7 * MS_PER_DAY + 6 * MS_PER_DAY;
+      const startDate = new Date(startMs);
+      const endDate = new Date(endMs);
+
+      const key = mapPhaseKey(phaseName);
+      phases.push({
+        name: phaseName,
+        key,
+        start: formatDateKey(startDate.getFullYear(), startDate.getMonth(), startDate.getDate()),
+        end: formatDateKey(endDate.getFullYear(), endDate.getMonth(), endDate.getDate()),
+        color: PHASE_COLORS[key],
+      });
+
+      groupStart = i;
+    }
+  }
+
+  return phases;
 }

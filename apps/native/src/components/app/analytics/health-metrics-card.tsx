@@ -9,7 +9,7 @@ import {
   Droplets,
 } from "lucide-react-native";
 import { Text } from "@/components/ui/text";
-import { ACTIVITY_COLORS, LIGHT_THEME } from "@/lib/design-tokens";
+import { LIGHT_THEME } from "@/lib/design-tokens";
 import {
   MOCK_HEALTH_METRICS,
   HEALTH_METRIC_STYLES,
@@ -58,26 +58,12 @@ function MetricItem({
   const metricStyle = HEALTH_METRIC_STYLES[metric.metricKey];
   const Icon = METRIC_ICONS[metric.metricKey];
 
-  const trendColor =
-    metric.trend === "improving"
-      ? ACTIVITY_COLORS.barHigh
-      : metric.trend === "declining"
-        ? "#FF5A5A"
-        : LIGHT_THEME.wSub;
-
-  const trendIcon =
-    metric.trend === "improving"
-      ? "↓"
-      : metric.trend === "declining"
-        ? "↑"
-        : "→";
-
   return (
     <Animated.View
       entering={FadeInUp.delay(200 + index * 80)
         .duration(400)
         .easing(Easing.out(Easing.cubic))}
-      className="pt-3 px-4 pb-4 rounded-2xl"
+      className="items-center pt-3 px-4 pb-4 rounded-2xl"
       style={{
         width: cardWidth,
         backgroundColor: LIGHT_THEME.w1,
@@ -92,38 +78,20 @@ function MetricItem({
           <Icon size={13} color={metricStyle.color} strokeWidth={2.2} />
         </View>
         <Text
-          className="text-[11px] font-coach-medium"
+          className="text-[12px] font-coach-semibold"
           style={{ color: LIGHT_THEME.wSub }}
         >
           {metric.label}
         </Text>
       </View>
 
-      <View className="flex-row items-baseline gap-[2px]">
-        <Text
-          className="text-[26px] font-coach-extrabold"
-          style={{ color: metricStyle.color }}
-        >
-          {metric.value}
-        </Text>
-        {metric.unit && (
-          <Text
-            className="text-[12px] font-coach"
-            style={{ color: LIGHT_THEME.wMute }}
-          >
-            {metric.unit}
-          </Text>
-        )}
-      </View>
-
-      {metric.trend && (
-        <Text
-          className="text-[11px] font-coach mt-1"
-          style={{ color: trendColor }}
-        >
-          {trendIcon} {metric.subtitle}
-        </Text>
-      )}
+      <Text
+        className="text-[22px] font-coach-extrabold mt-1"
+        style={{ color: LIGHT_THEME.wText }}
+      >
+        {metric.value}
+        {metric.unit ? ` ${metric.unit}` : ""}
+      </Text>
     </Animated.View>
   );
 }

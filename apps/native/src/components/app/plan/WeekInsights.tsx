@@ -43,7 +43,7 @@ function VolumeInsight({
   planned: number;
   timeCompleted: string;
 }) {
-  const targetPercent = Math.min((completed / planned) * 100, 100);
+  const targetPercent = planned > 0 ? Math.min((completed / planned) * 100, 100) : 0;
   const progressWidth = useSharedValue(0);
 
   useEffect(() => {
@@ -63,7 +63,7 @@ function VolumeInsight({
 
   return (
     <View
-      className="flex-1 px-5 py-4 rounded-2xl bg-w1"
+      className="px-5 py-4 rounded-2xl bg-w1"
       style={CARD_SHADOW}
     >
       <Text

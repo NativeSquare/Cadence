@@ -10,26 +10,28 @@
  * - Tap a training day to view session details in a bottom sheet
  */
 
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   View,
   Text,
   Pressable,
   StyleSheet,
   ScrollView,
+  ActivityIndicator,
   useWindowDimensions,
 } from "react-native";
 import Animated, {
   runOnJS,
   useAnimatedStyle,
   useSharedValue,
-  withSpring,
   withTiming,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ChevronLeft, ChevronRight } from "lucide-react-native";
-import { BottomSheetModal as GorhomBottomSheetModal } from "@gorhom/bottom-sheet";
 import * as Haptics from "expo-haptics";
+import { useQuery } from "convex/react";
+import { useRouter } from "expo-router";
+import { api } from "@packages/backend/convex/_generated/api";
 
 import {
   COLORS,
@@ -37,16 +39,19 @@ import {
   LIGHT_THEME,
   SESSION_TYPE_COLORS,
 } from "@/lib/design-tokens";
-import { CalendarSessionSheet } from "./CalendarSessionSheet";
 import {
   MONTH_NAMES,
   DAY_HEADERS,
-  CAL_SESSIONS,
   SESSION_LABELS,
-  PHASES,
   TODAY_KEY,
 } from "./constants";
-import { buildWeeks, buildPhaseLookup, blendWithBg } from "./helpers";
+import {
+  buildWeeks,
+  buildPhaseLookup,
+  blendWithBg,
+  buildCalendarSessions,
+  buildPhasesFromPlan,
+} from "./helpers";
 import type { CalSession, CalSessionType } from "./types";
 
 type ViewMode = "sessions" | "blocks";
@@ -67,9 +72,8 @@ function ViewToggle({
     (mode: ViewMode) => {
       if (mode === value) return;
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      indicatorX.value = withSpring(mode === "sessions" ? 0 : 1, {
-        damping: 20,
-        stiffness: 200,
+      indicatorX.value = withTiming(mode === "sessions" ? 0 : 1, {
+        duration: 180,
       });
       onChange(mode);
     },
@@ -118,6 +122,7 @@ function ViewToggle({
 export function CalendarScreen() {
   const insets = useSafeAreaInsets();
   const { width: screenWidth } = useWindowDimensions();
+  const router = useRouter();
   const todayDate = useMemo(() => new Date(TODAY_KEY + "T00:00:00"), []);
 
   const tileSize = useMemo(
@@ -129,28 +134,34 @@ export function CalendarScreen() {
   const [currentYear, setCurrentYear] = useState(todayDate.getFullYear());
   const [viewMode, setViewMode] = useState<ViewMode>("sessions");
 
-  const sheetRef = useRef<GorhomBottomSheetModal>(null);
-  const [selectedSession, setSelectedSession] = useState<CalSession | null>(
-    null,
-  );
-  const [selectedDateKey, setSelectedDateKey] = useState<string | null>(null);
-
   const contentFade = useSharedValue(1);
   const contentTranslateX = useSharedValue(0);
+
+  const planData = useQuery(api.training.queries.getPlanScreenData);
+
+  const calSessions = useMemo(
+    () => (planData ? buildCalendarSessions(planData.sessions) : {}),
+    [planData],
+  );
+
+  const phases = useMemo(
+    () => (planData ? buildPhasesFromPlan(planData.plan) : []),
+    [planData],
+  );
 
   const weeks = useMemo(
     () => buildWeeks(currentYear, currentMonth),
     [currentYear, currentMonth],
   );
 
-  const phaseLookup = useMemo(() => buildPhaseLookup(PHASES), []);
+  const phaseLookup = useMemo(() => buildPhaseLookup(phases), [phases]);
 
   const visiblePhases = useMemo(() => {
     const monthStart = `${currentYear}-${String(currentMonth + 1).padStart(2, "0")}-01`;
     const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
     const monthEnd = `${currentYear}-${String(currentMonth + 1).padStart(2, "0")}-${String(daysInMonth).padStart(2, "0")}`;
-    return PHASES.filter((p) => p.end >= monthStart && p.start <= monthEnd);
-  }, [currentYear, currentMonth]);
+    return phases.filter((p) => p.end >= monthStart && p.start <= monthEnd);
+  }, [currentYear, currentMonth, phases]);
 
   // ─── Month navigation ──────────────────────────────────────────────
 
@@ -178,15 +189,12 @@ export function CalendarScreen() {
     (direction: "prev" | "next") => {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       const exit = direction === "next" ? -1 : 1;
-      contentFade.value = withTiming(0, { duration: 100 });
-      contentTranslateX.value = withTiming(exit * 40, { duration: 100 }, () => {
+      contentFade.value = withTiming(0, { duration: 80 });
+      contentTranslateX.value = withTiming(exit * 16, { duration: 80 }, () => {
         runOnJS(updateMonth)(direction);
-        contentTranslateX.value = exit * -40;
-        contentFade.value = withTiming(1, { duration: 200 });
-        contentTranslateX.value = withSpring(0, {
-          damping: 18,
-          stiffness: 180,
-        });
+        contentTranslateX.value = exit * -16;
+        contentFade.value = withTiming(1, { duration: 150 });
+        contentTranslateX.value = withTiming(0, { duration: 150 });
       });
     },
     [contentFade, contentTranslateX, updateMonth],
@@ -214,20 +222,26 @@ export function CalendarScreen() {
   // ─── Day / session press ─────────────────────────────────────────
 
   const handleDayPress = useCallback((dateKey: string) => {
-    const sessions = CAL_SESSIONS[dateKey];
+    const sessions = calSessions[dateKey];
     if (sessions && sessions.length > 0) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      setSelectedSession(sessions[0]);
-      setSelectedDateKey(dateKey);
-      sheetRef.current?.present();
+      router.push({ pathname: "/(app)/session/[id]", params: { id: sessions[0].sessionId } });
     }
-  }, []);
+  }, [calSessions, router]);
 
   // ─── Render ───────────────────────────────────────────────────────
 
   const isCurrentMonth =
     currentMonth === todayDate.getMonth() &&
     currentYear === todayDate.getFullYear();
+
+  if (planData === undefined) {
+    return (
+      <View style={[st.root, { alignItems: "center", justifyContent: "center" }]}>
+        <ActivityIndicator size="large" color={GRAYS.g3} />
+      </View>
+    );
+  }
 
   return (
     <View style={st.root}>
@@ -286,7 +300,7 @@ export function CalendarScreen() {
           {weeks.map((week, wi) => (
             <View key={`w-${wi}`} style={st.weekRow}>
               {week.map((day) => {
-                const sessions = CAL_SESSIONS[day.key];
+                const sessions = calSessions[day.key];
                 const hasSession = sessions && sessions.length > 0;
                 const isToday = day.key === TODAY_KEY;
                 const phase = phaseLookup.get(day.key);
@@ -348,15 +362,14 @@ export function CalendarScreen() {
 
                         {isBlocks ? (
                           phase && day.key === phase.start ? (
-                            <Text
-                              style={[
-                                st.blockLabel,
-                                { color: blendWithBg(phase.color, 0.85, [26, 26, 26]) },
-                              ]}
-                              numberOfLines={1}
-                            >
-                              {phase.name}
-                            </Text>
+                            <View style={st.dotsRow}>
+                              <View
+                                style={[
+                                  st.sessionDot,
+                                  { backgroundColor: phase.color },
+                                ]}
+                              />
+                            </View>
                           ) : (
                             <View style={st.dotsSpacer} />
                           )
@@ -411,11 +424,8 @@ export function CalendarScreen() {
                     <View key={p.key} style={st.legendItem}>
                       <View
                         style={[
-                          st.legendPill,
-                          {
-                            backgroundColor: blendWithBg(p.color, 0.25),
-                            borderLeftColor: p.color,
-                          },
+                          st.legendDot,
+                          { backgroundColor: p.color },
                         ]}
                       />
                       <Text style={st.legendLabel}>{p.name}</Text>
@@ -426,12 +436,6 @@ export function CalendarScreen() {
         </Animated.View>
       </ScrollView>
 
-      {/* Session detail sheet */}
-      <CalendarSessionSheet
-        sheetRef={sheetRef}
-        session={selectedSession}
-        dateKey={selectedDateKey}
-      />
     </View>
   );
 }
@@ -582,6 +586,7 @@ const st = StyleSheet.create({
 
   dotsRow: {
     flexDirection: "row",
+    alignItems: "center",
     gap: 3,
     marginTop: 4,
   },
@@ -595,17 +600,6 @@ const st = StyleSheet.create({
   },
   dotsSpacer: {
     height: 10,
-  },
-
-  // ─── Block label inside tile (Blocks mode) ────────────────────────
-
-  blockLabel: {
-    fontSize: 7,
-    fontFamily: "Outfit-Bold",
-    fontWeight: "700",
-    letterSpacing: 0.3,
-    textTransform: "uppercase",
-    marginTop: 2,
   },
 
   // ─── Legend ─────────────────────────────────────────────────────────

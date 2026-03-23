@@ -82,6 +82,26 @@ export const ACTIVITY_COLORS = {
 } as const;
 
 /**
+ * Heart-rate zone colors used in analytics and session zone splits.
+ * Keeps zone coloring consistent across the app (Z1–Z5 and compound zones).
+ */
+export const ZONE_COLORS: Record<string, string> = {
+  Z5: "#FF5A5A",
+  "Z4-5": "#FF5A5A",
+  Z4: "#FF9500",
+  "Z3-4": "#FF9500",
+  Z3: "#C8FF00",
+  "Z2-3": "#C8FF00",
+  Z2: "#A8D900",
+  Z1: "#5B9EFF",
+};
+
+/** Get zone color for a zone string (e.g. "Z4", "Z2-3"); matches analytics. */
+export function getZoneColor(zone: string): string {
+  return ZONE_COLORS[zone] ?? "#A8D900";
+}
+
+/**
  * Session type category — one of four run categories used across calendar
  * and plan views to consistently color-code sessions.
  */

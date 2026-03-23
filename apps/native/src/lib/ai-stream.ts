@@ -7,6 +7,10 @@
  * Source: Story 2.1 - AC#2, AC#4, Story 8.3 - AC#1, AC#2
  */
 
+// expo/fetch provides ReadableStream support on response.body,
+// which the default React Native fetch does not.
+import { fetch } from "expo/fetch";
+
 // =============================================================================
 // Types
 // =============================================================================
@@ -121,13 +125,24 @@ export interface StreamMessage {
   completionReason?: StreamCompletionReason;
 }
 
+/** User message content: plain text or multimodal (text + image URLs) for vision */
+export type StreamMessageContent =
+  | string
+  | Array<
+      | { type: "text"; text: string }
+      | { type: "file"; url: string; mediaType?: string }
+    >;
+
 export interface StreamOptions {
   /** Convex HTTP site URL */
   convexSiteUrl: string;
   /** Auth token for authenticated requests */
   authToken: string;
-  /** Messages to send to the AI */
-  messages: Array<{ role: "user" | "assistant" | "system"; content: string }>;
+  /** Messages to send to the AI (content may be string or multimodal parts) */
+  messages: Array<{
+    role: "user" | "assistant" | "system";
+    content: StreamMessageContent;
+  }>;
   /** Conversation ID for persistence */
   conversationId?: string;
   /** Called for each text chunk */
@@ -149,7 +164,9 @@ export interface StreamOptions {
 // =============================================================================
 
 /**
- * Parse SSE event data from Vercel AI SDK format
+ * Parse SSE event data from Vercel AI SDK v6 UIMessageStream format.
+ *
+ * v6 sends JSON chunks via SSE like: { type: "text-delta", delta: "Hello", id: "..." }
  */
 export function parseSSEEvent(data: string): StreamEvent | null {
   if (!data || data === "[DONE]") {
@@ -157,73 +174,52 @@ export function parseSSEEvent(data: string): StreamEvent | null {
   }
 
   try {
-    // Vercel AI SDK uses a specific format: type:data
-    // Example: 0:"Hello" (text delta)
-    // Example: 9:{"toolCallId":"...","toolName":"...","args":{...}}
-
-    // Check for simple text delta format (0:"text")
-    if (data.startsWith('0:"')) {
-      const text = data.slice(3, -1); // Remove 0:" and trailing "
-      return {
-        type: "text-delta",
-        textDelta: parseEscapedString(text),
-      };
-    }
-
-    // Check for tool call (9:{...})
-    if (data.startsWith("9:")) {
-      const json = JSON.parse(data.slice(2));
-      return {
-        type: "tool-call",
-        toolCallId: json.toolCallId,
-        toolName: json.toolName,
-        args: json.args,
-      };
-    }
-
-    // Check for tool result (a:{...})
-    if (data.startsWith("a:")) {
-      const json = JSON.parse(data.slice(2));
-      return {
-        type: "tool-result",
-        toolCallId: json.toolCallId,
-        toolName: json.toolName,
-        result: json.result,
-      };
-    }
-
-    // Check for finish message (d:{...} or e:{...})
-    if (data.startsWith("d:") || data.startsWith("e:")) {
-      const json = JSON.parse(data.slice(2));
-      return {
-        type: "finish",
-        finishReason: json.finishReason || "stop",
-      };
-    }
-
-    // Try to parse as JSON for other formats
     const json = JSON.parse(data);
-    if (json.type) {
-      return json as StreamEvent;
+    if (!json || typeof json.type !== "string") {
+      return null;
     }
 
-    return null;
+    switch (json.type) {
+      case "text-delta":
+        return {
+          type: "text-delta",
+          textDelta: json.delta ?? json.textDelta ?? "",
+        };
+
+      case "tool-input-available":
+        return {
+          type: "tool-call",
+          toolCallId: json.toolCallId,
+          toolName: json.toolName,
+          args: json.input,
+        };
+
+      case "tool-output-available":
+        return {
+          type: "tool-result",
+          toolCallId: json.toolCallId,
+          toolName: json.toolName ?? "",
+          result: json.output,
+        };
+
+      case "finish":
+        return {
+          type: "finish",
+          finishReason: json.finishReason || "stop",
+        };
+
+      case "error":
+        return {
+          type: "error",
+          error: json.errorText ?? json.error ?? "Unknown error",
+        };
+
+      default:
+        return null;
+    }
   } catch {
-    // Non-JSON data, might be raw text
     return null;
   }
-}
-
-/**
- * Parse escaped string from AI SDK format
- */
-function parseEscapedString(str: string): string {
-  return str
-    .replace(/\\n/g, "\n")
-    .replace(/\\r/g, "\r")
-    .replace(/\\t/g, "\t")
-    .replace(/\\"/g, '"')
-    .replace(/\\\\/g, "\\");
 }
 
 // =============================================================================

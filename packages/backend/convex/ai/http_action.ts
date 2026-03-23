@@ -1,10 +1,14 @@
 import { streamText, stepCountIs } from "ai";
 import { openai } from "@ai-sdk/openai";
+import { Seshat } from "@nativesquare/seshat";
 import { httpAction } from "../_generated/server";
-import { api } from "../_generated/api";
+import { api, components, internal } from "../_generated/api";
 import { ConvexError } from "convex/values";
-import { tools } from "./tools";
+import { tools as uiTools } from "./tools";
 import { buildSystemPrompt } from "./prompts/onboarding_coach";
+import { buildCoachOSPrompt } from "./prompts/coach_os";
+
+const seshat = new Seshat({ component: components.seshat });
 
 // =============================================================================
 // LLM Error Types (Story 8.3 - AC#1)
@@ -181,35 +185,38 @@ function createErrorResponse(requestId: string, error: unknown): Response {
  * Source: Story 2.1 - AC#1, AC#2
  */
 export const streamChat = httpAction(async (ctx, request) => {
-  // Generate request ID for tracing (Story 8.3 Task 1.3)
   const requestId = generateRequestId();
 
-  // Validate request method
   if (request.method !== "POST") {
     return new Response("Method not allowed", { status: 405 });
   }
 
-  // Validate auth token is present (Convex auth reads it from headers)
   const authHeader = request.headers.get("Authorization");
   if (!authHeader?.startsWith("Bearer ")) {
     return new Response(
       JSON.stringify({ code: "UNAUTHORIZED", message: "Missing or invalid authorization header" }),
-      { status: 401, headers: { "Content-Type": "application/json" } }
+      { status: 401, headers: { "Content-Type": "application/json" } },
     );
   }
 
-  // Validate the token and get user identity
   const identity = await ctx.auth.getUserIdentity();
   if (!identity) {
     return new Response(
       JSON.stringify({ code: "UNAUTHORIZED", message: "Invalid authentication token" }),
-      { status: 401, headers: { "Content-Type": "application/json" } }
+      { status: 401, headers: { "Content-Type": "application/json" } },
     );
   }
 
-  // Parse request body
+  /** User/assistant message content: plain text or multimodal parts (text + image) */
+  type MessageContent =
+    | string
+    | Array<
+        | { type: "text"; text: string }
+        | { type: "file"; url: string; mediaType?: string }
+      >;
+
   let body: {
-    messages: Array<{ role: "user" | "assistant" | "system"; content: string }>;
+    messages: Array<{ role: "user" | "assistant" | "system"; content: MessageContent }>;
     conversationId?: string;
   };
 
@@ -218,47 +225,109 @@ export const streamChat = httpAction(async (ctx, request) => {
   } catch {
     return new Response(
       JSON.stringify({ code: "INVALID_REQUEST", message: "Invalid JSON body" }),
-      { status: 400, headers: { "Content-Type": "application/json" } }
+      { status: 400, headers: { "Content-Type": "application/json" } },
     );
   }
 
   if (!body.messages || !Array.isArray(body.messages)) {
     return new Response(
       JSON.stringify({ code: "INVALID_REQUEST", message: "Messages array is required" }),
-      { status: 400, headers: { "Content-Type": "application/json" } }
+      { status: 400, headers: { "Content-Type": "application/json" } },
     );
   }
 
-  // Log request start with ID (Story 8.3 Task 1.3)
   console.log(`[AI] Stream request started [${requestId}]`);
 
   try {
-    // Get runner context and connected providers for system prompt
-    const [runner, providers] = await Promise.all([
+    const [user, runner, providers] = await Promise.all([
+      ctx.runQuery(api.table.users.currentUser, {}),
       ctx.runQuery(api.table.runners.getCurrentRunner, {}),
       ctx.runQuery(api.integrations.connections.getConnectedProviders, {}),
     ]);
 
-    const systemPrompt = buildSystemPrompt(runner, providers);
+    if (!user) {
+      return new Response(
+        JSON.stringify({ code: "UNAUTHORIZED", message: "User not found" }),
+        { status: 401, headers: { "Content-Type": "application/json" } },
+      );
+    }
 
-    // Stream response using Vercel AI SDK
+    const userId = user._id as string;
+    const isOnboarding = !user.hasCompletedOnboarding;
+
+    /** Normalize content to string for memory/compaction (multimodal → text summary) */
+    const contentToString = (c: MessageContent): string =>
+      typeof c === "string"
+        ? c
+        : c
+            .map((p) =>
+              p.type === "text" ? p.text : "[Image attached]"
+            )
+            .join(" ");
+
+    const currentMessage = body.messages
+      .filter((m) => m.role === "user")
+      .at(-1)?.content;
+    const currentMessageStr =
+      currentMessage !== undefined ? contentToString(currentMessage) : undefined;
+
+    const [memoryContext, memoryTools] = await Promise.all([
+      seshat.assembleMemoryContext(ctx, { userId, currentMessage: currentMessageStr }),
+      seshat.getMemoryTools(ctx, { userId }),
+    ]);
+
+    const systemPrompt = isOnboarding
+      ? buildSystemPrompt(runner, providers)
+      : buildCoachOSPrompt(runner, providers, memoryContext);
+
+    const allTools = { ...uiTools, ...memoryTools };
+
     const result = streamText({
       model: openai("gpt-4o"),
-      messages: body.messages,
-      tools,
+      messages: body.messages as Parameters<typeof streamText>[0]["messages"] & {},
+      tools: allTools,
       system: systemPrompt,
-      stopWhen: stepCountIs(5), // Allow up to 5 tool call rounds
+      stopWhen: stepCountIs(5),
       onStepFinish: async ({ toolCalls }) => {
-        // Tool results are handled by the client via stream
-        // Persistence happens through tool execution
         if (toolCalls && toolCalls.length > 0) {
-          console.log(`[AI] [${requestId}] Tool calls executed: ${toolCalls.map((t) => t.toolName).join(", ")}`);
+          console.log(
+            `[AI] [${requestId}] Tool calls: ${toolCalls.map((t) => t.toolName).join(", ")}`,
+          );
+        }
+      },
+      onFinish: async ({ usage }) => {
+        try {
+          const compactionResult = await seshat.afterResponse(ctx, {
+            userId,
+            tokensUsed: usage.totalTokens ?? 0,
+            messages: body.messages.map((m) => ({
+              role: m.role,
+              content: contentToString(m.content),
+            })),
+          });
+
+          if (compactionResult.compacted) {
+            console.log(
+              `[AI] [${requestId}] Compaction triggered, summary length: ${compactionResult.summary.length}, ` +
+                `archived before index ${compactionResult.archivedBeforeIndex}`,
+            );
+
+            if (body.conversationId) {
+              const keepCount =
+                body.messages.length - compactionResult.archivedBeforeIndex;
+              await ctx.runMutation(internal.ai.messages.archiveMessages, {
+                conversationId: body.conversationId as any,
+                keepCount,
+              });
+            }
+          }
+        } catch (error) {
+          console.error(`[AI] [${requestId}] afterResponse error:`, error);
         }
       },
     });
 
-    // Return SSE stream response with request ID header
-    return result.toTextStreamResponse({
+    return result.toUIMessageStreamResponse({
       headers: {
         "Cache-Control": "no-cache",
         Connection: "keep-alive",
@@ -266,7 +335,6 @@ export const streamChat = httpAction(async (ctx, request) => {
       },
     });
   } catch (error) {
-    // Handle ConvexError specially (validation errors, etc.)
     if (error instanceof ConvexError) {
       console.error(`[AI] ConvexError [${requestId}]:`, error.data);
       return new Response(
@@ -276,11 +344,10 @@ export const streamChat = httpAction(async (ctx, request) => {
           debugInfo: { requestId, timestamp: Date.now() },
           isRetryable: false,
         }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
+        { status: 400, headers: { "Content-Type": "application/json" } },
       );
     }
 
-    // Use enhanced error classification (Story 8.3 Task 1.1, 1.2, 1.3)
     return createErrorResponse(requestId, error);
   }
 });

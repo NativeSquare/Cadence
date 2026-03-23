@@ -39,7 +39,7 @@ function CoachBadge() {
       {/* Status dot - 5px lime */}
       <View className="w-[5px] h-[5px] rounded-full bg-lime" />
       {/* Badge text - 10px, weight 600 */}
-      <Text className="text-[10px] font-coach-semibold text-wMute">Coach</Text>
+      <Text className="text-[10px] font-coach-semibold text-primary">Coach</Text>
     </View>
   );
 }

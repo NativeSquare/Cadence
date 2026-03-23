@@ -19,7 +19,7 @@ import Animated, {
   withSpring,
   Easing,
 } from "react-native-reanimated";
-import Svg, { Path, Circle, Rect } from "react-native-svg";
+import Svg, { Path } from "react-native-svg";
 import { useAction, useQuery } from "convex/react";
 import { api } from "@packages/backend/convex/_generated/api";
 import type { Id } from "@packages/backend/convex/_generated/dataModel";
@@ -46,32 +46,7 @@ const SUCCESS_DISMISS_MS = 1400;
 function GarminLogo({ size = 32 }: { size?: number }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Circle cx={12} cy={12} r={10} stroke="#1A1A1A" strokeWidth={1.5} />
-      <Path
-        d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10"
-        stroke="#1A1A1A"
-        strokeWidth={1.5}
-        strokeLinecap="round"
-      />
-      <Path
-        d="M12 6v6l4 2"
-        stroke="#1A1A1A"
-        strokeWidth={1.5}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <Path
-        d="M16 8l2-2"
-        stroke="#1A1A1A"
-        strokeWidth={1.5}
-        strokeLinecap="round"
-      />
-      <Path
-        d="M16 16l2 2"
-        stroke="#1A1A1A"
-        strokeWidth={1.5}
-        strokeLinecap="round"
-      />
+      <Path d="M6 3L20 12L6 21V3Z" fill="#007DC5" />
     </Svg>
   );
 }
@@ -79,45 +54,10 @@ function GarminLogo({ size = 32 }: { size?: number }) {
 function CorosLogo({ size = 32 }: { size?: number }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Rect
-        x={4}
-        y={4}
-        width={16}
-        height={16}
-        rx={4}
-        stroke="#1A1A1A"
-        strokeWidth={1.5}
-      />
-      <Circle cx={12} cy={12} r={4} stroke="#1A1A1A" strokeWidth={1.5} />
       <Path
-        d="M12 8v4l2.5 1.5"
-        stroke="#1A1A1A"
-        strokeWidth={1.5}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <Path
-        d="M8 2v3"
-        stroke="#1A1A1A"
-        strokeWidth={1.5}
-        strokeLinecap="round"
-      />
-      <Path
-        d="M16 2v3"
-        stroke="#1A1A1A"
-        strokeWidth={1.5}
-        strokeLinecap="round"
-      />
-      <Path
-        d="M8 19v3"
-        stroke="#1A1A1A"
-        strokeWidth={1.5}
-        strokeLinecap="round"
-      />
-      <Path
-        d="M16 19v3"
-        stroke="#1A1A1A"
-        strokeWidth={1.5}
+        d="M14.5 4.5A8.5 8.5 0 1 0 14.5 19.5"
+        stroke="#E83E2E"
+        strokeWidth={3.5}
         strokeLinecap="round"
       />
     </Svg>

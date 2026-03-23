@@ -979,6 +979,15 @@ function createSession(
   const isKeySession = ["tempo", "intervals", "long_run"].includes(sessionType);
   const sessionConfig = getSessionConfig(sessionType, week, paces);
 
+  // Derive target distance from duration and target pace for UI (sessions show km)
+  const paceMinPerKm =
+    sessionConfig.paceMin && sessionConfig.paceMax
+      ? (parsePaceToMinPerKm(sessionConfig.paceMin) + parsePaceToMinPerKm(sessionConfig.paceMax)) / 2
+      : parsePaceToMinPerKm(sessionConfig.paceMax ?? sessionConfig.paceMin);
+  const durationMinutes = sessionConfig.durationSeconds / 60;
+  const distanceKm = durationMinutes / paceMinPerKm;
+  const targetDistanceMeters = Math.round(distanceKm * 1000);
+
   // Get KB references for this session type
   const relatedKBIds = Array.from(kbReferences.entries())
     .filter(([_, entry]) => entry.tags.some(t =>
@@ -1008,6 +1017,7 @@ function createSession(
 
     targetDurationSeconds: sessionConfig.durationSeconds,
     targetDurationDisplay: formatDuration(sessionConfig.durationSeconds),
+    targetDistanceMeters,
     effortLevel: sessionConfig.effortLevel,
     effortDisplay: `${sessionConfig.effortLevel}/10`,
 
@@ -1093,6 +1103,17 @@ function getRunnerEasyPaceMinutes(paces: PaceZones | undefined): number {
   if (!match) return 6;
 
   return parseInt(match[1]) + parseInt(match[2]) / 60;
+}
+
+/**
+ * Parse pace string "M:SS" or "M:SS" to minutes per km.
+ * Used to derive target distance from duration and target pace.
+ */
+function parsePaceToMinPerKm(paceStr: string | undefined): number {
+  if (!paceStr) return 6;
+  const match = paceStr.trim().match(/(\d+):(\d+)/);
+  if (!match) return 6;
+  return parseInt(match[1], 10) + parseInt(match[2], 10) / 60;
 }
 
 /**

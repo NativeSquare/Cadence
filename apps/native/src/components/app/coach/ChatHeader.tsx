@@ -36,13 +36,21 @@ import type { ChatHeaderProps } from "./types";
  * Reference: prototype line 329
  *
  * Dot colors:
- * - Typing: orange (T.ora)
+ * - Typing/streaming: orange (T.ora)
+ * - Offline/error: red
  * - Online: lime (T.lime)
  */
-function StatusDot({ isTyping }: { isTyping: boolean }) {
+function StatusDot({
+  isTyping,
+  statusText,
+}: {
+  isTyping: boolean;
+  statusText?: string;
+}) {
   const opacity = useSharedValue(1);
+  const isOfflineOrError =
+    statusText?.startsWith("Offline") || statusText?.startsWith("Error");
 
-  // Pulse animation when typing
   useEffect(() => {
     if (isTyping) {
       opacity.value = withRepeat(
@@ -59,12 +67,13 @@ function StatusDot({ isTyping }: { isTyping: boolean }) {
     opacity: opacity.value,
   }));
 
-  return (
-    <Animated.View
-      style={animatedStyle}
-      className={`w-1.5 h-1.5 rounded-full ${isTyping ? "bg-ora" : "bg-lime"}`}
-    />
-  );
+  const dotColor = isOfflineOrError
+    ? "bg-red-500"
+    : isTyping
+      ? "bg-ora"
+      : "bg-lime";
+
+  return <Animated.View style={animatedStyle} className={`w-1.5 h-1.5 rounded-full ${dotColor}`} />;
 }
 
 // =============================================================================
@@ -80,7 +89,9 @@ function StatusDot({ isTyping }: { isTyping: boolean }) {
  * - Optional "Context" button pill
  */
 export function ChatHeader({ isTyping, statusText }: ChatHeaderProps) {
-  const status = isTyping ? "Typing..." : statusText ?? "Online · Week 4 Build";
+  const status = isTyping
+    ? "Thinking..."
+    : statusText ?? "Online";
 
   return (
     <View className="flex-row items-center justify-between">
@@ -96,7 +107,7 @@ export function ChatHeader({ isTyping, statusText }: ChatHeaderProps) {
 
         {/* Status row with dot - 12px, color g3 */}
         <View className="flex-row items-center gap-1.5 mt-1">
-          <StatusDot isTyping={isTyping} />
+          <StatusDot isTyping={isTyping} statusText={statusText} />
           <Text className="text-[12px] font-coach text-g3">{status}</Text>
         </View>
       </View>
