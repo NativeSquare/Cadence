@@ -7,8 +7,6 @@
       "@/*": ["./src/*"]
     }
   },
-  "skipLibCheck": true,
-  "moduleResolution": "Bundler",
   "include": [
     "**/*.ts",
     "**/*.tsx",

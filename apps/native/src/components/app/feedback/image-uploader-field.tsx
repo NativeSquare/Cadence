@@ -52,7 +52,7 @@ export function ImageUploaderField({
         {images.length > 0 && (
           <View className="flex-row gap-3">
             {images.map((uri, index) => (
-              <View key={index} className="relative">
+              <View key={uri} className="relative">
                 <Image
                   source={{ uri }}
                   className="size-24 rounded-xl"
