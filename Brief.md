@@ -341,10 +341,8 @@ const phoneY = useTransform(scrollY, [0, 500], [0, -40]);
 ## Ce qu'on ne veut PAS
 
 - ❌ Couleurs flashy multiples — lime uniquement comme accent, pas de rainbow
-- ❌ Photos de coureurs génériques / stock photos — le produit, pas les utilisateurs
 - ❌ Layout corporate ou "app de santé" trop sage — énergie athlétique
 - ❌ Animations trop complexes sur les mockups app — subtiles et fluides
-- ❌ Fond gris foncé générique — noir pur `#0A0A0A`
 - ❌ Rounded corners trop petits — les phones ont `rounded-[44px]`, les cards `rounded-2xl`
 - ❌ Ressembler à Strava ou Nike — plus premium, plus data-driven, moins "fun"
 
