@@ -4,7 +4,8 @@ import seshat from "@nativesquare/seshat/convex.config.js";
 import soma from "@nativesquare/soma/convex.config.js";
 import { defineApp } from "convex/server";
 
-const app = defineApp();
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const app: any = defineApp();
 app.use(migrations);
 app.use(resend);
 app.use(seshat);

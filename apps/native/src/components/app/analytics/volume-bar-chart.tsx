@@ -92,7 +92,7 @@ export function VolumeBarChart({
 
   // Sync selection to parent for flat summary and haptic when crossing points
   useAnimatedReaction(
-    () => ({ active: isActive.value, x: state.x.value.value }),
+    () => ({ active: (isActive as unknown as { value: boolean }).value, x: state.x.value.value }),
     ({ active, x }) => {
       if (onSelectionChange) {
         runOnJS(reportSelection)(
@@ -139,7 +139,7 @@ export function VolumeBarChart({
             <VolumeLine points={points.volume} color={LINE_COLOR} />
             <VolumeDots
               points={points.volume}
-              isActive={isActive}
+              isActive={isActive as unknown as SharedValue<boolean>}
               stateXPosition={state.x.position}
               stateYPosition={state.y.volume.position}
             />
@@ -147,7 +147,7 @@ export function VolumeBarChart({
               xPosition={state.x.position}
               top={chartBounds.top}
               bottom={chartBounds.bottom}
-              isActive={isActive}
+              isActive={isActive as unknown as SharedValue<boolean>}
             />
           </>
         )}

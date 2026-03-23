@@ -295,11 +295,14 @@ export function useAIChat(options: UseAIChatOptions = {}): UseAIChatReturn {
 
       try {
         // Build message history for context (content may be string or multimodal parts)
-        const messageHistory = messages
+        const messageHistory: Array<{
+          role: "user" | "assistant";
+          content: import("@/lib/ai-stream").StreamMessageContent;
+        }> = messages
           .filter((m) => m.role === "user" || m.role === "assistant")
           .map((m) => ({
             role: m.role as "user" | "assistant",
-            content: m.content as string,
+            content: m.content as import("@/lib/ai-stream").StreamMessageContent,
           }));
 
         // Build current user message: text only or text + images for vision

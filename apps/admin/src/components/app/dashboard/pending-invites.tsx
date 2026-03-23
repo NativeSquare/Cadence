@@ -95,7 +95,7 @@ export function PendingInvites() {
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {invites.map((invite) => (
+            {invites.map((invite: { _id: Id<"adminInvites">; _creationTime: number; email: string; name: string; expiresAt: number; inviterName?: string }) => (
               <div
                 key={invite._id}
                 className="flex items-center justify-between rounded-lg border p-3"

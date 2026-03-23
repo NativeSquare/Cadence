@@ -232,18 +232,17 @@ export function useAnalyticsData(): UseAnalyticsDataResult {
       : MOCK_HEALTH_METRICS;
 
     // When backend data is available, use it; otherwise fall back to mocks
-    const hasBackend = analyticsResult != null;
     const be = analyticsResult;
 
-    const planProgress = hasBackend && be.planProgress.length > 0
+    const planProgress = be != null && be.planProgress.length > 0
       ? be.planProgress
       : PLAN_PROGRESS;
 
-    const currentWeek = hasBackend && be.currentWeek > 0
+    const currentWeek = be != null && be.currentWeek > 0
       ? be.currentWeek
       : CURRENT_WEEK;
 
-    const volumeStats = hasBackend
+    const volumeStats = be != null
       ? be.volumeStats
       : {
           currentVolume: MOCK_VOLUME_STATS.currentVolume,
@@ -253,15 +252,15 @@ export function useAnalyticsData(): UseAnalyticsDataResult {
           streakDays: MOCK_VOLUME_STATS.streakDays,
         };
 
-    const dayLabels = hasBackend ? be.dayLabels : DAY_LABELS;
-    const todayIndex = hasBackend ? be.todayIndex : TODAY_INDEX;
+    const dayLabels = be != null ? be.dayLabels : DAY_LABELS;
+    const todayIndex = be != null ? be.todayIndex : TODAY_INDEX;
 
-    const histogramChartData: HistogramDatum[] = hasBackend
-      ? be.dailyKm.map((km, i) => ({ day: i, km }))
+    const histogramChartData: HistogramDatum[] = be != null
+      ? be.dailyKm.map((km: number, i: number) => ({ day: i, km }))
       : MOCK_WEEKLY_KM.map((km, i) => ({ day: i, km }));
 
-    const zoneChartData: ZoneChartDatum[] = hasBackend
-      ? be.dailyZones.map((z, i) => ({ day: i, z2: z.z2, z3: z.z3, z4: z.z4 }))
+    const zoneChartData: ZoneChartDatum[] = be != null
+      ? be.dailyZones.map((z: { z2: number; z3: number; z4: number }, i: number) => ({ day: i, z2: z.z2, z3: z.z3, z4: z.z4 }))
       : MOCK_ZONE_DATA.map((zone, i) => ({
           day: i,
           z2: zone.z2,
@@ -269,27 +268,27 @@ export function useAnalyticsData(): UseAnalyticsDataResult {
           z4: zone.z4,
         }));
 
-    const multiWeekZoneData: WeekZoneData[] = hasBackend
+    const multiWeekZoneData: WeekZoneData[] = be != null
       ? be.multiWeekZones
       : MOCK_MULTI_WEEK_ZONE_DATA;
 
-    const volumeChartData: VolumeChartDatum[] = hasBackend
-      ? be.weeklyVolumes.map((volume, i) => ({ week: i + 1, volume }))
+    const volumeChartData: VolumeChartDatum[] = be != null
+      ? be.weeklyVolumes.map((volume: number, i: number) => ({ week: i + 1, volume }))
       : MOCK_VOLUME_DATA.map((volume, i) => ({ week: i + 1, volume }));
 
-    const paceChartData: PaceChartDatum[] = hasBackend
-      ? be.weeklyPaces.map((pace, i) => ({ week: i + 1, pace }))
+    const paceChartData: PaceChartDatum[] = be != null
+      ? be.weeklyPaces.map((pace: number, i: number) => ({ week: i + 1, pace }))
       : MOCK_PACE_DATA.map((pace, i) => ({ week: i + 1, pace }));
 
-    const stats = hasBackend
+    const stats = be != null
       ? be.stats
       : MOCK_STATS;
 
-    const zoneBreakdown: ZoneBreakdownData[] = hasBackend
+    const zoneBreakdown: ZoneBreakdownData[] = be != null
       ? be.zoneBreakdown
       : MOCK_ZONE_BREAKDOWN;
 
-    const radarData: RadarDataPoint[] = hasBackend && be.radarData.length > 0
+    const radarData: RadarDataPoint[] = be != null && be.radarData.length > 0
       ? be.radarData
       : [
           { label: "Endurance", value: 75 },
@@ -300,7 +299,7 @@ export function useAnalyticsData(): UseAnalyticsDataResult {
           { label: "Race Ready", value: 50 },
         ];
 
-    const volumeByTimeframe: Record<string, VolumeTimeframeBucket> = hasBackend
+    const volumeByTimeframe: Record<string, VolumeTimeframeBucket> = be != null
       ? be.volumeByTimeframe
       : Object.fromEntries(
           (["7d", "1mo", "3mo", "6mo", "1yr"] as const).map((tf) => [

@@ -35,6 +35,7 @@ const CARD_SHADOW = {
 interface SegmentDatum {
   index: number;
   zoneHeight: number;
+  [key: string]: unknown;
 }
 
 function abbreviateSegmentName(name: string): string {

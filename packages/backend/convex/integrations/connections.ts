@@ -33,7 +33,11 @@ export const getConnectedProviders = query({
   handler: async (ctx) => {
     const userId = await getAuthUserId(ctx);
 
-    const empty = {
+    const empty: {
+      strava: { connected: boolean; lastSync: string | null };
+      garmin: { connected: boolean; lastSync: string | null };
+      healthkit: { connected: boolean; lastSync: string | null };
+    } = {
       strava: { connected: false, lastSync: null },
       garmin: { connected: false, lastSync: null },
       healthkit: { connected: false, lastSync: null },

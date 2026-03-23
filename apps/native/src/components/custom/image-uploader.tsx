@@ -1,4 +1,7 @@
-import { UploadMediaBottomSheetModal } from "@/components/shared/upload-media-bottom-sheet-modal";
+import {
+  UploadMediaBottomSheetModal,
+  type SelectedImageAsset,
+} from "@/components/shared/upload-media-bottom-sheet-modal";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
@@ -9,7 +12,7 @@ import React from "react";
 import { Pressable, View } from "react-native";
 
 export type ImageUploaderProps = {
-  onImageSelected: (image: ImagePicker.ImagePickerAsset) => void;
+  onImageSelected: (image: ImagePicker.ImagePickerAsset | SelectedImageAsset) => void;
   uploadOptions?: ("camera" | "gallery")[];
   disabled?: boolean;
 };

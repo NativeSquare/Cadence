@@ -144,7 +144,7 @@ export function UserTable({ basePath = "/team", roleFilter }: UserTableProps) {
   } = usePaginatedQuery(api.table.admin.listUsers, {}, { initialNumItems: 50 });
 
   const users = roleFilter
-    ? allUsers.filter((u) => (u.role ?? "user") === roleFilter)
+    ? allUsers.filter((u: UserData) => (u.role ?? "user") === roleFilter)
     : allUsers;
 
   const deleteUser = useMutation(api.table.admin.deleteUser);

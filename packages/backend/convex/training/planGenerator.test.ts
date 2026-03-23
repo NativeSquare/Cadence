@@ -101,7 +101,7 @@ function createMockKBQuery(): (context: unknown) => Promise<KBEntry[]> {
       content: "Recovery is when adaptation happens.",
       summary: "Recovery importance",
       confidence: "established",
-      tags: ["recovery", "adaptation"],
+      tags: ["recovery", "adaptation", "easy"],
     },
   ]);
 }
@@ -128,7 +128,7 @@ function createMockSafeguards(): () => Promise<Doc<"safeguards">[]> {
         adjustment: 0.1,
       },
     },
-  ] as Doc<"safeguards">[]);
+  ] as unknown as Doc<"safeguards">[]);
 }
 
 function createPlanInput(overrides: Partial<PlanGeneratorInput> = {}): PlanGeneratorInput {
@@ -359,7 +359,7 @@ describe("AC4: Safeguard Validation", () => {
           adjustment: 0.05,
         },
       },
-    ] as Doc<"safeguards">[]);
+    ] as unknown as Doc<"safeguards">[]);
 
     const input = createPlanInput({ getSafeguards: mockSafeguards });
     const result = await generatePlan(input);
