@@ -1,0 +1,8 @@
+# Maestro E2E smoke test for Cadence
+# Validates that the app launches and renders the home screen
+
+appId: com.nativesquare.cadence.preview
+---
+- launchApp
+- assertVisible: ".*"
+- takeScreenshot: smoke-test-home

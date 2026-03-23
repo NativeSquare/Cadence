@@ -1,0 +1,24 @@
+# Mission Control CI/CD test workflow
+# Triggered by EAS webhook or manual dispatch
+
+name: MC CI Test
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build_preview:
+    name: CI Test Build (Preview)
+    type: build
+    params:
+      platform: ios
+      profile: preview
+
+  maestro_test:
+    name: Maestro Smoke Test
+    needs: [build_preview]
+    type: maestro
+    params:
+      build_id: ${{ needs.build_preview.outputs.build_id }}
+      flow_path: .maestro/smoke-test.yaml
