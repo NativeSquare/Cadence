@@ -12,7 +12,7 @@
 
 import { View } from "react-native";
 import { Text } from "@/components/ui/text";
-import { COLORS, LIGHT_THEME, FONT_WEIGHTS } from "@/lib/design-tokens";
+import { COLORS, LIGHT_THEME, FONT_WEIGHTS, CARD_SHADOW } from "@/lib/design-tokens";
 import type { SessionIntensity } from "../plan/types";
 
 export interface OverviewGridProps {
@@ -45,8 +45,7 @@ function StatCard({ label, value, unit, isHero = false }: StatCardProps) {
         paddingHorizontal: 12,
         borderRadius: 16,
         backgroundColor: bgColor,
-        borderWidth: isHero ? 0 : 1,
-        borderColor: LIGHT_THEME.wBrd,
+        ...(isHero ? {} : CARD_SHADOW),
         alignItems: "center",
       }}
     >
@@ -106,7 +105,7 @@ export function OverviewGrid({ km, duration, intensity }: OverviewGridProps) {
     <View className="mb-4">
       {/* Section header */}
       <Text
-        className="text-[11px] font-coach-semibold text-wMute uppercase px-1 mb-2.5"
+        className="text-[11px] font-coach-semibold text-wSub uppercase px-1 mb-2.5"
         style={{ letterSpacing: 0.05 * 11 }}
       >
         Overview

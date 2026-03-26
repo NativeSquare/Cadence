@@ -75,11 +75,13 @@ export function SessionStatsRow({
       style={{
         backgroundColor: "#1A1A1A",
         padding: 20,
+        borderWidth: 1,
+        borderColor: "rgba(255,255,255,0.08)",
         shadowColor: "#000",
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.3,
-        shadowRadius: 24,
-        elevation: 10,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 16,
+        elevation: 6,
       }}
     >
       <View className="flex-row items-center">

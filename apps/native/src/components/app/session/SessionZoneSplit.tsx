@@ -8,19 +8,9 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { Text } from "@/components/ui/text";
-import { LIGHT_THEME, FONT_WEIGHTS } from "@/lib/design-tokens";
+import { LIGHT_THEME, FONT_WEIGHTS, CARD_SHADOW } from "@/lib/design-tokens";
 import type { SessionSegment } from "./types";
 import { getZoneColor } from "./types";
-
-const CARD_SHADOW = {
-  borderWidth: 1,
-  borderColor: "rgba(0,0,0,0.08)",
-  shadowColor: "#000",
-  shadowOffset: { width: 0, height: 4 },
-  shadowOpacity: 0.1,
-  shadowRadius: 16,
-  elevation: 4,
-} as const;
 
 interface ZoneEntry {
   zone: string;

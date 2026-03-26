@@ -1,6 +1,6 @@
 import { View } from "react-native";
 import { Text } from "@/components/ui/text";
-import { COLORS, LIGHT_THEME, FONT_WEIGHTS } from "@/lib/design-tokens";
+import { COLORS, LIGHT_THEME, FONT_WEIGHTS, CARD_SHADOW } from "@/lib/design-tokens";
 
 export interface SessionCoachInsightProps {
   justification: string;
@@ -29,7 +29,7 @@ export function SessionCoachInsight({
   return (
     <View className="mb-4">
       <Text
-        className="text-[11px] font-coach-semibold text-wMute uppercase px-1 mb-2.5"
+        className="text-[11px] font-coach-semibold text-wSub uppercase px-1 mb-2.5"
         style={{ letterSpacing: 0.55 }}
       >
         Coach Insight
@@ -52,7 +52,7 @@ export function SessionCoachInsight({
       </View>
 
       {/* Physiological target + placement */}
-      <View className="rounded-2xl bg-w1 border border-wBrd p-4 mb-3">
+      <View className="rounded-2xl bg-w1 p-4 mb-3" style={CARD_SHADOW}>
         <View className="flex-row items-center gap-2.5 mb-2">
           <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: COLORS.lime }} />
           <Text style={{ fontSize: 13, fontFamily: FONT_WEIGHTS.semibold, color: LIGHT_THEME.wText }}>
@@ -68,7 +68,7 @@ export function SessionCoachInsight({
 
       {/* Key points */}
       {keyPoints && keyPoints.length > 0 && (
-        <View className="rounded-2xl bg-w1 border border-wBrd" style={{ padding: 16, paddingHorizontal: 18 }}>
+        <View className="rounded-2xl bg-w1" style={{ padding: 16, paddingHorizontal: 18, ...CARD_SHADOW }}>
           <Text
             style={{ fontSize: 12, fontFamily: FONT_WEIGHTS.semibold, color: LIGHT_THEME.wMute, textTransform: "uppercase", letterSpacing: 0.55, marginBottom: 10 }}
           >

@@ -1,7 +1,7 @@
 import { View } from "react-native";
 import Animated, { FadeInLeft } from "react-native-reanimated";
 import { Text } from "@/components/ui/text";
-import { LIGHT_THEME, FONT_WEIGHTS } from "@/lib/design-tokens";
+import { LIGHT_THEME, FONT_WEIGHTS, CARD_SHADOW } from "@/lib/design-tokens";
 
 interface StructureSegment {
   segmentType: string;
@@ -100,20 +100,20 @@ export function SessionStructure({ segments, structureDisplay }: SessionStructur
   return (
     <View className="mb-4">
       <Text
-        className="text-[11px] font-coach-semibold text-wMute uppercase px-1 mb-2.5"
+        className="text-[11px] font-coach-semibold text-wSub uppercase px-1 mb-2.5"
         style={{ letterSpacing: 0.55 }}
       >
         Workout Structure
       </Text>
 
       {segments.length > 0 ? (
-        <View className="rounded-[20px] bg-w1 border border-wBrd overflow-hidden">
+        <View className="rounded-[20px] bg-w1 overflow-hidden" style={CARD_SHADOW}>
           {segments.map((seg, i) => (
             <SegmentRow key={`${seg.segmentType}-${i}`} segment={seg} index={i} isLast={i === segments.length - 1} />
           ))}
         </View>
       ) : structureDisplay ? (
-        <View className="rounded-[20px] bg-w1 border border-wBrd p-4">
+        <View className="rounded-[20px] bg-w1 p-4" style={CARD_SHADOW}>
           <Text style={{ fontSize: 14, color: LIGHT_THEME.wText, lineHeight: 20 }}>
             {structureDisplay}
           </Text>

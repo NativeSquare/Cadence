@@ -6,7 +6,7 @@ import { api } from "@packages/backend/convex/_generated/api";
 import type { Id } from "@packages/backend/convex/_generated/dataModel";
 import { ChevronDown } from "lucide-react-native";
 import { Text } from "@/components/ui/text";
-import { LIGHT_THEME } from "@/lib/design-tokens";
+import { LIGHT_THEME, CARD_SHADOW } from "@/lib/design-tokens";
 
 import { FeelingSelector, FEELING_OPTIONS, type FeelingValue } from "./FeelingSelector";
 import { QuickTagPills } from "./QuickTagPills";
@@ -106,12 +106,12 @@ export function SessionDebriefCard({
     return (
       <View className="mb-4">
         <Text
-          className="text-[11px] font-coach-semibold text-wMute uppercase px-1 mb-2.5"
+          className="text-[11px] font-coach-semibold text-wSub uppercase px-1 mb-2.5"
           style={{ letterSpacing: 0.55 }}
         >
           Debrief
         </Text>
-        <View className="rounded-2xl bg-w1 border border-wBrd p-4">
+        <View className="rounded-2xl bg-w1 p-4" style={CARD_SHADOW}>
           {/* Feeling */}
           {feelingOption && (
             <View className="flex-row items-center gap-2.5 mb-2">
@@ -183,7 +183,7 @@ export function SessionDebriefCard({
     return (
       <View className="mb-4">
         <Text
-          className="text-[11px] font-coach-semibold text-wMute uppercase px-1 mb-2.5"
+          className="text-[11px] font-coach-semibold text-wSub uppercase px-1 mb-2.5"
           style={{ letterSpacing: 0.55 }}
         >
           Debrief
@@ -193,8 +193,9 @@ export function SessionDebriefCard({
             setExpanded(true);
             setPhase(1);
           }}
-          className="rounded-2xl bg-w1 border border-wBrd p-4 flex-row items-center"
+          className="rounded-2xl bg-w1 p-4 flex-row items-center"
           style={{
+            ...CARD_SHADOW,
             borderLeftWidth: 3,
             borderLeftColor: "rgba(200,255,0,0.5)",
           }}
@@ -229,12 +230,12 @@ export function SessionDebriefCard({
   return (
     <Animated.View entering={FadeIn.duration(250)} className="mb-4">
       <Text
-        className="text-[11px] font-coach-semibold text-wMute uppercase px-1 mb-2.5"
+        className="text-[11px] font-coach-semibold text-wSub uppercase px-1 mb-2.5"
         style={{ letterSpacing: 0.55 }}
       >
         Debrief
       </Text>
-      <View className="rounded-2xl bg-w1 border border-wBrd p-4">
+      <View className="rounded-2xl bg-w1 p-4" style={CARD_SHADOW}>
         {/* Feeling selector */}
         {phase >= 1 && (
           <FeelingSelector

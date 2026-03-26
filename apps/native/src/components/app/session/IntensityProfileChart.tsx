@@ -33,7 +33,7 @@ import Animated, {
   type SharedValue,
 } from "react-native-reanimated";
 import { Text } from "@/components/ui/text";
-import { LIGHT_THEME, ACTIVITY_COLORS } from "@/lib/design-tokens";
+import { LIGHT_THEME, ACTIVITY_COLORS, CARD_SHADOW } from "@/lib/design-tokens";
 import type { SessionSegment } from "./types";
 import { ZONE_HEIGHT, getZoneColor } from "./types";
 
@@ -244,12 +244,13 @@ export function IntensityProfileChart({ segments }: IntensityProfileChartProps) 
 
   return (
     <View
-      className="mb-4 p-[18px] rounded-[20px] bg-w1 border border-wBrd"
+      className="mb-4 p-[18px] rounded-[20px] bg-w1"
+      style={CARD_SHADOW}
     >
       {/* Header with title and legend */}
       <View className="flex-row items-center justify-between mb-3.5">
         <Text
-          className="text-[11px] font-coach-semibold text-wMute uppercase"
+          className="text-[11px] font-coach-semibold text-wSub uppercase"
           style={{ letterSpacing: 0.05 * 11 }}
         >
           Intensity Profile

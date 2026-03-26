@@ -15,7 +15,7 @@ import React from "react";
 import { View } from "react-native";
 import Animated, { FadeInLeft } from "react-native-reanimated";
 import { Text } from "@/components/ui/text";
-import { LIGHT_THEME, ACTIVITY_COLORS, FONT_WEIGHTS } from "@/lib/design-tokens";
+import { LIGHT_THEME, ACTIVITY_COLORS, FONT_WEIGHTS, CARD_SHADOW } from "@/lib/design-tokens";
 import type { SessionSegment } from "./types";
 import { getZoneColor } from "./types";
 
@@ -115,7 +115,7 @@ export function WorkoutStructure({ segments }: WorkoutStructureProps) {
     <View className="mb-4">
       {/* Section header */}
       <Text
-        className="text-[11px] font-coach-semibold text-wMute uppercase px-1 mb-2.5"
+        className="text-[11px] font-coach-semibold text-wSub uppercase px-1 mb-2.5"
         style={{ letterSpacing: 0.05 * 11 }}
       >
         Workout Structure
@@ -123,7 +123,7 @@ export function WorkoutStructure({ segments }: WorkoutStructureProps) {
 
       {/* Segments container */}
       <View
-        className="rounded-[20px] bg-w1 border border-wBrd overflow-hidden"
+        className="rounded-[20px] bg-w1 overflow-hidden" style={CARD_SHADOW}
       >
         {segments.map((segment, index) => (
           <SegmentRow

@@ -180,6 +180,20 @@ export const SURFACES = {
 } as const;
 
 /**
+ * Standard card shadow for light-background content cards.
+ * Matches the elevation pattern used across HomePage and Analytics.
+ */
+export const CARD_SHADOW = {
+  borderWidth: 1,
+  borderColor: "rgba(0,0,0,0.12)",
+  shadowColor: "#000",
+  shadowOffset: { width: 0, height: 4 },
+  shadowOpacity: 0.12,
+  shadowRadius: 16,
+  elevation: 4,
+} as const;
+
+/**
  * Font family mappings.
  * Requires fonts to be loaded via expo-font.
  */

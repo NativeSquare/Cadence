@@ -1,6 +1,6 @@
 import { View } from "react-native";
 import { Text } from "@/components/ui/text";
-import { COLORS, LIGHT_THEME, FONT_WEIGHTS } from "@/lib/design-tokens";
+import { COLORS, LIGHT_THEME, FONT_WEIGHTS, CARD_SHADOW } from "@/lib/design-tokens";
 
 export interface SessionCompletedComparisonProps {
   plannedDistanceKm: string;
@@ -58,14 +58,14 @@ export function SessionCompletedComparison({
   return (
     <View className="mb-4">
       <Text
-        className="text-[11px] font-coach-semibold text-wMute uppercase px-1 mb-2.5"
+        className="text-[11px] font-coach-semibold text-wSub uppercase px-1 mb-2.5"
         style={{ letterSpacing: 0.55 }}
       >
         Results
       </Text>
 
       {/* Planned vs Actual */}
-      <View className="rounded-2xl bg-w1 border border-wBrd px-4 mb-3">
+      <View className="rounded-2xl bg-w1 px-4 mb-3" style={CARD_SHADOW}>
         {/* Column headers */}
         <View className="flex-row items-center pt-3 pb-1">
           <View className="flex-1" />
@@ -101,7 +101,7 @@ export function SessionCompletedComparison({
 
       {/* User feedback */}
       {(userRating || userFeedback) && (
-        <View className="rounded-2xl bg-w1 border border-wBrd p-4">
+        <View className="rounded-2xl bg-w1 p-4" style={CARD_SHADOW}>
           {userRating && (
             <View className="flex-row items-center gap-3 mb-2">
               <Text style={{ fontSize: 13, fontFamily: FONT_WEIGHTS.medium, color: LIGHT_THEME.wSub }}>Rating</Text>

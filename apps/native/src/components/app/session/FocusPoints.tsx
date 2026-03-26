@@ -12,7 +12,7 @@
 
 import { View } from "react-native";
 import { Text } from "@/components/ui/text";
-import { LIGHT_THEME } from "@/lib/design-tokens";
+import { LIGHT_THEME, CARD_SHADOW } from "@/lib/design-tokens";
 import type { SessionIntensity } from "../plan/types";
 
 export interface FocusPointsProps {
@@ -65,7 +65,7 @@ export function FocusPoints({ isRest, intensity, km }: FocusPointsProps) {
     <View className="mb-4">
       {/* Section header */}
       <Text
-        className="text-[11px] font-coach-semibold text-wMute uppercase px-1 mb-2.5"
+        className="text-[11px] font-coach-semibold text-wSub uppercase px-1 mb-2.5"
         style={{ letterSpacing: 0.05 * 11 }}
       >
         Focus Points
@@ -73,8 +73,8 @@ export function FocusPoints({ isRest, intensity, km }: FocusPointsProps) {
 
       {/* Focus items container */}
       <View
-        className="rounded-2xl bg-w1 border border-wBrd"
-        style={{ padding: 16, paddingHorizontal: 18 }}
+        className="rounded-2xl bg-w1"
+        style={{ padding: 16, paddingHorizontal: 18, ...CARD_SHADOW }}
       >
         {focusItems.map((item, index) => (
           <View

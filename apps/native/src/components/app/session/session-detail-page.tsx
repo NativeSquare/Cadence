@@ -17,7 +17,7 @@ import { IntensityProfileChart } from "./IntensityProfileChart";
 import { SessionZoneSplit } from "./SessionZoneSplit";
 import { ExportToWatchSheet, type WatchProvider } from "../plan/ExportToWatchSheet";
 import { Text } from "@/components/ui/text";
-import { LIGHT_THEME } from "@/lib/design-tokens";
+import { LIGHT_THEME, CARD_SHADOW } from "@/lib/design-tokens";
 import type { SessionSegment } from "./types";
 
 export interface SessionDetailPageProps {
@@ -230,12 +230,12 @@ export function SessionDetailPage({ sessionId }: SessionDetailPageProps) {
           {session.targetPaceDisplay && !session.isRestDay && (
             <View className="mb-4">
               <Text
-                className="text-[11px] font-coach-semibold text-wMute uppercase px-1 mb-2.5"
+                className="text-[11px] font-coach-semibold text-wSub uppercase px-1 mb-2.5"
                 style={{ letterSpacing: 0.55 }}
               >
                 Pace Target
               </Text>
-              <View className="rounded-2xl bg-w1 border border-wBrd p-4">
+              <View className="rounded-2xl bg-w1 p-4" style={CARD_SHADOW}>
                 <View className="flex-row items-center gap-3">
                   <Text style={{ fontSize: 22, fontFamily: "Outfit-Bold", color: LIGHT_THEME.wText }}>
                     {session.targetPaceDisplay}
@@ -262,12 +262,12 @@ export function SessionDetailPage({ sessionId }: SessionDetailPageProps) {
           {session.description && (
             <View className="mb-4">
               <Text
-                className="text-[11px] font-coach-semibold text-wMute uppercase px-1 mb-2.5"
+                className="text-[11px] font-coach-semibold text-wSub uppercase px-1 mb-2.5"
                 style={{ letterSpacing: 0.55 }}
               >
                 Description
               </Text>
-              <View className="rounded-2xl bg-w1 border border-wBrd p-4">
+              <View className="rounded-2xl bg-w1 p-4" style={CARD_SHADOW}>
                 <Text style={{ fontSize: 14, color: LIGHT_THEME.wText, lineHeight: 21 }}>
                   {session.description}
                 </Text>
@@ -279,12 +279,12 @@ export function SessionDetailPage({ sessionId }: SessionDetailPageProps) {
           {isUpcoming && session.alternatives && session.alternatives.length > 0 && (
             <View className="mb-4">
               <Text
-                className="text-[11px] font-coach-semibold text-wMute uppercase px-1 mb-2.5"
+                className="text-[11px] font-coach-semibold text-wSub uppercase px-1 mb-2.5"
                 style={{ letterSpacing: 0.55 }}
               >
                 Alternatives
               </Text>
-              <View className="rounded-2xl bg-w1 border border-wBrd overflow-hidden">
+              <View className="rounded-2xl bg-w1 overflow-hidden" style={CARD_SHADOW}>
                 {session.alternatives.map((alt, i) => (
                   <View
                     key={i}
@@ -313,12 +313,12 @@ export function SessionDetailPage({ sessionId }: SessionDetailPageProps) {
           {/* Week context */}
           <View className="mb-4">
             <Text
-              className="text-[11px] font-coach-semibold text-wMute uppercase px-1 mb-2.5"
+              className="text-[11px] font-coach-semibold text-wSub uppercase px-1 mb-2.5"
               style={{ letterSpacing: 0.55 }}
             >
               Week Context
             </Text>
-            <View className="rounded-2xl bg-w1 border border-wBrd p-4 flex-row items-center gap-3">
+            <View className="rounded-2xl bg-w1 p-4 flex-row items-center gap-3" style={CARD_SHADOW}>
               <Text style={{ fontSize: 13, color: LIGHT_THEME.wSub }}>
                 Week {session.weekNumber} of {session.planName}
               </Text>
