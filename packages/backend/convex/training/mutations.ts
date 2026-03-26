@@ -363,6 +363,66 @@ export const markSessionComplete = mutation({
   },
 });
 
+/**
+ * Submit debrief feedback for an already-completed session.
+ */
+export const submitSessionDebrief = mutation({
+  args: {
+    sessionId: v.id("plannedSessions"),
+    userRating: v.number(),
+    userFeedback: v.optional(v.string()),
+    debriefTags: v.optional(v.array(v.string())),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      throw new ConvexError({
+        code: "UNAUTHORIZED",
+        message: "Must be authenticated",
+      });
+    }
+
+    const runner = await ctx.db
+      .query("runners")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .first();
+    if (!runner) {
+      throw new ConvexError({
+        code: "RUNNER_NOT_FOUND",
+        message: "Runner profile not found",
+      });
+    }
+
+    const session = await ctx.db.get(args.sessionId);
+    if (!session || session.runnerId !== runner._id) {
+      throw new ConvexError({
+        code: "NOT_FOUND",
+        message: "Session not found",
+      });
+    }
+
+    if (session.status !== "completed") {
+      throw new ConvexError({
+        code: "INVALID_STATE",
+        message: "Can only debrief completed sessions",
+      });
+    }
+
+    await ctx.db.patch(args.sessionId, {
+      userRating: args.userRating,
+      ...(args.userFeedback !== undefined
+        ? { userFeedback: args.userFeedback }
+        : {}),
+      ...(args.debriefTags !== undefined
+        ? { debriefTags: args.debriefTags }
+        : {}),
+    });
+
+    return null;
+  },
+});
+
 // Note: To regenerate a plan, simply call generateAndPersistPlan again.
 // It automatically deactivates existing plans before creating a new one.
 

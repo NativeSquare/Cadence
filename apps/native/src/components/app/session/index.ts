@@ -47,6 +47,10 @@ export type { ActiveSessionScreenProps } from "./ActiveSessionScreen";
 export * from "./types";
 export { getSessionDetail, getAllSessionDetails, MOCK_SESSION_DETAILS } from "./mock-data";
 
+// Session Debrief Card (inline debrief in session detail)
+export { SessionDebriefCard } from "./session-debrief-card";
+export type { SessionDebriefCardProps } from "./session-debrief-card";
+
 // Debrief Screen components (Story 10.7)
 export { DebriefScreen } from "./DebriefScreen";
 export type { DebriefScreenProps } from "./DebriefScreen";

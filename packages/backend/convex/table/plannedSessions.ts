@@ -135,6 +135,7 @@ export const plannedSessions = defineTable({
   actualDistanceMeters: v.optional(v.number()),
   userFeedback: v.optional(v.string()), // How did it feel?
   userRating: v.optional(v.number()), // 1-5 satisfaction
+  debriefTags: v.optional(v.array(v.string())), // Quick-tag pills from debrief
 
   // ═══════════════════════════════════════════════════════════════════════════
   // UI STYLING

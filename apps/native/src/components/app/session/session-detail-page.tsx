@@ -12,6 +12,7 @@ import { SessionStructure } from "./session-structure";
 import { SessionCoachInsight } from "./session-coach-insight";
 import { SessionCompletedComparison } from "./session-completed-comparison";
 import { SessionActionsBar } from "./session-actions-bar";
+import { SessionDebriefCard } from "./session-debrief-card";
 import { IntensityProfileChart } from "./IntensityProfileChart";
 import { SessionZoneSplit } from "./SessionZoneSplit";
 import { ExportToWatchSheet, type WatchProvider } from "../plan/ExportToWatchSheet";
@@ -204,6 +205,16 @@ export function SessionDetailPage({ sessionId }: SessionDetailPageProps) {
               adherenceScore={session.adherenceScore}
               userRating={session.userRating}
               userFeedback={session.userFeedback}
+            />
+          )}
+
+          {/* Debrief card (completed sessions only) */}
+          {isCompleted && !session.isRestDay && (
+            <SessionDebriefCard
+              sessionId={sessionId}
+              userRating={session.userRating}
+              userFeedback={session.userFeedback}
+              debriefTags={session.debriefTags}
             />
           )}
 

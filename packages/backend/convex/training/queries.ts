@@ -794,6 +794,7 @@ export const getSessionById = query({
       actualDistanceMeters: v.optional(v.number()),
       userFeedback: v.optional(v.string()),
       userRating: v.optional(v.number()),
+      debriefTags: v.optional(v.array(v.string())),
       planName: v.string(),
       planCurrentWeek: v.number(),
     })
@@ -867,6 +868,7 @@ export const getSessionById = query({
       actualDistanceMeters: session.actualDistanceMeters,
       userFeedback: session.userFeedback,
       userRating: session.userRating,
+      debriefTags: session.debriefTags,
       planName: plan.name,
       planCurrentWeek: currentWeek,
     };

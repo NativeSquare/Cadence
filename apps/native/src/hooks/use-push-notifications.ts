@@ -100,7 +100,7 @@ export function usePushNotifications(enabled = true) {
         if (data?.screen === "debrief" && data.sessionId) {
           router.push({
             pathname: "/(app)/session/[id]",
-            params: { id: data.sessionId, mode: "debrief" },
+            params: { id: data.sessionId },
           });
         }
       });
