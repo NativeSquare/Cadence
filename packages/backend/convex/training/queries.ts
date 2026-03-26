@@ -894,6 +894,9 @@ const planScreenSessionValidator = v.object({
   structureDisplay: v.optional(v.string()),
   status: v.string(),
   dayOfWeekShort: v.string(),
+  actualDurationSeconds: v.optional(v.number()),
+  actualDistanceMeters: v.optional(v.number()),
+  adherenceScore: v.optional(v.number()),
 });
 
 const planScreenWeekValidator = v.object({

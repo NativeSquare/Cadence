@@ -92,15 +92,26 @@ export const sendSessionCompleteNotification = internalAction({
   },
   returns: v.null(),
   handler: async (ctx, args) => {
+    const TAG = "[Notification]";
+
+    console.log(
+      `\n${TAG} ── Sending push notification ──\n` +
+        `    User: ${args.userId}\n` +
+        `    Session: ${args.sessionType} (${args.sessionId})\n` +
+        `    Deep link: screen=debrief`,
+    );
+
     const tokens = await ctx.runQuery(
       internal.integrations.notifications.getTokensForUser,
       { userId: args.userId },
     );
 
     if (tokens.length === 0) {
-      console.log("[notifications] No push tokens for user", args.userId);
+      console.log(`${TAG} ✗ No push tokens registered for this user. Notification skipped.`);
       return null;
     }
+
+    console.log(`${TAG} Found ${tokens.length} device token${tokens.length === 1 ? "" : "s"}`);
 
     const messages = tokens.map((token) => ({
       to: token,
@@ -126,16 +137,18 @@ export const sendSessionCompleteNotification = internalAction({
       );
 
       if (!response.ok) {
+        const body = await response.text();
         console.error(
-          "[notifications] Expo Push API error:",
-          response.status,
-          await response.text(),
+          `${TAG} ✗ Expo Push API returned ${response.status}: ${body}`,
+        );
+      } else {
+        console.log(
+          `${TAG} ✓ Push sent! Title: "Run Complete!" Body: "Your ${args.sessionType} session is logged. Tap to debrief."`,
         );
       }
     } catch (err) {
       console.error(
-        "[notifications] Failed to send push notification:",
-        err instanceof Error ? err.message : err,
+        `${TAG} ✗ Failed to send: ${err instanceof Error ? err.message : err}`,
       );
     }
 
