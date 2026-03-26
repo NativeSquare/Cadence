@@ -33,6 +33,7 @@ const CARD_SHADOW = {
 interface PaceDatum {
   cumulativeKm: number;
   paceSeconds: number;
+  [key: string]: unknown;
 }
 
 function parsePaceToSeconds(pace: string): number {

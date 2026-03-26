@@ -1,0 +1,10 @@
+# BMad Method Configuration
+project_name: "cadence"
+user_name: "User"
+communication_language: "english"
+document_output_language: "english"
+user_skill_level: "expert"
+output_folder: "_bmad-output"
+planning_artifacts: "C:\Users\alexp\OneDrive\Bureau\projects\Cadence\_bmad-output\planning-artifacts"
+implementation_artifacts: "C:\Users\alexp\OneDrive\Bureau\projects\Cadence\_bmad-output\implementation-artifacts"
+product_knowledge: "C:\Users\alexp\OneDrive\Bureau\projects\Cadence\docs"

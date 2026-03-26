@@ -3,7 +3,7 @@
  */
 
 import { SESSION_TYPE_COLORS } from "@/lib/design-tokens";
-import type { CalSessionType, PhaseName } from "./types";
+import type { CalSessionType, Phase, PhaseName } from "./types";
 
 export const SESSION_COLORS: Record<CalSessionType, string> = SESSION_TYPE_COLORS;
 
@@ -63,4 +63,16 @@ export const DAY_HEADERS_FULL = [
 
 const _now = new Date();
 export const TODAY_KEY = `${_now.getFullYear()}-${String(_now.getMonth() + 1).padStart(2, "0")}-${String(_now.getDate()).padStart(2, "0")}`;
+
+/**
+ * Default training phases placeholder.
+ * Replaced at runtime when a real plan is loaded via buildPhasesFromPlan().
+ */
+export const PHASES: Phase[] = [
+  { name: "Base", key: "base", start: "2025-01-06", end: "2025-02-02", color: PHASE_COLORS.base },
+  { name: "Build 1", key: "build1", start: "2025-02-03", end: "2025-03-02", color: PHASE_COLORS.build1 },
+  { name: "Build 2", key: "build2", start: "2025-03-03", end: "2025-03-30", color: PHASE_COLORS.build2 },
+  { name: "Taper", key: "taper", start: "2025-03-31", end: "2025-04-13", color: PHASE_COLORS.taper },
+  { name: "Race", key: "race", start: "2025-04-14", end: "2025-04-20", color: PHASE_COLORS.race },
+];
 

@@ -1,4 +1,5 @@
 import { ImageUploader } from "@/components/custom/image-uploader";
+import { type SelectedImageAsset } from "@/components/shared/upload-media-bottom-sheet-modal";
 import { Text } from "@/components/ui/text";
 import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
 import { Ionicons } from "@expo/vector-icons";
@@ -22,7 +23,7 @@ export function ImageUploaderField({
   uploadOptions = ["camera", "gallery"],
   error,
 }: ImageUploaderFieldProps) {
-  const handleImageSelected = (image: ImagePicker.ImagePickerAsset) => {
+  const handleImageSelected = (image: ImagePicker.ImagePickerAsset | SelectedImageAsset) => {
     if (images.length < maxImages) {
       onImagesChange([...images, image.uri]);
     }
@@ -51,7 +52,7 @@ export function ImageUploaderField({
         {images.length > 0 && (
           <View className="flex-row gap-3">
             {images.map((uri, index) => (
-              <View key={index} className="relative">
+              <View key={uri} className="relative">
                 <Image
                   source={{ uri }}
                   className="size-24 rounded-xl"

@@ -138,6 +138,8 @@ export function useAIChat(options: UseAIChatOptions = {}): UseAIChatReturn {
   const durationIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   // Store timeout ID for cleanup
   const timeoutIdRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Store reconnection timeout IDs for cleanup (prevents state updates on unmounted component)
+  const reconnectTimeoutRefs = useRef<ReturnType<typeof setTimeout>[]>([]);
   // Track if current send is a retry (to avoid resetting retry count) - Story 8.3 fix
   const isRetryCallRef = useRef(false);
 
@@ -191,23 +193,35 @@ export function useAIChat(options: UseAIChatOptions = {}): UseAIChatReturn {
       // Clear error state on reconnection
       setError(null);
 
+      // Clear any previous reconnection timeouts
+      for (const id of reconnectTimeoutRefs.current) {
+        clearTimeout(id);
+      }
+      reconnectTimeoutRefs.current = [];
+
       // Show reconnecting briefly then clear (handled by overlay)
-      setTimeout(() => {
-        setIsReconnecting(false);
-      }, 100);
+      reconnectTimeoutRefs.current.push(
+        setTimeout(() => {
+          setIsReconnecting(false);
+        }, 100)
+      );
 
       // Auto-resume pending send or interrupted stream
       if (pendingMessage) {
         // Had a pending message queued - send it now
         // Using setTimeout to avoid state update during render
-        setTimeout(() => {
-          sendMessageRef.current?.(pendingMessage);
-        }, 500);
+        reconnectTimeoutRefs.current.push(
+          setTimeout(() => {
+            sendMessageRef.current?.(pendingMessage);
+          }, 500)
+        );
       } else if (wasStreaming && lastUserMessageRef.current) {
         // Stream was interrupted - retry the last message
-        setTimeout(() => {
-          retryRef.current?.();
-        }, 500);
+        reconnectTimeoutRefs.current.push(
+          setTimeout(() => {
+            retryRef.current?.();
+          }, 500)
+        );
       }
     }
 
@@ -215,6 +229,10 @@ export function useAIChat(options: UseAIChatOptions = {}): UseAIChatReturn {
       if (durationIntervalRef.current) {
         clearInterval(durationIntervalRef.current);
       }
+      for (const id of reconnectTimeoutRefs.current) {
+        clearTimeout(id);
+      }
+      reconnectTimeoutRefs.current = [];
     };
   }, [isOffline, isOnline, isStreaming]);
 
@@ -295,11 +313,14 @@ export function useAIChat(options: UseAIChatOptions = {}): UseAIChatReturn {
 
       try {
         // Build message history for context (content may be string or multimodal parts)
-        const messageHistory = messages
+        const messageHistory: Array<{
+          role: "user" | "assistant";
+          content: import("@/lib/ai-stream").StreamMessageContent;
+        }> = messages
           .filter((m) => m.role === "user" || m.role === "assistant")
           .map((m) => ({
             role: m.role as "user" | "assistant",
-            content: m.content as string,
+            content: m.content as import("@/lib/ai-stream").StreamMessageContent,
           }));
 
         // Build current user message: text only or text + images for vision
