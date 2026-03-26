@@ -8,7 +8,12 @@ import { ConvexAuthProvider, useAuthActions } from "@convex-dev/auth/react";
 import { api } from "@packages/backend/convex/_generated/api";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { PortalHost } from "@rn-primitives/portal";
-import { ConvexReactClient, useConvexAuth, useMutation, useQuery } from "convex/react";
+import {
+  ConvexReactClient,
+  useConvexAuth,
+  useMutation,
+  useQuery,
+} from "convex/react";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SecureStore from "expo-secure-store";
@@ -93,11 +98,11 @@ function RootStack() {
   const { signOut } = useAuthActions();
   const user = useQuery(
     api.table.users.currentUser,
-    isAuthenticated ? {} : "skip"
+    isAuthenticated ? {} : "skip",
   );
   const runner = useQuery(
     api.table.runners.getCurrentRunner,
-    isAuthenticated ? {} : "skip"
+    isAuthenticated ? {} : "skip",
   );
   const createRunner = useMutation(api.table.runners.createRunner);
   const hasCompletedOnboarding = user?.hasCompletedOnboarding ?? false;
@@ -142,7 +147,7 @@ function RootStack() {
         user?.banReason
           ? `Your account has been suspended: ${user.banReason}. Contact support if you believe this is an error.`
           : "Your account has been suspended. Contact support if you believe this is an error.",
-        [{ text: "OK", onPress: () => signOut() }]
+        [{ text: "OK", onPress: () => signOut() }],
       );
     }
   }, [isAuthenticated, isBanned]);
