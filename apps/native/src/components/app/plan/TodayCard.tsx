@@ -328,6 +328,94 @@ function ChevronRight() {
   );
 }
 
+function CompletedBanner({ session }: { session: SessionData }) {
+  const actualPace = computeActualPace(session);
+
+  return (
+    <View
+      className="px-4 pt-3.5 pb-3"
+      style={{ backgroundColor: "rgba(200,255,0,0.10)" }}
+    >
+      <View className="flex-row items-center gap-2 mb-2.5">
+        <View
+          style={{
+            width: 24, height: 24, borderRadius: 12,
+            backgroundColor: COLORS.lime,
+            alignItems: "center", justifyContent: "center",
+          }}
+        >
+          <Svg width={12} height={12} viewBox="0 0 24 24" fill="none">
+            <Path d="M4 12.5L9.5 18L20 6" stroke="#1A1A1A" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" />
+          </Svg>
+        </View>
+        <Text className="text-[13px] font-coach-bold" style={{ color: COLORS.lime }}>
+          Session Complete
+        </Text>
+      </View>
+      <View className="flex-row gap-5">
+        {session.actualDur != null && (
+          <View>
+            <Text className="text-[11px] font-coach-medium" style={{ color: "rgba(255,255,255,0.45)" }}>
+              Time
+            </Text>
+            <Text className="text-[15px] font-coach-bold text-g1">
+              {session.actualDur}
+            </Text>
+          </View>
+        )}
+        {session.actualKm != null && (
+          <View>
+            <Text className="text-[11px] font-coach-medium" style={{ color: "rgba(255,255,255,0.45)" }}>
+              Distance
+            </Text>
+            <Text className="text-[15px] font-coach-bold text-g1">
+              {session.actualKm} km
+            </Text>
+          </View>
+        )}
+        {actualPace != null && (
+          <View>
+            <Text className="text-[11px] font-coach-medium" style={{ color: "rgba(255,255,255,0.45)" }}>
+              Pace
+            </Text>
+            <Text className="text-[15px] font-coach-bold text-g1">
+              {actualPace}
+            </Text>
+          </View>
+        )}
+        {session.adherenceScore != null && (
+          <View>
+            <Text className="text-[11px] font-coach-medium" style={{ color: "rgba(255,255,255,0.45)" }}>
+              Adherence
+            </Text>
+            <Text className="text-[15px] font-coach-bold" style={{ color: COLORS.lime }}>
+              {Math.round(session.adherenceScore * 100)}%
+            </Text>
+          </View>
+        )}
+      </View>
+    </View>
+  );
+}
+
+function computeActualPace(session: SessionData): string | null {
+  if (!session.actualDur || !session.actualKm) return null;
+  // Parse actualKm to number
+  const km = parseFloat(session.actualKm);
+  if (!km || km === 0) return null;
+  // Parse actualDur to seconds — supports "45min", "1h05", "1h"
+  let totalSec = 0;
+  const hMatch = session.actualDur.match(/(\d+)h/);
+  const mMatch = session.actualDur.match(/(\d+)min/) ?? session.actualDur.match(/h(\d+)/);
+  if (hMatch) totalSec += parseInt(hMatch[1], 10) * 3600;
+  if (mMatch) totalSec += parseInt(mMatch[1], 10) * 60;
+  if (totalSec === 0) return null;
+  const paceSecPerKm = totalSec / km;
+  const pMin = Math.floor(paceSecPerKm / 60);
+  const pSec = Math.round(paceSecPerKm % 60);
+  return `${pMin}:${pSec.toString().padStart(2, "0")}/km`;
+}
+
 function SessionInfo({ session }: { session: SessionData }) {
   const accentColor = getSessionColor(session);
   const isRest = session.intensity === "rest";
@@ -441,6 +529,7 @@ function RestDayCard({
 export function TodayCard({ session, coachMessage, selectedDate, isToday = true, onStartPress, onExportPress, onCardPress }: TodayCardProps) {
   const dateLabel = isToday ? "Today" : formatShortDate(selectedDate ?? new Date());
   const isRest = session.intensity === "rest";
+  const isCompleted = session.done;
 
   if (isRest) {
     return (
@@ -454,9 +543,11 @@ export function TodayCard({ session, coachMessage, selectedDate, isToday = true,
 
   const hasSyncStatus = session.syncStatus && session.syncStatus !== "planned";
   const isExported = session.syncStatus === "exported" || session.syncStatus === "synced";
-  const borderColor = hasSyncStatus
-    ? getSyncStatusColor(session.syncStatus!)
-    : undefined;
+  const borderColor = isCompleted
+    ? COLORS.lime
+    : hasSyncStatus
+      ? getSyncStatusColor(session.syncStatus!)
+      : undefined;
 
   return (
     <View>
@@ -472,7 +563,7 @@ export function TodayCard({ session, coachMessage, selectedDate, isToday = true,
           className="rounded-[20px] overflow-hidden"
           style={{
             backgroundColor: "#1A1A1A",
-            borderWidth: hasSyncStatus ? 1.5 : 1,
+            borderWidth: isCompleted ? 1.5 : hasSyncStatus ? 1.5 : 1,
             borderColor: borderColor ?? "rgba(255,255,255,0.08)",
             shadowColor: "#000",
             shadowOffset: { width: 0, height: 8 },
@@ -481,8 +572,12 @@ export function TodayCard({ session, coachMessage, selectedDate, isToday = true,
             elevation: 12,
           }}
         >
-          {/* 0. Sync banner — full width, top of card */}
-          <SyncBanner session={session} />
+          {/* 0. Top banner — completed state takes priority over sync banner */}
+          {isCompleted ? (
+            <CompletedBanner session={session} />
+          ) : (
+            <SyncBanner session={session} />
+          )}
 
           {/* 1. Session info */}
           <SessionInfo session={session} />
@@ -490,8 +585,8 @@ export function TodayCard({ session, coachMessage, selectedDate, isToday = true,
           {/* 2. Coach quote */}
           <CoachQuote displayed={displayed} done={done} started={started} />
 
-          {/* 3. CTA — show export button for any non-exported session */}
-          {!isExported && <ExportToWatchCTA onPress={onExportPress} />}
+          {/* 3. CTA — hide when completed or already exported */}
+          {!isCompleted && !isExported && <ExportToWatchCTA onPress={onExportPress} />}
         </View>
       </Pressable>
     </View>

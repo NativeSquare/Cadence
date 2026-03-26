@@ -47,6 +47,12 @@ export interface SessionData {
   zone: string;
   /** Whether this is today's session */
   today?: boolean;
+  /** Actual duration recorded after completion (seconds) */
+  actualDur?: string;
+  /** Actual distance recorded after completion (e.g. "8.2") */
+  actualKm?: string;
+  /** Adherence score 0-1 comparing actual vs target */
+  adherenceScore?: number;
   /** Sync state for wearable-recorded sessions */
   syncStatus?: SyncStatus;
   /** Source wearable or service (e.g., "garmin", "apple_watch", "strava") */

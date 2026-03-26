@@ -35,6 +35,9 @@ export interface BackendSession {
   structureDisplay?: string;
   status: string;
   dayOfWeekShort: string;
+  actualDurationSeconds?: number;
+  actualDistanceMeters?: number;
+  adherenceScore?: number;
 }
 
 export interface BackendWeekPlan {
@@ -227,20 +230,40 @@ function computeKm(session: BackendSession): string {
   return "-";
 }
 
+function formatDuration(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = Math.round(seconds % 60);
+  if (m >= 60) {
+    const h = Math.floor(m / 60);
+    const rm = m % 60;
+    return rm > 0 ? `${h}h${rm.toString().padStart(2, "0")}` : `${h}h`;
+  }
+  return `${m}min`;
+}
+
 export function toSessionData(
   session: BackendSession,
   today: Date
 ): SessionData {
+  const isCompleted = session.status === "completed";
+
   return {
     sessionId: session._id,
     type: session.sessionTypeDisplay,
     km: computeKm(session),
     dur: session.targetDurationDisplay,
-    done: session.status === "completed",
+    done: isCompleted,
     intensity: deriveIntensity(session),
     desc: session.description,
     zone: session.effortDisplay,
     today: isSameDay(new Date(session.scheduledDate), today),
+    actualDur: isCompleted && session.actualDurationSeconds != null
+      ? formatDuration(session.actualDurationSeconds)
+      : undefined,
+    actualKm: isCompleted && session.actualDistanceMeters != null
+      ? (session.actualDistanceMeters / 1000).toFixed(1)
+      : undefined,
+    adherenceScore: isCompleted ? session.adherenceScore : undefined,
   };
 }
 

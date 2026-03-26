@@ -1002,6 +1002,9 @@ export const getPlanScreenData = query({
         structureDisplay: s.structureDisplay ?? undefined,
         status: s.status,
         dayOfWeekShort: s.dayOfWeekShort,
+        actualDurationSeconds: s.actualDurationSeconds,
+        actualDistanceMeters: s.actualDistanceMeters,
+        adherenceScore: s.adherenceScore,
       })),
     };
   },
