@@ -124,7 +124,7 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
 export default function TabsLayout() {
   return (
     <Tabs
-      tabBar={CustomTabBar}
+      tabBar={(props) => <CustomTabBar {...props} />}
       screenOptions={{
         headerShown: false,
         lazy: true,
