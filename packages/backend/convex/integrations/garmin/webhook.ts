@@ -10,7 +10,7 @@
  */
 
 import { Soma } from "@nativesquare/soma";
-import { ConvexError, v } from "convex/values";
+import { v } from "convex/values";
 import { components, internal } from "../../_generated/api";
 import {
   internalAction,
@@ -118,8 +118,20 @@ export const lookupGarminMapping = internalQuery({
 });
 
 /**
- * Find today's scheduled session for this user and match it against
- * the most recent Soma activity.
+ * Match an incoming Garmin activity to a planned session using tiered matching:
+ *
+ * Tier 1 — Exported workout match (high confidence):
+ *   Query Soma planned workouts for the activity date. Find ones with
+ *   provider_workout_id set (actually pushed to Garmin). Their metadata.id
+ *   is the Cadence session._id → direct lookup. If multiple, pick closest
+ *   by time.
+ *
+ * Tier 2 — Non-exported session match (medium confidence):
+ *   Fallback for ad-hoc runs: find any scheduled sessions for the day and
+ *   match closest by time.
+ *
+ * Tier 3 — No match:
+ *   Activity is stored in Soma but not linked to a session.
  */
 export const matchActivityToSession = internalMutation({
   args: { cadenceUserId: v.id("users") },
@@ -136,11 +148,41 @@ export const matchActivityToSession = internalMutation({
       return null;
     }
 
-    // 2. Get today's scheduled sessions (±3 hour window)
+    // 2. Query recent Soma activities for this user (last 6 hours)
     const now = Date.now();
-    const threeHoursMs = 3 * 60 * 60 * 1000;
-    const windowStart = now - 24 * 60 * 60 * 1000; // look back 24h
-    const windowEnd = now + threeHoursMs;
+    const sixHoursAgo = new Date(now - 6 * 60 * 60 * 1000).toISOString();
+    const recentActivities = (await ctx.runQuery(
+      components.soma.public.listActivities,
+      {
+        userId: args.cadenceUserId,
+        startTime: sixHoursAgo,
+        order: "desc" as const,
+      },
+    )) as SomaActivity[];
+
+    if (recentActivities.length === 0) {
+      console.log("[garmin:webhook] No recent Soma activities found");
+      return null;
+    }
+
+    const latestActivity = recentActivities[0];
+    const inferenceActivity = transformSomaActivity(latestActivity);
+
+    // Only match running-type activities
+    const runningTypes = ["easy", "tempo", "intervals", "long_run", "race", "unstructured"];
+    if (
+      inferenceActivity.sessionType &&
+      !runningTypes.includes(inferenceActivity.sessionType)
+    ) {
+      console.log("[garmin:webhook] Activity is not a running type, skipping");
+      return null;
+    }
+
+    const activityStartMs = inferenceActivity.startTime;
+
+    // 3. Get today's scheduled sessions (look back 24h, forward 3h)
+    const windowStart = now - 24 * 60 * 60 * 1000;
+    const windowEnd = now + 3 * 60 * 60 * 1000;
 
     const sessions = await ctx.db
       .query("plannedSessions")
@@ -161,58 +203,69 @@ export const matchActivityToSession = internalMutation({
       return null;
     }
 
-    // 3. Query recent Soma activities for this user (last 6 hours)
-    const sixHoursAgo = new Date(now - 6 * 60 * 60 * 1000).toISOString();
-    const recentActivities = (await ctx.runQuery(
-      components.soma.public.listActivities,
+    // ── Tier 1: Match via exported Soma planned workouts ────────────────────
+    const activityDate = new Date(activityStartMs).toISOString().slice(0, 10);
+    const plannedWorkouts = (await ctx.runQuery(
+      components.soma.public.listPlannedWorkouts,
       {
         userId: args.cadenceUserId,
-        startTime: sixHoursAgo,
-        order: "desc" as const,
+        startDate: activityDate,
+        endDate: activityDate,
       },
-    )) as SomaActivity[];
+    )) as Array<{ metadata: { id?: string; provider_workout_id?: string } }>;
 
-    if (recentActivities.length === 0) {
-      console.log("[garmin:webhook] No recent Soma activities found");
-      return null;
-    }
+    // Filter to workouts that were actually pushed to Garmin
+    const exportedWorkouts = plannedWorkouts.filter(
+      (pw) => pw.metadata.provider_workout_id,
+    );
 
-    // 4. Find the best match: most recent running activity → closest scheduled session
-    const latestActivity = recentActivities[0];
-    const inferenceActivity = transformSomaActivity(latestActivity);
+    let matchedSession: (typeof scheduledSessions)[number] | null = null;
+    let matchTier: 1 | 2 = 2;
 
-    // Only match running-type activities
-    const runningTypes = ["easy", "tempo", "intervals", "long_run", "race", "unstructured"];
-    if (
-      inferenceActivity.sessionType &&
-      !runningTypes.includes(inferenceActivity.sessionType)
-    ) {
-      console.log("[garmin:webhook] Activity is not a running type, skipping");
-      return null;
-    }
+    if (exportedWorkouts.length > 0) {
+      // Collect session IDs from exported workouts (metadata.id = session._id)
+      const exportedSessionIds = new Set(
+        exportedWorkouts
+          .map((pw) => pw.metadata.id)
+          .filter(Boolean) as string[],
+      );
 
-    // Find the closest scheduled session by time
-    const activityStartMs = inferenceActivity.startTime;
-    let bestSession = scheduledSessions[0];
-    let bestDiff = Math.abs(activityStartMs - bestSession.scheduledDate);
+      // Find scheduled sessions that were exported to Garmin
+      const exportedSessions = scheduledSessions.filter((s) =>
+        exportedSessionIds.has(s._id),
+      );
 
-    for (const session of scheduledSessions.slice(1)) {
-      const diff = Math.abs(activityStartMs - session.scheduledDate);
-      if (diff < bestDiff) {
-        bestSession = session;
-        bestDiff = diff;
+      if (exportedSessions.length === 1) {
+        matchedSession = exportedSessions[0];
+        matchTier = 1;
+      } else if (exportedSessions.length > 1) {
+        // Multiple exported sessions for this date — pick closest by time
+        matchedSession = findClosestByTime(exportedSessions, activityStartMs);
+        matchTier = 1;
       }
     }
 
-    // 5. Calculate adherence score
+    // ── Tier 2: Fallback to closest scheduled session by time ───────────────
+    if (!matchedSession) {
+      matchedSession = findClosestByTime(scheduledSessions, activityStartMs);
+      matchTier = 2;
+    }
+
+    // ── Tier 3: No match possible ───────────────────────────────────────────
+    if (!matchedSession) {
+      console.log("[garmin:webhook] No matching session found (Tier 3: unmatched)");
+      return null;
+    }
+
+    // 4. Calculate adherence score
     const adherenceScore = calculateAdherence(
-      bestSession,
+      matchedSession,
       inferenceActivity.durationSeconds,
       inferenceActivity.distanceMeters,
     );
 
-    // 6. Patch the session as completed
-    await ctx.db.patch(bestSession._id, {
+    // 5. Patch the session as completed
+    await ctx.db.patch(matchedSession._id, {
       status: "completed" as const,
       completedActivityId: latestActivity._id,
       completedAt: now,
@@ -224,23 +277,42 @@ export const matchActivityToSession = internalMutation({
     });
 
     console.log(
-      `[garmin:webhook] Matched activity to session "${bestSession.sessionTypeDisplay}" (adherence: ${adherenceScore?.toFixed(2)})`,
+      `[garmin:webhook] Tier ${matchTier} match: activity → "${matchedSession.sessionTypeDisplay}" (adherence: ${adherenceScore?.toFixed(2)})`,
     );
 
-    // 7. Schedule push notification
+    // 6. Schedule push notification
     await ctx.scheduler.runAfter(
       0,
       internal.integrations.notifications.sendSessionCompleteNotification,
       {
         userId: args.cadenceUserId,
-        sessionId: bestSession._id,
-        sessionType: bestSession.sessionTypeDisplay,
+        sessionId: matchedSession._id,
+        sessionType: matchedSession.sessionTypeDisplay,
       },
     );
 
     return null;
   },
 });
+
+// ─── Matching Helpers ─────────────────────────────────────────────────────────
+
+function findClosestByTime<T extends { scheduledDate: number }>(
+  sessions: T[],
+  targetMs: number,
+): T | null {
+  if (sessions.length === 0) return null;
+  let best = sessions[0];
+  let bestDiff = Math.abs(targetMs - best.scheduledDate);
+  for (const session of sessions.slice(1)) {
+    const diff = Math.abs(targetMs - session.scheduledDate);
+    if (diff < bestDiff) {
+      best = session;
+      bestDiff = diff;
+    }
+  }
+  return best;
+}
 
 // ─── Adherence Calculation ────────────────────────────────────────────────────
 

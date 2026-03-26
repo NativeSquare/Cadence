@@ -57,10 +57,17 @@ export const connectGarminOAuth = action({
     connectionId: v.string(),
     synced: v.object({
       activities: v.number(),
-      dailies: v.number(),
-      sleep: v.number(),
+      bloodPressures: v.number(),
       body: v.number(),
+      dailies: v.number(),
+      hrv: v.number(),
       menstruation: v.number(),
+      pulseOx: v.number(),
+      respiration: v.number(),
+      skinTemp: v.number(),
+      sleep: v.number(),
+      stressDetails: v.number(),
+      userMetrics: v.number(),
     }),
     errors: v.array(
       v.object({
@@ -111,10 +118,17 @@ export const syncGarminData = action({
   returns: v.object({
     synced: v.object({
       activities: v.number(),
-      dailies: v.number(),
-      sleep: v.number(),
+      bloodPressures: v.number(),
       body: v.number(),
+      dailies: v.number(),
+      hrv: v.number(),
       menstruation: v.number(),
+      pulseOx: v.number(),
+      respiration: v.number(),
+      skinTemp: v.number(),
+      sleep: v.number(),
+      stressDetails: v.number(),
+      userMetrics: v.number(),
     }),
     errors: v.array(
       v.object({
@@ -130,10 +144,17 @@ export const syncGarminData = action({
   ): Promise<{
     synced: {
       activities: number;
-      dailies: number;
-      sleep: number;
+      bloodPressures: number;
       body: number;
+      dailies: number;
+      hrv: number;
       menstruation: number;
+      pulseOx: number;
+      respiration: number;
+      skinTemp: number;
+      sleep: number;
+      stressDetails: number;
+      userMetrics: number;
     };
     errors: Array<{ type: string; id: string; error: string }>;
   }> => {
@@ -314,7 +335,30 @@ export const exportSessionToGarmin = action({
       workoutProvider: "Cadence",
     });
 
+    // Store the Garmin workout ID on the session for webhook matching
+    await ctx.runMutation(
+      internal.integrations.garmin.sync.patchSessionGarminWorkoutId,
+      {
+        sessionId: args.sessionId,
+        garminWorkoutId: result.garminWorkoutId,
+      },
+    );
+
     return result;
+  },
+});
+
+export const patchSessionGarminWorkoutId = internalMutation({
+  args: {
+    sessionId: v.id("plannedSessions"),
+    garminWorkoutId: v.number(),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.sessionId, {
+      garminWorkoutId: args.garminWorkoutId,
+    });
+    return null;
   },
 });
 

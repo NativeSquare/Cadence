@@ -75,9 +75,9 @@ export interface InferenceDaily {
  * Terra activity type enum values.
  * https://docs.tryterra.co/reference/enums#activity-types
  */
-const TERRA_RUNNING_TYPES = [1, 4, 56]; // Running, TrailRun, VirtualRun
-const TERRA_WALKING_TYPES = [2, 3]; // Walking, Hiking
-const TERRA_CYCLING_TYPES = [5, 6]; // Cycling, VirtualCycling
+const TERRA_RUNNING_TYPES = [8]; // Running (Garmin RUNNING/TRAIL_RUNNING/etc. all map to Terra 8)
+const TERRA_WALKING_TYPES = [7, 35]; // Walking (7), Hiking (35)
+const TERRA_CYCLING_TYPES = [1]; // Biking (Garmin CYCLING/MOUNTAIN_BIKING/etc. all map to Terra 1)
 const TERRA_RACE_TYPES = [97, 98]; // Race events
 
 /**

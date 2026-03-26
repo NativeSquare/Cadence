@@ -116,6 +116,11 @@ export const plannedSessions = defineTable({
   alternatives: v.optional(v.array(alternativeSchema)),
 
   // ═══════════════════════════════════════════════════════════════════════════
+  // GARMIN EXPORT TRACKING
+  // ═══════════════════════════════════════════════════════════════════════════
+  garminWorkoutId: v.optional(v.number()), // Garmin Training API workout ID (set after export)
+
+  // ═══════════════════════════════════════════════════════════════════════════
   // EXECUTION TRACKING (AC #4)
   // ═══════════════════════════════════════════════════════════════════════════
   status: sessionStatus,
