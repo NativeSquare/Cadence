@@ -9,8 +9,6 @@ export { PlanScreen } from "./PlanScreen";
 export { DateHeader } from "./DateHeader";
 export { CalendarStrip } from "./CalendarStrip";
 export { TodayCard } from "./TodayCard";
-export { SessionPreview } from "./SessionPreview";
-export { WeekStatsRow } from "./WeekStatsRow";
 export { RaceCountdown } from "./RaceCountdown";
 export { WeekInsights } from "./WeekInsights";
 export { LogRunSection } from "./QuickActions";

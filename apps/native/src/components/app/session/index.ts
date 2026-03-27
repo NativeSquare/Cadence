@@ -42,21 +42,8 @@ export type { SessionCompletedComparisonProps } from "./session-completed-compar
 export { SessionActionsBar } from "./session-actions-bar";
 export type { SessionActionsBarProps } from "./session-actions-bar";
 
-// Legacy sub-components still used by other screens
-export { CoachInsightCard } from "./CoachInsightCard";
-export type { CoachInsightCardProps } from "./CoachInsightCard";
-
 export { IntensityProfileChart } from "./IntensityProfileChart";
 export type { IntensityProfileChartProps } from "./IntensityProfileChart";
-
-export { OverviewGrid } from "./OverviewGrid";
-export type { OverviewGridProps } from "./OverviewGrid";
-
-export { FocusPoints } from "./FocusPoints";
-export type { FocusPointsProps } from "./FocusPoints";
-
-export { StartSessionCTA } from "./StartSessionCTA";
-export type { StartSessionCTAProps } from "./StartSessionCTA";
 
 // Active Session Screen (Story 10.6 - Active Workout)
 export { ActiveSessionScreen } from "./ActiveSessionScreen";
