@@ -18,6 +18,24 @@ export type { SessionStructureProps } from "./session-structure";
 export { SessionCoachInsight } from "./session-coach-insight";
 export type { SessionCoachInsightProps } from "./session-coach-insight";
 
+export { SessionWhyCallout } from "./session-why-callout";
+export type { SessionWhyCalloutProps } from "./session-why-callout";
+
+export { SessionFocusCue } from "./session-focus-cue";
+export type { SessionFocusCueProps } from "./session-focus-cue";
+
+export { SessionSplitsTable } from "./session-splits-table";
+export type { SessionSplitsTableProps } from "./session-splits-table";
+
+export { SessionHrZones } from "./session-hr-zones";
+export type { SessionHrZonesProps } from "./session-hr-zones";
+
+export { SessionPaceChart } from "./session-pace-chart";
+export type { SessionPaceChartProps } from "./session-pace-chart";
+
+export { SessionContextCard } from "./session-context-card";
+export type { SessionContextCardProps } from "./session-context-card";
+
 export { SessionCompletedComparison } from "./session-completed-comparison";
 export type { SessionCompletedComparisonProps } from "./session-completed-comparison";
 

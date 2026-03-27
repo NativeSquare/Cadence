@@ -120,15 +120,8 @@ export interface AnalyticsData {
   volumeByTimeframe: Record<string, VolumeTimeframeBucket>;
 }
 
-export interface PlacementStatus {
-  completedRuns: number;
-  threshold: number;
-  isUnlocked: boolean;
-}
-
 export interface UseAnalyticsDataResult {
   data: AnalyticsData | null;
-  placement: PlacementStatus | null;
   isLoading: boolean;
   error: Error | null;
 }
@@ -139,10 +132,6 @@ export interface UseAnalyticsDataResult {
  * and health metrics. Falls back to mock data when real data is unavailable.
  */
 export function useAnalyticsData(): UseAnalyticsDataResult {
-  const placementResult = useQuery(
-    api.training.queries.getCompletedRunCount
-  );
-
   const radarResult = useQuery(
     api.training.queries.getRacePredictions
   );
@@ -154,14 +143,6 @@ export function useAnalyticsData(): UseAnalyticsDataResult {
   const analyticsResult = useQuery(
     api.training.analytics.getAnalyticsScreenData
   );
-
-  const placement = useMemo<PlacementStatus | null>(() => {
-    if (placementResult === undefined) return null;
-    if (placementResult === null) {
-      return { completedRuns: 0, threshold: 10, isUnlocked: false };
-    }
-    return placementResult;
-  }, [placementResult]);
 
   const data = useMemo<AnalyticsData>(() => {
     const predictions = radarResult?.predictions ?? MOCK_PREDICTIONS;
@@ -332,12 +313,10 @@ export function useAnalyticsData(): UseAnalyticsDataResult {
     };
   }, [radarResult, healthResult, analyticsResult]);
 
-  const isLoading =
-    placementResult === undefined || analyticsResult === undefined;
+  const isLoading = analyticsResult === undefined;
 
   return {
     data,
-    placement,
     isLoading,
     error: null,
   };

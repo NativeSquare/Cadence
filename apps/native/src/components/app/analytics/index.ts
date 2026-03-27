@@ -4,7 +4,6 @@
  */
 
 export { AnalyticsScreen } from "./AnalyticsScreen";
-export { PlacementGate } from "./placement-gate";
 export { PlanProgress } from "./PlanProgress";
 export { RunnerProfileCard } from "./runner-profile-card";
 export { PredictionCard } from "./prediction-card";

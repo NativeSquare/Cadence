@@ -38,6 +38,11 @@ export const COLORS = {
   /** Blue dim - rgba(91,158,255,0.12) for subtle blue backgrounds */
   bluDim: "rgba(91,158,255,0.12)",
 
+  /** Yellow accent - caution/close states #FBBF24 */
+  ylw: "#FBBF24",
+  /** Yellow dim - rgba(251,191,36,0.12) for subtle yellow backgrounds */
+  ylwDim: "rgba(251,191,36,0.12)",
+
   /** Green accent - success states, confirmations #4ADE80 */
   grn: "#4ADE80",
   /** Green dim - rgba(74,222,128,0.12) for subtle green backgrounds */

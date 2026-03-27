@@ -13,6 +13,12 @@ import { SessionCoachInsight } from "./session-coach-insight";
 import { SessionCompletedComparison } from "./session-completed-comparison";
 import { SessionActionsBar } from "./session-actions-bar";
 import { SessionDebriefCard } from "./session-debrief-card";
+import { SessionWhyCallout } from "./session-why-callout";
+import { SessionFocusCue } from "./session-focus-cue";
+import { SessionSplitsTable } from "./session-splits-table";
+import { SessionHrZones } from "./session-hr-zones";
+import { SessionPaceChart } from "./session-pace-chart";
+import { SessionContextCard } from "./session-context-card";
 import { IntensityProfileChart } from "./IntensityProfileChart";
 import { SessionZoneSplit } from "./SessionZoneSplit";
 import { ExportToWatchSheet, type WatchProvider } from "../plan/ExportToWatchSheet";
@@ -88,6 +94,14 @@ function toChartSegments(segments: BackendSegment[]): SessionSegment[] {
 export function SessionDetailPage({ sessionId }: SessionDetailPageProps) {
   const router = useRouter();
   const session = useQuery(api.training.queries.getSessionById, { sessionId });
+  const activityDetail = useQuery(
+    api.training.queries.getActivityForSession,
+    session?.status === "completed" ? { sessionId } : "skip"
+  );
+  const adjacentSessions = useQuery(
+    api.training.queries.getAdjacentSessions,
+    { sessionId }
+  );
   const markComplete = useMutation(api.training.mutations.markSessionComplete);
   const exportSheetRef = useRef<BottomSheetModal>(null);
   const [isExported, setIsExported] = useState(false);
@@ -172,164 +186,7 @@ export function SessionDetailPage({ sessionId }: SessionDetailPageProps) {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ padding: 16, paddingTop: 20, paddingBottom: 180 }}
         >
-          {/* Stats overview card (always shown for non-rest) */}
-          {!session.isRestDay && (
-            <SessionStatsRow
-              distanceKm={distanceKm}
-              duration={session.targetDurationDisplay}
-              effort={session.effortDisplay}
-              hrZone={session.targetHeartRateZone}
-              isCompleted={isCompleted}
-              actualDistanceKm={actualDistanceKm}
-              actualDuration={actualDuration}
-            />
-          )}
-
-          {/* Intensity profile chart */}
-          {!session.isRestDay && chartSegments.length > 1 && (
-            <IntensityProfileChart segments={chartSegments} />
-          )}
-
-          {/* Zone split chart */}
-          {!session.isRestDay && chartSegments.length > 1 && (
-            <SessionZoneSplit segments={chartSegments} />
-          )}
-
-          {/* Completed comparison (completed only) */}
-          {isCompleted && !session.isRestDay && (
-            <SessionCompletedComparison
-              plannedDistanceKm={distanceKm}
-              plannedDuration={session.targetDurationDisplay}
-              actualDistanceKm={actualDistanceKm}
-              actualDuration={actualDuration}
-              adherenceScore={session.adherenceScore}
-              userRating={session.userRating}
-              userFeedback={session.userFeedback}
-            />
-          )}
-
-          {/* Debrief card (completed sessions only) */}
-          {isCompleted && !session.isRestDay && (
-            <SessionDebriefCard
-              sessionId={sessionId}
-              userRating={session.userRating}
-              userFeedback={session.userFeedback}
-              debriefTags={session.debriefTags}
-            />
-          )}
-
-          {/* Workout structure (when segments exist) */}
-          {!session.isRestDay && (
-            <SessionStructure
-              segments={session.structureSegments ?? []}
-              structureDisplay={session.structureDisplay}
-            />
-          )}
-
-          {/* Pace targets */}
-          {session.targetPaceDisplay && !session.isRestDay && (
-            <View className="mb-4">
-              <Text
-                className="text-[11px] font-coach-semibold text-wSub uppercase px-1 mb-2.5"
-                style={{ letterSpacing: 0.55 }}
-              >
-                Pace Target
-              </Text>
-              <View className="rounded-2xl bg-w1 p-4" style={CARD_SHADOW}>
-                <View className="flex-row items-center gap-3">
-                  <Text style={{ fontSize: 22, fontFamily: "Outfit-Bold", color: LIGHT_THEME.wText }}>
-                    {session.targetPaceDisplay}
-                  </Text>
-                  {session.targetHeartRateMin && session.targetHeartRateMax && (
-                    <Text style={{ fontSize: 13, color: LIGHT_THEME.wMute }}>
-                      HR {session.targetHeartRateMin}–{session.targetHeartRateMax} bpm
-                    </Text>
-                  )}
-                </View>
-              </View>
-            </View>
-          )}
-
-          {/* Coach insight */}
-          <SessionCoachInsight
-            justification={session.justification}
-            physiologicalTarget={session.physiologicalTarget}
-            placementRationale={session.placementRationale}
-            keyPoints={session.keyPoints}
-          />
-
-          {/* Description */}
-          {session.description && (
-            <View className="mb-4">
-              <Text
-                className="text-[11px] font-coach-semibold text-wSub uppercase px-1 mb-2.5"
-                style={{ letterSpacing: 0.55 }}
-              >
-                Description
-              </Text>
-              <View className="rounded-2xl bg-w1 p-4" style={CARD_SHADOW}>
-                <Text style={{ fontSize: 14, color: LIGHT_THEME.wText, lineHeight: 21 }}>
-                  {session.description}
-                </Text>
-              </View>
-            </View>
-          )}
-
-          {/* Alternatives (upcoming only) */}
-          {isUpcoming && session.alternatives && session.alternatives.length > 0 && (
-            <View className="mb-4">
-              <Text
-                className="text-[11px] font-coach-semibold text-wSub uppercase px-1 mb-2.5"
-                style={{ letterSpacing: 0.55 }}
-              >
-                Alternatives
-              </Text>
-              <View className="rounded-2xl bg-w1 overflow-hidden" style={CARD_SHADOW}>
-                {session.alternatives.map((alt, i) => (
-                  <View
-                    key={i}
-                    style={{
-                      padding: 14,
-                      paddingHorizontal: 18,
-                      borderBottomWidth: i < session.alternatives!.length - 1 ? 1 : 0,
-                      borderBottomColor: LIGHT_THEME.wBrd,
-                    }}
-                  >
-                    <Text style={{ fontSize: 14, fontFamily: "Outfit-SemiBold", color: LIGHT_THEME.wText, marginBottom: 2 }}>
-                      {alt.sessionType}
-                    </Text>
-                    <Text style={{ fontSize: 13, color: LIGHT_THEME.wSub, marginBottom: 4 }}>
-                      {alt.description}
-                    </Text>
-                    <Text style={{ fontSize: 12, color: LIGHT_THEME.wMute, fontStyle: "italic" }}>
-                      {alt.whenToUse}
-                    </Text>
-                  </View>
-                ))}
-              </View>
-            </View>
-          )}
-
-          {/* Week context */}
-          <View className="mb-4">
-            <Text
-              className="text-[11px] font-coach-semibold text-wSub uppercase px-1 mb-2.5"
-              style={{ letterSpacing: 0.55 }}
-            >
-              Week Context
-            </Text>
-            <View className="rounded-2xl bg-w1 p-4 flex-row items-center gap-3" style={CARD_SHADOW}>
-              <Text style={{ fontSize: 13, color: LIGHT_THEME.wSub }}>
-                Week {session.weekNumber} of {session.planName}
-              </Text>
-              <View className="flex-1" />
-              <Text style={{ fontSize: 12, color: LIGHT_THEME.wMute }}>
-                Current: Week {session.planCurrentWeek}
-              </Text>
-            </View>
-          </View>
-
-          {/* Rest day message */}
+          {/* ── REST DAY ── */}
           {session.isRestDay && (
             <View className="items-center py-8">
               <Text style={{ fontSize: 40, marginBottom: 12 }}>🧘</Text>
@@ -340,6 +197,212 @@ export function SessionDetailPage({ sessionId }: SessionDetailPageProps) {
                 {session.description || "Take it easy today. Your body needs recovery to adapt to training."}
               </Text>
             </View>
+          )}
+
+          {/* ── UPCOMING SESSION ORDER ── */}
+          {isUpcoming && !session.isRestDay && (
+            <>
+              {/* 1. "Why this session" callout */}
+              {session.justification && (
+                <SessionWhyCallout justification={session.justification} />
+              )}
+
+              {/* 2. Stats row */}
+              <SessionStatsRow
+                distanceKm={distanceKm}
+                duration={session.targetDurationDisplay}
+                effort={session.effortDisplay}
+                hrZone={session.targetHeartRateZone}
+                isCompleted={false}
+              />
+
+              {/* 3. Intensity profile chart */}
+              {chartSegments.length > 1 && (
+                <IntensityProfileChart segments={chartSegments} />
+              )}
+
+              {/* 4. Workout structure (moved up) + pace targets merged */}
+              <SessionStructure
+                segments={session.structureSegments ?? []}
+                structureDisplay={session.structureDisplay}
+              />
+              {session.targetPaceDisplay && (
+                <View className="mb-4">
+                  <Text
+                    className="text-[11px] font-coach-semibold text-wSub uppercase px-1 mb-2.5"
+                    style={{ letterSpacing: 0.55 }}
+                  >
+                    Pace Target
+                  </Text>
+                  <View className="rounded-2xl bg-w1 p-4" style={CARD_SHADOW}>
+                    <View className="flex-row items-center gap-3">
+                      <Text style={{ fontSize: 22, fontFamily: "Outfit-Bold", color: LIGHT_THEME.wText }}>
+                        {session.targetPaceDisplay}
+                      </Text>
+                      {session.targetHeartRateMin && session.targetHeartRateMax && (
+                        <Text style={{ fontSize: 13, color: LIGHT_THEME.wMute }}>
+                          HR {session.targetHeartRateMin}–{session.targetHeartRateMax} bpm
+                        </Text>
+                      )}
+                    </View>
+                  </View>
+                </View>
+              )}
+
+              {/* 5. Focus cue (new standalone card) */}
+              {session.keyPoints && session.keyPoints.length > 0 && (
+                <SessionFocusCue keyPoints={session.keyPoints} />
+              )}
+
+              {/* 6. Yesterday / Tomorrow context */}
+              {adjacentSessions && (
+                <SessionContextCard
+                  yesterday={adjacentSessions.yesterday}
+                  tomorrow={adjacentSessions.tomorrow}
+                />
+              )}
+
+              {/* 7. Zone split chart (moved down) */}
+              {chartSegments.length > 1 && (
+                <SessionZoneSplit segments={chartSegments} />
+              )}
+
+              {/* 8. Coach insight (collapsed by default) */}
+              <SessionCoachInsight
+                justification={session.justification}
+                physiologicalTarget={session.physiologicalTarget}
+                placementRationale={session.placementRationale}
+              />
+
+              {/* 9. Alternatives */}
+              {session.alternatives && session.alternatives.length > 0 && (
+                <View className="mb-4">
+                  <Text
+                    className="text-[11px] font-coach-semibold text-wSub uppercase px-1 mb-2.5"
+                    style={{ letterSpacing: 0.55 }}
+                  >
+                    Alternatives
+                  </Text>
+                  <View className="rounded-2xl bg-w1 overflow-hidden" style={CARD_SHADOW}>
+                    {session.alternatives.map((alt, i) => (
+                      <View
+                        key={i}
+                        style={{
+                          padding: 14,
+                          paddingHorizontal: 18,
+                          borderBottomWidth: i < session.alternatives!.length - 1 ? 1 : 0,
+                          borderBottomColor: LIGHT_THEME.wBrd,
+                        }}
+                      >
+                        <Text style={{ fontSize: 14, fontFamily: "Outfit-SemiBold", color: LIGHT_THEME.wText, marginBottom: 2 }}>
+                          {alt.sessionType}
+                        </Text>
+                        <Text style={{ fontSize: 13, color: LIGHT_THEME.wSub, marginBottom: 4 }}>
+                          {alt.description}
+                        </Text>
+                        <Text style={{ fontSize: 12, color: LIGHT_THEME.wMute, fontStyle: "italic" }}>
+                          {alt.whenToUse}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              )}
+
+            </>
+          )}
+
+          {/* ── COMPLETED SESSION ORDER ── */}
+          {isCompleted && !session.isRestDay && (
+            <>
+              {/* 1. Hero result + planned vs actual with compliance colors */}
+              <SessionCompletedComparison
+                plannedDistanceKm={distanceKm}
+                plannedDuration={session.targetDurationDisplay}
+                actualDistanceKm={actualDistanceKm}
+                actualDuration={actualDuration}
+                adherenceScore={session.adherenceScore}
+              />
+
+              {/* 2. Debrief card (moved up) */}
+              <SessionDebriefCard
+                sessionId={sessionId}
+                userRating={session.userRating}
+                userFeedback={session.userFeedback}
+                debriefTags={session.debriefTags}
+              />
+
+              {/* 3. Pace consistency chart (intervals with 3+ laps) */}
+              {activityDetail && activityDetail.laps.length >= 3 && (
+                <SessionPaceChart
+                  laps={activityDetail.laps}
+                  targetPaceMin={session.targetPaceMin}
+                  targetPaceMax={session.targetPaceMax}
+                />
+              )}
+
+              {/* 4. Splits table */}
+              {activityDetail && activityDetail.laps.length > 0 && (
+                <SessionSplitsTable laps={activityDetail.laps} />
+              )}
+
+              {/* 5. HR zones */}
+              {activityDetail && activityDetail.hrZones.length > 0 && (
+                <SessionHrZones
+                  hrZones={activityDetail.hrZones}
+                  targetZone={session.targetHeartRateZone}
+                />
+              )}
+
+              {/* 6. Intensity profile chart */}
+              {chartSegments.length > 1 && (
+                <IntensityProfileChart segments={chartSegments} />
+              )}
+
+              {/* 7. Zone split */}
+              {chartSegments.length > 1 && (
+                <SessionZoneSplit segments={chartSegments} />
+              )}
+
+              {/* 8. Workout structure (moved down for completed — actual data matters more) */}
+              <SessionStructure
+                segments={session.structureSegments ?? []}
+                structureDisplay={session.structureDisplay}
+              />
+
+              {/* 6. Coach insight (collapsed) */}
+              <SessionCoachInsight
+                justification={session.justification}
+                physiologicalTarget={session.physiologicalTarget}
+                placementRationale={session.placementRationale}
+              />
+
+            </>
+          )}
+
+          {/* ── FALLBACK: skipped/modified/rescheduled sessions ── */}
+          {!isUpcoming && !isCompleted && !session.isRestDay && (
+            <>
+              <SessionStatsRow
+                distanceKm={distanceKm}
+                duration={session.targetDurationDisplay}
+                effort={session.effortDisplay}
+                hrZone={session.targetHeartRateZone}
+                isCompleted={false}
+              />
+              {chartSegments.length > 1 && (
+                <IntensityProfileChart segments={chartSegments} />
+              )}
+              <SessionStructure
+                segments={session.structureSegments ?? []}
+                structureDisplay={session.structureDisplay}
+              />
+              <SessionCoachInsight
+                justification={session.justification}
+                physiologicalTarget={session.physiologicalTarget}
+                placementRationale={session.placementRationale}
+              />
+            </>
           )}
         </ScrollView>
       </View>

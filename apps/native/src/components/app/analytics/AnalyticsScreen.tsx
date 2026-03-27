@@ -9,7 +9,6 @@
  * 5. Health Metrics (HR, HRV, sleep, readiness)
  * 6. Stats Grid (2x2 summary)
  *
- * Gated behind placement runs (10 completed runs to unlock).
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -27,20 +26,14 @@ import {
   type TimeFrame,
 } from "@/components/shared/time-frame-selector";
 
-import { PlacementGate } from "./placement-gate";
 import { RunnerProfileCard } from "./runner-profile-card";
 import { PredictionCard } from "./prediction-card";
 import { PredictionTrendSheet } from "./prediction-trend-sheet";
 import { VolumeBarChart, type VolumeSelection } from "./volume-bar-chart";
 import { ZoneBreakdown } from "./ZoneBreakdown";
-import { ObjectiveSelector } from "./objective-selector";
 import { StatsGrid } from "./StatsGrid";
 import { HealthMetricsCard } from "./health-metrics-card";
 import { useAnalyticsData, getVolumeBarData } from "@/hooks/use-analytics-data";
-import {
-  OBJECTIVE_OPTIONS,
-  type RaceObjective,
-} from "./mock-data";
 
 function AnalyticsPlaceholder() {
   return (
@@ -76,12 +69,9 @@ function AnalyticsPlaceholder() {
 export function AnalyticsScreen() {
   const insets = useSafeAreaInsets();
   const isFocused = useIsFocused();
-  const { data, placement, isLoading, error } = useAnalyticsData();
+  const { data, isLoading, error } = useAnalyticsData();
 
   const smallChartFont = useFont(Outfit_400Regular, 9);
-
-  const [objective, setObjective] = useState<RaceObjective>("half");
-  const [devSkipGate, setDevSkipGate] = useState(false);
 
   const [volumeTimeFrame, setVolumeTimeFrame] = useState<TimeFrame>("3mo");
   const [volumeSelection, setVolumeSelection] = useState<VolumeSelection>(null);
@@ -109,11 +99,6 @@ export function AnalyticsScreen() {
     setTrendDistance(null);
   }, []);
 
-  const objectiveOption = useMemo(
-    () => OBJECTIVE_OPTIONS.find((o) => o.id === objective)!,
-    [objective]
-  );
-
   if (isLoading) {
     return (
       <View className="flex-1 bg-w2 items-center justify-center">
@@ -129,16 +114,6 @@ export function AnalyticsScreen() {
           Unable to load analytics data
         </Text>
       </View>
-    );
-  }
-
-  if (placement && !placement.isUnlocked && !devSkipGate) {
-    return (
-      <PlacementGate
-        completedRuns={placement.completedRuns}
-        threshold={placement.threshold}
-        onSkip={() => setDevSkipGate(true)}
-      />
     );
   }
 
@@ -158,20 +133,11 @@ export function AnalyticsScreen() {
             className="px-6 pb-5"
             style={{ paddingTop: insets.top + 12 }}
           >
-            <View className="flex-row items-center justify-between">
-              <Text
-                className="text-[28px] font-coach-bold text-g1"
-                style={{ letterSpacing: -0.03 * 28 }}
-              >
-                Analytics
-              </Text>
-              <ObjectiveSelector
-                selected={objective}
-                onSelect={setObjective}
-              />
-            </View>
-            <Text className="text-[14px] font-coach text-g3 mt-1">
-              {objectiveOption.planWeeks}-week {objectiveOption.label.toLowerCase()} plan
+            <Text
+              className="text-[28px] font-coach-bold text-g1"
+              style={{ letterSpacing: -0.03 * 28 }}
+            >
+              Analytics
             </Text>
           </View>
           <View
@@ -250,7 +216,6 @@ export function AnalyticsScreen() {
               <View className="mb-3">
                 <PredictionCard
                   predictions={data.predictions}
-                  objective={objective}
                   onTileTap={handlePredictionTap}
                 />
               </View>

@@ -1011,3 +1011,206 @@ export const getPlanScreenData = query({
     };
   },
 });
+
+// =============================================================================
+// Activity Detail Query (Phase 2 — Session Detail Actual Data)
+// =============================================================================
+
+/** Lap data returned to the frontend */
+const lapValidator = v.object({
+  avgHrBpm: v.optional(v.number()),
+  avgSpeedMps: v.optional(v.number()),
+  distanceMeters: v.optional(v.number()),
+  startTime: v.optional(v.string()),
+  endTime: v.optional(v.string()),
+});
+
+/** HR zone data returned to the frontend */
+const hrZoneValidator = v.object({
+  zone: v.optional(v.number()),
+  durationSeconds: v.optional(v.number()),
+  name: v.optional(v.string()),
+});
+
+/**
+ * Fetch activity detail for a completed session.
+ * Uses the session's completedActivityId + completedAt to find the matching
+ * Soma activity and return laps, HR zones, and movement data.
+ */
+export const getActivityForSession = query({
+  args: { sessionId: v.id("plannedSessions") },
+  returns: v.union(
+    v.null(),
+    v.object({
+      laps: v.array(lapValidator),
+      hrZones: v.array(hrZoneValidator),
+      avgHrBpm: v.optional(v.number()),
+      maxHrBpm: v.optional(v.number()),
+      avgPaceMinPerKm: v.optional(v.number()),
+      avgCadenceRpm: v.optional(v.number()),
+      elevationGainMeters: v.optional(v.number()),
+    })
+  ),
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) return null;
+
+    const session = await ctx.db.get(args.sessionId);
+    if (!session) return null;
+    if (!session.completedActivityId || !session.completedAt) return null;
+
+    // Verify ownership
+    const runner = await ctx.db
+      .query("runners")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .first();
+    if (!runner || session.runnerId !== runner._id) return null;
+
+    // Search activities in a ±3 hour window around completedAt
+    const windowMs = 3 * 60 * 60 * 1000;
+    const startTime = new Date(session.completedAt - windowMs).toISOString();
+    const endTime = new Date(session.completedAt + windowMs).toISOString();
+
+    const activities = await ctx.runQuery(
+      components.soma.public.listActivities,
+      {
+        userId: userId as string,
+        startTime,
+        endTime,
+        limit: 10,
+        order: "desc" as const,
+      }
+    );
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const activity = (activities as any[]).find(
+      (a) => a._id === session.completedActivityId
+    );
+    if (!activity) return null;
+
+    // Extract laps
+    const laps = (activity.lap_data?.laps ?? []).map(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (lap: any) => ({
+        avgHrBpm: lap.avg_hr_bpm ?? undefined,
+        avgSpeedMps: lap.avg_speed_meters_per_second ?? undefined,
+        distanceMeters: lap.distance_meters ?? undefined,
+        startTime: lap.start_time ?? undefined,
+        endTime: lap.end_time ?? undefined,
+      })
+    );
+
+    // Extract HR zones
+    const hrZones = (
+      activity.heart_rate_data?.summary?.hr_zone_data ?? []
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ).map((z: any) => ({
+      zone: z.zone ?? undefined,
+      durationSeconds: z.duration_seconds ?? undefined,
+      name: z.name ?? undefined,
+    }));
+
+    return {
+      laps,
+      hrZones,
+      avgHrBpm: activity.heart_rate_data?.summary?.avg_hr_bpm ?? undefined,
+      maxHrBpm: activity.heart_rate_data?.summary?.max_hr_bpm ?? undefined,
+      avgPaceMinPerKm:
+        activity.movement_data?.avg_pace_minutes_per_kilometer ?? undefined,
+      avgCadenceRpm: activity.movement_data?.avg_cadence_rpm ?? undefined,
+      elevationGainMeters:
+        activity.distance_data?.summary?.elevation?.gain_actual_meters ??
+        undefined,
+    };
+  },
+});
+
+// =============================================================================
+// Adjacent Sessions Query (Yesterday / Tomorrow Context)
+// =============================================================================
+
+/**
+ * Get the sessions immediately before and after a given session.
+ * Used by the "Yesterday / Tomorrow" context card.
+ */
+export const getAdjacentSessions = query({
+  args: { sessionId: v.id("plannedSessions") },
+  returns: v.union(
+    v.null(),
+    v.object({
+      yesterday: v.union(
+        v.null(),
+        v.object({
+          sessionTypeDisplay: v.string(),
+          targetDistanceMeters: v.optional(v.number()),
+          isRestDay: v.boolean(),
+          status: v.string(),
+        })
+      ),
+      tomorrow: v.union(
+        v.null(),
+        v.object({
+          sessionTypeDisplay: v.string(),
+          targetDistanceMeters: v.optional(v.number()),
+          isRestDay: v.boolean(),
+          status: v.string(),
+        })
+      ),
+    })
+  ),
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) return null;
+
+    const session = await ctx.db.get(args.sessionId);
+    if (!session) return null;
+
+    const runner = await ctx.db
+      .query("runners")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .first();
+    if (!runner || session.runnerId !== runner._id) return null;
+
+    const dayMs = 24 * 60 * 60 * 1000;
+    const yesterdayStart = session.scheduledDate - dayMs;
+    const tomorrowEnd = session.scheduledDate + 2 * dayMs;
+
+    // Fetch sessions in a 3-day window
+    const nearby = await ctx.db
+      .query("plannedSessions")
+      .withIndex("by_date", (q) =>
+        q
+          .eq("runnerId", runner._id)
+          .gte("scheduledDate", yesterdayStart)
+          .lt("scheduledDate", tomorrowEnd)
+      )
+      .collect();
+
+    // Find yesterday and tomorrow (closest sessions in those date ranges)
+    let yesterday = null;
+    let tomorrow = null;
+
+    for (const s of nearby) {
+      if (s._id === session._id) continue;
+      if (s.scheduledDate < session.scheduledDate) {
+        yesterday = {
+          sessionTypeDisplay: s.sessionTypeDisplay,
+          targetDistanceMeters: s.targetDistanceMeters,
+          isRestDay: s.isRestDay,
+          status: s.status,
+        };
+      } else if (s.scheduledDate > session.scheduledDate) {
+        if (!tomorrow) {
+          tomorrow = {
+            sessionTypeDisplay: s.sessionTypeDisplay,
+            targetDistanceMeters: s.targetDistanceMeters,
+            isRestDay: s.isRestDay,
+            status: s.status,
+          };
+        }
+      }
+    }
+
+    return { yesterday, tomorrow };
+  },
+});

@@ -1,4 +1,6 @@
-import { View } from "react-native";
+import { useState } from "react";
+import { View, Pressable } from "react-native";
+import { ChevronDown } from "lucide-react-native";
 import { Text } from "@/components/ui/text";
 import { COLORS, LIGHT_THEME, FONT_WEIGHTS, CARD_SHADOW } from "@/lib/design-tokens";
 
@@ -6,7 +8,7 @@ export interface SessionCoachInsightProps {
   justification: string;
   physiologicalTarget: string;
   placementRationale?: string;
-  keyPoints?: string[];
+  defaultExpanded?: boolean;
 }
 
 const PHYSIO_LABELS: Record<string, string> = {
@@ -22,77 +24,93 @@ export function SessionCoachInsight({
   justification,
   physiologicalTarget,
   placementRationale,
-  keyPoints,
+  defaultExpanded = false,
 }: SessionCoachInsightProps) {
+  const [expanded, setExpanded] = useState(defaultExpanded);
   const physioLabel = PHYSIO_LABELS[physiologicalTarget] ?? physiologicalTarget;
 
   return (
     <View className="mb-4">
-      <Text
-        className="text-[11px] font-coach-semibold text-wSub uppercase px-1 mb-2.5"
-        style={{ letterSpacing: 0.55 }}
+      <Pressable
+        onPress={() => setExpanded((v) => !v)}
+        className="rounded-2xl bg-w1"
+        style={CARD_SHADOW}
       >
-        Coach Insight
-      </Text>
-
-      {/* Why this session */}
-      <View
-        className="mb-3"
-        style={{ padding: 18, paddingHorizontal: 20, borderRadius: 18, backgroundColor: COLORS.lime }}
-      >
-        <View className="flex-row items-center gap-[7px] mb-2.5">
-          <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: "#000000", opacity: 0.2 }} />
-          <Text style={{ fontSize: 11, fontFamily: FONT_WEIGHTS.semibold, color: "rgba(0,0,0,0.4)" }}>
-            Why This Session
-          </Text>
-        </View>
-        <Text style={{ fontSize: 15, fontFamily: FONT_WEIGHTS.medium, color: "#000000", lineHeight: 23 }}>
-          {justification}
-        </Text>
-      </View>
-
-      {/* Physiological target + placement */}
-      <View className="rounded-2xl bg-w1 p-4 mb-3" style={CARD_SHADOW}>
-        <View className="flex-row items-center gap-2.5 mb-2">
-          <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: COLORS.lime }} />
-          <Text style={{ fontSize: 13, fontFamily: FONT_WEIGHTS.semibold, color: LIGHT_THEME.wText }}>
-            {physioLabel}
-          </Text>
-        </View>
-        {placementRationale && (
-          <Text style={{ fontSize: 13, color: LIGHT_THEME.wSub, lineHeight: 19 }}>
-            {placementRationale}
-          </Text>
-        )}
-      </View>
-
-      {/* Key points */}
-      {keyPoints && keyPoints.length > 0 && (
-        <View className="rounded-2xl bg-w1" style={{ padding: 16, paddingHorizontal: 18, ...CARD_SHADOW }}>
+        {/* Collapsed header — always visible */}
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            padding: 16,
+            paddingHorizontal: 18,
+          }}
+        >
+          <View
+            style={{
+              width: 8,
+              height: 8,
+              borderRadius: 4,
+              backgroundColor: COLORS.lime,
+              marginRight: 10,
+            }}
+          />
           <Text
-            style={{ fontSize: 12, fontFamily: FONT_WEIGHTS.semibold, color: LIGHT_THEME.wMute, textTransform: "uppercase", letterSpacing: 0.55, marginBottom: 10 }}
+            style={{
+              fontSize: 13,
+              fontFamily: FONT_WEIGHTS.semibold,
+              color: LIGHT_THEME.wText,
+              flex: 1,
+            }}
           >
-            Focus Points
+            Coach Insight · {physioLabel}
           </Text>
-          {keyPoints.map((point, i) => (
-            <View
-              key={i}
+          <View
+            style={{
+              transform: [{ rotate: expanded ? "180deg" : "0deg" }],
+            }}
+          >
+            <ChevronDown size={18} color={LIGHT_THEME.wMute} />
+          </View>
+        </View>
+
+        {/* Expanded content */}
+        {expanded && (
+          <View
+            style={{
+              paddingHorizontal: 18,
+              paddingBottom: 16,
+              borderTopWidth: 1,
+              borderTopColor: LIGHT_THEME.wBrd,
+            }}
+          >
+            {/* Justification */}
+            <Text
               style={{
-                flexDirection: "row",
-                alignItems: "flex-start",
-                gap: 10,
-                paddingVertical: 6,
-                borderBottomWidth: i < keyPoints.length - 1 ? 1 : 0,
-                borderBottomColor: LIGHT_THEME.wBrd,
+                fontSize: 14,
+                color: LIGHT_THEME.wText,
+                lineHeight: 21,
+                marginTop: 14,
               }}
             >
-              <Text style={{ fontSize: 14, color: LIGHT_THEME.wText, lineHeight: 20, flex: 1 }}>
-                {point}
+              {justification}
+            </Text>
+
+            {/* Placement rationale */}
+            {placementRationale && (
+              <Text
+                style={{
+                  fontSize: 13,
+                  color: LIGHT_THEME.wSub,
+                  lineHeight: 19,
+                  marginTop: 10,
+                }}
+              >
+                {placementRationale}
               </Text>
-            </View>
-          ))}
-        </View>
-      )}
+            )}
+          </View>
+        )}
+      </Pressable>
     </View>
   );
 }

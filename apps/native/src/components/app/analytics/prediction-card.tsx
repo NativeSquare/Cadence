@@ -12,7 +12,6 @@ import { LIGHT_THEME } from "@/lib/design-tokens";
 import {
   MOCK_PREDICTIONS,
   type RacePrediction,
-  type RaceObjective,
 } from "./mock-data";
 
 const CARD_SHADOW = {
@@ -30,7 +29,6 @@ const COLUMN_GAP = 8;
 
 interface PredictionCardProps {
   predictions?: RacePrediction[];
-  objective?: RaceObjective;
   onTileTap?: (distance: string) => void;
 }
 
