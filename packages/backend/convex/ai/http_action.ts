@@ -4,7 +4,7 @@ import { Seshat } from "@nativesquare/seshat";
 import { httpAction } from "../_generated/server";
 import { api, components, internal } from "../_generated/api";
 import { ConvexError } from "convex/values";
-import { tools as uiTools } from "./tools";
+import { uiTools, actionTools } from "./tools";
 import { buildSystemPrompt } from "./prompts/onboarding_coach";
 import { buildCoachOSPrompt } from "./prompts/coach_os";
 
@@ -239,10 +239,11 @@ export const streamChat = httpAction(async (ctx, request) => {
   console.log(`[AI] Stream request started [${requestId}]`);
 
   try {
-    const [user, runner, providers] = await Promise.all([
+    const [user, runner, providers, upcomingSessions] = await Promise.all([
       ctx.runQuery(api.table.users.currentUser, {}),
       ctx.runQuery(api.table.runners.getCurrentRunner, {}),
       ctx.runQuery(api.integrations.connections.getConnectedProviders, {}),
+      ctx.runQuery(api.training.queries.getUpcomingSessions, {}),
     ]);
 
     if (!user) {
@@ -278,9 +279,11 @@ export const streamChat = httpAction(async (ctx, request) => {
 
     const systemPrompt = isOnboarding
       ? buildSystemPrompt(runner, providers)
-      : buildCoachOSPrompt(runner, providers, memoryContext);
+      : buildCoachOSPrompt(runner, providers, memoryContext, upcomingSessions);
 
-    const allTools = { ...uiTools, ...memoryTools };
+    const allTools = isOnboarding
+      ? { ...uiTools, ...memoryTools }
+      : { ...uiTools, ...actionTools, ...memoryTools };
 
     const result = streamText({
       model: openai("gpt-4o"),

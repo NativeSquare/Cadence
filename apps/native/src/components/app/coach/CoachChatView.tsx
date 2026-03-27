@@ -16,6 +16,8 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BottomSheetModal as GorhomBottomSheetModal } from "@gorhom/bottom-sheet";
+import { useMutation } from "convex/react";
+import { api } from "@packages/backend/convex/_generated/api";
 import { ChatHeader } from "./ChatHeader";
 import { ChatMessage as ChatMessageBubble } from "./ChatMessage";
 import { ChatErrorCard } from "./ChatErrorCard";
@@ -23,10 +25,12 @@ import { TypingIndicator } from "./TypingIndicator";
 import { ChatInput } from "./ChatInput";
 import { VoiceRecorder } from "./VoiceRecorder";
 import { CoachEmptyState } from "./CoachEmptyState";
+import { CoachToolRenderer } from "./CoachToolRenderer";
 import { UploadMediaBottomSheetModal } from "@/components/shared/upload-media-bottom-sheet-modal";
 import { useAIChat, type ChatMessage } from "@/hooks/use-ai-chat";
 import { useUploadImage } from "@/hooks/use-upload-image";
 import type { PendingAttachment } from "./types";
+import type { RescheduleProposal, SwapProposal, SkipProposal } from "./actions";
 
 export interface CoachChatViewProps {
   conversationId: string;
@@ -72,6 +76,12 @@ export function CoachChatView({
     initialMessages: stableInitialMessages,
     onComplete: persistAssistantMessage,
   });
+
+  // Convex mutations for action tools
+  const rescheduleSession = useMutation(api.training.actionMutations.rescheduleSession);
+  const modifySession = useMutation(api.training.actionMutations.modifySession);
+  const swapSessions = useMutation(api.training.actionMutations.swapSessions);
+  const skipSession = useMutation(api.training.actionMutations.skipSession);
 
   // Voice recording state
   const [inputValue, setInputValue] = useState(initialPrompt ?? "");
@@ -139,6 +149,95 @@ export function CoachChatView({
     },
     [isStreaming, sendMessage, persistUserMessage]
   );
+
+  // =========================================================================
+  // Action Tool Handlers
+  // =========================================================================
+
+  /** Execute the correct mutation based on the action tool name */
+  const handleExecuteMutation = useCallback(
+    async (toolName: string, args: unknown): Promise<{ success: boolean; error?: string }> => {
+      try {
+        switch (toolName) {
+          case "proposeRescheduleSession": {
+            const p = args as RescheduleProposal;
+            return await rescheduleSession({
+              sessionId: p.sessionId as any,
+              newDate: new Date(p.proposedDate).getTime(),
+              expectedCurrentDate: new Date(p.currentDate).getTime(),
+              reason: p.reason,
+            });
+          }
+          case "proposeModifySession": {
+            const p = args as { sessionId: string; changes: Array<{ field: string; newValue: string }>; reason: string };
+            // Build the changes object from the field/value pairs
+            const changes: Record<string, any> = {};
+            for (const c of p.changes) {
+              changes[c.field] = c.newValue;
+            }
+            return await modifySession({
+              sessionId: p.sessionId as any,
+              changes,
+              reason: p.reason,
+            });
+          }
+          case "proposeSwapSessions": {
+            const p = args as SwapProposal;
+            return await swapSessions({
+              sessionAId: p.sessionA.sessionId as any,
+              sessionBId: p.sessionB.sessionId as any,
+              expectedDateA: new Date(p.sessionA.date).getTime(),
+              expectedDateB: new Date(p.sessionB.date).getTime(),
+              reason: p.reason,
+            });
+          }
+          case "proposeSkipSession": {
+            const p = args as SkipProposal;
+            return await skipSession({
+              sessionId: p.sessionId as any,
+              reason: p.reason,
+            });
+          }
+          default:
+            return { success: false, error: `Unknown action: ${toolName}` };
+        }
+      } catch (err) {
+        return {
+          success: false,
+          error: err instanceof Error ? err.message : "Something went wrong",
+        };
+      }
+    },
+    [rescheduleSession, modifySession, swapSessions, skipSession],
+  );
+
+  /** Send confirmation back to LLM so it can acknowledge */
+  const handleActionAccepted = useCallback(
+    (toolName: string, args: unknown) => {
+      const name = (args as { sessionName?: string })?.sessionName ?? "session";
+      persistUserMessage(`[Confirmed: ${toolName} for ${name}]`);
+      sendMessage(`I confirmed the change to ${name}.`);
+    },
+    [sendMessage, persistUserMessage],
+  );
+
+  /** Send rejection back to LLM so it can offer alternatives */
+  const handleActionRejected = useCallback(
+    (toolName: string, args: unknown) => {
+      const name = (args as { sessionName?: string })?.sessionName ?? "session";
+      persistUserMessage(`[Declined: ${toolName} for ${name}]`);
+      sendMessage(`I declined the change to ${name}.`);
+    },
+    [sendMessage, persistUserMessage],
+  );
+
+  // =========================================================================
+  // Helpers
+  // =========================================================================
+
+  /** Check if a tool-call part is an action tool */
+  const isActionTool = (toolName: string) =>
+    toolName.startsWith("propose");
 
   const handleMicPress = useCallback(() => {
     setIsRecording(true);
@@ -224,18 +323,47 @@ export function CoachChatView({
             contentContainerStyle={{ paddingBottom: 20 }}
           >
             {messages.map((message) => {
+              // Extract action tool calls from assistant message parts
+              const actionParts =
+                message.role === "assistant"
+                  ? message.parts.filter(
+                      (p) => p.type === "tool-call" && isActionTool(p.toolName),
+                    )
+                  : [];
+
+              // Skip assistant messages with no text and no action tools
               if (
                 message.role === "assistant" &&
-                !message.content
+                !message.content &&
+                actionParts.length === 0
               ) {
                 return null;
               }
+
               return (
-                <ChatMessageBubble
-                  key={message.id}
-                  message={message}
-                  isCoach={message.role === "assistant"}
-                />
+                <View key={message.id}>
+                  {/* Text bubble (only if there's text content) */}
+                  {message.content ? (
+                    <ChatMessageBubble
+                      message={message}
+                      isCoach={message.role === "assistant"}
+                    />
+                  ) : null}
+
+                  {/* Action tool cards (inline after text) */}
+                  {actionParts.map((part: any) => (
+                    <CoachToolRenderer
+                      key={part.toolCallId}
+                      toolName={part.toolName}
+                      toolCallId={part.toolCallId}
+                      state={message.isStreaming ? "streaming" : "call"}
+                      args={part.args}
+                      executeMutation={handleExecuteMutation}
+                      onAccepted={handleActionAccepted}
+                      onRejected={handleActionRejected}
+                    />
+                  ))}
+                </View>
               );
             })}
 

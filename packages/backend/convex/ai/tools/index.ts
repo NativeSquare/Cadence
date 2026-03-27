@@ -163,15 +163,30 @@ export const renderConnectionCard = tool({
 });
 
 /**
- * Tool registry for AI SDK streamText
+ * UI tool registry (onboarding + general UI interactions)
  */
-export const tools = {
+export const uiTools = {
   renderMultipleChoice,
   renderOpenInput,
   renderConfirmation,
   renderVoiceInput,
   renderProgress,
   renderConnectionCard,
+};
+
+/**
+ * Action tools (coach proposals that mutate data after user confirmation)
+ */
+export { actionTools } from "./actions";
+
+/**
+ * Combined tool registry for AI SDK streamText
+ */
+import { actionTools } from "./actions";
+
+export const tools = {
+  ...uiTools,
+  ...actionTools,
 };
 
 export type ToolName = keyof typeof tools;

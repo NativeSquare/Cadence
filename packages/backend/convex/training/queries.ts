@@ -1214,3 +1214,75 @@ export const getAdjacentSessions = query({
     return { yesterday, tomorrow };
   },
 });
+
+// =============================================================================
+// Upcoming Sessions (for AI Coach context)
+// =============================================================================
+
+/**
+ * Fetch the next 14 days of sessions for the authenticated runner.
+ * Used to inject schedule context into the AI coach's system prompt
+ * so it can propose changes with full awareness of the runner's plan.
+ */
+export const getUpcomingSessions = query({
+  args: {},
+  returns: v.union(
+    v.null(),
+    v.array(
+      v.object({
+        _id: v.id("plannedSessions"),
+        scheduledDate: v.number(),
+        dayOfWeek: v.string(),
+        dayOfWeekShort: v.string(),
+        sessionType: v.string(),
+        sessionTypeDisplay: v.string(),
+        targetDurationDisplay: v.string(),
+        effortDisplay: v.string(),
+        isKeySession: v.boolean(),
+        isRestDay: v.boolean(),
+        isMoveable: v.boolean(),
+        status: v.string(),
+        description: v.string(),
+      })
+    )
+  ),
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) return null;
+
+    const runner = await ctx.db
+      .query("runners")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .first();
+    if (!runner) return null;
+
+    const now = Date.now();
+    const fourteenDaysMs = 14 * 24 * 60 * 60 * 1000;
+
+    const sessions = await ctx.db
+      .query("plannedSessions")
+      .withIndex("by_date", (q) =>
+        q
+          .eq("runnerId", runner._id)
+          .gte("scheduledDate", now)
+          .lt("scheduledDate", now + fourteenDaysMs)
+      )
+      .collect();
+
+    return sessions.map((s) => ({
+      _id: s._id,
+      scheduledDate: s.scheduledDate,
+      dayOfWeek: s.dayOfWeek,
+      dayOfWeekShort: s.dayOfWeekShort,
+      sessionType: s.sessionType,
+      sessionTypeDisplay: s.sessionTypeDisplay,
+      targetDurationDisplay: s.targetDurationDisplay,
+      effortDisplay: s.effortDisplay,
+      isKeySession: s.isKeySession,
+      isRestDay: s.isRestDay,
+      isMoveable: s.isMoveable,
+      status: s.status,
+      description: s.description,
+    }));
+  },
+});

@@ -8,13 +8,33 @@ type ConnectedProviders = {
   healthkit: { connected: boolean };
 } | null;
 
+interface UpcomingSession {
+  _id: string;
+  scheduledDate: number;
+  dayOfWeek: string;
+  dayOfWeekShort: string;
+  sessionType: string;
+  sessionTypeDisplay: string;
+  targetDurationDisplay: string;
+  effortDisplay: string;
+  isKeySession: boolean;
+  isRestDay: boolean;
+  isMoveable: boolean;
+  status: string;
+  description: string;
+}
+
 export function buildCoachOSPrompt(
   runner: Runner,
   providers: ConnectedProviders | null,
   memoryContext: string,
+  upcomingSessions?: UpcomingSession[] | null,
 ): string {
   const runnerProfile = runner ? buildRunnerProfile(runner, providers) : "";
   const coachingStyle = runner?.coaching?.coachingVoice ?? "encouraging";
+  const sessionContext = upcomingSessions?.length
+    ? buildSessionContext(upcomingSessions)
+    : "";
 
   return `${PERSONA}
 
@@ -24,10 +44,14 @@ ${MEMORY_TOOL_INSTRUCTIONS}
 
 ${UI_TOOL_INSTRUCTIONS}
 
+${ACTION_TOOL_INSTRUCTIONS}
+
 ${CONVERSATION_RULES}
 
 ## Runner Profile
 ${runnerProfile || "No runner profile available yet."}
+
+${sessionContext}
 
 ${memoryContext}`;
 }
@@ -103,6 +127,24 @@ const UI_TOOL_INSTRUCTIONS = `## Interactive Tools
 - renderConnectionCard: To offer wearable/data source connections
 
 Use interactive tools when they improve the experience, but don't over-use them — conversation should feel natural.`;
+
+const ACTION_TOOL_INSTRUCTIONS = `## Action Tools (Schedule & Session Changes)
+When the runner asks to change their schedule or modify sessions, use these proposal tools. Each one renders a confirmation card — the runner must accept before changes are applied.
+
+- **proposeRescheduleSession**: Move a session to a different date. Include the session ID, both dates, and a clear reason.
+- **proposeModifySession**: Change session details (type, duration, effort, pace). Provide a list of changes with old/new values.
+- **proposeSwapSessions**: Swap two sessions' dates (e.g., swap Thursday's tempo with Friday's easy run).
+- **proposeSkipSession**: Skip a session with a reason and optional alternative.
+
+### Rules for Action Tools
+1. **One proposal at a time** — propose a single action, wait for acceptance or rejection before proposing the next
+2. **Always explain why** — include a clear reason so the runner understands the rationale
+3. **Use real session IDs** — reference sessions from the Upcoming Sessions context below
+4. **Respect isMoveable** — prefer moving sessions flagged as moveable; warn if moving a non-moveable session
+5. **After rejection** — ask the runner what they'd prefer instead
+6. **After acceptance** — acknowledge the change naturally and briefly
+7. **Don't propose changes to completed or skipped sessions**
+8. **Consider downstream impact** — if moving a hard session next to another hard session, note the recovery concern`;
 
 const CONVERSATION_RULES = `## Conversation Rules
 1. ONE TOPIC AT A TIME: Don't overwhelm with multiple questions
@@ -193,4 +235,24 @@ function formatDuration(seconds: number): string {
     return `${hours}:${minutes.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   }
   return `${minutes}:${secs.toString().padStart(2, "0")}`;
+}
+
+function buildSessionContext(sessions: UpcomingSession[]): string {
+  if (sessions.length === 0) return "";
+
+  const lines = sessions.map((s) => {
+    const date = new Date(s.scheduledDate);
+    const dateStr = date.toISOString().split("T")[0];
+    const flags: string[] = [];
+    if (s.isKeySession) flags.push("key session");
+    if (s.isMoveable) flags.push("moveable");
+    if (s.isRestDay) flags.push("rest day");
+    const flagStr = flags.length > 0 ? ` (${flags.join(", ")})` : "";
+    const statusStr = s.status !== "scheduled" ? ` [${s.status}]` : "";
+    return `- ${s.dayOfWeekShort} ${dateStr}: ${s.sessionTypeDisplay}, ${s.targetDurationDisplay}, effort ${s.effortDisplay}${flagStr}${statusStr} (ID: ${s._id})`;
+  });
+
+  return `## Upcoming Sessions (next 14 days)
+Use these session IDs when proposing changes with action tools.
+${lines.join("\n")}`;
 }

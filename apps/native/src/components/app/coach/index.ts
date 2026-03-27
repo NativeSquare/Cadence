@@ -13,5 +13,6 @@ export { ToolCard } from "./ToolCard";
 export { TypingIndicator } from "./TypingIndicator";
 export { ChatInput } from "./ChatInput";
 export { VoiceRecorder } from "./VoiceRecorder";
+export { CoachToolRenderer } from "./CoachToolRenderer";
 
 export * from "./types";
