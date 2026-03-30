@@ -55,11 +55,16 @@ const asString = { connectionId: v.string() };
 
 type WithConnection = { connectionId: unknown; userId: unknown };
 
+// Forces TypeScript to eagerly evaluate Omit into a flat object type
+// so the emitted .d.ts has concrete property listings instead of
+// Omit<{...huge type...}, K> which Convex's v.object() can't resolve.
+type Expand<T> = T extends infer O ? { [K in keyof O]: O[K] } : never;
+
 function stripConnection<T extends WithConnection>(
   validator: T,
-): Omit<T, "connectionId" | "userId"> {
+): Expand<Omit<T, "connectionId" | "userId">> {
   const { connectionId, userId, ...rest } = validator;
-  return rest as Omit<T, "connectionId" | "userId">;
+  return rest as unknown as Expand<Omit<T, "connectionId" | "userId">>;
 }
 
 // ─── Full validators (connectionId as v.string() + userId) ───────────────────

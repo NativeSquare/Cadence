@@ -1,20 +1,9 @@
 import { v } from "convex/values";
-import { internalMutation, internalQuery } from "./_generated/server.js";
+import { internalQuery } from "./_generated/server.js";
 
 // ─── Internal Connection Helpers ────────────────────────────────────────────
 // Used by component-internal operations (sync crons, data ingestion, etc.).
 // The host app should use the public API in public.ts instead.
-
-/**
- * Get all active connections (for sync scheduling).
- */
-export const getActiveConnections = internalQuery({
-  args: {},
-  handler: async (ctx) => {
-    const all = await ctx.db.query("connections").collect();
-    return all.filter((c) => c.active === true);
-  },
-});
 
 /**
  * Get a connection by userId + provider (internal).
@@ -55,17 +44,3 @@ export const getConnectionByProviderUserId = internalQuery({
   },
 });
 
-/**
- * Update the lastDataUpdate timestamp after a successful sync.
- */
-export const updateLastDataUpdate = internalMutation({
-  args: {
-    connectionId: v.id("connections"),
-    lastDataUpdate: v.string(),
-  },
-  handler: async (ctx, args) => {
-    await ctx.db.patch(args.connectionId, {
-      lastDataUpdate: args.lastDataUpdate,
-    });
-  },
-});

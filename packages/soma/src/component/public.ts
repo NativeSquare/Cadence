@@ -1,5 +1,6 @@
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
+import type { Doc } from "./_generated/dataModel.js";
 import { mutation, query } from "./_generated/server.js";
 import { activityValidator } from "./validators/activity.js";
 import { athleteValidator } from "./validators/athlete.js";
@@ -9,18 +10,6 @@ import { sleepValidator } from "./validators/sleep.js";
 import { menstruationValidator } from "./validators/menstruation.js";
 import { nutritionValidator } from "./validators/nutrition.js";
 import { plannedWorkoutValidator } from "./validators/plannedWorkout.js";
-
-// ─── Return Validators ──────────────────────────────────────────────────────
-
-const connectionDoc = v.object({
-  _id: v.id("connections"),
-  _creationTime: v.number(),
-  userId: v.string(),
-  provider: v.string(),
-  providerUserId: v.optional(v.string()),
-  active: v.optional(v.boolean()),
-  lastDataUpdate: v.optional(v.string()),
-});
 
 // ─── Connect / Disconnect ───────────────────────────────────────────────────
 
@@ -36,7 +25,6 @@ export const connect = mutation({
     provider: v.string(),
     providerUserId: v.optional(v.string()),
   },
-  returns: v.id("connections"),
   handler: async (ctx, args) => {
     const existing = await ctx.db
       .query("connections")
@@ -46,7 +34,7 @@ export const connect = mutation({
       .first();
 
     if (existing) {
-      const patch: Record<string, unknown> = {};
+      const patch: Partial<Doc<"connections">> = {};
       if (!existing.active) patch.active = true;
       if (args.providerUserId && !existing.providerUserId) {
         patch.providerUserId = args.providerUserId;
@@ -77,7 +65,6 @@ export const disconnect = mutation({
     userId: v.string(),
     provider: v.string(),
   },
-  returns: v.null(),
   handler: async (ctx, args) => {
     const existing = await ctx.db
       .query("connections")
@@ -104,7 +91,6 @@ export const disconnect = mutation({
  */
 export const getConnection = query({
   args: { connectionId: v.id("connections") },
-  returns: v.union(v.null(), connectionDoc),
   handler: async (ctx, args) => {
     return await ctx.db.get(args.connectionId);
   },
@@ -119,7 +105,6 @@ export const getConnectionByProvider = query({
     userId: v.string(),
     provider: v.string(),
   },
-  returns: v.union(v.null(), connectionDoc),
   handler: async (ctx, args) => {
     return await ctx.db
       .query("connections")
@@ -135,7 +120,6 @@ export const getConnectionByProvider = query({
  */
 export const listConnections = query({
   args: { userId: v.string() },
-  returns: v.array(connectionDoc),
   handler: async (ctx, args) => {
     return await ctx.db
       .query("connections")
@@ -154,7 +138,6 @@ export const updateConnection = mutation({
     active: v.optional(v.boolean()),
     lastDataUpdate: v.optional(v.string()),
   },
-  returns: v.null(),
   handler: async (ctx, args) => {
     const { connectionId, ...fields } = args;
     const existing = await ctx.db.get(connectionId);
@@ -174,7 +157,6 @@ export const updateConnection = mutation({
  */
 export const deleteConnection = mutation({
   args: { connectionId: v.id("connections") },
-  returns: v.null(),
   handler: async (ctx, args) => {
     const connection = await ctx.db.get(args.connectionId);
     if (!connection) {
@@ -201,7 +183,6 @@ export const deleteConnection = mutation({
  */
 export const ingestActivity = mutation({
   args: activityValidator,
-  returns: v.id("activities"),
   handler: async (ctx, args) => {
     const existing = await ctx.db
       .query("activities")
@@ -228,7 +209,6 @@ export const ingestActivity = mutation({
  */
 export const ingestSleep = mutation({
   args: sleepValidator,
-  returns: v.id("sleep"),
   handler: async (ctx, args) => {
     const summaryId = args.metadata.summary_id;
     if (summaryId) {
@@ -257,7 +237,6 @@ export const ingestSleep = mutation({
  */
 export const ingestBody = mutation({
   args: bodyValidator,
-  returns: v.id("body"),
   handler: async (ctx, args) => {
     const existing = await ctx.db
       .query("body")
@@ -284,7 +263,6 @@ export const ingestBody = mutation({
  */
 export const ingestDaily = mutation({
   args: dailyValidator,
-  returns: v.id("daily"),
   handler: async (ctx, args) => {
     const existing = await ctx.db
       .query("daily")
@@ -311,7 +289,6 @@ export const ingestDaily = mutation({
  */
 export const ingestNutrition = mutation({
   args: nutritionValidator,
-  returns: v.id("nutrition"),
   handler: async (ctx, args) => {
     const existing = await ctx.db
       .query("nutrition")
@@ -338,7 +315,6 @@ export const ingestNutrition = mutation({
  */
 export const ingestMenstruation = mutation({
   args: menstruationValidator,
-  returns: v.id("menstruation"),
   handler: async (ctx, args) => {
     return await ctx.db.insert("menstruation", args);
   },
@@ -351,7 +327,6 @@ export const ingestMenstruation = mutation({
  */
 export const ingestAthlete = mutation({
   args: athleteValidator,
-  returns: v.id("athletes"),
   handler: async (ctx, args) => {
     const existing = await ctx.db
       .query("athletes")
@@ -796,7 +771,6 @@ export const paginateMenstruation = query({
  */
 export const ingestPlannedWorkout = mutation({
   args: plannedWorkoutValidator,
-  returns: v.id("plannedWorkouts"),
   handler: async (ctx, args) => {
     const metadataId = args.metadata.id;
     if (metadataId) {
@@ -897,7 +871,6 @@ export const paginatePlannedWorkouts = query({
  */
 export const deletePlannedWorkout = mutation({
   args: { plannedWorkoutId: v.id("plannedWorkouts") },
-  returns: v.null(),
   handler: async (ctx, args) => {
     const existing = await ctx.db.get(args.plannedWorkoutId);
     if (!existing) {
