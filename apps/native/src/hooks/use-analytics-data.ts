@@ -130,6 +130,9 @@ export interface UseAnalyticsDataResult {
  * Hook to fetch and compute analytics data.
  * Queries the composite analytics endpoint plus placement, predictions,
  * and health metrics. Falls back to mock data when real data is unavailable.
+ *
+ * NOTE: Convex useQuery throws on server errors during render.
+ * The AnalyticsScreen must be wrapped in an error boundary to catch these.
  */
 export function useAnalyticsData(): UseAnalyticsDataResult {
   const radarResult = useQuery(

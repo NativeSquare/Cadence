@@ -1,3 +1,4 @@
+"use no memo";
 /**
  * Histogram Component - Interactive daily KM bar chart
  *

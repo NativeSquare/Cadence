@@ -1,3 +1,4 @@
+"use no memo";
 /**
  * VolumeLineChart - Strava-style line chart for volume over time
  *

@@ -1,3 +1,4 @@
+"use no memo";
 /**
  * StackedHistogram Component - Interactive zone split stacked bar charts
  *

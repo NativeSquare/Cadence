@@ -1,3 +1,4 @@
+"use no memo";
 /**
  * ActiveValueIndicator - Touch tooltip overlay for interactive charts
  *

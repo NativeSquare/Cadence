@@ -639,15 +639,21 @@ export const getAnalyticsScreenData = query({
     const oneYearAgo = new Date();
     oneYearAgo.setUTCFullYear(oneYearAgo.getUTCFullYear() - 1);
 
-    const rawActivities = await ctx.runQuery(
-      components.soma.public.listActivities,
-      {
-        userId: userId as string,
-        startTime: oneYearAgo.toISOString(),
-        order: "asc",
-      },
-    );
-    const activities = rawActivities as unknown as Activity[];
+    let activities: Activity[] = [];
+    try {
+      const rawActivities = await ctx.runQuery(
+        components.soma.public.listActivities,
+        {
+          userId: userId as string,
+          startTime: oneYearAgo.toISOString(),
+          order: "asc",
+        },
+      );
+      activities = rawActivities as unknown as Activity[];
+    } catch {
+      // Soma component unavailable or query failed — proceed with empty activities
+      console.warn("Failed to fetch activities from Soma, using empty list");
+    }
 
     // --- Fetch planned sessions (if plan exists) ---
     type SessionRow = {

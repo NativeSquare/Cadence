@@ -1,3 +1,4 @@
+"use no memo";
 /**
  * ZoneBreakdown - Strava-style horizontal zone distribution bars
  *
