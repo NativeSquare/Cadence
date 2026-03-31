@@ -145,7 +145,9 @@ export function WelcomeMock({
 
   // Phrase 1: Welcome greeting (2s delay to create moment of entry)
   const s1 = useStream({
-    text: `Welcome to the team, ${displayName}.`,
+    text: displayName
+      ? `Welcome to the team, ${displayName}.`
+      : "Welcome to the team.",
     speed: 32,
     delay: 2000,
     active: !showNameInput,
@@ -297,7 +299,9 @@ const styles = StyleSheet.create({
   },
   cadenceBold: {
     fontFamily: "Outfit-Bold",
-    fontSize: 32,
+    fontSize: 42,
+    lineHeight: 50,
+    color: GRAYS.g1,
     letterSpacing: -1.28,
   },
   subheadline: {

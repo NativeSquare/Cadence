@@ -13,6 +13,12 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
     Password({
       verify: ResendOTP,
       reset: ResendOTPPasswordReset,
+      profile(params) {
+        return {
+          email: params.email as string,
+          ...(params.name ? { name: params.name as string } : {}),
+        };
+      },
       crypto: {
         hashSecret: async (secret) => {
           return secret;

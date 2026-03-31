@@ -1,18 +1,29 @@
 import { VerifyEmailForm } from "@/components/blocks/verify-email-form";
+import { StatusBar } from "expo-status-bar";
 import { useLocalSearchParams } from "expo-router";
-import { ScrollView, View } from "react-native";
+import { View } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function VerifyEmailScreen() {
-  const { email } = useLocalSearchParams<{ email: string }>();
+  const { email, name } = useLocalSearchParams<{ email: string; name?: string }>();
+  const insets = useSafeAreaInsets();
+
   return (
-    <ScrollView
-      keyboardShouldPersistTaps="handled"
-      contentContainerClassName="sm:flex-1 items-center justify-center p-4 py-8 sm:py-4 sm:p-6 mt-safe"
-      keyboardDismissMode="interactive"
-    >
-      <View className="w-full max-w-sm">
-        <VerifyEmailForm email={email} />
-      </View>
-    </ScrollView>
+    <View style={{ flex: 1, backgroundColor: "#000" }}>
+      <StatusBar style="light" />
+      <KeyboardAwareScrollView
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
+        bottomOffset={20}
+        contentContainerStyle={{
+          flexGrow: 1,
+          paddingTop: insets.top + 8,
+          paddingBottom: Math.max(insets.bottom, 24),
+        }}
+      >
+        <VerifyEmailForm email={email} name={name} />
+      </KeyboardAwareScrollView>
+    </View>
   );
 }

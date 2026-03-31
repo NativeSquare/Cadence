@@ -5,10 +5,11 @@ import { getConvexErrorMessage } from "@/utils/getConvexErrorMessage";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { APP_SLUG } from "@packages/shared";
 import { makeRedirectUri } from "expo-auth-session";
+import { useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { openAuthSessionAsync } from "expo-web-browser";
 import * as React from "react";
-import { Platform, StyleSheet, View } from "react-native";
+import { Platform, Pressable, StyleSheet, View } from "react-native";
 import Animated, { FadeIn, FadeInUp } from "react-native-reanimated";
 import { GoogleButton, AppleButton } from "./oauth-buttons";
 import { CommunityPulse } from "./community-pulse";
@@ -16,6 +17,7 @@ import { CommunityPulse } from "./community-pulse";
 export function SignInCard() {
   const redirectTo = makeRedirectUri();
   const { signIn } = useAuthActions();
+  const router = useRouter();
   const [loadingProvider, setLoadingProvider] = React.useState<string | null>(
     null,
   );
@@ -119,6 +121,13 @@ export function SignInCard() {
         </Animated.View>
       </View>
 
+      {/* Email fallback */}
+      <Animated.View entering={FadeIn.duration(500).delay(350)}>
+        <Pressable onPress={() => router.navigate("/email-auth")}>
+          <Text style={styles.emailLink}>Continue with email</Text>
+        </Pressable>
+      </Animated.View>
+
       {/* Legal */}
       <Animated.Text
         entering={FadeIn.duration(500).delay(400)}
@@ -166,7 +175,15 @@ const styles = StyleSheet.create({
   buttonsContainer: {
     width: "100%",
     gap: 10,
-    marginBottom: 24,
+    marginBottom: 16,
+  },
+  emailLink: {
+    fontFamily: "Outfit-Regular",
+    fontSize: 13,
+    color: GRAYS.g4,
+    textAlign: "center",
+    textDecorationLine: "underline",
+    marginBottom: 16,
   },
   error: {
     fontFamily: "Outfit-Regular",

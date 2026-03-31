@@ -24,14 +24,18 @@ import z from "zod";
 
 export function SignUpForm() {
   const { colorScheme } = useColorScheme();
+  const nameInputRef = React.useRef<TextInput>(null);
+  const emailInputRef = React.useRef<TextInput>(null);
   const passwordInputRef = React.useRef<TextInput>(null);
   const confirmPasswordInputRef = React.useRef<TextInput>(null);
+  const [name, setName] = React.useState("");
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [confirmPassword, setConfirmPassword] = React.useState("");
   const [acceptTerms, setAcceptTerms] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
   const [fieldErrors, setFieldErrors] = React.useState<{
+    name?: string;
     email?: string;
     password?: string;
     confirmPassword?: string;
@@ -40,6 +44,10 @@ export function SignUpForm() {
   const [formError, setFormError] = React.useState<string | null>(null);
   const router = useRouter();
   const { signIn } = useAuthActions();
+
+  function onNameSubmitEditing() {
+    emailInputRef.current?.focus();
+  }
 
   function onEmailSubmitEditing() {
     passwordInputRef.current?.focus();
@@ -55,6 +63,7 @@ export function SignUpForm() {
 
     // Field Validation
     const result = SignUpSchema.safeParse({
+      name,
       email,
       password,
       confirmPassword,
@@ -64,6 +73,7 @@ export function SignUpForm() {
       const tree = z.treeifyError(result.error);
 
       setFieldErrors({
+        name: tree.properties?.name?.errors?.[0],
         email: tree.properties?.email?.errors?.[0],
         password: tree.properties?.password?.errors?.[0],
         confirmPassword: tree.properties?.confirmPassword?.errors?.[0],
@@ -77,6 +87,7 @@ export function SignUpForm() {
     setIsLoading(true);
     try {
       const { signingIn } = await signIn("password", {
+        name,
         email,
         password,
         flow: "signUp",
@@ -111,8 +122,29 @@ export function SignUpForm() {
         <CardContent className="gap-6">
           <View className="gap-6">
             <View className="gap-1.5">
+              <Label htmlFor="name">Name</Label>
+              <Input
+                ref={nameInputRef}
+                id="name"
+                placeholder="Your name"
+                autoComplete="name"
+                autoCapitalize="words"
+                returnKeyType="next"
+                submitBehavior="submit"
+                onSubmitEditing={onNameSubmitEditing}
+                value={name}
+                onChangeText={setName}
+              />
+              {fieldErrors.name && (
+                <Text className="text-xs text-destructive mt-1">
+                  {fieldErrors.name}
+                </Text>
+              )}
+            </View>
+            <View className="gap-1.5">
               <Label htmlFor="email">Email</Label>
               <Input
+                ref={emailInputRef}
                 id="email"
                 placeholder="m@example.com"
                 keyboardType="email-address"

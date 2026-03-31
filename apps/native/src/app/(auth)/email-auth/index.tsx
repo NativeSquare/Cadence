@@ -1,10 +1,10 @@
-import { ForgotPasswordForm } from "@/components/blocks/forgot-password-form";
+import { EmailAuthForm } from "@/components/blocks/email-auth-form";
 import { StatusBar } from "expo-status-bar";
 import { View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-export default function ForgotPasswordScreen() {
+export default function EmailAuthScreen() {
   const insets = useSafeAreaInsets();
 
   return (
@@ -20,7 +20,7 @@ export default function ForgotPasswordScreen() {
           paddingBottom: Math.max(insets.bottom, 24),
         }}
       >
-        <ForgotPasswordForm />
+        <EmailAuthForm />
       </KeyboardAwareScrollView>
     </View>
   );
