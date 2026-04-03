@@ -1,63 +1,17 @@
 /**
- * useGarmin - Hook for connecting to Garmin via the Soma component (v0.6.0).
+ * useGarmin - Hook for connecting to Garmin via server-side OAuth (Soma v0.9.4).
  *
- * Uses the Garmin OAuth 2.0 flow via useGarminAuth. The native app
- * handles the OAuth redirect and code exchange with PKCE, then calls
- * the backend to complete the connection and initial data sync.
+ * Wraps useGarminAuth with status tracking. The OAuth flow and initial
+ * data sync happen server-side during the in-app browser session.
  */
 
 import { useState, useCallback } from "react";
 import { useGarminAuth } from "./use-garmin-auth";
 
 export type GarminSyncStatus = {
-  phase: "idle" | "connecting" | "syncing" | "complete" | "error";
+  phase: "idle" | "connecting" | "complete" | "error";
   message: string;
-  synced?: {
-    activities: number;
-    dailies: number;
-    sleep: number;
-    body: number;
-    menstruation: number;
-  };
 };
-
-export type GarminResult = {
-  connectionId: string;
-  synced: {
-    activities: number;
-    dailies: number;
-    sleep: number;
-    body: number;
-    menstruation: number;
-  };
-};
-
-function extractErrorMessage(err: unknown): string {
-  if (!(err instanceof Error)) {
-    return "Failed to connect to Garmin";
-  }
-
-  const message = err.message;
-
-  if (message.includes("Uncaught")) {
-    const match = message.match(/Uncaught (\w+Error): (.+?)(?:\n|$)/);
-    if (match) {
-      return match[2].trim();
-    }
-  }
-
-  if (message.includes("code") && message.includes("message")) {
-    try {
-      const parsed = JSON.parse(message);
-      if (parsed.message) return parsed.message;
-    } catch {
-      // Not JSON, continue
-    }
-  }
-
-  const firstLine = message.split("\n")[0];
-  return firstLine || "Failed to connect to Garmin";
-}
 
 export function useGarmin() {
   const garminAuth = useGarminAuth();
@@ -69,7 +23,7 @@ export function useGarmin() {
     message: "",
   });
 
-  const connect = useCallback(async (): Promise<GarminResult | null> => {
+  const connect = useCallback(async (): Promise<boolean> => {
     setIsConnecting(true);
     setError(null);
     setSyncStatus({
@@ -78,43 +32,28 @@ export function useGarmin() {
     });
 
     try {
-      setSyncStatus({
-        phase: "syncing",
-        message: "Syncing data from Garmin...",
-      });
+      const success = await garminAuth.connect();
 
-      const result = await garminAuth.connect();
-
-      if (!result) {
+      if (!success) {
         if (garminAuth.error) {
           throw new Error(garminAuth.error);
         }
         setSyncStatus({ phase: "idle", message: "" });
-        return null;
+        return false;
       }
-
-      const totalSynced =
-        result.synced.activities +
-        result.synced.dailies +
-        result.synced.sleep +
-        result.synced.body +
-        result.synced.menstruation;
 
       setSyncStatus({
         phase: "complete",
-        message: `Synced ${totalSynced} records from Garmin`,
-        synced: result.synced,
+        message: "Connected to Garmin",
       });
 
-      return {
-        connectionId: result.connectionId,
-        synced: result.synced,
-      };
+      return true;
     } catch (err) {
-      const message = extractErrorMessage(err);
+      const message =
+        err instanceof Error ? err.message : "Failed to connect to Garmin";
       setError(message);
       setSyncStatus({ phase: "error", message });
-      return null;
+      return false;
     } finally {
       setIsConnecting(false);
     }

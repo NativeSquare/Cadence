@@ -8,7 +8,7 @@
  */
 
 import { v } from "convex/values";
-import { internal } from "../../_generated/api";
+import { components, internal } from "../../_generated/api";
 import {
   internalAction,
   internalMutation,
@@ -197,10 +197,17 @@ export const simulateGarminActivityWebhook = internalAction({
         `\n  Firing webhook pipeline now...\n`,
     );
 
-    // Fire the exact same pipeline as a real Garmin webhook
+    // Simulate the two-phase registerRoutes flow:
+    // 1. Soma ingestion (same as registerRoutes calls internally)
     await ctx.runAction(
-      internal.integrations.garmin.webhook.processActivityWebhook,
+      components.soma.garmin.webhooks.handleGarminWebhookActivities,
       { payload },
+    );
+
+    // 2. Cadence session matching (same as the activities callback)
+    await ctx.runAction(
+      internal.integrations.garmin.webhook.handleActivityIngested,
+      { affectedUserIds: [args.userId] },
     );
 
     return {

@@ -1,28 +1,23 @@
 /**
  * Garmin Activity Webhook Handler
  *
- * Processes incoming Garmin webhook payloads:
- * 1. Delegates ingestion to Soma (which normalizes + stores the activity)
- * 2. Resolves Garmin userId → Cadence userId via garminUserMappings
- * 3. Matches the new activity to a planned session for today
- * 4. Marks the session as completed with actual metrics
- * 5. Sends a congratulatory push notification
+ * Called by Soma's registerRoutes after activity ingestion completes.
+ * Receives affected Cadence userIds and runs session matching:
+ * 1. For each affected user, matches the latest activity to a planned session
+ * 2. Marks the session as completed with actual metrics
+ * 3. Sends a congratulatory push notification
  */
 
-import { Soma } from "@nativesquare/soma";
 import { v } from "convex/values";
 import { components, internal } from "../../_generated/api";
 import {
   internalAction,
   internalMutation,
-  internalQuery,
 } from "../../_generated/server";
 import {
   transformSomaActivity,
   type SomaActivity,
 } from "../../lib/somaAdapter";
-
-const soma = new Soma(components.soma);
 
 // ─── Formatting helpers ──────────────────────────────────────────────────────
 
@@ -46,133 +41,41 @@ function fmtPace(sec?: number, meters?: number): string {
   return `${m}:${s.toString().padStart(2, "0")} /km`;
 }
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-interface GarminWebhookActivityItem {
-  userId: string;
-  summaryId: string;
-  [key: string]: unknown;
-}
-
-// ─── Webhook Entry Point ──────────────────────────────────────────────────────
+// ─── Webhook Callback Entry Point ─────────────────────────────────────────────
 
 /**
- * Process a Garmin activities webhook payload.
- *
- * Called from http.ts when Garmin POSTs to /api/garmin/webhook/activities.
+ * Called by the registerRoutes `activities` callback after Soma ingests
+ * Garmin activity data. Receives the Cadence userIds of affected users
+ * and runs session matching for each.
  */
-export const processActivityWebhook = internalAction({
-  args: { payload: v.any() },
+export const handleActivityIngested = internalAction({
+  args: { affectedUserIds: v.array(v.string()) },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const payload = args.payload;
-    const items: GarminWebhookActivityItem[] = Array.isArray(payload)
-      ? payload
-      : [];
-
     console.log(
       `\n${"═".repeat(60)}\n` +
-      `  GARMIN WEBHOOK RECEIVED\n` +
-      `  ${items.length} activit${items.length === 1 ? "y" : "ies"} in payload\n` +
+      `  GARMIN ACTIVITY INGESTED (via Soma)\n` +
+      `  ${args.affectedUserIds.length} affected user${args.affectedUserIds.length === 1 ? "" : "s"}\n` +
       `  ${new Date().toLocaleString()}\n` +
       `${"═".repeat(60)}`,
     );
 
-    for (const item of items) {
-      const dur = item.durationInSeconds as number | undefined;
-      const dist = item.distanceInMeters as number | undefined;
-      console.log(
-        `  ► Activity "${item.summaryId}"\n` +
-        `    garminUserId: ${item.userId}\n` +
-        `    type: ${item.activityType ?? "unknown"}  |  duration: ${fmtDuration(dur)}  |  distance: ${fmtKm(dist)}  |  pace: ${fmtPace(dur, dist)}\n` +
-        `    avgHR: ${item.averageHeartRateInBeatsPerMinute ?? "—"} bpm  |  maxHR: ${item.maxHeartRateInBeatsPerMinute ?? "—"} bpm`,
-      );
-    }
-
-    // ── Step 1: Soma ingestion ──────────────────────────────────────────────
-    console.log(`\n[Step 1/3] Sending payload to Soma for ingestion...`);
-    const garminApi = components.soma.garmin;
-    try {
-      await ctx.runAction(garminApi.handleGarminWebhookActivities, {
-        payload,
-      });
-      console.log(`[Step 1/3] ✓ Soma ingested ${items.length} activit${items.length === 1 ? "y" : "ies"} successfully`);
-    } catch (err) {
-      console.error(
-        `[Step 1/3] ✗ Soma ingestion error: ${err instanceof Error ? err.message : err}`,
-      );
-      console.log(`[Step 1/3]   Continuing to session matching anyway...`);
-    }
-
-    // ── Step 2: Extract Garmin userIds ───────────────────────────────────────
-    const garminUserIds = [
-      ...new Set(items.map((item) => item.userId).filter(Boolean)),
-    ];
-
-    if (garminUserIds.length === 0) {
-      console.log(`[Step 2/3] ✗ No userIds found in payload — nothing to match`);
-      return null;
-    }
-
-    console.log(
-      `\n[Step 2/3] Found ${garminUserIds.length} unique Garmin user${garminUserIds.length === 1 ? "" : "s"}: ${garminUserIds.join(", ")}`,
-    );
-
-    // ── Step 3: Resolve & match for each user ───────────────────────────────
-    for (const garminUserId of garminUserIds) {
-      console.log(`\n[Step 3/3] Resolving Garmin user "${garminUserId}" → Cadence user...`);
-
-      const mapping = await ctx.runQuery(
-        internal.integrations.garmin.webhook.lookupGarminMapping,
-        { garminUserId },
-      );
-
-      if (!mapping) {
-        console.warn(
-          `[Step 3/3] ✗ No mapping found in garminUserMappings — this Garmin user is not linked to any Cadence account. Skipping.`,
-        );
-        continue;
-      }
-
-      console.log(
-        `[Step 3/3] ✓ Mapped to Cadence user: ${mapping.cadenceUserId}`,
-      );
-      console.log(`[Step 3/3] Starting session matching...`);
+    for (const userId of args.affectedUserIds) {
+      console.log(`\n[Match] Running session matching for user ${userId}...`);
 
       await ctx.runMutation(
         internal.integrations.garmin.webhook.matchActivityToSession,
-        { cadenceUserId: mapping.cadenceUserId },
+        { cadenceUserId: userId as any },
       );
     }
 
     console.log(
       `\n${"═".repeat(60)}\n` +
-      `  WEBHOOK PROCESSING COMPLETE\n` +
+      `  SESSION MATCHING COMPLETE\n` +
       `${"═".repeat(60)}\n`,
     );
 
     return null;
-  },
-});
-
-// ─── Internal Helpers ─────────────────────────────────────────────────────────
-
-export const lookupGarminMapping = internalQuery({
-  args: { garminUserId: v.string() },
-  returns: v.union(
-    v.object({ cadenceUserId: v.id("users") }),
-    v.null(),
-  ),
-  handler: async (ctx, args) => {
-    const mapping = await ctx.db
-      .query("garminUserMappings")
-      .withIndex("by_garminUserId", (q) =>
-        q.eq("garminUserId", args.garminUserId),
-      )
-      .first();
-
-    if (!mapping) return null;
-    return { cadenceUserId: mapping.cadenceUserId };
   },
 });
 

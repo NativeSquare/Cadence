@@ -231,6 +231,7 @@ export declare const components: {
           name: string;
           next?: Array<{ fnHandle: string; name: string }>;
           oneBatchOnly?: boolean;
+          reset?: boolean;
         },
         {
           batchSize?: number;
@@ -528,225 +529,185 @@ export declare const components: {
   };
   soma: {
     garmin: {
-      completeGarminOAuth: FunctionReference<
-        "action",
-        "internal",
-        {
-          clientId: string;
-          clientSecret: string;
-          code: string;
-          redirectUri?: string;
-          state: string;
-        },
-        {
-          connectionId: string;
-          errors: Array<{ error: string; id: string; type: string }>;
-          synced: {
-            activities: number;
-            bloodPressures: number;
-            body: number;
-            dailies: number;
-            hrv: number;
-            menstruation: number;
-            pulseOx: number;
-            respiration: number;
-            skinTemp: number;
-            sleep: number;
-            stressDetails: number;
-            userMetrics: number;
-          };
-        }
-      >;
-      connectGarmin: FunctionReference<
-        "action",
-        "internal",
-        {
-          clientId: string;
-          clientSecret: string;
-          code: string;
-          codeVerifier: string;
-          redirectUri?: string;
-          userId: string;
-        },
-        {
-          connectionId: string;
-          errors: Array<{ error: string; id: string; type: string }>;
-          synced: {
-            activities: number;
-            bloodPressures: number;
-            body: number;
-            dailies: number;
-            hrv: number;
-            menstruation: number;
-            pulseOx: number;
-            respiration: number;
-            skinTemp: number;
-            sleep: number;
-            stressDetails: number;
-            userMetrics: number;
-          };
-        }
-      >;
-      disconnectGarmin: FunctionReference<
-        "action",
-        "internal",
-        { userId: string },
-        null
-      >;
-      getGarminAuthUrl: FunctionReference<
-        "action",
-        "internal",
-        { clientId: string; redirectUri?: string; userId?: string },
-        { authUrl: string; codeVerifier: string; state: string }
-      >;
-      handleGarminWebhookActivities: FunctionReference<
-        "action",
-        "internal",
-        { payload: any },
-        {
-          errors: Array<{ error: string; id: string; type: string }>;
-          processed: number;
-        }
-      >;
-      handleGarminWebhookBloodPressures: FunctionReference<
-        "action",
-        "internal",
-        { payload: any },
-        {
-          errors: Array<{ error: string; id: string; type: string }>;
-          processed: number;
-        }
-      >;
-      handleGarminWebhookBody: FunctionReference<
-        "action",
-        "internal",
-        { payload: any },
-        {
-          errors: Array<{ error: string; id: string; type: string }>;
-          processed: number;
-        }
-      >;
-      handleGarminWebhookDailies: FunctionReference<
-        "action",
-        "internal",
-        { payload: any },
-        {
-          errors: Array<{ error: string; id: string; type: string }>;
-          processed: number;
-        }
-      >;
-      handleGarminWebhookHRV: FunctionReference<
-        "action",
-        "internal",
-        { payload: any },
-        {
-          errors: Array<{ error: string; id: string; type: string }>;
-          processed: number;
-        }
-      >;
-      handleGarminWebhookMenstruation: FunctionReference<
-        "action",
-        "internal",
-        { payload: any },
-        {
-          errors: Array<{ error: string; id: string; type: string }>;
-          processed: number;
-        }
-      >;
-      handleGarminWebhookPulseOx: FunctionReference<
-        "action",
-        "internal",
-        { payload: any },
-        {
-          errors: Array<{ error: string; id: string; type: string }>;
-          processed: number;
-        }
-      >;
-      handleGarminWebhookRespiration: FunctionReference<
-        "action",
-        "internal",
-        { payload: any },
-        {
-          errors: Array<{ error: string; id: string; type: string }>;
-          processed: number;
-        }
-      >;
-      handleGarminWebhookSkinTemp: FunctionReference<
-        "action",
-        "internal",
-        { payload: any },
-        {
-          errors: Array<{ error: string; id: string; type: string }>;
-          processed: number;
-        }
-      >;
-      handleGarminWebhookSleeps: FunctionReference<
-        "action",
-        "internal",
-        { payload: any },
-        {
-          errors: Array<{ error: string; id: string; type: string }>;
-          processed: number;
-        }
-      >;
-      handleGarminWebhookStressDetails: FunctionReference<
-        "action",
-        "internal",
-        { payload: any },
-        {
-          errors: Array<{ error: string; id: string; type: string }>;
-          processed: number;
-        }
-      >;
-      handleGarminWebhookUserMetrics: FunctionReference<
-        "action",
-        "internal",
-        { payload: any },
-        {
-          errors: Array<{ error: string; id: string; type: string }>;
-          processed: number;
-        }
-      >;
-      pushPlannedWorkout: FunctionReference<
-        "action",
-        "internal",
-        {
-          clientId: string;
-          clientSecret: string;
-          plannedWorkoutId: string;
-          userId: string;
-          workoutProvider?: string;
-        },
-        { garminScheduleId: number | null; garminWorkoutId: number }
-      >;
-      syncGarmin: FunctionReference<
-        "action",
-        "internal",
-        {
-          clientId: string;
-          clientSecret: string;
-          endTimeInSeconds?: number;
-          startTimeInSeconds?: number;
-          userId: string;
-        },
-        {
-          errors: Array<{ error: string; id: string; type: string }>;
-          synced: {
-            activities: number;
-            bloodPressures: number;
-            body: number;
-            dailies: number;
-            hrv: number;
-            menstruation: number;
-            pulseOx: number;
-            respiration: number;
-            skinTemp: number;
-            sleep: number;
-            stressDetails: number;
-            userMetrics: number;
-          };
-        }
-      >;
+      public: {
+        completeGarminOAuth: FunctionReference<
+          "action",
+          "internal",
+          {
+            clientId: string;
+            clientSecret: string;
+            code: string;
+            redirectUri?: string;
+            state: string;
+          },
+          any
+        >;
+        connectGarmin: FunctionReference<
+          "action",
+          "internal",
+          {
+            clientId: string;
+            clientSecret: string;
+            code: string;
+            codeVerifier: string;
+            redirectUri?: string;
+            userId: string;
+          },
+          any
+        >;
+        disconnectGarmin: FunctionReference<
+          "action",
+          "internal",
+          { userId: string },
+          any
+        >;
+        getGarminAuthUrl: FunctionReference<
+          "action",
+          "internal",
+          { clientId: string; redirectUri?: string; userId?: string },
+          any
+        >;
+        pushPlannedWorkout: FunctionReference<
+          "action",
+          "internal",
+          {
+            clientId: string;
+            clientSecret: string;
+            plannedWorkoutId: string;
+            userId: string;
+            workoutProvider?: string;
+          },
+          any
+        >;
+        syncAllTypes: FunctionReference<
+          "action",
+          "internal",
+          {
+            accessToken: string;
+            connectionId: string;
+            uploadEndTimeInSeconds: number;
+            uploadStartTimeInSeconds: number;
+            userId: string;
+          },
+          any
+        >;
+        syncGarmin: FunctionReference<
+          "action",
+          "internal",
+          {
+            clientId: string;
+            clientSecret: string;
+            endTimeInSeconds?: number;
+            startTimeInSeconds?: number;
+            userId: string;
+          },
+          any
+        >;
+      };
+      webhooks: {
+        handleGarminWebhookActivities: FunctionReference<
+          "action",
+          "internal",
+          { payload: any },
+          any
+        >;
+        handleGarminWebhookActivityDetails: FunctionReference<
+          "action",
+          "internal",
+          { payload: any },
+          any
+        >;
+        handleGarminWebhookBloodPressures: FunctionReference<
+          "action",
+          "internal",
+          { payload: any },
+          any
+        >;
+        handleGarminWebhookBodyCompositions: FunctionReference<
+          "action",
+          "internal",
+          { payload: any },
+          any
+        >;
+        handleGarminWebhookDailies: FunctionReference<
+          "action",
+          "internal",
+          { payload: any },
+          any
+        >;
+        handleGarminWebhookEpochs: FunctionReference<
+          "action",
+          "internal",
+          { payload: any },
+          any
+        >;
+        handleGarminWebhookHealthSnapshot: FunctionReference<
+          "action",
+          "internal",
+          { payload: any },
+          any
+        >;
+        handleGarminWebhookHRVSummary: FunctionReference<
+          "action",
+          "internal",
+          { payload: any },
+          any
+        >;
+        handleGarminWebhookManuallyUpdatedActivities: FunctionReference<
+          "action",
+          "internal",
+          { payload: any },
+          any
+        >;
+        handleGarminWebhookMenstrualCycleTracking: FunctionReference<
+          "action",
+          "internal",
+          { payload: any },
+          any
+        >;
+        handleGarminWebhookMoveIQ: FunctionReference<
+          "action",
+          "internal",
+          { payload: any },
+          any
+        >;
+        handleGarminWebhookPulseOx: FunctionReference<
+          "action",
+          "internal",
+          { payload: any },
+          any
+        >;
+        handleGarminWebhookRespiration: FunctionReference<
+          "action",
+          "internal",
+          { payload: any },
+          any
+        >;
+        handleGarminWebhookSkinTemp: FunctionReference<
+          "action",
+          "internal",
+          { payload: any },
+          any
+        >;
+        handleGarminWebhookSleeps: FunctionReference<
+          "action",
+          "internal",
+          { payload: any },
+          any
+        >;
+        handleGarminWebhookStress: FunctionReference<
+          "action",
+          "internal",
+          { payload: any },
+          any
+        >;
+        handleGarminWebhookUserMetrics: FunctionReference<
+          "action",
+          "internal",
+          { payload: any },
+          any
+        >;
+      };
     };
     public: {
       connect: FunctionReference<
@@ -2133,47 +2094,52 @@ export declare const components: {
       >;
     };
     strava: {
-      connectStrava: FunctionReference<
-        "action",
-        "internal",
-        {
-          baseUrl?: string;
-          clientId: string;
-          clientSecret: string;
-          code: string;
-          includeStreams?: boolean;
-          userId: string;
-        },
-        {
-          connectionId: string;
-          errors: Array<{ activityId: number; error: string }>;
-          synced: number;
-        }
-      >;
-      disconnectStrava: FunctionReference<
-        "action",
-        "internal",
-        {
-          baseUrl?: string;
-          clientId: string;
-          clientSecret: string;
-          userId: string;
-        },
-        null
-      >;
-      syncStrava: FunctionReference<
-        "action",
-        "internal",
-        {
-          after?: number;
-          baseUrl?: string;
-          clientId: string;
-          clientSecret: string;
-          includeStreams?: boolean;
-          userId: string;
-        },
-        { errors: Array<{ activityId: number; error: string }>; synced: number }
-      >;
+      public: {
+        connectStrava: FunctionReference<
+          "action",
+          "internal",
+          {
+            baseUrl?: string;
+            clientId: string;
+            clientSecret: string;
+            code: string;
+            includeStreams?: boolean;
+            userId: string;
+          },
+          {
+            connectionId: string;
+            errors: Array<{ activityId: number; error: string }>;
+            synced: number;
+          }
+        >;
+        disconnectStrava: FunctionReference<
+          "action",
+          "internal",
+          {
+            baseUrl?: string;
+            clientId: string;
+            clientSecret: string;
+            userId: string;
+          },
+          null
+        >;
+        syncStrava: FunctionReference<
+          "action",
+          "internal",
+          {
+            after?: number;
+            baseUrl?: string;
+            clientId: string;
+            clientSecret: string;
+            includeStreams?: boolean;
+            userId: string;
+          },
+          {
+            errors: Array<{ activityId: number; error: string }>;
+            synced: number;
+          }
+        >;
+      };
     };
   };
 };

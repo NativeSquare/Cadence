@@ -1,16 +1,17 @@
 /**
- * Garmin Sync - OAuth 2.0 + activity sync via Soma component (v0.6.0)
+ * Garmin Sync - OAuth 2.0 + activity sync via Soma component (v0.9.4)
  *
  * Handles the full Garmin lifecycle:
- * - OAuth 2.0 code exchange + initial sync  (connectGarminOAuth)
- * - Incremental data sync                   (syncGarminData)
- * - Disconnect                              (disconnectGarminAccount)
- * - Export planned session to watch          (exportSessionToGarmin)
+ * - Server-side OAuth 2.0 via registerRoutes (getGarminAuthUrl)
+ * - Incremental data sync                    (syncGarminData)
+ * - Disconnect                               (disconnectGarminAccount)
+ * - Export planned session to watch           (exportSessionToGarmin)
  *
- * All Garmin API communication, token storage, and data normalization
- * is managed internally by the Soma component. The GARMIN_CLIENT_ID
- * and GARMIN_CLIENT_SECRET environment variables are read automatically
- * by the Soma constructor.
+ * OAuth flow: the native app calls getGarminAuthUrl to get a Garmin
+ * authorization URL. Soma generates PKCE and stores pending state
+ * server-side. After the user authorizes, Garmin redirects to the
+ * /api/garmin/callback endpoint (registered by registerRoutes in http.ts),
+ * which completes the code exchange, stores tokens, and syncs data.
  */
 
 import { Soma } from "@nativesquare/soma";
@@ -31,7 +32,6 @@ const soma = new Soma(components.soma);
 
 export const getAuthenticatedUserId = internalQuery({
   args: {},
-  returns: v.union(v.id("users"), v.null()),
   handler: async (ctx) => {
     return await getAuthUserId(ctx);
   },
@@ -40,44 +40,16 @@ export const getAuthenticatedUserId = internalQuery({
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 /**
- * Handle the Garmin OAuth 2.0 callback.
+ * Generate a Garmin OAuth authorization URL.
  *
- * Exchanges the authorization code (+ PKCE code verifier) for tokens,
- * creates/reactivates the Soma connection, stores tokens securely,
- * and syncs all data types.
- *
- * Call from the native app after the OAuth redirect returns a `code`.
+ * Soma generates PKCE and stores {state, userId, codeVerifier} in its
+ * pendingOAuth table server-side. The native app opens the returned URL
+ * in an in-app browser. After authorization, Garmin redirects to the
+ * /api/garmin/callback endpoint where Soma completes the exchange.
  */
-export const connectGarminOAuth = action({
-  args: {
-    code: v.string(),
-    codeVerifier: v.string(),
-  },
-  returns: v.object({
-    connectionId: v.string(),
-    synced: v.object({
-      activities: v.number(),
-      bloodPressures: v.number(),
-      body: v.number(),
-      dailies: v.number(),
-      hrv: v.number(),
-      menstruation: v.number(),
-      pulseOx: v.number(),
-      respiration: v.number(),
-      skinTemp: v.number(),
-      sleep: v.number(),
-      stressDetails: v.number(),
-      userMetrics: v.number(),
-    }),
-    errors: v.array(
-      v.object({
-        type: v.string(),
-        id: v.string(),
-        error: v.string(),
-      }),
-    ),
-  }),
-  handler: async (ctx, args) => {
+export const getGarminAuthUrl = action({
+  args: {},
+  handler: async (ctx) => {
     const userId: string | null = await ctx.runQuery(
       internal.integrations.garmin.sync.getAuthenticatedUserId,
     );
@@ -88,20 +60,14 @@ export const connectGarminOAuth = action({
       });
     }
 
-    // TODO: Remove `as any` once Soma publishes updated OAuth 2.0 types for Garmin
-    const result = await soma.connectGarmin(ctx, {
+    const redirectUri = `${process.env.CONVEX_SITE_URL}/api/garmin/callback`;
+
+    const result = await soma.getGarminAuthUrl(ctx, {
       userId,
-      code: args.code,
-      codeVerifier: args.codeVerifier,
-    } as any);
+      redirectUri,
+    });
 
-    // Store the Garmin → Cadence user mapping for webhook resolution
-    await ctx.runMutation(
-      internal.integrations.garmin.sync.storeGarminUserMapping,
-      { cadenceUserId: userId },
-    );
-
-    return result;
+    return { authUrl: result.authUrl };
   },
 });
 
@@ -115,29 +81,6 @@ export const syncGarminData = action({
     startTimeInSeconds: v.optional(v.number()),
     endTimeInSeconds: v.optional(v.number()),
   },
-  returns: v.object({
-    synced: v.object({
-      activities: v.number(),
-      bloodPressures: v.number(),
-      body: v.number(),
-      dailies: v.number(),
-      hrv: v.number(),
-      menstruation: v.number(),
-      pulseOx: v.number(),
-      respiration: v.number(),
-      skinTemp: v.number(),
-      sleep: v.number(),
-      stressDetails: v.number(),
-      userMetrics: v.number(),
-    }),
-    errors: v.array(
-      v.object({
-        type: v.string(),
-        id: v.string(),
-        error: v.string(),
-      }),
-    ),
-  }),
   handler: async (
     ctx,
     args,
