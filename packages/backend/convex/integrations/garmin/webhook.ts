@@ -72,10 +72,10 @@ export const processActivityWebhook = internalAction({
 
     console.log(
       `\n${"═".repeat(60)}\n` +
-        `  GARMIN WEBHOOK RECEIVED\n` +
-        `  ${items.length} activit${items.length === 1 ? "y" : "ies"} in payload\n` +
-        `  ${new Date().toLocaleString()}\n` +
-        `${"═".repeat(60)}`,
+      `  GARMIN WEBHOOK RECEIVED\n` +
+      `  ${items.length} activit${items.length === 1 ? "y" : "ies"} in payload\n` +
+      `  ${new Date().toLocaleString()}\n` +
+      `${"═".repeat(60)}`,
     );
 
     for (const item of items) {
@@ -83,15 +83,15 @@ export const processActivityWebhook = internalAction({
       const dist = item.distanceInMeters as number | undefined;
       console.log(
         `  ► Activity "${item.summaryId}"\n` +
-          `    garminUserId: ${item.userId}\n` +
-          `    type: ${item.activityType ?? "unknown"}  |  duration: ${fmtDuration(dur)}  |  distance: ${fmtKm(dist)}  |  pace: ${fmtPace(dur, dist)}\n` +
-          `    avgHR: ${item.averageHeartRateInBeatsPerMinute ?? "—"} bpm  |  maxHR: ${item.maxHeartRateInBeatsPerMinute ?? "—"} bpm`,
+        `    garminUserId: ${item.userId}\n` +
+        `    type: ${item.activityType ?? "unknown"}  |  duration: ${fmtDuration(dur)}  |  distance: ${fmtKm(dist)}  |  pace: ${fmtPace(dur, dist)}\n` +
+        `    avgHR: ${item.averageHeartRateInBeatsPerMinute ?? "—"} bpm  |  maxHR: ${item.maxHeartRateInBeatsPerMinute ?? "—"} bpm`,
       );
     }
 
     // ── Step 1: Soma ingestion ──────────────────────────────────────────────
     console.log(`\n[Step 1/3] Sending payload to Soma for ingestion...`);
-    const garminApi = (components.soma as any).garmin;
+    const garminApi = components.soma.garmin;
     try {
       await ctx.runAction(garminApi.handleGarminWebhookActivities, {
         payload,
@@ -147,8 +147,8 @@ export const processActivityWebhook = internalAction({
 
     console.log(
       `\n${"═".repeat(60)}\n` +
-        `  WEBHOOK PROCESSING COMPLETE\n` +
-        `${"═".repeat(60)}\n`,
+      `  WEBHOOK PROCESSING COMPLETE\n` +
+      `${"═".repeat(60)}\n`,
     );
 
     return null;
@@ -200,8 +200,8 @@ export const matchActivityToSession = internalMutation({
 
     console.log(
       `\n${"─".repeat(50)}\n` +
-        `  SESSION MATCHING for user ${args.cadenceUserId}\n` +
-        `${"─".repeat(50)}`,
+      `  SESSION MATCHING for user ${args.cadenceUserId}\n` +
+      `${"─".repeat(50)}`,
     );
 
     // ── Step 1: Get runner ──────────────────────────────────────────────────
@@ -240,10 +240,10 @@ export const matchActivityToSession = internalMutation({
 
     console.log(
       `${TAG} ✓ Found ${recentActivities.length} recent activit${recentActivities.length === 1 ? "y" : "ies"}. Using latest:\n` +
-        `    Soma ID: ${latestActivity._id}\n` +
-        `    Type: ${inferenceActivity.sessionType}  |  Started: ${new Date(inferenceActivity.startTime).toLocaleString()}\n` +
-        `    Duration: ${fmtDuration(inferenceActivity.durationSeconds)}  |  Distance: ${fmtKm(inferenceActivity.distanceMeters)}  |  Pace: ${fmtPace(inferenceActivity.durationSeconds, inferenceActivity.distanceMeters)}\n` +
-        `    HR: avg ${inferenceActivity.avgHeartRate ?? "—"} bpm  |  max ${inferenceActivity.maxHeartRate ?? "—"} bpm`,
+      `    Soma ID: ${latestActivity._id}\n` +
+      `    Type: ${inferenceActivity.sessionType}  |  Started: ${new Date(inferenceActivity.startTime).toLocaleString()}\n` +
+      `    Duration: ${fmtDuration(inferenceActivity.durationSeconds)}  |  Distance: ${fmtKm(inferenceActivity.distanceMeters)}  |  Pace: ${fmtPace(inferenceActivity.durationSeconds, inferenceActivity.distanceMeters)}\n` +
+      `    HR: avg ${inferenceActivity.avgHeartRate ?? "—"} bpm  |  max ${inferenceActivity.maxHeartRate ?? "—"} bpm`,
     );
 
     // Only match running-type activities
@@ -266,8 +266,8 @@ export const matchActivityToSession = internalMutation({
 
     console.log(
       `\n${TAG} Searching planned sessions in window:\n` +
-        `    From: ${new Date(windowStart).toLocaleString()} (24h ago)\n` +
-        `    To:   ${new Date(windowEnd).toLocaleString()} (3h ahead)`,
+      `    From: ${new Date(windowStart).toLocaleString()} (24h ago)\n` +
+      `    To:   ${new Date(windowEnd).toLocaleString()} (3h ahead)`,
     );
 
     const sessions = await ctx.db
@@ -399,9 +399,9 @@ export const matchActivityToSession = internalMutation({
 
     console.log(
       `\n${TAG} ── Adherence Calculation ──\n` +
-        `    Duration: actual ${fmtDuration(inferenceActivity.durationSeconds)} vs target ${fmtDuration(matchedSession.targetDurationSeconds)}\n` +
-        `    Distance: actual ${fmtKm(inferenceActivity.distanceMeters)} vs target ${fmtKm(matchedSession.targetDistanceMeters)}\n` +
-        `    Score: ${adherenceScore !== undefined ? `${(adherenceScore * 100).toFixed(0)}%` : "N/A (no targets to compare)"}`,
+      `    Duration: actual ${fmtDuration(inferenceActivity.durationSeconds)} vs target ${fmtDuration(matchedSession.targetDurationSeconds)}\n` +
+      `    Distance: actual ${fmtKm(inferenceActivity.distanceMeters)} vs target ${fmtKm(matchedSession.targetDistanceMeters)}\n` +
+      `    Score: ${adherenceScore !== undefined ? `${(adherenceScore * 100).toFixed(0)}%` : "N/A (no targets to compare)"}`,
     );
 
     // ── Patch session as completed ──────────────────────────────────────────
@@ -418,9 +418,9 @@ export const matchActivityToSession = internalMutation({
 
     console.log(
       `\n${TAG} ✓ Session "${matchedSession.sessionTypeDisplay}" marked as COMPLETED\n` +
-        `    Session ID: ${matchedSession._id}\n` +
-        `    Linked to Soma activity: ${latestActivity._id}\n` +
-        `    Match tier: ${matchTier} (${matchTier === 1 ? "exported workout" : "closest by time"})`,
+      `    Session ID: ${matchedSession._id}\n` +
+      `    Linked to Soma activity: ${latestActivity._id}\n` +
+      `    Match tier: ${matchTier} (${matchTier === 1 ? "exported workout" : "closest by time"})`,
     );
 
     // ── Schedule push notification ──────────────────────────────────────────
