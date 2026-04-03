@@ -18,7 +18,7 @@ import {
   athleteData,
 } from "@nativesquare/soma/validators";
 import { getAuthUserId } from "@convex-dev/auth/server";
-import { ConvexError, v } from "convex/values";
+import { ConvexError, v, type PropertyValidators } from "convex/values";
 import { components } from "../../_generated/api";
 import { mutation } from "../../_generated/server";
 import {
@@ -56,14 +56,17 @@ const aggregatesValidator = v.object({
 export const syncHealthKitData = mutation({
   args: {
     activities: v.array(
-      v.object({ ...activityData, raw_payload: v.optional(v.any()) }),
+      v.object({
+        ...activityData,
+        raw_payload: v.optional(v.any()),
+      } as PropertyValidators),
     ),
-    sleep: v.array(v.object(sleepData)),
-    body: v.array(v.object(bodyData)),
-    daily: v.array(v.object(dailyData)),
-    nutrition: v.array(v.object(nutritionData)),
-    menstruation: v.array(v.object(menstruationData)),
-    athlete: v.optional(v.object(athleteData)),
+    sleep: v.array(v.object(sleepData as PropertyValidators)),
+    body: v.array(v.object(bodyData as PropertyValidators)),
+    daily: v.array(v.object(dailyData as PropertyValidators)),
+    nutrition: v.array(v.object(nutritionData as PropertyValidators)),
+    menstruation: v.array(v.object(menstruationData as PropertyValidators)),
+    athlete: v.optional(v.object(athleteData as PropertyValidators)),
     aggregates: v.optional(aggregatesValidator),
     totalRuns: v.optional(v.number()),
   },
@@ -156,7 +159,10 @@ export const syncHealthKitData = mutation({
           } else {
             failed++;
             if (failed === 1) {
-              console.warn(`[HealthKit Sync] ${typeName} ingestion failure:`, result.reason);
+              console.warn(
+                `[HealthKit Sync] ${typeName} ingestion failure:`,
+                result.reason,
+              );
             }
           }
         }
@@ -250,15 +256,15 @@ export const syncHealthKitData = mutation({
     // Build updated inferred data from aggregates (if provided)
     const updatedInferred = args.aggregates
       ? {
-        ...runner.inferred,
-        avgWeeklyVolume: args.aggregates.avgWeeklyVolume,
-        volumeConsistency: args.aggregates.volumeConsistency,
-        easyPaceActual: args.aggregates.easyPaceActual,
-        longRunPattern: args.aggregates.longRunPattern,
-        restDayFrequency: args.aggregates.restDayFrequency,
-        trainingLoadTrend: args.aggregates.trainingLoadTrend,
-        estimatedFitness: args.aggregates.estimatedFitness,
-      }
+          ...runner.inferred,
+          avgWeeklyVolume: args.aggregates.avgWeeklyVolume,
+          volumeConsistency: args.aggregates.volumeConsistency,
+          easyPaceActual: args.aggregates.easyPaceActual,
+          longRunPattern: args.aggregates.longRunPattern,
+          restDayFrequency: args.aggregates.restDayFrequency,
+          trainingLoadTrend: args.aggregates.trainingLoadTrend,
+          estimatedFitness: args.aggregates.estimatedFitness,
+        }
       : runner.inferred;
 
     // Build merged runner for recalculation
