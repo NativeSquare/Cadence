@@ -1,18 +1,19 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { PhoneMockup } from "./ui/PhoneMockup";
-import { DashboardScreen, CalendarScreen, DebriefScreen } from "./ui/AppScreen";
 import { useLocale } from "@/lib/i18n";
 
-const screens = [<DashboardScreen />, <CalendarScreen />, <DebriefScreen />];
+const featureScreenshots = [
+  "/screenshots/welcome_screen.png",
+  "/screenshots/monthly-view.png",
+  "/screenshots/chat-coach.png",
+];
 
 export function FeatureShowcase() {
   const { t } = useLocale();
 
   return (
     <section className="relative bg-dark-base px-5 py-20 sm:px-8 sm:py-28 lg:px-12 lg:py-32" id="features">
-      <div className="pointer-events-none absolute inset-0 z-0 dark-dot-texture" />
       {/* Section header */}
       <motion.div
         initial={{ opacity: 0, y: 24 }}
@@ -24,7 +25,7 @@ export function FeatureShowcase() {
         <div className="mb-4 font-mono text-[11px] font-medium tracking-[0.12em] text-lime">
           {t.featureShowcase.tag}
         </div>
-        <h2 className="mx-auto max-w-[600px] font-[family-name:var(--font-satoshi)] tracking-[-0.04em] text-[clamp(40px,5.5vw,68px)] font-bold leading-[0.95] tracking-[-0.01em] text-white">
+        <h2 className="mx-auto max-w-[600px] font-[family-name:var(--font-satoshi)] tracking-[-0.04em] text-[clamp(40px,5.5vw,68px)] font-bold leading-[0.95] text-white">
           {t.featureShowcase.headlinePre}
           <span className="text-lime">{t.featureShowcase.headlineHighlight}</span>
         </h2>
@@ -56,17 +57,39 @@ export function FeatureShowcase() {
               </p>
             </div>
 
-            {/* Phone mockup in gradient card */}
+            {/* iPhone mockup with real screenshot */}
             <div className="flex-shrink-0">
-              <div className="rounded-3xl border border-dark-border bg-gradient-to-br from-dark-card-from to-dark-card-to p-8 shadow-[0_4px_6px_rgba(0,0,0,0.25)]">
-                <PhoneMockup>
-                  {screens[i]}
-                </PhoneMockup>
+              <div className="rounded-3xl border border-dark-border bg-gradient-to-br from-dark-card-from to-dark-card-to p-6 shadow-[0_4px_6px_rgba(0,0,0,0.25)] sm:p-8">
+                <IPhoneMockup src={featureScreenshots[i]} alt={feature.title} />
               </div>
             </div>
           </motion.div>
         ))}
       </div>
     </section>
+  );
+}
+
+/* ── iPhone Mockup with screenshot ── */
+function IPhoneMockup({ src, alt }: { src: string; alt: string }) {
+  return (
+    <div className="relative mx-auto w-[240px] sm:w-[280px]">
+      {/* Phone frame */}
+      <div className="relative overflow-hidden rounded-[40px] border-[3px] border-[#3a3a3a] bg-black shadow-2xl shadow-black/50">
+        {/* Screenshot — the screenshots already include the status bar */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={src}
+          alt={alt}
+          className="block w-full rounded-[37px]"
+        />
+      </div>
+
+      {/* Side buttons */}
+      <div className="absolute -left-[2px] top-[100px] h-[28px] w-[3px] rounded-l-sm bg-[#3a3a3a]" />
+      <div className="absolute -left-[2px] top-[140px] h-[44px] w-[3px] rounded-l-sm bg-[#3a3a3a]" />
+      <div className="absolute -left-[2px] top-[190px] h-[44px] w-[3px] rounded-l-sm bg-[#3a3a3a]" />
+      <div className="absolute -right-[2px] top-[150px] h-[56px] w-[3px] rounded-r-sm bg-[#3a3a3a]" />
+    </div>
   );
 }

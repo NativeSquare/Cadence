@@ -1,8 +1,6 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { PhoneMockup } from "./ui/PhoneMockup";
-import { DebriefScreen } from "./ui/AppScreen";
 import { SectionArch } from "./ui/SectionArch";
 import { useLocale } from "@/lib/i18n";
 
@@ -26,10 +24,21 @@ export function DebriefSection() {
               transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
               className="flex-shrink-0"
             >
-              <div className="rounded-3xl border border-dark-border bg-gradient-to-br from-dark-card-from to-dark-card-to p-8 shadow-[0_4px_6px_rgba(0,0,0,0.25)]">
-                <PhoneMockup>
-                  <DebriefScreen />
-                </PhoneMockup>
+              <div className="rounded-3xl border border-dark-border bg-gradient-to-br from-dark-card-from to-dark-card-to p-6 shadow-[0_4px_6px_rgba(0,0,0,0.25)] sm:p-8">
+                <div className="relative mx-auto w-[240px] sm:w-[280px]">
+                  <div className="relative overflow-hidden rounded-[40px] border-[3px] border-[#3a3a3a] bg-black shadow-2xl shadow-black/50">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src="/screenshots/chat-coach.png"
+                      alt="Coach chat"
+                      className="block w-full rounded-[37px]"
+                    />
+                  </div>
+                  <div className="absolute -left-[2px] top-[100px] h-[28px] w-[3px] rounded-l-sm bg-[#3a3a3a]" />
+                  <div className="absolute -left-[2px] top-[140px] h-[44px] w-[3px] rounded-l-sm bg-[#3a3a3a]" />
+                  <div className="absolute -left-[2px] top-[190px] h-[44px] w-[3px] rounded-l-sm bg-[#3a3a3a]" />
+                  <div className="absolute -right-[2px] top-[150px] h-[56px] w-[3px] rounded-r-sm bg-[#3a3a3a]" />
+                </div>
               </div>
             </motion.div>
 
@@ -65,7 +74,7 @@ export function DebriefSection() {
                     className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
                   >
                     <div
-                      className={`max-w-[400px] rounded-2xl px-4 py-3 text-[13px] leading-relaxed ${
+                      className={`max-w-[280px] sm:max-w-[400px] rounded-2xl px-4 py-3 text-[13px] leading-relaxed ${
                         msg.role === "coach"
                           ? "border border-dark-border bg-gradient-to-br from-dark-card-from to-dark-card-to text-white/65"
                           : "bg-dark-elevated text-white/50"

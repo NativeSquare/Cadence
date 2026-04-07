@@ -31,7 +31,7 @@ export function CadenceFooter() {
               {t.footer.productHeading}
             </h4>
             {t.footer.productLinks.map((label, i) => {
-              const hrefs = ["#features", "#how-it-works", "#pricing"];
+              const hrefs = ["#features", "#how-it-works"];
               return (
                 <Link
                   key={label}
@@ -54,6 +54,9 @@ export function CadenceFooter() {
             </Link>
             <Link href="/terms" className="block py-1.5 text-[13px] text-white/35 no-underline transition-colors hover:text-lime">
               {t.footer.termsOfService}
+            </Link>
+            <Link href="/mentions-legales" className="block py-1.5 text-[13px] text-white/35 no-underline transition-colors hover:text-lime">
+              {t.footer.mentionsLegales}
             </Link>
           </div>
 

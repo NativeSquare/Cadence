@@ -5,7 +5,6 @@ import { FeatureShowcase } from "@/components/cadence/FeatureShowcase";
 import { PhaseCalendar } from "@/components/cadence/PhaseCalendar";
 import { DebriefSection } from "@/components/cadence/DebriefSection";
 import { Testimonials } from "@/components/cadence/Testimonials";
-import { Pricing } from "@/components/cadence/Pricing";
 import { DownloadCta } from "@/components/cadence/DownloadCta";
 import { FaqSection } from "@/components/cadence/FaqSection";
 import { CadenceFooter } from "@/components/cadence/Footer";
@@ -20,7 +19,6 @@ export default function Home() {
       <PhaseCalendar />
       <DebriefSection />
       <Testimonials />
-      <Pricing />
       <DownloadCta />
       <FaqSection />
       <CadenceFooter />

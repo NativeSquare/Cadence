@@ -139,6 +139,8 @@ export function Hero() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.7 + i * 0.08, duration: 0.5, ease }}
               className={`flex-shrink-0 overflow-hidden rounded-2xl ${
+                i === 0 || i === 4 ? "hidden sm:block" : ""
+              } ${
                 i === 2
                   ? "h-[220px] w-[170px] sm:h-[280px] sm:w-[210px] lg:h-[320px] lg:w-[240px] shadow-[0_16px_50px_rgba(0,0,0,0.1)]"
                   : "h-[160px] w-[130px] sm:h-[220px] sm:w-[170px] lg:h-[260px] lg:w-[200px]"

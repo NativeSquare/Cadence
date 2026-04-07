@@ -20,6 +20,8 @@ const robotoMono = Roboto_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://cadence.run"),
+  alternates: { canonical: "/" },
   title: "Cadence — Your AI Running Coach",
   description:
     "Train smarter with an AI coach that explains every decision. Personalized plans, wearable integration, and real-time coaching for runners chasing their next PR.",
@@ -47,8 +49,8 @@ export const metadata: Metadata = {
       "Personalized AI coaching that explains every decision. Train smarter, race faster, stay healthy.",
   },
   icons: {
-    icon: "/favicon.png",
-    apple: "/logo.png",
+    icon: "/favicon.svg",
+    apple: "/logo-cadence.svg",
   },
 };
 
