@@ -2,31 +2,10 @@
 
 import { motion } from "framer-motion";
 import { useState } from "react";
-
-const faqs = [
-  {
-    q: "How does Cadence differ from Strava or Nike Run Club?",
-    a: "Strava and NRC are trackers — they record what you did. Cadence is a coach — it tells you what to do next and why. Every plan adapts in real time based on your actual performance data.",
-  },
-  {
-    q: "Do I need a smartwatch to use Cadence?",
-    a: "No. You can manually log runs or answer questions about your sessions. However, connecting a watch (Apple Watch, Garmin, COROS) gives the AI much richer data to work with.",
-  },
-  {
-    q: "How does the AI build my plan?",
-    a: "Cadence analyzes your running history, goals, available days, and current fitness level. It uses periodization principles (Base → Build → Peak → Recovery) and adjusts the plan after every session.",
-  },
-  {
-    q: "What happens if I miss a training day?",
-    a: "The plan reshapes automatically. Cadence doesn't just skip the session — it recalculates your weekly volume, adjusts upcoming intensity, and keeps you on track for your goal.",
-  },
-  {
-    q: "Is it suitable for beginners?",
-    a: "Absolutely. Cadence adapts to all levels. Whether you're running your first 5K or training for an ultra, the AI calibrates to your current fitness and progresses you safely.",
-  },
-];
+import { useLocale } from "@/lib/i18n";
 
 export function FaqSection() {
+  const { t } = useLocale();
   const [open, setOpen] = useState<number | null>(null);
 
   return (
@@ -38,16 +17,16 @@ export function FaqSection() {
         transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
         className="mb-14 text-center"
       >
-        <div className="mb-4 font-mono text-[11px] font-medium uppercase tracking-[0.12em] text-light-text/40">
-          FAQ
+        <div className="mb-4 font-mono text-[11px] font-medium tracking-[0.12em] text-light-text/40">
+          {t.faq.tag}
         </div>
-        <h2 className="mx-auto max-w-[700px] font-display text-[clamp(40px,5.5vw,68px)] font-bold uppercase leading-[0.95] tracking-[-0.01em] text-light-text">
-          Questions you might have.
+        <h2 className="mx-auto max-w-[700px] font-[family-name:var(--font-satoshi)] tracking-[-0.04em] text-[clamp(40px,5.5vw,68px)] font-bold leading-[0.95] tracking-[-0.01em] text-light-text">
+          {t.faq.headline}
         </h2>
       </motion.div>
 
       <div className="mx-auto max-w-[720px] space-y-2.5">
-        {faqs.map((faq, i) => (
+        {t.faq.items.map((faq, i) => (
           <motion.div
             key={i}
             initial={{ opacity: 0, y: 12 }}

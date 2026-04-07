@@ -3,12 +3,36 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* ── Satoshi from Fontshare CDN ── */
+@font-face {
+  font-family: "Satoshi";
+  src: url("https://framerusercontent.com/third-party-assets/fontshare/wf/P2LQKHE6KA6ZP4AAGN72KDWMHH6ZH3TA/ZC32TK2P7FPS5GFTL46EU6KQJA24ZYDB/7AHDUZ4A7LFLVFUIFSARGIWCRQJHISQP.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Satoshi";
+  src: url("https://framerusercontent.com/third-party-assets/fontshare/wf/LAFFD4SDUCDVQEXFPDC7C53EQ4ZELWQI/PXCT3G6LO6ICM5I3NTYENYPWJAECAWDD/GHM6WVH6MILNYOOCXHXB5GTSGNTMGXZR.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Satoshi";
+  src: url("https://framerusercontent.com/third-party-assets/fontshare/wf/NHPGVFYUXYXE33DZ75OIT4JFGHITX5PE/PSUTMASCDJTVPERDYJZPN23BVUFUCQIF/J64QX5IPOHK56I2KYUNBQ5M2XWZEYKYX.woff2") format("woff2");
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-dm-sans), sans-serif;
-  --font-display: var(--font-barlow-condensed), sans-serif;
-  --font-mono: var(--font-jetbrains-mono), monospace;
+  --font-sans: var(--font-geist), "Geist", sans-serif;
+  --font-display: "Satoshi", sans-serif;
+  --font-mono: var(--font-roboto-mono), "Roboto Mono", monospace;
+  --font-satoshi: "Satoshi", sans-serif;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -46,12 +70,18 @@
   --radius-3xl: calc(var(--radius) + 12px);
   --radius-4xl: calc(var(--radius) + 16px);
 
-  /* Cadence brand */
-  --color-lime: #CCFF00;
-  --color-lime-dim: rgba(204, 255, 0, 0.15);
-  --color-lime-glow: rgba(204, 255, 0, 0.08);
+  /* Cadence brand — Sadewa palette */
+  --color-accent-green: #98fe00;
+  --color-dark-green: #233802;
+  --color-surface: #f3f3f3;
+  --color-surface-high: #ffffff;
 
-  /* Dark surfaces (Cryptik-style layered) */
+  /* Legacy aliases kept for other sections */
+  --color-lime: #98fe00;
+  --color-lime-dim: rgba(152, 254, 0, 0.15);
+  --color-lime-glow: rgba(152, 254, 0, 0.08);
+
+  /* Dark surfaces (kept for dashboard / other sections) */
   --color-dark-base: #121212;
   --color-dark-surface: #151515;
   --color-dark-elevated: #1A1A1B;
@@ -60,61 +90,57 @@
   --color-dark-border: #363636;
   --color-dark-border-subtle: #282828;
 
-  /* Light surfaces (Makro-style) */
-  --color-light-base: #EDEEF2;
-  --color-light-surface: #F5F6F9;
-  --color-light-elevated: #FFFFFF;
-  --color-light-border: rgba(0, 0, 0, 0.06);
-  --color-light-text: #14142D;
-  --color-light-muted: rgba(20, 20, 45, 0.55);
+  /* Light surfaces */
+  --color-light-base: #f3f3f3;
+  --color-light-surface: #f3f3f3;
+  --color-light-elevated: #ffffff;
+  --color-light-border: #e5e5e5;
+  --color-light-text: #131313;
+  --color-light-muted: #797979;
 
   /* Lime variant for light backgrounds */
-  --color-lime-text: #6B8A00;
+  --color-lime-text: #233802;
 
   /* Phase colors */
   --color-phase-base: #3B82F6;
   --color-phase-build: #F97316;
   --color-phase-peak: #EF4444;
   --color-phase-recovery: #10B981;
-
-  /* Legacy aliases */
-  --color-surface: #151515;
-  --color-surface-high: #1C1C1C;
 }
 
 :root {
   --radius: 0.625rem;
-  --background: #121212;
-  --foreground: #F5F5F5;
-  --card: #151515;
-  --card-foreground: #F5F5F5;
-  --popover: #151515;
-  --popover-foreground: #F5F5F5;
-  --primary: #CCFF00;
-  --primary-foreground: #121212;
-  --secondary: #1C1C1C;
-  --secondary-foreground: #F5F5F5;
-  --muted: #1C1C1C;
-  --muted-foreground: rgba(255, 255, 255, 0.45);
-  --accent: #1C1C1C;
-  --accent-foreground: #F5F5F5;
+  --background: #ffffff;
+  --foreground: #131313;
+  --card: #f3f3f3;
+  --card-foreground: #131313;
+  --popover: #ffffff;
+  --popover-foreground: #131313;
+  --primary: #98fe00;
+  --primary-foreground: #233802;
+  --secondary: #f3f3f3;
+  --secondary-foreground: #131313;
+  --muted: #f3f3f3;
+  --muted-foreground: #797979;
+  --accent: #f3f3f3;
+  --accent-foreground: #131313;
   --destructive: #EF4444;
-  --border: rgba(255, 255, 255, 0.08);
-  --input: rgba(255, 255, 255, 0.15);
-  --ring: rgba(204, 255, 0, 0.3);
-  --chart-1: #CCFF00;
+  --border: #e5e5e5;
+  --input: #e5e5e5;
+  --ring: rgba(152, 254, 0, 0.4);
+  --chart-1: #98fe00;
   --chart-2: #3B82F6;
   --chart-3: #F97316;
   --chart-4: #EF4444;
   --chart-5: #10B981;
-  --sidebar: #151515;
-  --sidebar-foreground: #F5F5F5;
-  --sidebar-primary: #CCFF00;
-  --sidebar-primary-foreground: #121212;
-  --sidebar-accent: #1C1C1C;
-  --sidebar-accent-foreground: #F5F5F5;
-  --sidebar-border: rgba(255, 255, 255, 0.08);
-  --sidebar-ring: rgba(204, 255, 0, 0.3);
+  --sidebar: #f3f3f3;
+  --sidebar-foreground: #131313;
+  --sidebar-primary: #98fe00;
+  --sidebar-primary-foreground: #233802;
+  --sidebar-accent: #f3f3f3;
+  --sidebar-accent-foreground: #131313;
+  --sidebar-border: #e5e5e5;
+  --sidebar-ring: rgba(152, 254, 0, 0.4);
 }
 
 .dark {
@@ -134,18 +160,6 @@
     -webkit-font-smoothing: antialiased;
     overflow-x: hidden;
   }
-}
-
-/* ── Grain overlay ── */
-body::after {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: 9999;
-  pointer-events: none;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
-  opacity: 0.3;
-  mix-blend-mode: overlay;
 }
 
 /* ── Animations ── */
@@ -183,14 +197,6 @@ body::after {
 .animation-delay-600 { animation-delay: 0.6s; }
 .animation-delay-800 { animation-delay: 0.8s; }
 
-/* ── Dark dot grip texture (golf-ball / sport-tech) ── */
-.dark-dot-texture {
-  background-image:
-    radial-gradient(circle, rgba(255, 255, 255, 0.05) 0.8px, transparent 0.8px);
-  background-size: 16px 16px;
-  background-attachment: fixed;
-}
-
 /* ── Scroll reveal ── */
 .reveal {
   opacity: 0;
@@ -203,3 +209,9 @@ body::after {
 .reveal-delay-2 { transition-delay: 0.2s; }
 .reveal-delay-3 { transition-delay: 0.3s; }
 .reveal-delay-4 { transition-delay: 0.4s; }
+
+/* ── Selection highlight (Sadewa style) ── */
+::selection {
+  background: #98fe00;
+  color: #131313;
+}

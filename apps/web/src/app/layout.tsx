@@ -1,27 +1,21 @@
 import type { Metadata } from "next";
-import { Barlow_Condensed, DM_Sans, JetBrains_Mono } from "next/font/google";
+import { Geist, Roboto_Mono } from "next/font/google";
 import "./globals.css";
 import { ConvexAuthNextjsServerProvider } from "@convex-dev/auth/nextjs/server";
 import { ConvexClientProvider } from "@/providers/convex-client-provider";
+import { LocaleProvider } from "@/lib/i18n";
 
-const barlowCondensed = Barlow_Condensed({
+const geist = Geist({
   subsets: ["latin"],
-  weight: ["700", "800", "900"],
-  variable: "--font-barlow-condensed",
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-geist",
   display: "swap",
 });
 
-const dmSans = DM_Sans({
+const robotoMono = Roboto_Mono({
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
-  variable: "--font-dm-sans",
-  display: "swap",
-});
-
-const jetbrainsMono = JetBrains_Mono({
-  subsets: ["latin"],
-  weight: ["400", "500"],
-  variable: "--font-jetbrains-mono",
+  weight: ["400", "700"],
+  variable: "--font-roboto-mono",
   display: "swap",
 });
 
@@ -67,12 +61,14 @@ export default function RootLayout({
     <ConvexAuthNextjsServerProvider>
       <html lang="en">
         <body
-          className={`${barlowCondensed.variable} ${dmSans.variable} ${jetbrainsMono.variable} antialiased font-sans`}
+          className={`${geist.variable} ${robotoMono.variable} antialiased font-sans`}
         >
           <ConvexClientProvider>
-            <div className="min-h-screen bg-dark-base text-[#F5F5F5] antialiased">
-              <main>{children}</main>
-            </div>
+            <LocaleProvider>
+              <div className="min-h-screen bg-[#f3f3f3] text-[#131313] antialiased font-[family-name:var(--font-geist)]">
+                <main>{children}</main>
+              </div>
+            </LocaleProvider>
           </ConvexClientProvider>
         </body>
       </html>

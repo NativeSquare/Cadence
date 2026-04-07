@@ -1,10 +1,12 @@
-import { streamText, stepCountIs } from "ai";
+import { streamText, stepCountIs, tool } from "ai";
+import { z } from "zod";
 import { openai } from "@ai-sdk/openai";
 import { Seshat } from "@nativesquare/seshat";
 import { httpAction } from "../_generated/server";
 import { api, components, internal } from "../_generated/api";
 import { ConvexError } from "convex/values";
 import { uiTools, actionTools } from "./tools";
+import { readRunnerProfile, readPlannedSessions, readTrainingPlan } from "./tools/reads";
 import { buildSystemPrompt } from "./prompts/onboarding_coach";
 import { buildCoachOSPrompt } from "./prompts/coach_os";
 
@@ -281,9 +283,83 @@ export const streamChat = httpAction(async (ctx, request) => {
       ? buildSystemPrompt(runner, providers)
       : buildCoachOSPrompt(runner, providers, memoryContext, upcomingSessions);
 
+    // Server-executed read tool: closes over ctx to fetch runner data on demand
+    const readRunnerProfileWithCtx = tool({
+      description: readRunnerProfile.description ?? "Fetch the runner's full profile including identity, physical stats, running profile, goals, schedule, health, coaching preferences, inferred metrics, and current training state.",
+      inputSchema: z.object({}),
+      execute: async () => {
+        try {
+          // RBAC: Distinguish UNAUTHORIZED from NOT_FOUND (AC 2)
+          if (!user) {
+            throw new ConvexError({ code: "UNAUTHORIZED", message: "Must be authenticated" });
+          }
+
+          // Re-query for freshest data (runner may have been updated since request start)
+          const freshRunner = await ctx.runQuery(api.table.runners.getCurrentRunner, {});
+          if (!freshRunner) {
+            throw new ConvexError({ code: "NOT_FOUND", message: "Runner profile not found" });
+          }
+
+          return {
+            identity: freshRunner.identity,
+            physical: freshRunner.physical ?? null,
+            running: freshRunner.running ?? null,
+            goals: freshRunner.goals ?? null,
+            schedule: freshRunner.schedule ?? null,
+            health: freshRunner.health ?? null,
+            coaching: freshRunner.coaching ?? null,
+            connections: freshRunner.connections ?? null,
+            inferred: freshRunner.inferred ?? null,
+            currentState: freshRunner.currentState ?? null,
+          };
+        } catch (error) {
+          if (error instanceof ConvexError) {
+            throw error;
+          }
+          console.error(`[AI] [${requestId}] readRunnerProfile execute error:`, error);
+          return { error: "Failed to fetch runner profile", code: "INTERNAL_ERROR" };
+        }
+      },
+    });
+
+    // Server-executed read tool: closes over ctx to fetch planned sessions on demand
+    const readPlannedSessionsWithCtx = tool({
+      description: readPlannedSessions.description ?? "Look up the runner's planned training sessions.",
+      inputSchema: readPlannedSessions.inputSchema,
+      execute: async (args) => {
+        const result = await ctx.runQuery(
+          api.training.queries.readPlannedSessionsForCoach,
+          {
+            weekNumber: args.weekNumber,
+            startDate: args.startDate,
+            endDate: args.endDate,
+            status: args.status,
+          }
+        );
+        return result ?? [];
+      },
+    });
+
+    // Server-executed read tool: queries on-demand for freshest data (consistent with 11.1/11.2)
+    const readTrainingPlanWithCtx = tool({
+      description: readTrainingPlan.description ?? "Read the runner's active training plan structure.",
+      inputSchema: z.object({}),
+      execute: async () => {
+        const plan = await ctx.runQuery(api.training.queries.getActivePlanForCoach, {});
+        return plan ? { plan } : { plan: null };
+      },
+    });
+
     const allTools = isOnboarding
       ? { ...uiTools, ...memoryTools }
-      : { ...uiTools, ...actionTools, ...memoryTools };
+      : {
+          ...uiTools,
+          ...actionTools,
+          ...memoryTools,
+          readRunnerProfile: readRunnerProfileWithCtx,
+          readPlannedSessions: readPlannedSessionsWithCtx,
+          readTrainingPlan: readTrainingPlanWithCtx,
+        };
 
     const result = streamText({
       model: openai("gpt-4o"),

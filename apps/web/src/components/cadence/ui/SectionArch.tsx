@@ -14,7 +14,7 @@ interface SectionArchProps {
 export function SectionArch({
   variant,
   darkColor = "#121212",
-  lightColor = "#EDEEF2",
+  lightColor = "#f3f3f3",
 }: SectionArchProps) {
   if (variant === "top-into-dark") {
     // Light-colored arch hanging down into dark section

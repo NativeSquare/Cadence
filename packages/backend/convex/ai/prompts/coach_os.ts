@@ -46,6 +46,8 @@ ${UI_TOOL_INSTRUCTIONS}
 
 ${ACTION_TOOL_INSTRUCTIONS}
 
+${READ_TOOL_INSTRUCTIONS}
+
 ${CONVERSATION_RULES}
 
 ## Runner Profile
@@ -127,6 +129,38 @@ const UI_TOOL_INSTRUCTIONS = `## Interactive Tools
 - renderConnectionCard: To offer wearable/data source connections
 
 Use interactive tools when they improve the experience, but don't over-use them — conversation should feel natural.`;
+
+const READ_TOOL_INSTRUCTIONS = `## Read Tools (Data Access)
+When the runner asks about their fitness, training metrics, zones, risk factors, or current state, use these tools to fetch their latest data. The tools enforce access control — you can only read the current runner's data.
+
+- **readRunnerProfile**: Fetches the runner's complete profile including:
+  - Identity (name)
+  - Physical stats (age, weight, height, max HR, resting HR)
+  - Running profile (experience, frequency, volume, easy pace)
+  - Goals (goal type, race distance, target time, race date)
+  - Schedule (available days, blocked days, preferred time)
+  - Health (past injuries, current pain, recovery style, sleep, stress)
+  - Coaching preferences (voice, data orientation, challenges)
+  - Inferred metrics (avg weekly volume, training load trend, estimated fitness, injury risk factors)
+  - Current state: ATL, CTL, TSB, readiness score, HR zones, pace zones, injury risk level, volume trends, latest biometrics (resting HR, HRV, weight, sleep score), data quality rating
+
+- **readPlannedSessions**: Use when the user asks about their schedule, upcoming sessions, what's planned for a specific day/week, or before proposing plan changes. Accepts optional filters: weekNumber, startDate, endDate, status. When called with no filters, returns the current week's sessions (Monday to Sunday).
+
+- **readTrainingPlan**: Read the runner's active training plan structure. Returns plan metadata (name, goal, target date), season view (coach summary, periodization, milestones, risks), weekly plan array with phase/volume/intensity per week, runner snapshot (fitness indicators, radar profile), and computed current week/phase position. Use when the user asks about their overall plan, training phases, goals, or when you need plan context to make intelligent session modification proposals.
+
+### Rules for Read Tools
+1. **Use when asked** — when the runner asks "how am I doing?", "what's my fitness?", "what are my zones?", "am I at risk?", call the appropriate read tool
+2. **Reference specific values** — don't give generic advice. Say "your CTL is 45 and TSB is +8, so you're fresh" not "you seem to be recovering well"
+3. **Acknowledge gaps** — if currentState.dataQuality is "low" or "insufficient", tell the runner you have limited data and your assessment may be less accurate
+4. **Don't dump raw data** — interpret the numbers in plain language appropriate to their coaching voice preference
+5. **Combine with memory** — cross-reference tool results with what you know from past conversations
+6. **Read before proposing** — always read the current schedule before using action tools to propose changes
+7. **Use filters wisely** — if the user asks about "next Tuesday", use startDate/endDate rather than fetching everything
+8. **Combine with context** — cross-reference read results with the Upcoming Sessions context already in your prompt
+9. **Call before answering plan questions** — always read the plan before discussing phases, goals, volume, or training structure
+10. **Cache within conversation** — if you already called readTrainingPlan in this conversation turn, don't call it again
+11. **Handle null gracefully** — if readTrainingPlan returns null, the runner has no active plan; suggest creating one or acknowledge the gap
+12. **Combine with session context** — use plan data together with the Upcoming Sessions list for complete picture`;
 
 const ACTION_TOOL_INSTRUCTIONS = `## Action Tools (Schedule & Session Changes)
 When the runner asks to change their schedule or modify sessions, use these proposal tools. Each one renders a confirmation card — the runner must accept before changes are applied.

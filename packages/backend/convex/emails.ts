@@ -42,6 +42,48 @@ export const sendEmail = internalAction({
 });
 
 // =============================================================================
+// Waitlist Welcome Email
+// =============================================================================
+
+import { WaitlistWelcomeEmail } from "@packages/transactional";
+
+export const sendWaitlistEmail = internalAction({
+  args: {
+    to: v.string(),
+    locale: v.optional(v.union(v.literal("en"), v.literal("fr"))),
+  },
+  returns: v.string(),
+  handler: async (ctx, args) => {
+    const locale = args.locale ?? "en";
+    const isDev = process.env.IS_DEV === "true";
+    if (isDev) {
+      console.log(`[DEV] Waitlist welcome email to ${args.to} (locale: ${locale})`);
+      return "dev-email-id";
+    }
+
+    const html = await render(
+      WaitlistWelcomeEmail({
+        email: args.to,
+        locale,
+      })
+    );
+
+    const subject = locale === "fr"
+      ? `Bienvenue sur ${APP_NAME} — Vous êtes sur la liste`
+      : `Welcome to ${APP_NAME} — You're on the list`;
+
+    const emailId = await resend.sendEmail(ctx, {
+      from: DEFAULT_FROM,
+      to: args.to,
+      subject,
+      html,
+    });
+
+    return emailId;
+  },
+});
+
+// =============================================================================
 // Admin Invite Email
 // =============================================================================
 

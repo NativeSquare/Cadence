@@ -11,6 +11,7 @@ import { safeguards } from "./table/safeguards";
 import { plannedSessions } from "./table/plannedSessions";
 import { trainingPlans } from "./table/trainingPlans";
 import { users } from "./table/users";
+import { waitlist } from "./table/waitlist";
 
 // NOTE: The following tables are now owned by Soma component (@nativesquare/soma):
 // - activities → api.soma.listActivities / ingestActivity
@@ -34,4 +35,5 @@ export default defineSchema({
   safeguards,
   trainingPlans,
   users,
+  waitlist,
 });

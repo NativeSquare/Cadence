@@ -1286,3 +1286,415 @@ export const getUpcomingSessions = query({
     }));
   },
 });
+
+// =============================================================================
+// Read Planned Sessions for Coach (Story 11.2)
+// =============================================================================
+
+/**
+ * Compute current ISO week (Monday-start) boundaries in UTC.
+ *
+ * TODO: This uses UTC for week boundaries. Runners in significantly offset
+ * timezones (e.g., UTC-8 Pacific) will get week boundaries that don't match
+ * their local Monday-Sunday. Should eventually use the runner's timezone
+ * (stored in profile or inferred from device). Track as tech debt.
+ */
+function getCurrentWeekBounds(): { startMs: number; endMs: number } {
+  const now = new Date();
+  const dayOfWeek = now.getUTCDay(); // 0=Sun, 1=Mon, ...
+  const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+
+  const monday = new Date(now);
+  monday.setUTCDate(now.getUTCDate() + mondayOffset);
+  monday.setUTCHours(0, 0, 0, 0);
+
+  const sunday = new Date(monday);
+  sunday.setUTCDate(monday.getUTCDate() + 6);
+  sunday.setUTCHours(23, 59, 59, 999);
+
+  return { startMs: monday.getTime(), endMs: sunday.getTime() };
+}
+
+/**
+ * Read planned sessions for the AI coach tool.
+ *
+ * RBAC: getAuthUserId → runners.by_userId → plannedSessions.by_date (scoped to runnerId)
+ * Default: returns current ISO week (Mon-Sun) if no date filters provided.
+ *
+ * Source: Story 11.2 - AC#1, AC#2, AC#3
+ */
+export const readPlannedSessionsForCoach = query({
+  args: {
+    weekNumber: v.optional(v.number()),
+    startDate: v.optional(v.string()), // ISO date string "YYYY-MM-DD"
+    endDate: v.optional(v.string()), // ISO date string "YYYY-MM-DD"
+    status: v.optional(v.string()), // "scheduled" | "completed" | "skipped" | "modified" | "rescheduled"
+  },
+  returns: v.union(
+    v.null(),
+    v.array(
+      v.object({
+        _id: v.id("plannedSessions"),
+        scheduledDate: v.number(),
+        dayOfWeek: v.string(),
+        dayOfWeekShort: v.string(),
+        sessionType: v.string(),
+        sessionTypeDisplay: v.string(),
+        targetDurationSeconds: v.union(v.number(), v.null()),
+        targetDurationDisplay: v.string(),
+        effortLevel: v.union(v.number(), v.null()),
+        effortDisplay: v.string(),
+        targetPaceDisplay: v.union(v.string(), v.null()),
+        isKeySession: v.boolean(),
+        isRestDay: v.boolean(),
+        isMoveable: v.boolean(),
+        status: v.string(),
+        description: v.string(),
+        justification: v.string(),
+        structureDisplay: v.union(v.string(), v.null()),
+        weekNumber: v.number(),
+        physiologicalTarget: v.string(),
+        placementRationale: v.union(v.string(), v.null()),
+        keyPoints: v.union(v.array(v.string()), v.null()),
+      })
+    )
+  ),
+  handler: async (ctx, args) => {
+    // RBAC: authenticate user and resolve runner
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) return null;
+
+    const runner = await ctx.db
+      .query("runners")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .first();
+    if (!runner) return null;
+
+    // Determine query strategy based on provided filters.
+    // When weekNumber is provided without date filters, we skip the default
+    // week bounds and use the by_runnerId index with in-memory weekNumber
+    // filter. This avoids silently returning empty results when the plan
+    // week doesn't overlap with the current calendar week.
+    const hasDateFilters = args.startDate || args.endDate;
+    const weekNumberOnly =
+      args.weekNumber !== undefined && !hasDateFilters;
+
+    let sessions;
+
+    if (weekNumberOnly) {
+      // weekNumber-only: broad scan filtered by weekNumber in-memory
+      sessions = await ctx.db
+        .query("plannedSessions")
+        .withIndex("by_runnerId", (q) => q.eq("runnerId", runner._id))
+        .take(100);
+
+      sessions = sessions.filter(
+        (s) => s.weekNumber === args.weekNumber
+      );
+    } else {
+      // Compute date range for index query
+      let startMs: number;
+      let endMs: number;
+
+      if (hasDateFilters) {
+        // Parse ISO date strings to UTC timestamps
+        if (args.startDate) {
+          const d = new Date(args.startDate + "T00:00:00.000Z");
+          if (isNaN(d.getTime())) return [];
+          startMs = d.getTime();
+        } else {
+          // Only endDate provided: default to 90 days before endDate as
+          // a reasonable lower bound instead of scanning from Unix epoch
+          const endD = new Date(args.endDate! + "T23:59:59.999Z");
+          if (isNaN(endD.getTime())) return [];
+          startMs = endD.getTime() - 90 * 24 * 60 * 60 * 1000;
+        }
+
+        if (args.endDate) {
+          const d = new Date(args.endDate + "T23:59:59.999Z");
+          if (isNaN(d.getTime())) return [];
+          endMs = d.getTime();
+        } else {
+          // Only startDate provided: scan up to 1 year ahead as a
+          // reasonable upper bound instead of Number.MAX_SAFE_INTEGER
+          endMs = startMs + 365 * 24 * 60 * 60 * 1000;
+        }
+      } else {
+        // Default: current ISO week (Monday-Sunday)
+        const bounds = getCurrentWeekBounds();
+        startMs = bounds.startMs;
+        endMs = bounds.endMs;
+      }
+
+      // Query using by_date index (scoped to runnerId), capped at 100 results
+      sessions = await ctx.db
+        .query("plannedSessions")
+        .withIndex("by_date", (q) =>
+          q
+            .eq("runnerId", runner._id)
+            .gte("scheduledDate", startMs)
+            .lte("scheduledDate", endMs)
+        )
+        .take(100);
+
+      // In-memory weekNumber filter (when combined with date filters)
+      if (args.weekNumber !== undefined) {
+        sessions = sessions.filter(
+          (s) => s.weekNumber === args.weekNumber
+        );
+      }
+    }
+
+    // In-memory status filter
+    if (args.status !== undefined) {
+      sessions = sessions.filter((s) => s.status === args.status);
+    }
+
+    // Sort by scheduledDate ascending (index already returns in order, but be explicit)
+    sessions.sort((a, b) => a.scheduledDate - b.scheduledDate);
+
+    // Map to return shape
+    return sessions.map((s) => ({
+      _id: s._id,
+      scheduledDate: s.scheduledDate,
+      dayOfWeek: s.dayOfWeek,
+      dayOfWeekShort: s.dayOfWeekShort,
+      sessionType: s.sessionType,
+      sessionTypeDisplay: s.sessionTypeDisplay,
+      targetDurationSeconds: s.targetDurationSeconds ?? null,
+      targetDurationDisplay: s.targetDurationDisplay,
+      effortLevel: s.effortLevel ?? null,
+      effortDisplay: s.effortDisplay,
+      targetPaceDisplay: s.targetPaceDisplay ?? null,
+      isKeySession: s.isKeySession,
+      isRestDay: s.isRestDay,
+      isMoveable: s.isMoveable,
+      status: s.status,
+      description: s.description,
+      justification: s.justification,
+      structureDisplay: s.structureDisplay ?? null,
+      weekNumber: s.weekNumber,
+      physiologicalTarget: s.physiologicalTarget,
+      placementRationale: s.placementRationale ?? null,
+      keyPoints: s.keyPoints ?? null,
+    }));
+  },
+});
+
+// =============================================================================
+// Read Active Plan for Coach (Story 11.3)
+// =============================================================================
+// RBAC: getAuthUserId → runners.by_userId → trainingPlans.by_runnerId (status === "active")
+// Returns full plan structure with computed currentWeek/currentPhase.
+
+// Weekly plan item shape used in the returns validator
+const weeklyPlanItemValidator = v.object({
+  weekNumber: v.number(),
+  phaseName: v.string(),
+  phaseWeekNumber: v.number(),
+  volumeKm: v.number(),
+  intensityScore: v.number(),
+  isRecoveryWeek: v.boolean(),
+  weekLabel: v.union(v.string(), v.null()),
+  keySessions: v.number(),
+  easyRuns: v.number(),
+  restDays: v.number(),
+  weekFocus: v.string(),
+});
+
+export const getActivePlanForCoach = query({
+  args: {},
+  returns: v.union(
+    v.null(),
+    v.object({
+      name: v.string(),
+      goalType: v.string(),
+      targetEvent: v.union(v.string(), v.null()),
+      targetDate: v.union(v.number(), v.null()),
+      targetTime: v.union(v.number(), v.null()),
+      startDate: v.number(),
+      endDate: v.number(),
+      durationWeeks: v.number(),
+      status: v.string(),
+      seasonView: v.object({
+        coachSummary: v.string(),
+        periodizationJustification: v.string(),
+        volumeStrategyJustification: v.string(),
+        keyMilestones: v.array(
+          v.object({
+            weekNumber: v.number(),
+            milestone: v.string(),
+            significance: v.string(),
+          }),
+        ),
+        identifiedRisks: v.array(
+          v.object({
+            risk: v.string(),
+            mitigation: v.string(),
+            monitoringSignals: v.array(v.string()),
+          }),
+        ),
+        expectedOutcomes: v.object({
+          primaryGoal: v.string(),
+          confidenceLevel: v.number(),
+          confidenceReason: v.string(),
+          secondaryOutcomes: v.array(v.string()),
+        }),
+      }),
+      weeklyPlan: v.array(weeklyPlanItemValidator),
+      totalWeeks: v.number(),
+      weeklyPlanTruncated: v.boolean(),
+      runnerSnapshot: v.object({
+        capturedAt: v.number(),
+        profileRadar: v.array(
+          v.object({
+            label: v.string(),
+            value: v.number(),
+            uncertain: v.boolean(),
+          }),
+        ),
+        fitnessIndicators: v.object({
+          estimatedVdot: v.union(v.number(), v.null()),
+          recentVolume: v.union(v.number(), v.null()),
+          consistencyScore: v.union(v.number(), v.null()),
+        }),
+        planInfluencers: v.array(v.string()),
+      }),
+      currentWeek: v.union(v.number(), v.null()),
+      currentPhase: v.union(v.string(), v.null()),
+      currentPhaseWeekNumber: v.union(v.number(), v.null()),
+      isRecoveryWeek: v.union(v.boolean(), v.null()),
+      periodizationModel: v.union(v.string(), v.null()),
+      phases: v.union(
+        v.array(
+          v.object({
+            name: v.string(),
+            startWeek: v.number(),
+            endWeek: v.number(),
+            focus: v.string(),
+          }),
+        ),
+        v.null(),
+      ),
+    }),
+  ),
+  handler: async (ctx) => {
+    // RBAC: authenticate user and resolve runner
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) return null;
+
+    const runner = await ctx.db
+      .query("runners")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .first();
+    if (!runner) return null;
+
+    // Query active plan only (no fallback to draft/paused/completed)
+    const plan = await ctx.db
+      .query("trainingPlans")
+      .withIndex("by_runnerId", (q) => q.eq("runnerId", runner._id))
+      .filter((q) => q.eq(q.field("status"), "active"))
+      .first();
+    if (!plan) return null;
+
+    // Compute current week and phase (AC 3)
+    const now = Date.now();
+    const msPerWeek = 7 * 24 * 60 * 60 * 1000;
+    const rawWeek = Math.floor((now - plan.startDate) / msPerWeek) + 1;
+    const currentWeek =
+      rawWeek >= 1 && rawWeek <= plan.durationWeeks ? rawWeek : null;
+    const currentWeekEntry = currentWeek
+      ? plan.weeklyPlan.find((w) => w.weekNumber === currentWeek)
+      : null;
+
+    // Truncate weeklyPlan to a window around current week to manage token budget.
+    // Returns current week +/- 2 weeks of context. For plans outside the active
+    // window (currentWeek is null), returns first 5 weeks as a reasonable default.
+    // totalWeeks and weeklyPlanTruncated let the LLM know if data was omitted.
+    const WEEK_WINDOW = 2;
+    const MAX_WEEKS_FALLBACK = 5;
+    const allWeeks = plan.weeklyPlan.map((w) => ({
+      weekNumber: w.weekNumber,
+      phaseName: w.phaseName,
+      phaseWeekNumber: w.phaseWeekNumber,
+      volumeKm: w.volumeKm,
+      intensityScore: w.intensityScore,
+      isRecoveryWeek: w.isRecoveryWeek,
+      weekLabel: w.weekLabel ?? null,
+      keySessions: w.keySessions,
+      easyRuns: w.easyRuns,
+      restDays: w.restDays,
+      weekFocus: w.weekFocus,
+    }));
+    const totalWeeks = allWeeks.length;
+
+    let weeklyPlan;
+    if (currentWeek !== null) {
+      const minWeek = Math.max(1, currentWeek - WEEK_WINDOW);
+      const maxWeek = Math.min(plan.durationWeeks, currentWeek + WEEK_WINDOW);
+      weeklyPlan = allWeeks.filter(
+        (w) => w.weekNumber >= minWeek && w.weekNumber <= maxWeek,
+      );
+    } else {
+      weeklyPlan = allWeeks.slice(0, MAX_WEEKS_FALLBACK);
+    }
+    const weeklyPlanTruncated = weeklyPlan.length < totalWeeks;
+
+    return {
+      // Plan metadata
+      name: plan.name,
+      goalType: plan.goalType,
+      targetEvent: plan.targetEvent ?? null,
+      targetDate: plan.targetDate ?? null,
+      targetTime: plan.targetTime ?? null,
+      startDate: plan.startDate,
+      endDate: plan.endDate,
+      durationWeeks: plan.durationWeeks,
+      status: plan.status,
+
+      // Season view (macro)
+      // NOTE: volumeStrategyJustification is included for coaching context —
+      // it helps the LLM explain WHY the volume was set the way it was.
+      seasonView: {
+        coachSummary: plan.seasonView.coachSummary,
+        periodizationJustification:
+          plan.seasonView.periodizationJustification,
+        volumeStrategyJustification:
+          plan.seasonView.volumeStrategyJustification,
+        keyMilestones: plan.seasonView.keyMilestones,
+        identifiedRisks: plan.seasonView.identifiedRisks,
+        expectedOutcomes: plan.seasonView.expectedOutcomes,
+      },
+
+      // Weekly plan (meso) — truncated to current week +/- 2 for token budget
+      weeklyPlan,
+      totalWeeks,
+      weeklyPlanTruncated,
+
+      // Runner snapshot
+      runnerSnapshot: {
+        capturedAt: plan.runnerSnapshot.capturedAt,
+        profileRadar: plan.runnerSnapshot.profileRadar,
+        fitnessIndicators: {
+          estimatedVdot:
+            plan.runnerSnapshot.fitnessIndicators.estimatedVdot ?? null,
+          recentVolume:
+            plan.runnerSnapshot.fitnessIndicators.recentVolume ?? null,
+          consistencyScore:
+            plan.runnerSnapshot.fitnessIndicators.consistencyScore ?? null,
+        },
+        planInfluencers: plan.runnerSnapshot.planInfluencers,
+      },
+
+      // Computed current position (AC 3)
+      currentWeek,
+      currentPhase: currentWeekEntry?.phaseName ?? null,
+      currentPhaseWeekNumber: currentWeekEntry?.phaseWeekNumber ?? null,
+      isRecoveryWeek: currentWeekEntry?.isRecoveryWeek ?? null,
+
+      // Periodization model and phases for context
+      periodizationModel: plan.periodizationModel ?? null,
+      phases: plan.phases ?? null,
+    };
+  },
+});

@@ -1,6 +1,11 @@
+"use client";
+
 import Link from "next/link";
+import { useLocale } from "@/lib/i18n";
 
 export function CadenceFooter() {
+  const { t } = useLocale();
+
   return (
     <footer className="bg-dark-base">
       <div className="mx-auto max-w-6xl border-t border-dark-border-subtle px-5 pb-10 pt-16 sm:px-8 sm:pt-20 lg:px-12">
@@ -16,45 +21,48 @@ export function CadenceFooter() {
               <span className="text-lg font-bold tracking-tight text-white">cadence</span>
             </Link>
             <p className="mt-4 max-w-[240px] text-[13px] leading-relaxed text-white/25">
-              AI coaching that adapts to every run. Built for runners who want to understand their training.
+              {t.footer.description}
             </p>
           </div>
 
           {/* Product */}
           <div>
             <h4 className="mb-4 font-mono text-[10px] font-medium uppercase tracking-[0.08em] text-white/20">
-              Product
+              {t.footer.productHeading}
             </h4>
-            {["Features", "How it works", "Pricing"].map((label) => (
-              <Link
-                key={label}
-                href={`#${label.toLowerCase().replace(/ /g, "-")}`}
-                className="block py-1.5 text-[13px] text-white/35 no-underline transition-colors hover:text-lime"
-              >
-                {label}
-              </Link>
-            ))}
+            {t.footer.productLinks.map((label, i) => {
+              const hrefs = ["#features", "#how-it-works", "#pricing"];
+              return (
+                <Link
+                  key={label}
+                  href={hrefs[i]}
+                  className="block py-1.5 text-[13px] text-white/35 no-underline transition-colors hover:text-lime"
+                >
+                  {label}
+                </Link>
+              );
+            })}
           </div>
 
           {/* Legal */}
           <div>
             <h4 className="mb-4 font-mono text-[10px] font-medium uppercase tracking-[0.08em] text-white/20">
-              Legal
+              {t.footer.legalHeading}
             </h4>
             <Link href="/privacy" className="block py-1.5 text-[13px] text-white/35 no-underline transition-colors hover:text-lime">
-              Privacy Policy
+              {t.footer.privacyPolicy}
             </Link>
             <Link href="/terms" className="block py-1.5 text-[13px] text-white/35 no-underline transition-colors hover:text-lime">
-              Terms of Service
+              {t.footer.termsOfService}
             </Link>
           </div>
 
           {/* Integrations */}
           <div>
             <h4 className="mb-4 font-mono text-[10px] font-medium uppercase tracking-[0.08em] text-white/20">
-              Integrations
+              {t.footer.integrationsHeading}
             </h4>
-            {["Apple Watch", "Garmin", "COROS", "Suunto"].map((label) => (
+            {["Apple Watch", "Garmin", "COROS", "Strava"].map((label) => (
               <div key={label} className="flex items-center gap-2 py-1.5">
                 <div className="h-1 w-1 rounded-full bg-lime/30" />
                 <span className="text-[13px] text-white/35">{label}</span>
@@ -66,10 +74,10 @@ export function CadenceFooter() {
 
       <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-2 border-t border-dark-border-subtle px-5 py-5 sm:flex-row sm:px-8 lg:px-12">
         <span className="font-mono text-[11px] text-white/15">
-          &copy; 2026 Cadence. All rights reserved.
+          {t.footer.copyright}
         </span>
         <span className="font-mono text-[11px] text-white/15">
-          Made for runners, by runners.
+          {t.footer.tagline}
         </span>
       </div>
     </footer>

@@ -4,27 +4,11 @@ import { motion } from "framer-motion";
 import { PhoneMockup } from "./ui/PhoneMockup";
 import { DebriefScreen } from "./ui/AppScreen";
 import { SectionArch } from "./ui/SectionArch";
-
-const chatMessages = [
-  {
-    role: "coach" as const,
-    text: "Nice tempo session today! Your pace was remarkably consistent — only 0.3% variation across all splits.",
-  },
-  {
-    role: "coach" as const,
-    text: "Heart rate stayed in Zone 3 for 82% of the run. That's exactly where you should be for tempo work.",
-  },
-  {
-    role: "user" as const,
-    text: "My legs felt heavy in the last 2km though.",
-  },
-  {
-    role: "coach" as const,
-    text: "That's normal at this point in Build phase. Your cumulative fatigue is at 64%. Tomorrow is a recovery day — I've adjusted the pace down by 15 sec/km.",
-  },
-];
+import { useLocale } from "@/lib/i18n";
 
 export function DebriefSection() {
+  const { t } = useLocale();
+
   return (
     <section className="relative bg-dark-base pt-28 pb-20 sm:pt-36 sm:pb-28 lg:pt-40 lg:pb-32">
       <div className="pointer-events-none absolute inset-0 z-0 dark-dot-texture" />
@@ -57,21 +41,21 @@ export function DebriefSection() {
                 viewport={{ once: true, margin: "-60px" }}
                 transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
               >
-                <div className="mb-4 font-mono text-[11px] font-medium uppercase tracking-[0.12em] text-lime">
-                  Post-Run Debrief
+                <div className="mb-4 font-mono text-[11px] font-medium tracking-[0.12em] text-lime">
+                  {t.debrief.tag}
                 </div>
-                <h2 className="mb-5 font-display text-[clamp(36px,4.5vw,56px)] font-bold uppercase leading-[1.05] text-white">
-                  What happens after{" "}
-                  <span className="text-lime">every run.</span>
+                <h2 className="mb-5 font-[family-name:var(--font-satoshi)] tracking-[-0.04em] text-[clamp(36px,4.5vw,56px)] font-bold leading-[1.05] text-white">
+                  {t.debrief.headlinePre}
+                  <span className="text-lime">{t.debrief.headlineHighlight}</span>
                 </h2>
                 <p className="mb-10 max-w-[440px] text-[15px] leading-[1.7] text-white/40">
-                  Your AI coach analyzes every session in real time. Pace consistency, heart rate zones, cadence patterns — then gives you feedback that actually helps you improve.
+                  {t.debrief.subtitle}
                 </p>
               </motion.div>
 
               {/* Chat */}
               <div className="space-y-3">
-                {chatMessages.map((msg, i) => (
+                {t.debrief.chatMessages.map((msg, i) => (
                   <motion.div
                     key={i}
                     initial={{ opacity: 0, y: 12 }}
@@ -90,7 +74,7 @@ export function DebriefSection() {
                       {msg.role === "coach" && (
                         <div className="mb-1.5 flex items-center gap-1.5">
                           <div className="h-1.5 w-1.5 rounded-full bg-lime" />
-                          <span className="text-[10px] font-semibold uppercase tracking-wider text-lime/60">Coach IA</span>
+                          <span className="text-[10px] font-semibold tracking-wider text-lime/60">{t.debrief.coachLabel}</span>
                         </div>
                       )}
                       {msg.text}
@@ -106,7 +90,7 @@ export function DebriefSection() {
       {/* Arch: dark into light at bottom */}
       <div className="absolute -bottom-px left-0 z-10 w-full">
         <svg className="block w-full" viewBox="0 0 1440 72" fill="none" preserveAspectRatio="none" style={{ height: "72px" }}>
-          <path d="M0 0C0 0 360 72 720 72C1080 72 1440 0 1440 0V72H0V0Z" fill="#EDEEF2" />
+          <path d="M0 0C0 0 360 72 720 72C1080 72 1440 0 1440 0V72H0V0Z" fill="#f3f3f3" />
         </svg>
       </div>
     </section>

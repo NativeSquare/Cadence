@@ -12,7 +12,7 @@ import { CadenceFooter } from "@/components/cadence/Footer";
 
 export default function Home() {
   return (
-    <div className="selection:bg-lime/30 selection:text-white">
+    <div>
       <Nav />
       <Hero />
       <StatsBar />

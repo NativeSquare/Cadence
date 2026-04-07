@@ -1,275 +1,361 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
+import { useState, useEffect } from "react";
+import { useMutation, useQuery } from "convex/react";
+import { api } from "@packages/backend/convex/_generated/api";
+import { useLocale } from "@/lib/i18n";
 
 const ease = [0.16, 1, 0.3, 1] as const;
 
-/* Luminous ellipses — glow only, positioned individually */
-const glowEllipses = [
-  { pos: { width: "900px", height: "700px", top: "-10%", right: "-5%" }, bg: "radial-gradient(ellipse at center, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.03) 35%, transparent 70%)", blur: 40 },
-  { pos: { width: "700px", height: "600px", top: "30%", left: "-15%" }, bg: "radial-gradient(ellipse at center, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.02) 40%, transparent 70%)", blur: 50 },
-  { pos: { width: "1000px", height: "500px", bottom: "5%", left: "50%", transform: "translateX(-50%)" }, bg: "radial-gradient(ellipse at center, rgba(204,255,0,0.045) 0%, rgba(255,255,255,0.015) 30%, transparent 65%)", blur: 60 },
-  { pos: { width: "400px", height: "400px", top: "15%", right: "15%" }, bg: "radial-gradient(circle at center, rgba(255,255,255,0.09) 0%, transparent 60%)", blur: 30 },
-  { pos: { width: "1400px", height: "1000px", top: "-20%", left: "50%", transform: "translateX(-50%)" }, bg: "radial-gradient(ellipse at center, rgba(255,255,255,0.04) 0%, transparent 60%)", blur: 80 },
-] as const;
+/* Runner images for bottom strip */
+const runnerImages = [
+  { src: "https://images.unsplash.com/photo-1594882645126-14020914d58d?w=400&h=500&fit=crop&crop=faces", alt: "Runner stretching" },
+  { src: "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=400&h=500&fit=crop&crop=faces", alt: "Trail runner" },
+  { src: "https://images.unsplash.com/photo-1571008887538-b36bb32f4571?w=400&h=500&fit=crop&crop=faces", alt: "Runner training" },
+  { src: "https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?w=400&h=500&fit=crop&crop=faces", alt: "Runner in park" },
+  { src: "https://images.unsplash.com/photo-1486218119243-13883505764c?w=400&h=500&fit=crop&crop=faces", alt: "Marathon runner" },
+];
+
+/* Avatar URLs for social proof */
+const avatars = [
+  "https://images.unsplash.com/photo-1594882645126-14020914d58d?w=80&h=80&fit=crop&crop=faces",
+  "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=80&h=80&fit=crop&crop=faces",
+  "https://images.unsplash.com/photo-1571008887538-b36bb32f4571?w=80&h=80&fit=crop&crop=faces",
+  "https://images.unsplash.com/photo-1502904550040-7534597429ae?w=80&h=80&fit=crop&crop=faces",
+];
 
 export function Hero() {
-  return (
-    <section className="relative min-h-screen overflow-hidden bg-dark-base">
-      {/* ── Glow ellipses (z-1) ── */}
-      {glowEllipses.map((e, i) => (
-        <div
-          key={i}
-          className="pointer-events-none absolute z-[1]"
-          style={{ ...e.pos, background: e.bg, filter: `blur(${e.blur}px)` }}
-        />
-      ))}
+  const { t } = useLocale();
+  const waitlistCount = useQuery(api.waitlist.count);
+  const displayCount = waitlistCount ?? 31;
 
-      {/* ── Single dot texture layer (z-2), masked by union of ellipses ── */}
+  return (
+    <section className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-[#f3f3f3]">
+      {/* ── Subtle texture ── */}
       <div
-        className="pointer-events-none absolute inset-0 z-[2]"
+        className="pointer-events-none absolute inset-0"
         style={{
-          backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.12) 0.8px, transparent 0.8px)",
-          backgroundSize: "16px 16px",
-          backgroundAttachment: "fixed",
-          maskImage: [
-            /* top-right glow — 900×700, top:-10% right:-5% → center ≈ 74%, 29% */
-            "radial-gradient(ellipse 450px 350px at 74% 29%, black 0%, transparent 70%)",
-            /* mid-left glow — 700×600, top:30% left:-15% → center ≈ 9%, 63% */
-            "radial-gradient(ellipse 350px 300px at 9% 63%, black 0%, transparent 65%)",
-            /* bottom-center lime — 1000×500, bottom:5% centered → center ≈ 50%, 72% */
-            "radial-gradient(ellipse 500px 250px at 50% 72%, black 0%, transparent 55%)",
-            /* accent near text — 400×400, top:15% right:15% → center ≈ 71%, 37% */
-            "radial-gradient(circle 200px at 71% 37%, black 0%, transparent 60%)",
-            /* deep bg — 1400×1000, top:-20% centered → center ≈ 50%, 36% */
-            "radial-gradient(ellipse 700px 500px at 50% 36%, black 0%, transparent 60%)",
-          ].join(", "),
-          WebkitMaskImage: [
-            "radial-gradient(ellipse 450px 350px at 74% 29%, black 0%, transparent 70%)",
-            "radial-gradient(ellipse 350px 300px at 9% 63%, black 0%, transparent 65%)",
-            "radial-gradient(ellipse 500px 250px at 50% 72%, black 0%, transparent 55%)",
-            "radial-gradient(circle 200px at 71% 37%, black 0%, transparent 60%)",
-            "radial-gradient(ellipse 700px 500px at 50% 36%, black 0%, transparent 60%)",
-          ].join(", "),
-          maskComposite: "add" as unknown as string,
-          WebkitMaskComposite: "source-over",
+          backgroundImage: "radial-gradient(circle, rgba(0,0,0,0.06) 1px, transparent 1px)",
+          backgroundSize: "24px 24px",
+          maskImage: "radial-gradient(ellipse 80% 70% at 50% 45%, black 0%, transparent 100%)",
+          WebkitMaskImage: "radial-gradient(ellipse 80% 70% at 50% 45%, black 0%, transparent 100%)",
         }}
       />
 
-      {/* ── Vertical grid lines ── */}
-      <div className="pointer-events-none absolute left-1/2 top-0 z-[4] hidden h-[180%] w-px -translate-x-1/2 bg-[rgba(54,54,54,0.3)] lg:block" />
-      <div className="pointer-events-none absolute right-[80px] top-0 z-[4] hidden h-[180%] w-px bg-[rgba(54,54,54,0.18)] lg:block" />
-      <div className="pointer-events-none absolute left-[80px] top-0 z-[4] hidden h-[180%] w-px bg-[rgba(54,54,54,0.12)] lg:block" />
-
       {/* ── Content ── */}
-      <div className="relative z-10 mx-auto flex max-w-[1200px] flex-col px-5 pb-16 pt-[160px] sm:px-8 lg:flex-row lg:items-center lg:gap-[80px] lg:px-12 lg:pb-24 lg:pt-[200px] xl:gap-[120px]">
-        {/* ── LEFT: Runner images ── */}
+      <div className="relative z-10 mx-auto flex max-w-[720px] flex-col items-center px-5 pt-16 text-center sm:px-8 sm:pt-20">
+        {/* Badge */}
         <motion.div
-          initial={{ opacity: 0, x: -60 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 1, ease, delay: 0.1 }}
-          className="relative mb-14 flex-shrink-0 lg:mb-0 lg:w-[520px]"
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1, duration: 0.5, ease }}
+          className="mb-8 inline-flex items-center gap-2 rounded-full border border-[#e5e5e5] bg-white/70 px-4 py-2 backdrop-blur-sm"
         >
-          {/* Main runner image */}
-          <div className="relative overflow-hidden rounded-3xl border border-white/[0.06] shadow-[0_30px_60px_rgba(0,0,0,0.5)]">
-            <Image
-              src="https://images.unsplash.com/photo-1571008887538-b36bb32f4571?w=800&h=1000&fit=crop&crop=faces"
-              alt="Runner using Cadence app"
-              width={800}
-              height={1000}
-              className="h-[400px] w-full object-cover sm:h-[480px] lg:h-[540px]"
-              priority
-            />
-            {/* Gradient overlay */}
-            <div className="absolute inset-0 bg-gradient-to-t from-dark-base/80 via-transparent to-dark-base/20" />
-
-            {/* Overlay app badge */}
-            <motion.div
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.8, duration: 0.6, ease }}
-              className="absolute bottom-6 left-6 right-6 flex items-center gap-3 rounded-2xl border border-white/[0.08] bg-dark-surface/90 px-4 py-3 backdrop-blur-md"
-            >
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-lime">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#121212" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
-                </svg>
-              </div>
-              <div className="flex-1">
-                <p className="text-[13px] font-semibold text-white">Tempo Run completed</p>
-                <p className="text-[11px] text-white/40">9.2 km &middot; 5:18 /km &middot; Build Phase</p>
-              </div>
-              <span className="font-mono text-[13px] font-semibold text-lime">+12%</span>
-            </motion.div>
+          <div className="relative h-2 w-2">
+            <span className="absolute inset-0 rounded-full bg-[#98fe00]" />
+            <span className="absolute -inset-0.5 animate-pulseRing rounded-full border border-[#98fe00]" />
           </div>
-
-          {/* Secondary runner image - floating offset */}
-          <motion.div
-            initial={{ opacity: 0, y: 24, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{ delay: 0.5, duration: 0.8, ease }}
-            className="absolute -bottom-8 -right-6 hidden w-[200px] overflow-hidden rounded-2xl border border-white/[0.06] shadow-[0_20px_40px_rgba(0,0,0,0.5)] sm:block"
-          >
-            <Image
-              src="https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=400&h=500&fit=crop&crop=faces"
-              alt="Runner training with Cadence"
-              width={400}
-              height={500}
-              className="h-[240px] w-full object-cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-dark-base/60 to-transparent" />
-            <div className="absolute bottom-3 left-3 rounded-lg bg-dark-surface/80 px-2.5 py-1.5 backdrop-blur-sm">
-              <span className="font-mono text-[11px] font-medium text-lime">168 bpm</span>
-            </div>
-          </motion.div>
-
-          {/* Third runner - circle avatar */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.7, duration: 0.6, ease }}
-            className="absolute -left-4 top-[60px] hidden overflow-hidden rounded-full border-2 border-dark-base shadow-lg lg:block"
-          >
-            <Image
-              src="https://images.unsplash.com/photo-1594882645126-14020914d58d?w=120&h=120&fit=crop&crop=faces"
-              alt="Cadence runner"
-              width={120}
-              height={120}
-              className="h-[64px] w-[64px] object-cover"
-            />
-          </motion.div>
+          <span className="text-[13px] font-medium text-[#797979]">
+            {t.hero.badge}
+          </span>
         </motion.div>
 
-        {/* ── RIGHT: Text content (Cryptik-style slide-in) ── */}
+        {/* Headline */}
+        <motion.h1
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, delay: 0.2, ease }}
+          className="font-[family-name:var(--font-satoshi)] text-[48px] font-bold leading-[0.9] tracking-[-0.04em] text-[#131313] sm:text-[64px] lg:text-[80px]"
+        >
+          {t.hero.headline1}
+          <br />
+          {t.hero.headline2pre}
+          <span className="relative inline-block -rotate-1 px-3 py-1">
+            <span className="absolute inset-0 -z-10 rounded-sm bg-[#98fe00]" />
+            {t.hero.headline2highlight}
+          </span>
+          {t.hero.headline2post}
+        </motion.h1>
+
+        {/* Subtitle */}
+        <motion.p
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.35, ease }}
+          className="mt-6 max-w-[500px] text-[16px] leading-[1.6] text-[#797979] sm:text-[18px]"
+        >
+          {t.hero.subtitle}
+        </motion.p>
+
+        {/* Social proof */}
         <motion.div
-          initial={{ opacity: 0, x: 80 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.9, ease, delay: 0.15 }}
-          className="flex-1 lg:max-w-[520px]"
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.45, ease }}
+          className="mt-8 flex items-center gap-3"
         >
-          {/* Badge pill with gradient border (Cryptik-style) */}
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3, duration: 0.5, ease }}
-            className="relative mb-7 inline-flex overflow-hidden rounded-lg p-px"
-          >
-            <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-lime via-lime/30 to-dark-surface" />
-            <div className="relative overflow-hidden flex items-center gap-2.5 rounded-[7px] bg-dark-elevated px-3.5 py-2">
+          <div className="flex -space-x-2.5">
+            {avatars.map((src, i) => (
               <div
-                className="pointer-events-none absolute inset-0"
-                style={{
-                  backgroundImage: "radial-gradient(circle, rgba(0,0,0,0.5) 0.6px, transparent 0.6px)",
-                  backgroundSize: "6px 6px",
-                }}
-              />
-              <div className="relative h-1.5 w-1.5">
-                <span className="absolute inset-0 rounded-full bg-lime" />
-                <span className="absolute -inset-1 animate-pulseRing rounded-full border border-lime" />
+                key={i}
+                className="h-8 w-8 overflow-hidden rounded-full border-2 border-white"
+              >
+                <Image
+                  src={src}
+                  alt=""
+                  width={32}
+                  height={32}
+                  className="h-full w-full object-cover"
+                />
               </div>
-              <span className="relative text-[12px] font-semibold uppercase tracking-[0.04em] text-white/60">
-                AI Running Coach
-              </span>
-            </div>
-          </motion.div>
-
-          {/* Headline */}
-          <motion.h1
-            initial={{ opacity: 0, x: 60 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8, delay: 0.25, ease }}
-            className="bg-clip-text font-display text-[clamp(44px,6vw,72px)] font-bold uppercase leading-[0.92] tracking-[-0.02em] text-transparent"
-            style={{
-              backgroundImage: "linear-gradient(135deg, rgba(255,255,255,0.45) 0%, #ffffff 35%, #ffffff 55%, rgba(255,255,255,0.6) 100%)",
-            }}
-          >
-            Run smarter.
-            <br />
-            Race{" "}
-            <span className="bg-clip-text text-transparent" style={{ backgroundImage: "linear-gradient(90deg, #CCFF00, #b8e600)" }}>
-              faster.
-            </span>
-          </motion.h1>
-
-          {/* Description */}
-          <motion.p
-            initial={{ opacity: 0, x: 40 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.7, delay: 0.4, ease }}
-            className="mt-6 max-w-[420px] text-[15px] leading-[1.7] text-white/40"
-          >
-            Your AI coach analyzes your data, builds adaptive plans, and gets smarter with every run. Join 50,000+ runners training with purpose.
-          </motion.p>
-
-          {/* Stats row (Cryptik-style) */}
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.55, duration: 0.6, ease }}
-            className="mt-8 flex items-center gap-6"
-          >
-            <div>
-              <div className="font-mono text-[22px] font-semibold tracking-tight text-white">50K+</div>
-              <div className="text-[13px] text-white/30">Runners</div>
-            </div>
-            <div className="h-[40px] w-px bg-dark-border" />
-            <div>
-              <div className="font-mono text-[22px] font-semibold tracking-tight text-white">4.9<span className="text-lime">★</span></div>
-              <div className="text-[13px] text-white/30">App Store</div>
-            </div>
-            <div className="h-[40px] w-px bg-dark-border" />
-            <div>
-              <div className="font-mono text-[22px] font-semibold tracking-tight text-white">87%</div>
-              <div className="text-[13px] text-white/30">Improve in 8w</div>
-            </div>
-          </motion.div>
-
-          {/* CTAs */}
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.7, duration: 0.6, ease }}
-            className="mt-10 flex flex-col gap-3 sm:flex-row"
-          >
-            <a
-              href="#download"
-              className="group relative inline-flex items-center justify-center gap-2.5 overflow-hidden rounded-full bg-lime px-8 py-4 text-[14px] font-semibold uppercase tracking-[0.02em] text-dark-base transition-transform hover:scale-[1.03] active:scale-[0.97] no-underline"
-            >
-              <span className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-500 group-hover:translate-x-full" />
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                <polyline points="7 10 12 15 17 10" />
-                <line x1="12" y1="15" x2="12" y2="3" />
-              </svg>
-              <span className="relative z-10">Download Free</span>
-            </a>
-            <a
-              href="#how"
-              className="inline-flex items-center justify-center gap-2 rounded-full border border-dark-border bg-transparent px-8 py-4 text-[14px] font-medium text-white/50 transition-all hover:border-white/20 hover:text-white no-underline"
-            >
-              See how it works
-            </a>
-          </motion.div>
+            ))}
+          </div>
+          <span className="text-[13px] text-[#797979]">
+            {t.hero.socialProofPre}
+            <span className="font-semibold text-[#131313]">{displayCount.toLocaleString()}+</span>
+            {t.hero.socialProofPost}
+          </span>
         </motion.div>
+
+        {/* Waitlist CTA */}
+        <WaitlistForm />
       </div>
 
-      {/* ── Diagonal transition (oblique cut from top-left to bottom-right) ── */}
-      <div className="absolute bottom-0 left-0 z-20 w-full">
-        <svg
-          className="block w-full"
-          viewBox="0 0 1440 200"
-          fill="none"
-          preserveAspectRatio="none"
-          style={{ height: "clamp(100px, 14vw, 200px)" }}
-        >
-          {/* Diagonal: starts ~40% from left at the top, goes to bottom-right */}
-          <path
-            d="M0 200V120L1440 0V200H0Z"
-            fill="#EDEEF2"
-          />
-        </svg>
-      </div>
+      {/* ── Runner images — horizontal strip (Rituals style) ── */}
+      <motion.div
+        initial={{ opacity: 0, y: 40 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.8, delay: 0.6, ease }}
+        className="z-10 mt-12 w-full pb-0 sm:mt-16"
+      >
+        {/* Edge-to-edge row, images overflow viewport */}
+        <div className="flex items-center justify-center gap-3 sm:gap-4">
+          {runnerImages.map((img, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.7 + i * 0.08, duration: 0.5, ease }}
+              className={`flex-shrink-0 overflow-hidden rounded-2xl ${
+                i === 2
+                  ? "h-[220px] w-[170px] sm:h-[280px] sm:w-[210px] lg:h-[320px] lg:w-[240px] shadow-[0_16px_50px_rgba(0,0,0,0.1)]"
+                  : "h-[160px] w-[130px] sm:h-[220px] sm:w-[170px] lg:h-[260px] lg:w-[200px]"
+              }`}
+            >
+              <Image
+                src={img.src}
+                alt={img.alt}
+                width={400}
+                height={500}
+                className="h-full w-full object-cover"
+                priority={i === 2}
+              />
+            </motion.div>
+          ))}
+        </div>
+      </motion.div>
     </section>
+  );
+}
+
+/* ── Confetti particles ── */
+function ConfettiBurst() {
+  const particles = Array.from({ length: 24 }, (_, i) => {
+    const angle = (i / 24) * 360;
+    const distance = 60 + Math.random() * 80;
+    const x = Math.cos((angle * Math.PI) / 180) * distance;
+    const y = Math.sin((angle * Math.PI) / 180) * distance;
+    const colors = ["#98fe00", "#131313", "#e5e5e5", "#98fe00", "#3a3a3a"];
+    const color = colors[i % colors.length];
+    const size = 4 + Math.random() * 4;
+    const rotation = Math.random() * 360;
+    return { x, y, color, size, rotation, delay: Math.random() * 0.15 };
+  });
+
+  return (
+    <div className="pointer-events-none absolute inset-0 z-20 overflow-visible">
+      {particles.map((p, i) => (
+        <motion.div
+          key={i}
+          initial={{ x: 0, y: 0, opacity: 1, scale: 1, rotate: 0 }}
+          animate={{ x: p.x, y: p.y, opacity: 0, scale: 0.3, rotate: p.rotation }}
+          transition={{ duration: 0.8, delay: p.delay, ease: [0.16, 1, 0.3, 1] }}
+          className="absolute left-1/2 top-1/2 rounded-sm"
+          style={{
+            width: p.size,
+            height: p.size,
+            backgroundColor: p.color,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+/* ── Animated counter ── */
+function AnimatedCount({ value }: { value: number }) {
+  const [display, setDisplay] = useState(value - 1);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDisplay(value), 400);
+    return () => clearTimeout(timer);
+  }, [value]);
+
+  return (
+    <motion.span
+      key={display}
+      initial={{ y: -10, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      className="inline-block font-[family-name:var(--font-satoshi)] text-[40px] font-bold tracking-[-0.02em] text-[#131313] sm:text-[48px]"
+    >
+      {display.toLocaleString()}
+    </motion.span>
+  );
+}
+
+/* ── Waitlist Form ── */
+function WaitlistForm() {
+  const { t, locale } = useLocale();
+  const joinWaitlist = useMutation(api.waitlist.join);
+  const waitlistCount = useQuery(api.waitlist.count);
+  const displayCount = waitlistCount ?? 31;
+  const [email, setEmail] = useState("");
+  const [state, setState] = useState<"idle" | "loading" | "success" | "already" | "error">("idle");
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim()) return;
+
+    setState("loading");
+    try {
+      const result = await joinWaitlist({ email, source: "hero", locale });
+      setState(result.alreadyJoined ? "already" : "success");
+    } catch {
+      setState("error");
+    }
+  };
+
+  const submitted = state === "success" || state === "already";
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.55, duration: 0.6, ease }}
+      className="mt-8 w-full max-w-[520px]"
+    >
+      <AnimatePresence mode="wait">
+        {!submitted ? (
+          <motion.form
+            key="form"
+            onSubmit={handleSubmit}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.2 }}
+            className="flex flex-col gap-3 sm:flex-row"
+          >
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder={t.hero.inputPlaceholder}
+              className="h-[52px] flex-1 rounded-full border border-[#e5e5e5] bg-white px-6 text-[14px] text-[#131313] placeholder:text-[#b4b4b4] outline-none transition-all focus:border-[#131313] focus:ring-1 focus:ring-[#131313]/10"
+            />
+            <button
+              type="submit"
+              disabled={state === "loading"}
+              className="group relative inline-flex h-[52px] cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-full bg-[#131313] px-7 text-[14px] font-semibold text-white transition-all hover:bg-[#3a3a3a] active:scale-[0.97] disabled:opacity-70"
+            >
+              <span className="relative z-10">
+                {state === "loading" ? t.hero.buttonLoading : t.hero.button}
+              </span>
+              <svg className="relative z-10" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 12h14M12 5l7 7-7 7" />
+              </svg>
+            </button>
+          </motion.form>
+        ) : (
+          <motion.div
+            key="success"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+            className="relative flex flex-col items-center gap-4 rounded-3xl border border-[#e5e5e5] bg-white px-8 py-8 shadow-[0_12px_40px_rgba(0,0,0,0.06)]"
+          >
+            {/* Confetti burst */}
+            {state === "success" && <ConfettiBurst />}
+
+            {/* Checkmark with pulse */}
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 0.1, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+              className="relative"
+            >
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#98fe00]">
+                <motion.svg
+                  initial={{ pathLength: 0 }}
+                  animate={{ pathLength: 1 }}
+                  transition={{ delay: 0.3, duration: 0.4 }}
+                  width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#233802" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"
+                >
+                  <polyline points="20 6 9 17 4 12" />
+                </motion.svg>
+              </div>
+              {/* Pulse ring */}
+              <motion.div
+                initial={{ scale: 1, opacity: 0.4 }}
+                animate={{ scale: 2.5, opacity: 0 }}
+                transition={{ duration: 0.8, delay: 0.15 }}
+                className="absolute inset-0 rounded-full border-2 border-[#98fe00]"
+              />
+            </motion.div>
+
+            {/* Title */}
+            <p className="text-[18px] font-semibold text-[#131313]">
+              {state === "already" ? t.hero.already : t.hero.success}
+            </p>
+
+            {/* Counter — you are #N */}
+            {state === "success" && (
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4, duration: 0.4 }}
+                className="flex flex-col items-center"
+              >
+                <span className="text-[11px] font-medium tracking-[0.1em] text-[#b4b4b4]">
+                  {t.hero.youAreNumber}
+                </span>
+                <AnimatedCount value={displayCount} />
+              </motion.div>
+            )}
+
+            {/* Sub text */}
+            <p className="max-w-[300px] text-center text-[13px] leading-[1.6] text-[#797979]">
+              {state === "already" ? t.hero.alreadySub : t.hero.successSub}
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {state === "error" && (
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="mt-2 text-center text-[13px] text-red-500"
+        >
+          {t.hero.error}
+        </motion.p>
+      )}
+
+      {!submitted && (
+        <p className="mt-3 text-center text-[12px] text-[#797979]/60">
+          {t.hero.disclaimer}
+        </p>
+      )}
+    </motion.div>
   );
 }

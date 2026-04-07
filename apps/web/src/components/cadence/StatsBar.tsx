@@ -1,19 +1,20 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { useLocale } from "@/lib/i18n";
 
 const integrations = [
   { name: "Apple Watch", icon: "⌚" },
   { name: "Garmin", icon: "⊙" },
   { name: "COROS", icon: "◉" },
-  { name: "Suunto", icon: "◎" },
   { name: "Strava Sync", icon: "▲" },
   { name: "Apple Health", icon: "♥" },
 ];
 
 export function StatsBar() {
+  const { t } = useLocale();
   return (
-    <section className="relative z-30 -mt-8 bg-light-base px-5 pb-16 pt-10 sm:-mt-12 sm:px-8 sm:pb-20 sm:pt-12 lg:-mt-16 lg:px-12 lg:pb-24 lg:pt-14">
+    <section className="relative z-30 bg-[#f3f3f3] px-5 pb-16 pt-10 sm:px-8 sm:pb-20 sm:pt-12 lg:px-12 lg:pb-24 lg:pt-14">
       <div className="mx-auto max-w-6xl">
         <motion.p
           initial={{ opacity: 0 }}
@@ -22,7 +23,7 @@ export function StatsBar() {
           transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
           className="mb-8 text-center text-[13px] font-medium uppercase tracking-[0.1em] text-light-text/30"
         >
-          Connects with your gear
+          {t.statsBar.heading}
         </motion.p>
         <div className="flex flex-wrap items-center justify-center gap-6 sm:gap-10 lg:gap-14">
           {integrations.map((item, i) => (

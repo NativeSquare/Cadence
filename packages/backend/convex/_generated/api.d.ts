@@ -14,6 +14,7 @@ import type * as ai_prompts_coach_os from "../ai/prompts/coach_os.js";
 import type * as ai_prompts_onboarding_coach from "../ai/prompts/onboarding_coach.js";
 import type * as ai_tools_actions from "../ai/tools/actions.js";
 import type * as ai_tools_index from "../ai/tools/index.js";
+import type * as ai_tools_reads from "../ai/tools/reads.js";
 import type * as auth from "../auth.js";
 import type * as crons from "../crons.js";
 import type * as emails from "../emails.js";
@@ -53,6 +54,7 @@ import type * as table_runners from "../table/runners.js";
 import type * as table_safeguards from "../table/safeguards.js";
 import type * as table_trainingPlans from "../table/trainingPlans.js";
 import type * as table_users from "../table/users.js";
+import type * as table_waitlist from "../table/waitlist.js";
 import type * as training_actionMutations from "../training/actionMutations.js";
 import type * as training_analytics from "../training/analytics.js";
 import type * as training_mutations from "../training/mutations.js";
@@ -66,6 +68,7 @@ import type * as training_templates_index from "../training/templates/index.js";
 import type * as training_templates_marathon from "../training/templates/marathon.js";
 import type * as training_templates_types from "../training/templates/types.js";
 import type * as utils_generateFunctions from "../utils/generateFunctions.js";
+import type * as waitlist from "../waitlist.js";
 
 import type {
   ApiFromModules,
@@ -80,6 +83,7 @@ declare const fullApi: ApiFromModules<{
   "ai/prompts/onboarding_coach": typeof ai_prompts_onboarding_coach;
   "ai/tools/actions": typeof ai_tools_actions;
   "ai/tools/index": typeof ai_tools_index;
+  "ai/tools/reads": typeof ai_tools_reads;
   auth: typeof auth;
   crons: typeof crons;
   emails: typeof emails;
@@ -119,6 +123,7 @@ declare const fullApi: ApiFromModules<{
   "table/safeguards": typeof table_safeguards;
   "table/trainingPlans": typeof table_trainingPlans;
   "table/users": typeof table_users;
+  "table/waitlist": typeof table_waitlist;
   "training/actionMutations": typeof training_actionMutations;
   "training/analytics": typeof training_analytics;
   "training/mutations": typeof training_mutations;
@@ -132,6 +137,7 @@ declare const fullApi: ApiFromModules<{
   "training/templates/marathon": typeof training_templates_marathon;
   "training/templates/types": typeof training_templates_types;
   "utils/generateFunctions": typeof utils_generateFunctions;
+  waitlist: typeof waitlist;
 }>;
 
 /**

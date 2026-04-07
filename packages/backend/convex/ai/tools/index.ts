@@ -180,7 +180,22 @@ export const uiTools = {
 export { actionTools } from "./actions";
 
 /**
- * Combined tool registry for AI SDK streamText
+ * Read tools (server-executed data access tools).
+ *
+ * WARNING: These are schema-only definitions (no `execute` function).
+ * They MUST be wrapped with `execute` closures at runtime in `http_action.ts`
+ * where the Convex `ctx` is available. Do NOT use these directly in streamText —
+ * use the `*WithCtx` versions created in `http_action.ts` instead.
+ */
+export { readTools } from "./reads";
+
+/**
+ * Combined tool registry for AI SDK streamText.
+ *
+ * NOTE: This only includes UI tools and action tools (schema-only, no execute).
+ * Read tools are intentionally excluded because they require an `execute` closure
+ * wired with the httpAction `ctx` at runtime — see http_action.ts.
+ * Import `readTools` separately from "./reads" if you need the schemas.
  */
 import { actionTools } from "./actions";
 

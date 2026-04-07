@@ -1,6 +1,6 @@
 # Story 11.2: Read Planned Sessions Tool
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -75,7 +75,7 @@ so that the coach knows exactly what's planned before suggesting changes.
 
 ## Tasks / Subtasks
 
-### Task 1: Create the `readPlannedSessions` Convex query (AC 2, AC 3)
+### Task 1: Create the `readPlannedSessions` Convex query (AC 2, AC 3) [x]
 
 **File:** `packages/backend/convex/training/queries.ts`
 
@@ -104,7 +104,7 @@ args: {
 
 1.6. Define the `returns` validator matching the output shape.
 
-### Task 2: Define the `readPlannedSessions` AI SDK tool (AC 1)
+### Task 2: Define the `readPlannedSessions` AI SDK tool (AC 1) [x]
 
 **File:** `packages/backend/convex/ai/tools/reads.ts` (new file)
 
@@ -133,7 +133,7 @@ export const readTools = {
 
 2.3. Note: This tool has NO `execute` function. Like the existing action tools and UI tools in this codebase, it is a "client-rendered" tool — the LLM calls it, receives the schema-validated args, and the result is handled by the streaming pipeline. However, unlike action tools (which render confirmation cards), this read tool needs server-side execution to return data. See Task 3.
 
-### Task 3: Wire server-side execution for the read tool (AC 1, AC 2)
+### Task 3: Wire server-side execution for the read tool (AC 1, AC 2) [x]
 
 **File:** `packages/backend/convex/ai/http_action.ts`
 
@@ -180,7 +180,7 @@ const allTools = isOnboarding
 
 3.3. The `ctx` passed here is the `httpAction` context, which has `ctx.runQuery()`. The RBAC is enforced inside the Convex query itself (Task 1.2), so the tool just forwards the call.
 
-### Task 4: Export read tools from the tools index (AC 1)
+### Task 4: Export read tools from the tools index (AC 1) [x]
 
 **File:** `packages/backend/convex/ai/tools/index.ts`
 
@@ -191,7 +191,7 @@ export { createReadTools } from "./reads";
 
 4.2. Update the `tools` export to include read tools (if a static export is needed for type inference; runtime assembly happens in `http_action.ts`).
 
-### Task 5: Update Coach OS prompt (AC 4)
+### Task 5: Update Coach OS prompt (AC 4) [x]
 
 **File:** `packages/backend/convex/ai/prompts/coach_os.ts`
 
@@ -316,3 +316,92 @@ packages/backend/convex/training/
 | `packages/backend/convex/table/plannedSessions.ts` | Table schema, indexes, types |
 | `packages/backend/convex/training/queries.ts` | Existing queries (`getUpcomingSessions`, `getWeekSessions`, `getMultiWeekSessions`) |
 | `packages/backend/convex/training/actionMutations.ts` | RBAC pattern (`getAuthenticatedRunner`, `getOwnedSession`) |
+
+## Dev Agent Record
+
+### Implementation Notes
+
+**Approach:** Followed the same pattern established by Story 11.1 (readRunnerProfile). Instead of a `createReadTools` factory function, used the inline closure pattern already in `http_action.ts` where each read tool is constructed with `ctx` captured at request time. This is consistent with how `readRunnerProfileWithCtx` was wired.
+
+**Key decisions:**
+- Tool definition in `reads.ts` has no `execute` (schema + description only), matching the existing `readRunnerProfile` pattern
+- Server-side `execute` closure is created in `http_action.ts` as `readPlannedSessionsWithCtx`, reusing `readPlannedSessions.inputSchema` directly
+- The `readPlannedSessionsForCoach` query uses the `by_date` index with runnerId equality for RBAC scoping
+- Default behavior (no filters) computes current ISO week (Mon 00:00 UTC - Sun 23:59:59.999 UTC)
+- `tools/index.ts` already re-exports `readTools` from `reads.ts`, so adding `readPlannedSessions` to the object is sufficient
+- Added `readPlannedSessions` bullet point and 3 new rules (6-8) to the existing `READ_TOOL_INSTRUCTIONS` constant in `coach_os.ts`
+
+### File List
+
+| File | Action |
+|------|--------|
+| `packages/backend/convex/training/queries.ts` | Modified - added `getCurrentWeekBounds()` helper and `readPlannedSessionsForCoach` query |
+| `packages/backend/convex/ai/tools/reads.ts` | Modified - added `readPlannedSessions` tool definition and exported in `readTools` |
+| `packages/backend/convex/ai/http_action.ts` | Modified - imported `readPlannedSessions`, added `readPlannedSessionsWithCtx` execute closure, wired into `allTools` |
+| `packages/backend/convex/ai/prompts/coach_os.ts` | Modified - added `readPlannedSessions` instruction and rules 6-8 to `READ_TOOL_INSTRUCTIONS` |
+
+## Senior Developer Review (AI)
+
+**Review date:** 2026-03-31
+**Reviewer:** Claude Opus 4.6 (adversarial review)
+**Review outcome:** Approved
+
+### Findings
+
+#### Finding 1 — `weekNumber`-only filter silently returns empty results (High)
+
+- **Severity:** High
+- **File:** `packages/backend/convex/training/queries.ts` (lines 1372-1392)
+- **Issue:** When the LLM calls `readPlannedSessions({ weekNumber: 5 })` without `startDate`/`endDate`, the code falls into the default branch and computes the *current calendar week* bounds (Mon-Sun). The in-memory `weekNumber` filter then runs on top of that date-scoped result. If training plan week 5 does not overlap with the current calendar week, the query returns an empty array with no indication that data exists outside the date range. The LLM will incorrectly conclude the runner has no sessions for that week.
+- **Fix:** When `weekNumber` is provided without date filters, skip the default week bounds and either (a) use the `by_runnerId` index with an in-memory `weekNumber` filter, or (b) use the `by_week` index (requires resolving the active `planId` first). Add a comment explaining the branching logic.
+
+#### Finding 2 — No input validation on ISO date strings (Medium)
+
+- **Severity:** Medium
+- **File:** `packages/backend/convex/training/queries.ts` (lines 1374-1386)
+- **Issue:** If the LLM passes a malformed date string (e.g., `"next tuesday"`, `"2026-13-45"`), `new Date(args.startDate + "T00:00:00.000Z")` produces `NaN`. The query then uses `NaN` as index bounds, producing undefined/empty results with no error. The Zod schema in `reads.ts` only validates the value is a string, not that it matches ISO date format.
+- **Fix:** Add a regex validation to the Zod schema (e.g., `.regex(/^\d{4}-\d{2}-\d{2}$/)`) and/or add a runtime check in the query handler that returns an empty array or throws a descriptive error when `getTime()` returns `NaN`.
+
+#### Finding 3 — Static `readTools` export in `tools/index.ts` is a footgun (Medium)
+
+- **Severity:** Medium
+- **File:** `packages/backend/convex/ai/tools/index.ts` (lines 185-197)
+- **Issue:** `readTools` (schema-only, no `execute`) is re-exported from `reads.ts` and spread into the combined `tools` object. Any code that imports `tools` from this index gets read tool definitions without execute functions. `http_action.ts` correctly builds `WithCtx` versions, but the static export creates a misleading API surface. A developer adding a new feature could import the non-functional version and get silent failures.
+- **Fix:** Either (a) do not spread `readTools` into the static `tools` export (they require runtime ctx), or (b) add a clear JSDoc warning on the `readTools` export that these are schema-only and must be wrapped with `execute` closures at runtime.
+
+#### Finding 4 — `startMs = 0` fallback scans from Unix epoch (Medium)
+
+- **Severity:** Medium
+- **File:** `packages/backend/convex/training/queries.ts` (line 1378)
+- **Issue:** When only `endDate` is provided without `startDate`, `startMs` is set to `0` (Jan 1, 1970). While the `by_date` index scoped to `runnerId` limits the actual scan, this is semantically misleading and could scan unnecessary index entries if the runner has sessions far in the past.
+- **Fix:** Use a more reasonable lower bound (e.g., `endMs - 365 * 24 * 60 * 60 * 1000` for a 1-year lookback) or document the intentional choice. Similarly, the `Number.MAX_SAFE_INTEGER` upper bound on line 1385 deserves a comment.
+
+#### Finding 5 — `getCurrentWeekBounds` uses UTC, not runner timezone (Low)
+
+- **Severity:** Low
+- **File:** `packages/backend/convex/training/queries.ts` (lines 1297-1311)
+- **Issue:** Week boundaries are computed in UTC. A runner in a significantly offset timezone (e.g., UTC-8 Pacific) will get week boundaries that don't match their local Monday-Sunday. Sessions scheduled near day boundaries may appear in the wrong week. The story spec says "UTC" so this is compliant, but will produce surprising results for users outside UTC-adjacent timezones.
+- **Fix:** Acceptable for now per spec, but add a TODO comment noting this should eventually use the runner's timezone (stored in profile or inferred from device). Track as tech debt.
+
+#### Finding 6 — No result count limit (Low)
+
+- **Severity:** Low
+- **File:** `packages/backend/convex/training/queries.ts` (line 1403)
+- **Issue:** The query uses `.collect()` with no `.take(N)` limit. While typical weekly queries return 7 sessions, a broad date range query could return hundreds of sessions, consuming excessive LLM context tokens and potentially hitting response size limits.
+- **Fix:** Add a `.take(50)` or similar reasonable cap, or add a `limit` parameter to the tool's input schema.
+
+#### Finding 7 — Zod schema for `startDate`/`endDate` lacks format description for LLM (Low)
+
+- **Severity:** Low
+- **File:** `packages/backend/convex/ai/tools/reads.ts` (lines 40-43)
+- **Issue:** While the `.describe()` hints mention ISO date format, the Zod schema does not enforce the format. LLMs sometimes pass dates in other formats (e.g., `"April 6, 2026"`, `"04/06/2026"`). The tool description in the prompt does not explicitly state "must be YYYY-MM-DD format".
+- **Fix:** Add `.regex(/^\d{4}-\d{2}-\d{2}$/)` to both date fields in the Zod schema to let the AI SDK enforce format at the schema level before the query runs.
+
+### Action Items
+
+- [x] **[High]** Fix `weekNumber`-only filter to bypass default date range (Finding 1)
+- [x] **[Medium]** Add ISO date format validation in Zod schema and/or query handler (Findings 2 & 7)
+- [x] **[Medium]** Remove `readTools` from the static `tools` export or add clear documentation (Finding 3)
+- [x] **[Medium]** Improve `startMs = 0` fallback with a reasonable lower bound or documentation (Finding 4)
+- [x] **[Low]** Add TODO comment for timezone-aware week bounds (Finding 5)
+- [x] **[Low]** Consider adding a result count cap to the query (Finding 6)
