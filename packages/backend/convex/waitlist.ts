@@ -48,7 +48,11 @@ export const count = query({
   args: {},
   returns: v.number(),
   handler: async (ctx) => {
-    const entries = await ctx.db.query("waitlist").collect();
-    return WAITLIST_BASE_COUNT + entries.length;
+    let count = 0;
+    const iter = ctx.db.query("waitlist");
+    for await (const _entry of iter) {
+      count++;
+    }
+    return WAITLIST_BASE_COUNT + count;
   },
 });
