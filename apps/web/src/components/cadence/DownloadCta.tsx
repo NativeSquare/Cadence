@@ -74,12 +74,12 @@ export function DownloadCta() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder={t.downloadCta.inputPlaceholder}
-                  className="h-[52px] flex-1 rounded-full border border-white/10 bg-white/5 px-6 text-[14px] text-white placeholder:text-white/30 outline-none transition-all focus:border-[#98fe00]/50 focus:ring-1 focus:ring-[#98fe00]/20"
+                  className="h-[48px] min-h-[48px] flex-1 rounded-full border border-white/10 bg-white/5 px-6 text-[14px] text-white placeholder:text-white/30 outline-none transition-all focus:border-[#98fe00]/50 focus:ring-1 focus:ring-[#98fe00]/20 sm:h-[52px] sm:min-h-[52px]"
                 />
                 <button
                   type="submit"
                   disabled={state === "loading"}
-                  className="inline-flex h-[52px] cursor-pointer items-center justify-center gap-2 rounded-full bg-[#98fe00] px-7 text-[14px] font-semibold text-[#233802] transition-all hover:brightness-110 active:scale-[0.97] disabled:opacity-70"
+                  className="inline-flex h-[48px] min-h-[48px] cursor-pointer items-center justify-center gap-2 rounded-full bg-[#98fe00] px-7 text-[14px] font-semibold text-[#233802] transition-all hover:brightness-110 active:scale-[0.97] disabled:opacity-70 sm:h-[52px] sm:min-h-[52px]"
                 >
                   <span>{state === "loading" ? t.downloadCta.buttonLoading : t.downloadCta.button}</span>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -121,7 +121,7 @@ export function DownloadCta() {
       </div>
 
       {/* Arch transition */}
-      <div className="absolute -bottom-px left-0 z-10 w-full">
+      <div className="absolute -bottom-px left-0 z-10 hidden w-full md:block">
         <svg className="block w-full" viewBox="0 0 1440 72" fill="none" preserveAspectRatio="none" style={{ height: "72px" }}>
           <path d="M0 0C0 0 360 72 720 72C1080 72 1440 0 1440 0V72H0V0Z" fill="#f3f3f3" />
         </svg>

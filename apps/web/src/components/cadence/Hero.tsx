@@ -45,13 +45,13 @@ export function Hero() {
       />
 
       {/* ── Content ── */}
-      <div className="relative z-10 mx-auto flex max-w-[720px] flex-col items-center px-5 pt-16 text-center sm:px-8 sm:pt-20">
+      <div className="relative z-10 mx-auto flex max-w-[720px] flex-col items-center px-5 pt-24 text-center sm:px-8 sm:pt-28 lg:pt-20">
         {/* Badge */}
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1, duration: 0.5, ease }}
-          className="mb-8 inline-flex items-center gap-2 rounded-full border border-[#e5e5e5] bg-white/70 px-4 py-2 backdrop-blur-sm"
+          className="mb-8 hidden items-center gap-2 rounded-full border border-[#e5e5e5] bg-white/70 px-4 py-2 backdrop-blur-sm sm:inline-flex"
         >
           <div className="relative h-2 w-2">
             <span className="absolute inset-0 rounded-full bg-[#98fe00]" />
@@ -67,7 +67,7 @@ export function Hero() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.2, ease }}
-          className="font-[family-name:var(--font-satoshi)] text-[48px] font-bold leading-[0.9] tracking-[-0.04em] text-[#131313] sm:text-[64px] lg:text-[80px]"
+          className="font-[family-name:var(--font-satoshi)] text-[36px] font-bold leading-[0.9] tracking-[-0.04em] text-[#131313] sm:text-[52px] md:text-[64px] lg:text-[80px]"
         >
           {t.hero.headline1}
           <br />
@@ -94,7 +94,7 @@ export function Hero() {
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.45, ease }}
-          className="mt-8 flex items-center gap-3"
+          className="mt-8 flex flex-col items-center gap-2 sm:flex-row sm:gap-3"
         >
           <div className="flex -space-x-2.5">
             {avatars.map((src, i) => (
@@ -263,12 +263,12 @@ function WaitlistForm() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder={t.hero.inputPlaceholder}
-              className="h-[52px] flex-1 rounded-full border border-[#e5e5e5] bg-white px-6 text-[14px] text-[#131313] placeholder:text-[#b4b4b4] outline-none transition-all focus:border-[#131313] focus:ring-1 focus:ring-[#131313]/10"
+              className="h-[48px] min-h-[48px] flex-1 rounded-full border border-[#e5e5e5] bg-white px-6 text-[14px] text-[#131313] placeholder:text-[#b4b4b4] outline-none transition-all focus:border-[#131313] focus:ring-1 focus:ring-[#131313]/10 sm:h-[52px] sm:min-h-[52px]"
             />
             <button
               type="submit"
               disabled={state === "loading"}
-              className="group relative inline-flex h-[52px] cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-full bg-[#131313] px-7 text-[14px] font-semibold text-white transition-all hover:bg-[#3a3a3a] active:scale-[0.97] disabled:opacity-70"
+              className="group relative inline-flex h-[48px] min-h-[48px] cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-full bg-[#131313] px-7 text-[14px] font-semibold text-white transition-all hover:bg-[#3a3a3a] active:scale-[0.97] disabled:opacity-70 sm:h-[52px] sm:min-h-[52px]"
             >
               <span className="relative z-10">
                 {state === "loading" ? t.hero.buttonLoading : t.hero.button}

@@ -97,7 +97,7 @@ export function DebriefSection() {
       </div>
 
       {/* Arch: dark into light at bottom */}
-      <div className="absolute -bottom-px left-0 z-10 w-full">
+      <div className="absolute -bottom-px left-0 z-10 hidden w-full md:block">
         <svg className="block w-full" viewBox="0 0 1440 72" fill="none" preserveAspectRatio="none" style={{ height: "72px" }}>
           <path d="M0 0C0 0 360 72 720 72C1080 72 1440 0 1440 0V72H0V0Z" fill="#f3f3f3" />
         </svg>

@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useLocale } from "@/lib/i18n";
 
@@ -13,12 +14,16 @@ export function CadenceFooter() {
           {/* Brand */}
           <div>
             <Link href="/" className="flex items-center gap-2.5 no-underline">
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-lime">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#121212" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
-                </svg>
-              </div>
-              <span className="text-lg font-bold tracking-tight text-white">cadence</span>
+              <Image
+                src="/logo-cadence.svg"
+                alt="Cadence"
+                width={28}
+                height={28}
+                className="h-7 w-7 rounded-lg"
+              />
+              <span className="font-[family-name:var(--font-satoshi)] text-xl font-bold tracking-[-0.04em] text-white">
+                cadence
+              </span>
             </Link>
             <p className="mt-4 max-w-[240px] text-[13px] leading-relaxed text-white/25">
               {t.footer.description}

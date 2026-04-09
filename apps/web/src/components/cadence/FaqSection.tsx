@@ -63,7 +63,7 @@ export function FaqSection() {
       </div>
 
       {/* Arch: light into dark footer */}
-      <div className="absolute -bottom-px left-0 z-10 w-full">
+      <div className="absolute -bottom-px left-0 z-10 hidden w-full md:block">
         <svg className="block w-full" viewBox="0 0 1440 72" fill="none" preserveAspectRatio="none" style={{ height: "72px" }}>
           <path d="M0 72C0 72 360 0 720 0C1080 0 1440 72 1440 72V72H0V72Z" fill="#121212" />
         </svg>

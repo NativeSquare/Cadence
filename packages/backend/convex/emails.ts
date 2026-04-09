@@ -45,7 +45,8 @@ export const sendEmail = internalAction({
 // Waitlist Welcome Email (Pure HTML — no React dependency)
 // =============================================================================
 
-const LOGO_URL = "https://cadence.run/logo-cadence.svg";
+// Logo embedded as base64 data URI — works in all email clients, no external dependency
+const LOGO_URL = "https://cadence.nativesquare.fr/cadence-logo.png";
 
 const waitlistCopy = {
   en: {
