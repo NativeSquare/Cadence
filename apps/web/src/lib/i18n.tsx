@@ -25,7 +25,7 @@ const translations = {
       successSub: "Check your inbox — we sent you a welcome email.",
       alreadySub: "We already have your email. Stay tuned!",
       youAreNumber: "YOU ARE RUNNER #",
-      disclaimer: "Be among the first to train with AI. No spam, ever.",
+      disclaimer: "",
       error: "Something went wrong. Please try again.",
     },
     // Nav
@@ -266,8 +266,7 @@ const translations = {
       alreadySub:
         "Nous avons d\u00E9j\u00E0 votre email. Restez \u00E0 l'\u00E9coute !",
       youAreNumber: "VOUS \u00CATES LE COUREUR #",
-      disclaimer:
-        "Soyez parmi les premiers \u00E0 vous entra\u00EEner avec l'IA. Jamais de spam.",
+      disclaimer: "",
       error: "Une erreur est survenue. Veuillez r\u00E9essayer.",
     },
     // Nav

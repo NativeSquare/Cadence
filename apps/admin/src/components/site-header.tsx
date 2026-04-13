@@ -47,6 +47,42 @@ export function SiteHeader() {
       }
     }
 
+    if (segments[0] === "contacts") {
+      return [{ label: "Contacts", href: "/contacts", isCurrentPage: true }]
+    }
+
+    if (segments[0] === "audiences") {
+      if (segments.length === 1) {
+        return [{ label: "Audiences", href: "/audiences", isCurrentPage: true }]
+      }
+      if (segments[1] === "new") {
+        return [
+          { label: "Audiences", href: "/audiences", isCurrentPage: false },
+          { label: "New Audience", href: pathname, isCurrentPage: true },
+        ]
+      }
+      return [
+        { label: "Audiences", href: "/audiences", isCurrentPage: false },
+        { label: "Audience Details", href: pathname, isCurrentPage: true },
+      ]
+    }
+
+    if (segments[0] === "broadcasts") {
+      if (segments.length === 1) {
+        return [{ label: "Broadcasts", href: "/broadcasts", isCurrentPage: true }]
+      }
+      if (segments[1] === "new") {
+        return [
+          { label: "Broadcasts", href: "/broadcasts", isCurrentPage: false },
+          { label: "New Broadcast", href: pathname, isCurrentPage: true },
+        ]
+      }
+      return [
+        { label: "Broadcasts", href: "/broadcasts", isCurrentPage: false },
+        { label: "Edit Broadcast", href: pathname, isCurrentPage: true },
+      ]
+    }
+
     return [{ label: "General", href: "/", isCurrentPage: true }]
   }
 

@@ -6,7 +6,10 @@ import Link from "next/link"
 import { useQuery } from "convex/react"
 import { api } from "@packages/backend/convex/_generated/api"
 import {
+  IconAddressBook,
+  IconFilter,
   IconInnerShadowTop,
+  IconMail,
   IconUsers,
   IconUsersGroup,
 } from "@tabler/icons-react"
@@ -35,6 +38,24 @@ const navGeneral = [
     title: "Team",
     url: "/team",
     icon: IconUsers,
+  },
+]
+
+const navMarketing = [
+  {
+    title: "Contacts",
+    url: "/contacts",
+    icon: IconAddressBook,
+  },
+  {
+    title: "Audiences",
+    url: "/audiences",
+    icon: IconFilter,
+  },
+  {
+    title: "Broadcasts",
+    url: "/broadcasts",
+    icon: IconMail,
   },
 ]
 
@@ -72,6 +93,25 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarGroupLabel>General</SidebarGroupLabel>
           <SidebarMenu>
             {navGeneral.map((item) => (
+              <SidebarMenuItem key={item.title}>
+                <SidebarMenuButton
+                  asChild
+                  isActive={pathname === item.url || pathname.startsWith(item.url + "/")}
+                  tooltip={item.title}
+                >
+                  <Link href={item.url}>
+                    <item.icon />
+                    <span>{item.title}</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ))}
+          </SidebarMenu>
+        </SidebarGroup>
+        <SidebarGroup>
+          <SidebarGroupLabel>Marketing</SidebarGroupLabel>
+          <SidebarMenu>
+            {navMarketing.map((item) => (
               <SidebarMenuItem key={item.title}>
                 <SidebarMenuButton
                   asChild

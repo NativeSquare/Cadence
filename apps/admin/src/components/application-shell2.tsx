@@ -7,10 +7,13 @@ import { useQuery } from "convex/react";
 import { api } from "@packages/backend/convex/_generated/api";
 import { useAuthActions } from "@convex-dev/auth/react";
 import {
+  IconAddressBook,
   IconChevronRight,
   IconDotsVertical,
+  IconFilter,
   IconInnerShadowTop,
   IconLogout,
+  IconMail,
   IconUsers,
   IconUsersGroup,
 } from "@tabler/icons-react";
@@ -74,6 +77,15 @@ const navGroups: NavGroup[] = [
     items: [
       { label: "Users", icon: IconUsersGroup, href: "/users" },
       { label: "Team", icon: IconUsers, href: "/team" },
+    ],
+  },
+  {
+    title: "Marketing",
+    defaultOpen: true,
+    items: [
+      { label: "Contacts", icon: IconAddressBook, href: "/contacts" },
+      { label: "Audiences", icon: IconFilter, href: "/audiences" },
+      { label: "Broadcasts", icon: IconMail, href: "/broadcasts" },
     ],
   },
 ];

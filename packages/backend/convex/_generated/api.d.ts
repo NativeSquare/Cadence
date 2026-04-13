@@ -15,7 +15,11 @@ import type * as ai_prompts_onboarding_coach from "../ai/prompts/onboarding_coac
 import type * as ai_tools_actions from "../ai/tools/actions.js";
 import type * as ai_tools_index from "../ai/tools/index.js";
 import type * as ai_tools_reads from "../ai/tools/reads.js";
+import type * as audiences from "../audiences.js";
 import type * as auth from "../auth.js";
+import type * as broadcastSend from "../broadcastSend.js";
+import type * as broadcasts from "../broadcasts.js";
+import type * as contacts from "../contacts.js";
 import type * as crons from "../crons.js";
 import type * as emails from "../emails.js";
 import type * as http from "../http.js";
@@ -45,6 +49,11 @@ import type * as storage from "../storage.js";
 import type * as table_activities from "../table/activities.js";
 import type * as table_admin from "../table/admin.js";
 import type * as table_adminInvites from "../table/adminInvites.js";
+import type * as table_audienceMembers from "../table/audienceMembers.js";
+import type * as table_audiences from "../table/audiences.js";
+import type * as table_broadcastRecipients from "../table/broadcastRecipients.js";
+import type * as table_broadcasts from "../table/broadcasts.js";
+import type * as table_contacts from "../table/contacts.js";
 import type * as table_feedback from "../table/feedback.js";
 import type * as table_garminUserMappings from "../table/garminUserMappings.js";
 import type * as table_knowledgeBase from "../table/knowledgeBase.js";
@@ -54,7 +63,6 @@ import type * as table_runners from "../table/runners.js";
 import type * as table_safeguards from "../table/safeguards.js";
 import type * as table_trainingPlans from "../table/trainingPlans.js";
 import type * as table_users from "../table/users.js";
-import type * as table_waitlist from "../table/waitlist.js";
 import type * as training_actionMutations from "../training/actionMutations.js";
 import type * as training_analytics from "../training/analytics.js";
 import type * as training_mutations from "../training/mutations.js";
@@ -67,8 +75,8 @@ import type * as training_templates_halfMarathon from "../training/templates/hal
 import type * as training_templates_index from "../training/templates/index.js";
 import type * as training_templates_marathon from "../training/templates/marathon.js";
 import type * as training_templates_types from "../training/templates/types.js";
+import type * as unsubscribe from "../unsubscribe.js";
 import type * as utils_generateFunctions from "../utils/generateFunctions.js";
-import type * as waitlist from "../waitlist.js";
 
 import type {
   ApiFromModules,
@@ -84,7 +92,11 @@ declare const fullApi: ApiFromModules<{
   "ai/tools/actions": typeof ai_tools_actions;
   "ai/tools/index": typeof ai_tools_index;
   "ai/tools/reads": typeof ai_tools_reads;
+  audiences: typeof audiences;
   auth: typeof auth;
+  broadcastSend: typeof broadcastSend;
+  broadcasts: typeof broadcasts;
+  contacts: typeof contacts;
   crons: typeof crons;
   emails: typeof emails;
   http: typeof http;
@@ -114,6 +126,11 @@ declare const fullApi: ApiFromModules<{
   "table/activities": typeof table_activities;
   "table/admin": typeof table_admin;
   "table/adminInvites": typeof table_adminInvites;
+  "table/audienceMembers": typeof table_audienceMembers;
+  "table/audiences": typeof table_audiences;
+  "table/broadcastRecipients": typeof table_broadcastRecipients;
+  "table/broadcasts": typeof table_broadcasts;
+  "table/contacts": typeof table_contacts;
   "table/feedback": typeof table_feedback;
   "table/garminUserMappings": typeof table_garminUserMappings;
   "table/knowledgeBase": typeof table_knowledgeBase;
@@ -123,7 +140,6 @@ declare const fullApi: ApiFromModules<{
   "table/safeguards": typeof table_safeguards;
   "table/trainingPlans": typeof table_trainingPlans;
   "table/users": typeof table_users;
-  "table/waitlist": typeof table_waitlist;
   "training/actionMutations": typeof training_actionMutations;
   "training/analytics": typeof training_analytics;
   "training/mutations": typeof training_mutations;
@@ -136,8 +152,8 @@ declare const fullApi: ApiFromModules<{
   "training/templates/index": typeof training_templates_index;
   "training/templates/marathon": typeof training_templates_marathon;
   "training/templates/types": typeof training_templates_types;
+  unsubscribe: typeof unsubscribe;
   "utils/generateFunctions": typeof utils_generateFunctions;
-  waitlist: typeof waitlist;
 }>;
 
 /**

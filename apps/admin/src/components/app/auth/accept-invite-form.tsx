@@ -73,8 +73,8 @@ export function AcceptInviteForm({
       // Accept the invite (sets role to admin)
       await acceptInvite({ token });
 
-      // Redirect to dashboard
-      router.replace("/dashboard");
+      // Redirect to team page
+      router.replace("/team");
     } catch (error) {
       setFormError(getConvexErrorMessage(error));
     } finally {

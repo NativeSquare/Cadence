@@ -2,6 +2,11 @@ import { authTables } from "@convex-dev/auth/server";
 import { defineSchema } from "convex/server";
 import { conversations, messages } from "./ai/messages";
 import { adminInvites } from "./table/adminInvites";
+import { audienceMembers } from "./table/audienceMembers";
+import { audiences } from "./table/audiences";
+import { broadcastRecipients } from "./table/broadcastRecipients";
+import { broadcasts } from "./table/broadcasts";
+import { contacts } from "./table/contacts";
 import { feedback } from "./table/feedback";
 import { garminUserMappings } from "./table/garminUserMappings";
 import { knowledgeBase } from "./table/knowledgeBase";
@@ -11,7 +16,6 @@ import { safeguards } from "./table/safeguards";
 import { plannedSessions } from "./table/plannedSessions";
 import { trainingPlans } from "./table/trainingPlans";
 import { users } from "./table/users";
-import { waitlist } from "./table/waitlist";
 
 // NOTE: The following tables are now owned by Soma component (@nativesquare/soma):
 // - activities → api.soma.listActivities / ingestActivity
@@ -24,6 +28,11 @@ import { waitlist } from "./table/waitlist";
 export default defineSchema({
   ...authTables,
   adminInvites,
+  audienceMembers,
+  audiences,
+  broadcastRecipients,
+  broadcasts,
+  contacts,
   conversations,
   feedback,
   garminUserMappings,
@@ -35,5 +44,4 @@ export default defineSchema({
   safeguards,
   trainingPlans,
   users,
-  waitlist,
 });

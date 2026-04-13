@@ -2,7 +2,7 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
-import { useMutation, useQuery } from "convex/react";
+import { useAction, useQuery } from "convex/react";
 import { api } from "@packages/backend/convex/_generated/api";
 import { useLocale } from "@/lib/i18n";
 
@@ -10,9 +10,9 @@ const ease = [0.16, 1, 0.3, 1] as const;
 
 export function DownloadCta() {
   const { t, locale } = useLocale();
-  const joinWaitlist = useMutation(api.waitlist.join);
-  const waitlistCount = useQuery(api.waitlist.count);
-  const displayCount = waitlistCount ?? 31;
+  const joinContacts = useAction(api.contacts.join);
+  const contactCount = useQuery(api.contacts.count);
+  const displayCount = contactCount ?? 31;
   const [email, setEmail] = useState("");
   const [state, setState] = useState<"idle" | "loading" | "success" | "already" | "error">("idle");
 
@@ -21,7 +21,7 @@ export function DownloadCta() {
     if (!email.trim()) return;
     setState("loading");
     try {
-      const result = await joinWaitlist({ email, source: "cta-bottom", locale });
+      const result = await joinContacts({ email, source: "cta-bottom", locale });
       setState(result.alreadyJoined ? "already" : "success");
     } catch {
       setState("error");

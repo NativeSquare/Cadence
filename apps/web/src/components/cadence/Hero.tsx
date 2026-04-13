@@ -3,7 +3,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import { useState, useEffect } from "react";
-import { useMutation, useQuery } from "convex/react";
+import { useAction, useQuery } from "convex/react";
 import { api } from "@packages/backend/convex/_generated/api";
 import { useLocale } from "@/lib/i18n";
 
@@ -28,8 +28,8 @@ const avatars = [
 
 export function Hero() {
   const { t } = useLocale();
-  const waitlistCount = useQuery(api.waitlist.count);
-  const displayCount = waitlistCount ?? 31;
+  const contactCount = useQuery(api.contacts.count);
+  const displayCount = contactCount ?? 31;
 
   return (
     <section className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-[#f3f3f3]">
@@ -220,9 +220,9 @@ function AnimatedCount({ value }: { value: number }) {
 /* ── Waitlist Form ── */
 function WaitlistForm() {
   const { t, locale } = useLocale();
-  const joinWaitlist = useMutation(api.waitlist.join);
-  const waitlistCount = useQuery(api.waitlist.count);
-  const displayCount = waitlistCount ?? 31;
+  const joinContacts = useAction(api.contacts.join);
+  const contactCount = useQuery(api.contacts.count);
+  const displayCount = contactCount ?? 31;
   const [email, setEmail] = useState("");
   const [state, setState] = useState<"idle" | "loading" | "success" | "already" | "error">("idle");
 
@@ -232,7 +232,7 @@ function WaitlistForm() {
 
     setState("loading");
     try {
-      const result = await joinWaitlist({ email, source: "hero", locale });
+      const result = await joinContacts({ email, source: "hero", locale });
       setState(result.alreadyJoined ? "already" : "success");
     } catch {
       setState("error");
@@ -353,11 +353,6 @@ function WaitlistForm() {
         </motion.p>
       )}
 
-      {!submitted && (
-        <p className="mt-3 text-center text-[12px] text-[#797979]/60">
-          {t.hero.disclaimer}
-        </p>
-      )}
     </motion.div>
   );
 }
