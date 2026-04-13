@@ -1,8 +1,36 @@
 import { Email } from "@convex-dev/auth/providers/Email";
 import { alphabet, generateRandomString } from "oslo/crypto";
-import { VerifyEmail } from "@packages/transactional";
-import { APP_DOMAIN, APP_NAME } from "@packages/shared/constants";
+import { APP_DOMAIN, APP_NAME, APP_ADDRESS } from "@packages/shared/constants";
 import { Resend as ResendAPI } from "resend";
+
+function buildVerifyEmailHtml(code: string) {
+  return `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8" /></head>
+<body style="background-color:#ffffff;font-family:sans-serif;">
+  <div style="max-width:600px;margin:0 auto;padding:0 12px;">
+    <p style="color:#51525C;font-size:14px;margin:8px 0;">Hi there,</p>
+    <p style="color:#51525C;font-size:14px;margin:8px 0;">
+      To verify your email, please use the following code:
+    </p>
+    <p style="color:#51525C;font-size:30px;font-weight:600;margin:24px 0;">
+      <strong>${code}</strong>
+    </p>
+    <p style="color:#51525C;font-size:14px;margin:8px 0;">
+      This code will only be valid for the next 5 minutes.
+    </p>
+    <p style="color:#51525C;font-size:14px;margin:8px 0;">Thanks,</p>
+    <p style="color:#51525C;font-size:14px;margin:8px 0;">
+      The ${APP_NAME} Team
+    </p>
+    <hr />
+    <p style="color:#51525C;font-size:14px;margin:8px 0;">
+      &copy; 2025 ${APP_NAME}, ${APP_ADDRESS}
+    </p>
+  </div>
+</body>
+</html>`;
+}
 
 export const ResendOTP = Email({
   id: "resend-otp",
@@ -25,7 +53,7 @@ export const ResendOTP = Email({
       from: `${APP_NAME} <no-reply@${APP_DOMAIN}>`,
       to: [email],
       subject: "Verify your email",
-      react: VerifyEmail({ code: token }),
+      html: buildVerifyEmailHtml(token),
     });
 
     if (error) {
