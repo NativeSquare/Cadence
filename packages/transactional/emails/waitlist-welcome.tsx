@@ -14,7 +14,7 @@ import {
 const APP_NAME = "Cadence";
 const COMPANY = "NativeSquare SAS";
 const APP_ADDRESS = "60 rue François 1er, 75008 Paris, France";
-// In production emails, this should point to https://cadence.run/logo-cadence.svg
+// In production emails, the URL is set in packages/backend/convex/emails.ts
 // For React Email preview, we use the static directory
 const LOGO_URL = "/static/logo-cadence.svg";
 
@@ -29,12 +29,12 @@ const copy = {
     comingTitle: "What to expect:",
     features: [
       "Personalized training plans with transparent coaching logic",
-      "Seamless integration with Garmin, COROS, and Apple Watch",
+      "Seamless integration with Garmin and Apple Watch",
       "Intelligent daily adjustments based on your readiness",
       "Post-session insights to accelerate your progress",
     ],
     signoff: "Run smart,",
-    team: "Max, Alex & Matthieu",
+    team: "Max, Alex & Mathieu",
     teamLabel: "The Cadence team",
     footer: (email: string) =>
       `This email was sent to ${email} because you reserved your spot on Cadence.`,
@@ -49,12 +49,12 @@ const copy = {
     comingTitle: "Ce qui vous attend :",
     features: [
       "Plans d'entraînement personnalisés avec logique de coaching transparente",
-      "Intégration fluide avec Garmin, COROS et Apple Watch",
+      "Intégration fluide avec Garmin et Apple Watch",
       "Ajustements quotidiens intelligents basés sur votre état de forme",
       "Analyses post-séance pour accélérer votre progression",
     ],
     signoff: "Bonne course,",
-    team: "Max, Alex & Matthieu",
+    team: "Max, Alex & Mathieu",
     teamLabel: "L'équipe Cadence",
     footer: (email: string) =>
       `Cet email a été envoyé à ${email} car vous avez réservé votre place sur Cadence.`,

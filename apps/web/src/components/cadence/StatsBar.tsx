@@ -6,7 +6,6 @@ import { useLocale } from "@/lib/i18n";
 const integrations = [
   { name: "Apple Watch", icon: "⌚" },
   { name: "Garmin", icon: "⊙" },
-  { name: "COROS", icon: "◉" },
   { name: "Strava Sync", icon: "▲" },
   { name: "Apple Health", icon: "♥" },
 ];

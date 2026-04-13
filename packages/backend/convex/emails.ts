@@ -46,7 +46,7 @@ export const sendEmail = internalAction({
 // =============================================================================
 
 // Logo embedded as base64 data URI — works in all email clients, no external dependency
-const LOGO_URL = "https://cadence.nativesquare.fr/cadence-logo.png";
+const LOGO_URL = "https://cadencerun.fr/cadence-logo.png";
 
 const waitlistCopy = {
   en: {
@@ -59,12 +59,12 @@ const waitlistCopy = {
     comingTitle: "What to expect:",
     features: [
       "Personalized training plans with transparent coaching logic",
-      "Seamless integration with Garmin, COROS, and Apple Watch",
+      "Seamless integration with Garmin and Apple Watch",
       "Intelligent daily adjustments based on your readiness",
       "Post-session insights to accelerate your progress",
     ],
     signoff: "Run smart,",
-    team: "Max, Alex & Matthieu",
+    team: "Max, Alex & Mathieu",
     teamLabel: "The Cadence team",
     footer: (email: string) => `This email was sent to ${email} because you reserved your spot on Cadence.`,
   },
@@ -78,12 +78,12 @@ const waitlistCopy = {
     comingTitle: "Ce qui vous attend :",
     features: [
       "Plans d'entraînement personnalisés avec logique de coaching transparente",
-      "Intégration fluide avec Garmin, COROS et Apple Watch",
+      "Intégration fluide avec Garmin et Apple Watch",
       "Ajustements quotidiens intelligents basés sur votre état de forme",
       "Analyses post-séance pour accélérer votre progression",
     ],
     signoff: "Bonne course,",
-    team: "Max, Alex & Matthieu",
+    team: "Max, Alex & Mathieu",
     teamLabel: "L'équipe Cadence",
     footer: (email: string) => `Cet email a été envoyé à ${email} car vous avez réservé votre place sur Cadence.`,
   },

@@ -213,7 +213,7 @@ const translations = {
         },
         {
           q: "Do I need a smartwatch to use Cadence?",
-          a: "No. You can manually log runs or answer questions about your sessions. However, connecting a watch (Apple Watch, Garmin, COROS) gives the AI much richer data to work with.",
+          a: "No. You can manually log runs or answer questions about your sessions. However, connecting a watch (Apple Watch, Garmin) gives the AI much richer data to work with.",
         },
         {
           q: "How does the AI build my plan?",
@@ -457,7 +457,7 @@ const translations = {
         },
         {
           q: "Ai-je besoin d'une montre connect\u00E9e pour utiliser Cadence ?",
-          a: "Non. Vous pouvez enregistrer manuellement vos sorties ou r\u00E9pondre \u00E0 des questions sur vos s\u00E9ances. Cependant, connecter une montre (Apple Watch, Garmin, COROS) donne \u00E0 l'IA des donn\u00E9es beaucoup plus riches.",
+          a: "Non. Vous pouvez enregistrer manuellement vos sorties ou r\u00E9pondre \u00E0 des questions sur vos s\u00E9ances. Cependant, connecter une montre (Apple Watch, Garmin) donne \u00E0 l'IA des donn\u00E9es beaucoup plus riches.",
         },
         {
           q: "Comment l'IA construit-elle mon plan ?",

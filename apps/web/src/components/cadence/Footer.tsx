@@ -70,7 +70,7 @@ export function CadenceFooter() {
             <h4 className="mb-4 font-mono text-[10px] font-medium uppercase tracking-[0.08em] text-white/20">
               {t.footer.integrationsHeading}
             </h4>
-            {["Apple Watch", "Garmin", "COROS", "Strava"].map((label) => (
+            {["Apple Watch", "Garmin", "Strava"].map((label) => (
               <div key={label} className="flex items-center gap-2 py-1.5">
                 <div className="h-1 w-1 rounded-full bg-lime/30" />
                 <span className="text-[13px] text-white/35">{label}</span>

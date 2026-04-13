@@ -32,7 +32,6 @@ export const metadata: Metadata = {
     "marathon",
     "running app",
     "Garmin",
-    "COROS",
     "Apple Watch",
     "periodization",
   ],
