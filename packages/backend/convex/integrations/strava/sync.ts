@@ -19,7 +19,6 @@ import { components, internal } from "../../_generated/api";
 import {
   action,
   internalQuery,
-  mutation,
 } from "../../_generated/server";
 
 const soma = new Soma(components.soma);
@@ -149,32 +148,3 @@ export const disconnectStravaAccount = action({
   },
 });
 
-/**
- * Get the Strava connection status for the current user via Soma.
- */
-export const getStravaStatus = mutation({
-  args: {},
-  returns: v.union(
-    v.object({
-      connected: v.boolean(),
-      connectionId: v.string(),
-    }),
-    v.null(),
-  ),
-  handler: async (ctx) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) return null;
-
-    const connection = await soma.getConnectionByProvider(ctx, {
-      userId,
-      provider: "STRAVA",
-    });
-
-    if (!connection || !connection.active) return null;
-
-    return {
-      connected: true,
-      connectionId: connection._id,
-    };
-  },
-});

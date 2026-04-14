@@ -22,7 +22,6 @@ import {
   action,
   internalMutation,
   internalQuery,
-  mutation,
 } from "../../_generated/server";
 import { transformSessionToSomaWorkout } from "./transform";
 
@@ -141,36 +140,6 @@ export const disconnectGarminAccount = action({
     await soma.disconnectGarmin(ctx, { userId });
 
     return null;
-  },
-});
-
-/**
- * Get the Garmin connection status for the current user via Soma.
- */
-export const getGarminStatus = mutation({
-  args: {},
-  returns: v.union(
-    v.object({
-      connected: v.boolean(),
-      connectionId: v.string(),
-    }),
-    v.null(),
-  ),
-  handler: async (ctx) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) return null;
-
-    const connection = await soma.getConnectionByProvider(ctx, {
-      userId,
-      provider: "GARMIN",
-    });
-
-    if (!connection || !connection.active) return null;
-
-    return {
-      connected: true,
-      connectionId: connection._id,
-    };
   },
 });
 
