@@ -8,7 +8,6 @@ import { broadcastRecipients } from "./table/broadcastRecipients";
 import { broadcasts } from "./table/broadcasts";
 import { contacts } from "./table/contacts";
 import { feedback } from "./table/feedback";
-import { garminUserMappings } from "./table/garminUserMappings";
 import { knowledgeBase } from "./table/knowledgeBase";
 import { pushTokens } from "./table/pushTokens";
 import { runners } from "./table/runners";
@@ -35,7 +34,6 @@ export default defineSchema({
   contacts,
   conversations,
   feedback,
-  garminUserMappings,
   knowledgeBase,
   messages,
   plannedSessions,

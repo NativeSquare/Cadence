@@ -25,7 +25,6 @@ import type * as emails from "../emails.js";
 import type * as http from "../http.js";
 import type * as integrations_connections from "../integrations/connections.js";
 import type * as integrations_garmin_sync from "../integrations/garmin/sync.js";
-import type * as integrations_garmin_testWebhook from "../integrations/garmin/testWebhook.js";
 import type * as integrations_garmin_transform from "../integrations/garmin/transform.js";
 import type * as integrations_garmin_webhook from "../integrations/garmin/webhook.js";
 import type * as integrations_healthkit_sync from "../integrations/healthkit/sync.js";
@@ -55,7 +54,6 @@ import type * as table_broadcastRecipients from "../table/broadcastRecipients.js
 import type * as table_broadcasts from "../table/broadcasts.js";
 import type * as table_contacts from "../table/contacts.js";
 import type * as table_feedback from "../table/feedback.js";
-import type * as table_garminUserMappings from "../table/garminUserMappings.js";
 import type * as table_knowledgeBase from "../table/knowledgeBase.js";
 import type * as table_plannedSessions from "../table/plannedSessions.js";
 import type * as table_pushTokens from "../table/pushTokens.js";
@@ -102,7 +100,6 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   "integrations/connections": typeof integrations_connections;
   "integrations/garmin/sync": typeof integrations_garmin_sync;
-  "integrations/garmin/testWebhook": typeof integrations_garmin_testWebhook;
   "integrations/garmin/transform": typeof integrations_garmin_transform;
   "integrations/garmin/webhook": typeof integrations_garmin_webhook;
   "integrations/healthkit/sync": typeof integrations_healthkit_sync;
@@ -132,7 +129,6 @@ declare const fullApi: ApiFromModules<{
   "table/broadcasts": typeof table_broadcasts;
   "table/contacts": typeof table_contacts;
   "table/feedback": typeof table_feedback;
-  "table/garminUserMappings": typeof table_garminUserMappings;
   "table/knowledgeBase": typeof table_knowledgeBase;
   "table/plannedSessions": typeof table_plannedSessions;
   "table/pushTokens": typeof table_pushTokens;

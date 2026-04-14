@@ -36,12 +36,6 @@ registerRoutes(http, components.soma, {
   garmin: {
     oauth: {
       redirectTo: "cadence://oauth/garmin/complete",
-      onComplete: async (ctx, event) => {
-        await ctx.runMutation(
-          internal.integrations.garmin.sync.storeGarminUserMapping,
-          { cadenceUserId: event.userId },
-        );
-      },
     },
     webhook: {
       events: {
