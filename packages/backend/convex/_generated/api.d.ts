@@ -2113,48 +2113,78 @@ export declare const components: {
     };
     strava: {
       public: {
+        completeStravaOAuth: FunctionReference<
+          "action",
+          "internal",
+          {
+            clientId: string;
+            clientSecret: string;
+            code: string;
+            state: string;
+          },
+          {
+            connectionId: string;
+            errors: Array<{ error: string; id: string; type: string }>;
+            synced: { activities: number; athletes: number };
+            userId: string;
+          }
+        >;
         connectStrava: FunctionReference<
           "action",
           "internal",
           {
-            baseUrl?: string;
             clientId: string;
             clientSecret: string;
             code: string;
-            includeStreams?: boolean;
             userId: string;
           },
           {
             connectionId: string;
-            errors: Array<{ activityId: number; error: string }>;
-            synced: number;
+            errors: Array<{ error: string; id: string; type: string }>;
+            synced: { activities: number; athletes: number };
           }
         >;
         disconnectStrava: FunctionReference<
           "action",
           "internal",
+          { clientId: string; clientSecret: string; userId: string },
+          null
+        >;
+        getStravaAuthUrl: FunctionReference<
+          "action",
+          "internal",
           {
-            baseUrl?: string;
             clientId: string;
-            clientSecret: string;
+            redirectUri: string;
+            scope?: string;
+            userId?: string;
+          },
+          any
+        >;
+        syncAllTypes: FunctionReference<
+          "action",
+          "internal",
+          {
+            accessToken: string;
+            after?: number;
+            before?: number;
+            connectionId: string;
             userId: string;
           },
-          null
+          any
         >;
         syncStrava: FunctionReference<
           "action",
           "internal",
           {
             after?: number;
-            baseUrl?: string;
             clientId: string;
             clientSecret: string;
-            includeStreams?: boolean;
             userId: string;
           },
           {
-            errors: Array<{ activityId: number; error: string }>;
-            synced: number;
+            errors: Array<{ error: string; id: string; type: string }>;
+            synced: { activities: number; athletes: number };
           }
         >;
       };

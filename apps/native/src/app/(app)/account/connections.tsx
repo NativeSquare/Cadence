@@ -1,6 +1,29 @@
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AppleHealthLogo,
+  CorosLogo,
+  GarminLogo,
+  StravaLogo,
+} from "@/components/icons/provider-logos";
 import { Text } from "@/components/ui/text";
 import { useStrava } from "@/hooks/use-strava";
 import { useGarmin } from "@/hooks/use-garmin";
+import { useHealthKit } from "@/hooks/use-healthkit";
 import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
 import { getConvexErrorMessage } from "@/utils/getConvexErrorMessage";
 import { Ionicons } from "@expo/vector-icons";
@@ -20,8 +43,7 @@ type ConnectionDef = {
   providerKey: "strava" | "healthkit" | "garmin";
   name: string;
   description: string;
-  icon: string;
-  color: string;
+  logo: (props: { size?: number; color?: string }) => React.ReactNode;
 };
 
 const CONNECTIONS: ConnectionDef[] = [
@@ -30,24 +52,30 @@ const CONNECTIONS: ConnectionDef[] = [
     providerKey: "strava",
     name: "Strava",
     description: "Sync activities, routes & training",
-    icon: "S",
-    color: "#FC4C02",
+    logo: StravaLogo,
   },
   {
     key: "appleHealth",
     providerKey: "healthkit",
     name: "Apple Health",
     description: "Heart rate, sleep & recovery data",
-    icon: "♥",
-    color: "#FF2D55",
+    logo: AppleHealthLogo,
   },
   {
     key: "garmin",
     providerKey: "garmin",
     name: "Garmin",
     description: "GPS watch & wearable data",
-    icon: "G",
-    color: "#007CC3",
+    logo: GarminLogo,
+  },
+];
+
+const COMING_SOON_PROVIDERS = [
+  {
+    key: "coros" as const,
+    name: "COROS",
+    description: "GPS watch & training data",
+    logo: CorosLogo,
   },
 ];
 
@@ -63,13 +91,26 @@ export default function ConnectionsScreen() {
   const disconnectAppleHealth = useMutation(
     api.integrations.connections.disconnectAppleHealth,
   );
-  const { connect: connectStrava, isConnecting: stravaConnecting, error: stravaError } =
-    useStrava();
-  const { connect: connectGarminFlow, isConnecting: garminConnecting, error: garminError } =
-    useGarmin();
+  const {
+    connect: connectStrava,
+    isConnecting: stravaConnecting,
+    error: stravaError,
+  } = useStrava();
+  const {
+    connect: connectGarminFlow,
+    isConnecting: garminConnecting,
+    error: garminError,
+  } = useGarmin();
+  const {
+    connect: connectHealthKit,
+    isConnecting: healthKitConnecting,
+    error: healthKitError,
+  } = useHealthKit();
 
   const [saving, setSaving] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
+  const [confirmDisconnect, setConfirmDisconnect] =
+    React.useState<ConnectionDef | null>(null);
 
   const isConnected = (conn: ConnectionDef): boolean => {
     if (!providers) return false;
@@ -78,8 +119,8 @@ export default function ConnectionsScreen() {
 
   const handleConnectStrava = async () => {
     setError(null);
-    const result = await connectStrava();
-    if (result) return;
+    const success = await connectStrava();
+    if (success) return;
     if (stravaError) setError(stravaError);
   };
 
@@ -90,52 +131,33 @@ export default function ConnectionsScreen() {
     if (garminError) setError(garminError);
   };
 
-  const handleToggle = async (conn: ConnectionDef) => {
-    const currentlyConnected = isConnected(conn);
+  const handleConnectAppleHealth = async () => {
+    setError(null);
+    const result = await connectHealthKit();
+    if (result) return;
+    if (healthKitError) setError(healthKitError);
+  };
 
-    if (conn.key === "strava") {
-      if (!currentlyConnected) return;
-      setSaving(conn.key);
-      setError(null);
-      try {
-        await disconnectStrava();
-      } catch (err) {
-        setError(getConvexErrorMessage(err));
-      } finally {
-        setSaving(null);
-      }
-      return;
-    }
-
-    if (conn.key === "garmin") {
-      if (!currentlyConnected) return;
-      setSaving(conn.key);
-      setError(null);
-      try {
-        await disconnectGarmin();
-      } catch (err) {
-        setError(getConvexErrorMessage(err));
-      } finally {
-        setSaving(null);
-      }
-      return;
-    }
-
-    if (conn.key === "appleHealth") {
-      setSaving(conn.key);
-      setError(null);
-      try {
-        if (currentlyConnected) {
-          await disconnectAppleHealth();
-        }
-      } catch (err) {
-        setError(getConvexErrorMessage(err));
-      } finally {
-        setSaving(null);
-      }
-      return;
+  const handleDisconnect = async (conn: ConnectionDef) => {
+    setSaving(conn.key);
+    setError(null);
+    try {
+      if (conn.key === "strava") await disconnectStrava();
+      else if (conn.key === "garmin") await disconnectGarmin();
+      else if (conn.key === "appleHealth") await disconnectAppleHealth();
+    } catch (err) {
+      setError(getConvexErrorMessage(err));
+    } finally {
+      setSaving(null);
     }
   };
+
+  const connectedProviders = providers
+    ? CONNECTIONS.filter((c) => providers[c.providerKey].connected)
+    : [];
+  const notConnectedProviders = providers
+    ? CONNECTIONS.filter((c) => !providers[c.providerKey].connected)
+    : CONNECTIONS;
 
   return (
     <View className="mt-safe flex-1" style={{ backgroundColor: LIGHT_THEME.w2 }}>
@@ -162,128 +184,292 @@ export default function ConnectionsScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerClassName="px-4 py-6"
       >
-        <View className="w-full max-w-md gap-4 self-center">
-          <Text
-            className="font-coach text-[13px]"
-            style={{ color: LIGHT_THEME.wMute }}
-          >
-            Connect your services to sync training data automatically.
-          </Text>
+        <View className="w-full max-w-md gap-6 self-center">
+          {/* ── Connected Providers ── */}
+          {connectedProviders.length > 0 && (
+            <View className="gap-3">
+              <Text
+                className="font-coach-semibold text-[13px] uppercase tracking-wider"
+                style={{ color: LIGHT_THEME.wMute }}
+              >
+                Connected
+              </Text>
 
-          <View
-            className="overflow-hidden rounded-[18px]"
-            style={{
-              backgroundColor: LIGHT_THEME.w1,
-              borderWidth: 1,
-              borderColor: LIGHT_THEME.wBrd,
-            }}
-          >
-            {CONNECTIONS.map((conn, index) => {
-              const connected = isConnected(conn);
-              const isLast = index === CONNECTIONS.length - 1;
-              const isStrava = conn.key === "strava";
-              const isGarmin = conn.key === "garmin";
-              const showConnectButton =
-                (isStrava && !connected && !stravaConnecting) ||
-                (isGarmin && !connected && !garminConnecting);
-              const showLoading =
-                (isStrava && !connected && stravaConnecting) ||
-                (isGarmin && !connected && garminConnecting);
-
-              return (
-                <View
-                  key={conn.key}
-                  className="flex-row items-center gap-3.5 px-4 py-4"
-                  style={
-                    isLast
-                      ? undefined
-                      : {
-                          borderBottomWidth: 1,
-                          borderBottomColor: LIGHT_THEME.wBrd,
-                        }
-                  }
-                >
-                  <View
-                    className="size-[38px] shrink-0 items-center justify-center rounded-xl"
-                    style={{ backgroundColor: conn.color + "18" }}
-                  >
-                    <Text
-                      className="font-coach-extrabold"
-                      style={{
-                        fontSize: conn.icon === "♥" ? 16 : 14,
-                        color: conn.color,
-                      }}
-                    >
-                      {conn.icon}
-                    </Text>
-                  </View>
-
-                  <View className="flex-1">
-                    <Text
-                      className="font-coach-medium text-[15px]"
-                      style={{ color: LIGHT_THEME.wText }}
-                    >
-                      {conn.name}
-                    </Text>
-                    <Text
-                      className="mt-0.5 font-coach text-xs"
-                      style={{ color: LIGHT_THEME.wMute }}
-                    >
-                      {conn.description}
-                    </Text>
-                  </View>
-
-                  {showLoading ? (
-                    <ActivityIndicator size="small" color={LIGHT_THEME.wMute} />
-                  ) : showConnectButton ? (
-                    <Pressable
-                      onPress={isStrava ? handleConnectStrava : handleConnectGarmin}
-                      className="rounded-full px-4 py-2 active:opacity-80"
-                      style={{ backgroundColor: conn.color }}
-                    >
-                      <Text
-                        className="font-coach-semibold text-[13px]"
-                        style={{ color: "#fff" }}
-                      >
-                        Connect {conn.name}
-                      </Text>
-                    </Pressable>
-                  ) : saving === conn.key ? (
-                    <ActivityIndicator size="small" color={LIGHT_THEME.wMute} />
-                  ) : (
-                    <Pressable
-                      onPress={() => handleToggle(conn)}
-                      className="h-[28px] w-[48px] justify-center rounded-full p-0.5"
-                      style={{
-                        backgroundColor: connected
-                          ? COLORS.lime
-                          : "rgba(0,0,0,0.08)",
-                      }}
+              <View
+                className="overflow-hidden rounded-[18px]"
+                style={{
+                  backgroundColor: LIGHT_THEME.w1,
+                  borderWidth: 1,
+                  borderColor: LIGHT_THEME.wBrd,
+                }}
+              >
+                {connectedProviders.map((conn, index) => {
+                  const isLast = index === connectedProviders.length - 1;
+                  return (
+                    <View
+                      key={conn.key}
+                      className="flex-row items-center gap-3.5 px-4 py-4"
+                      style={
+                        isLast
+                          ? undefined
+                          : {
+                              borderBottomWidth: 1,
+                              borderBottomColor: LIGHT_THEME.wBrd,
+                            }
+                      }
                     >
                       <View
-                        className="size-[24px] rounded-full shadow-sm"
-                        style={{
-                          backgroundColor: LIGHT_THEME.w1,
-                          transform: [{ translateX: connected ? 20 : 0 }],
-                        }}
-                      />
-                    </Pressable>
-                  )}
-                </View>
-              );
-            })}
-          </View>
+                        className="size-[38px] shrink-0 items-center justify-center rounded-xl"
+                        style={{ backgroundColor: LIGHT_THEME.w3 }}
+                      >
+                        <conn.logo size={18} />
+                      </View>
 
-          {(error || stravaError || garminError) && (
+                      <View className="flex-1">
+                        <Text
+                          className="font-coach-medium text-[15px]"
+                          style={{ color: LIGHT_THEME.wText }}
+                        >
+                          {conn.name}
+                        </Text>
+                        <Text
+                          className="mt-0.5 font-coach text-xs"
+                          style={{ color: LIGHT_THEME.wMute }}
+                        >
+                          {conn.description}
+                        </Text>
+                      </View>
+
+                      {saving === conn.key ? (
+                        <ActivityIndicator
+                          size="small"
+                          color={LIGHT_THEME.wMute}
+                        />
+                      ) : (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Pressable className="size-9 items-center justify-center rounded-full active:opacity-70">
+                              <Ionicons
+                                name="ellipsis-horizontal"
+                                size={20}
+                                color={LIGHT_THEME.wMute}
+                              />
+                            </Pressable>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" sideOffset={4}>
+                            <DropdownMenuItem
+                              variant="destructive"
+                              onPress={() => setConfirmDisconnect(conn)}
+                            >
+                              <Text>Disconnect {conn.name}</Text>
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
+                    </View>
+                  );
+                })}
+              </View>
+            </View>
+          )}
+
+          {/* ── Not Yet Connected ── */}
+          {(notConnectedProviders.length > 0 ||
+            COMING_SOON_PROVIDERS.length > 0) && (
+            <View className="gap-3">
+              <Text
+                className="font-coach-semibold text-[13px] uppercase tracking-wider"
+                style={{ color: LIGHT_THEME.wMute }}
+              >
+                Not yet connected
+              </Text>
+
+              <View
+                className="overflow-hidden rounded-[18px]"
+                style={{
+                  backgroundColor: LIGHT_THEME.w1,
+                  borderWidth: 1,
+                  borderColor: LIGHT_THEME.wBrd,
+                }}
+              >
+                {notConnectedProviders.map((conn, index) => {
+                  const isStrava = conn.key === "strava";
+                  const isGarmin = conn.key === "garmin";
+                  const isAppleHealth = conn.key === "appleHealth";
+                  const isConnecting =
+                    (isStrava && stravaConnecting) ||
+                    (isGarmin && garminConnecting) ||
+                    (isAppleHealth && healthKitConnecting);
+                  const isLast =
+                    index === notConnectedProviders.length - 1 &&
+                    COMING_SOON_PROVIDERS.length === 0;
+
+                  const handleConnect = isStrava
+                    ? handleConnectStrava
+                    : isGarmin
+                      ? handleConnectGarmin
+                      : handleConnectAppleHealth;
+
+                  return (
+                    <View
+                      key={conn.key}
+                      className="flex-row items-center gap-3.5 px-4 py-4"
+                      style={
+                        isLast
+                          ? undefined
+                          : {
+                              borderBottomWidth: 1,
+                              borderBottomColor: LIGHT_THEME.wBrd,
+                            }
+                      }
+                    >
+                      <View
+                        className="size-[38px] shrink-0 items-center justify-center rounded-xl"
+                        style={{ backgroundColor: LIGHT_THEME.w3 }}
+                      >
+                        <conn.logo size={18} />
+                      </View>
+
+                      <View className="flex-1">
+                        <Text
+                          className="font-coach-medium text-[15px]"
+                          style={{ color: LIGHT_THEME.wText }}
+                        >
+                          {conn.name}
+                        </Text>
+                        <Text
+                          className="mt-0.5 font-coach text-xs"
+                          style={{ color: LIGHT_THEME.wMute }}
+                        >
+                          {conn.description}
+                        </Text>
+                      </View>
+
+                      {isConnecting ? (
+                        <ActivityIndicator
+                          size="small"
+                          color={LIGHT_THEME.wMute}
+                        />
+                      ) : (
+                        <Pressable
+                          onPress={handleConnect}
+                          className="rounded-full px-4 py-2 active:opacity-80"
+                          style={{ backgroundColor: COLORS.lime }}
+                        >
+                          <Text
+                            className="font-coach-semibold text-[13px]"
+                            style={{ color: LIGHT_THEME.wText }}
+                          >
+                            Connect
+                          </Text>
+                        </Pressable>
+                      )}
+                    </View>
+                  );
+                })}
+
+                {/* Coming Soon providers */}
+                {COMING_SOON_PROVIDERS.map((provider, index) => {
+                  const isLast =
+                    index === COMING_SOON_PROVIDERS.length - 1;
+                  return (
+                    <View
+                      key={provider.key}
+                      className="flex-row items-center gap-3.5 px-4 py-4"
+                      style={
+                        isLast
+                          ? { opacity: 0.55 }
+                          : {
+                              opacity: 0.55,
+                              borderBottomWidth: 1,
+                              borderBottomColor: LIGHT_THEME.wBrd,
+                            }
+                      }
+                    >
+                      <View
+                        className="size-[38px] shrink-0 items-center justify-center rounded-xl"
+                        style={{ backgroundColor: LIGHT_THEME.w3 }}
+                      >
+                        <provider.logo size={18} />
+                      </View>
+
+                      <View className="flex-1">
+                        <Text
+                          className="font-coach-medium text-[15px]"
+                          style={{ color: LIGHT_THEME.wText }}
+                        >
+                          {provider.name}
+                        </Text>
+                        <Text
+                          className="mt-0.5 font-coach text-xs"
+                          style={{ color: LIGHT_THEME.wMute }}
+                        >
+                          {provider.description}
+                        </Text>
+                      </View>
+
+                      <View
+                        className="rounded-full px-3 py-1.5"
+                        style={{ backgroundColor: LIGHT_THEME.w3 }}
+                      >
+                        <Text
+                          className="font-coach-medium text-[12px]"
+                          style={{ color: LIGHT_THEME.wMute }}
+                        >
+                          Coming soon
+                        </Text>
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+            </View>
+          )}
+
+          {(error || stravaError || garminError || healthKitError) && (
             <Text
               className="text-center font-coach text-sm"
               style={{ color: COLORS.red }}
             >
-              {error ?? stravaError ?? garminError}
+              {error ?? stravaError ?? garminError ?? healthKitError}
             </Text>
           )}
         </View>
       </ScrollView>
+
+      {/* ── Disconnect Confirmation Dialog ── */}
+      <AlertDialog
+        open={!!confirmDisconnect}
+        onOpenChange={(open) => {
+          if (!open) setConfirmDisconnect(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Disconnect {confirmDisconnect?.name}?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Your synced data will be kept, but new activities won't sync until
+              you reconnect.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>
+              <Text>Cancel</Text>
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive"
+              onPress={() => {
+                if (confirmDisconnect) handleDisconnect(confirmDisconnect);
+                setConfirmDisconnect(null);
+              }}
+            >
+              <Text>Disconnect</Text>
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </View>
   );
 }

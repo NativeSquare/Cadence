@@ -1,3 +1,4 @@
+"use no memo";
 import { useWindowDimensions, View } from "react-native";
 import Animated, { Easing, FadeInUp } from "react-native-reanimated";
 import {

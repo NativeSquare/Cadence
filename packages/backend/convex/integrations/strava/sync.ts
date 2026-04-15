@@ -1,25 +1,25 @@
 /**
- * Strava Sync - OAuth + activity sync via Soma component (v0.2.0)
+ * Strava Sync - Server-side OAuth + activity sync via Soma component (v0.10.0)
  *
  * Handles the full Strava lifecycle:
- * - OAuth code exchange + initial sync  (connectStrava)
- * - Incremental activity sync           (syncStravaData)
- * - Disconnect                          (disconnectStrava)
+ * - Server-side OAuth URL generation       (getStravaAuthUrl)
+ * - Incremental activity sync              (syncStravaData)
+ * - Disconnect                             (disconnectStravaAccount)
+ *
+ * OAuth completion (code exchange + initial sync) is handled server-side
+ * by the Soma callback registered in http.ts via registerRoutes.
  *
  * All Strava API communication, token storage, and data normalization
  * is managed internally by the Soma component. The STRAVA_CLIENT_ID,
- * STRAVA_CLIENT_SECRET, and STRAVA_BASE_URL environment variables are
- * read automatically by the Soma constructor.
+ * STRAVA_CLIENT_SECRET environment variables are read automatically
+ * by the Soma constructor.
  */
 
 import { Soma } from "@nativesquare/soma";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { ConvexError, v } from "convex/values";
 import { components, internal } from "../../_generated/api";
-import {
-  action,
-  internalQuery,
-} from "../../_generated/server";
+import { action, internalQuery } from "../../_generated/server";
 
 const soma = new Soma(components.soma);
 
@@ -40,29 +40,16 @@ export const getAuthenticatedUserId = internalQuery({
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 /**
- * Handle the Strava OAuth callback.
+ * Generate a Strava OAuth authorization URL.
  *
- * Exchanges the authorization code for tokens, creates/reactivates the
- * Soma connection, stores tokens securely, syncs the athlete profile,
- * and syncs all activities. Then marks the runner as Strava-connected.
- *
- * Call from the native app after the OAuth redirect returns a `code`.
+ * Soma generates a state parameter and stores {state, userId} in its
+ * pendingOAuth table server-side. The native app opens the returned URL
+ * in an in-app browser. After authorization, Strava redirects to the
+ * /api/strava/callback endpoint where Soma completes the exchange.
  */
-export const connectStravaOAuth = action({
-  args: {
-    code: v.string(),
-  },
-  returns: v.object({
-    connectionId: v.string(),
-    synced: v.number(),
-    errors: v.array(
-      v.object({
-        activityId: v.number(),
-        error: v.string(),
-      }),
-    ),
-  }),
-  handler: async (ctx, args) => {
+export const getStravaAuthUrl = action({
+  args: {},
+  handler: async (ctx) => {
     const userId: string | null = await ctx.runQuery(
       internal.integrations.strava.sync.getAuthenticatedUserId,
     );
@@ -73,12 +60,14 @@ export const connectStravaOAuth = action({
       });
     }
 
-    const result = await soma.connectStrava(ctx, {
+    const redirectUri = `${process.env.CONVEX_SITE_URL}/api/strava/callback`;
+
+    const result = await soma.getStravaAuthUrl(ctx, {
       userId,
-      code: args.code,
+      redirectUri,
     });
 
-    return result;
+    return { authUrl: result.authUrl };
   },
 });
 
@@ -93,17 +82,21 @@ export const syncStravaData = action({
     after: v.optional(v.number()),
   },
   returns: v.object({
-    synced: v.number(),
+    synced: v.object({
+      athletes: v.number(),
+      activities: v.number(),
+    }),
     errors: v.array(
       v.object({
-        activityId: v.number(),
+        type: v.string(),
+        id: v.string(),
         error: v.string(),
       }),
     ),
   }),
   handler: async (ctx, args): Promise<{
-    synced: number;
-    errors: Array<{ activityId: number; error: string }>;
+    synced: { athletes: number; activities: number };
+    errors: Array<{ type: string; id: string; error: string }>;
   }> => {
     const userId: string | null = await ctx.runQuery(
       internal.integrations.strava.sync.getAuthenticatedUserId,
@@ -147,4 +140,3 @@ export const disconnectStravaAccount = action({
     return null;
   },
 });
-

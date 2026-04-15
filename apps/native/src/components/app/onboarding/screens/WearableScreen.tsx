@@ -107,9 +107,9 @@ export function WearableScreen({ onComplete, testID }: WearableScreenProps) {
         }
       } else if (id === "strava") {
         setConnectingId("strava");
-        const result = await connectStrava();
+        const success = await connectStrava();
         setConnectingId(null);
-        if (result) {
+        if (success) {
           setConnectedIds((prev) => [...prev, "strava"]);
           setHasActivityData(true);
         }

@@ -1,3 +1,4 @@
+"use no memo";
 /**
  * PredictionCard - Race prediction tiles as individual cards
  *

@@ -1,256 +1,47 @@
 /**
- * AnalyticsScreen - Main container for the Analytics tab
- *
- * Layout (top to bottom):
- * 1. Volume Evolution (Strava-style bar + line chart)
- * 2. Race Predictions (VDOT-based race time estimates)
- * 3. Runner Profile Radar (6-axis spider chart)
- * 4. Training Zones Breakdown (zone distribution)
- * 5. Health Metrics (HR, HRV, sleep, readiness)
- * 6. Stats Grid (2x2 summary)
- *
+ * AnalyticsScreen - Temporary mock while crash is investigated.
+ * TODO: Restore full analytics once the crash root cause is fixed.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { View } from "react-native";
-import Animated from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useIsFocused } from "@react-navigation/native";
-import { useFont } from "@shopify/react-native-skia";
-import { Outfit_400Regular } from "@expo-google-fonts/outfit";
-import { BottomSheetModal as GorhomBottomSheetModal } from "@gorhom/bottom-sheet";
 import { Text } from "@/components/ui/text";
-import { ACTIVITY_COLORS, LIGHT_THEME } from "@/lib/design-tokens";
-import {
-  TimeFrameSelector,
-  type TimeFrame,
-} from "@/components/shared/time-frame-selector";
-
-import { RunnerProfileCard } from "./runner-profile-card";
-import { PredictionCard } from "./prediction-card";
-import { PredictionTrendSheet } from "./prediction-trend-sheet";
-import { VolumeBarChart, type VolumeSelection } from "./volume-bar-chart";
-import { ZoneBreakdown } from "./ZoneBreakdown";
-import { StatsGrid } from "./StatsGrid";
-import { HealthMetricsCard } from "./health-metrics-card";
-import { useAnalyticsData, getVolumeBarData } from "@/hooks/use-analytics-data";
-
-function AnalyticsPlaceholder() {
-  return (
-    <View className="px-5 py-6">
-      <View
-        className="mb-3 rounded-[20px]"
-        style={{ height: 100, backgroundColor: LIGHT_THEME.w3 }}
-      />
-      <View
-        className="mb-3 rounded-[20px]"
-        style={{ height: 280, backgroundColor: LIGHT_THEME.w3 }}
-      />
-      <View
-        className="mb-3 rounded-[20px]"
-        style={{ height: 200, backgroundColor: LIGHT_THEME.w3 }}
-      />
-      <View
-        className="mb-3 rounded-[20px]"
-        style={{ height: 196, backgroundColor: LIGHT_THEME.w3 }}
-      />
-      <View
-        className="mb-3 rounded-[20px]"
-        style={{ height: 178, backgroundColor: LIGHT_THEME.w3 }}
-      />
-      <View className="flex-row flex-wrap gap-2">
-        <View className="flex-1 rounded-2xl" style={{ height: 100, minWidth: "45%", backgroundColor: LIGHT_THEME.w3 }} />
-        <View className="flex-1 rounded-2xl" style={{ height: 100, minWidth: "45%", backgroundColor: LIGHT_THEME.w3 }} />
-      </View>
-    </View>
-  );
-}
 
 export function AnalyticsScreen() {
   const insets = useSafeAreaInsets();
-  const isFocused = useIsFocused();
-  const { data, isLoading, error } = useAnalyticsData();
-
-  const smallChartFont = useFont(Outfit_400Regular, 9);
-
-  const [volumeTimeFrame, setVolumeTimeFrame] = useState<TimeFrame>("3mo");
-  const [volumeSelection, setVolumeSelection] = useState<VolumeSelection>(null);
-  const volumeBar = useMemo(
-    () => getVolumeBarData(volumeTimeFrame, data?.volumeByTimeframe),
-    [volumeTimeFrame, data?.volumeByTimeframe],
-  );
-
-  const trendSheetRef = useRef<GorhomBottomSheetModal>(null);
-  const [trendDistance, setTrendDistance] = useState<string | null>(null);
-
-  const handlePredictionTap = useCallback((distance: string) => {
-    setTrendDistance(distance);
-  }, []);
-
-  // Present sheet after state is committed so content has the correct distance.
-  // (Calling present() in the same handler as setState opens the sheet before re-render.)
-  useEffect(() => {
-    if (trendDistance) {
-      trendSheetRef.current?.present();
-    }
-  }, [trendDistance]);
-
-  const handleTrendSheetDismiss = useCallback(() => {
-    setTrendDistance(null);
-  }, []);
-
-  if (isLoading) {
-    return (
-      <View className="flex-1 bg-w2 items-center justify-center">
-        <Text className="text-wMute">Loading analytics...</Text>
-      </View>
-    );
-  }
-
-  if (error) {
-    return (
-      <View className="flex-1 bg-w2 items-center justify-center p-6">
-        <Text className="text-red text-center">
-          Unable to load analytics data
-        </Text>
-      </View>
-    );
-  }
-
-  if (!data) return null;
 
   return (
     <View className="flex-1 bg-w2">
       <View className="absolute top-0 left-0 right-0 h-1/2 bg-black" />
-      <Animated.ScrollView
-        className="flex-1"
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 32, flexGrow: 1 }}
-      >
-        {/* Dark header area */}
-        <View className="bg-black">
-          <View
-            className="px-6 pb-5"
-            style={{ paddingTop: insets.top + 12 }}
+
+      {/* Dark header area */}
+      <View className="bg-black">
+        <View className="px-6 pb-5" style={{ paddingTop: insets.top + 12 }}>
+          <Text
+            className="text-[28px] font-coach-bold text-g1"
+            style={{ letterSpacing: -0.03 * 28 }}
           >
-            <Text
-              className="text-[28px] font-coach-bold text-g1"
-              style={{ letterSpacing: -0.03 * 28 }}
-            >
-              Analytics
-            </Text>
-          </View>
-          <View
-            className="bg-w2 h-7"
-            style={{ borderTopLeftRadius: 28, borderTopRightRadius: 28 }}
-          />
+            Analytics
+          </Text>
         </View>
+        <View
+          className="bg-w2 h-7"
+          style={{ borderTopLeftRadius: 28, borderTopRightRadius: 28 }}
+        />
+      </View>
 
-        <View className="flex-1 bg-w2 pb-6">
-          {isFocused ? (
-            <View className="px-5 py-6">
-              {/* 1. Volume Evolution (Strava-style) */}
-              <View className="p-5 rounded-[20px] mb-3" style={{
-                backgroundColor: LIGHT_THEME.w1,
-                borderWidth: 1,
-                borderColor: "rgba(0,0,0,0.08)",
-                shadowColor: "#000",
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.10,
-                shadowRadius: 16,
-                elevation: 4,
-              }}>
-                <View className="flex-row items-center justify-between mb-4">
-                  <View>
-                    <Text
-                      className="text-[12px] font-coach-semibold text-wSub uppercase"
-                      style={{ letterSpacing: 0.05 * 12 }}
-                    >
-                      Volume Over Time
-                    </Text>
-                    <View className="flex-row items-baseline gap-1 mt-1">
-                      <Text className="text-[28px] font-coach-extrabold text-wText">
-                        {volumeSelection != null
-                          ? volumeSelection.volume.toFixed(1)
-                          : volumeBar.total}
-                      </Text>
-                      <Text className="text-[14px] font-coach text-wSub">
-                        {volumeBar.unitLabel}
-                      </Text>
-                    </View>
-                    {volumeSelection != null && (
-                      <Text className="text-[13px] font-coach text-wMute mt-0.5">
-                        {volumeSelection.label}
-                      </Text>
-                    )}
-                  </View>
-                  <View
-                    className="px-[10px] py-[5px] rounded-lg"
-                    style={{ backgroundColor: "rgba(168,217,0,0.12)" }}
-                  >
-                    <Text
-                      className="text-[13px] font-coach-semibold"
-                      style={{ color: ACTIVITY_COLORS.barHigh }}
-                    >
-                      +{data.volumeStats.weekOverWeekChange}%
-                    </Text>
-                  </View>
-                </View>
-                <VolumeBarChart
-                  key={volumeTimeFrame}
-                  data={volumeBar.barData}
-                  labels={volumeBar.labels}
-                  font={smallChartFont}
-                  onSelectionChange={setVolumeSelection}
-                />
-                <View className="mt-4">
-                  <TimeFrameSelector
-                    selected={volumeTimeFrame}
-                    onSelect={setVolumeTimeFrame}
-                    variant="light"
-                  />
-                </View>
-              </View>
-
-              {/* 2. Race Predictions (individual tile cards) */}
-              <View className="mb-3">
-                <PredictionCard
-                  predictions={data.predictions}
-                  onTileTap={handlePredictionTap}
-                />
-              </View>
-
-              {/* 3. Runner Profile Radar */}
-              <View className="mb-3">
-                <RunnerProfileCard data={data.radarData} />
-              </View>
-
-              {/* 4. Training Zones Breakdown */}
-              <View className="mb-3">
-                <ZoneBreakdown data={data.zoneBreakdown} />
-              </View>
-
-              {/* 5. Health Metrics */}
-              <View className="mb-3">
-                <HealthMetricsCard metrics={data.healthMetrics} />
-              </View>
-
-              {/* 6. Training Stats */}
-              <View className="mb-3">
-                <StatsGrid stats={data.stats} />
-              </View>
-            </View>
-          ) : (
-            <AnalyticsPlaceholder />
-          )}
-        </View>
-      </Animated.ScrollView>
-
-      <PredictionTrendSheet
-        sheetRef={trendSheetRef}
-        distance={trendDistance}
-        onDismiss={handleTrendSheetDismiss}
-      />
+      {/* Mock content */}
+      <View className="flex-1 bg-w2 items-center justify-center px-8">
+        <Text
+          className="text-[20px] font-coach-semibold text-wText text-center mb-2"
+          style={{ letterSpacing: -0.03 * 20 }}
+        >
+          Coming Soon
+        </Text>
+        <Text className="text-[14px] text-wMute text-center leading-5">
+          We're working on bringing you detailed training analytics. Stay tuned!
+        </Text>
+      </View>
     </View>
   );
 }

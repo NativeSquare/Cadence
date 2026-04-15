@@ -31,8 +31,13 @@ http.route({
   handler: streamChat,
 });
 
-// Soma — Garmin OAuth callback + all webhook endpoints
+// Soma — Strava + Garmin OAuth callbacks + webhook endpoints
 registerRoutes(http, components.soma, {
+  strava: {
+    oauth: {
+      redirectTo: "cadence://oauth/strava/complete",
+    },
+  },
   garmin: {
     oauth: {
       redirectTo: "cadence://oauth/garmin/complete",

@@ -4,6 +4,8 @@
   "version": "1.0.0",
   "scripts": {
     "dev": "cross-env APP_VARIANT=development npx expo start",
+    "dev:tunnel": "cross-env APP_VARIANT=development npx expo start --tunnel",
+    "dev:clear": "cross-env APP_VARIANT=development npx expo start --clear",
     "start": "expo start",
     "reset-project": "node ./scripts/reset-project.js",
     "android": "expo start --android",
@@ -20,7 +22,7 @@
     "@expo/vector-icons": "^15.0.3",
     "@gorhom/bottom-sheet": "^5.2.8",
     "@kingstinct/react-native-healthkit": "^13.1.4",
-    "@nativesquare/soma": "^0.9.4",
+    "@nativesquare/soma": "^0.10.0",
     "@packages/backend": "workspace:*",
     "@packages/shared": "workspace:*",
     "@react-native-async-storage/async-storage": "2.2.0",
@@ -105,6 +107,7 @@
     "zod": "^4.1.13"
   },
   "devDependencies": {
+    "@babel/plugin-transform-react-jsx": "^7.28.6",
     "@types/react": "~19.1.0",
     "babel-preset-expo": "~54.0.10",
     "cross-env": "^10.1.0",

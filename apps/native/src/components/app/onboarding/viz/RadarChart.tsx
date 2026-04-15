@@ -1,3 +1,4 @@
+"use no memo";
 /**
  * RadarChart Component - 6-axis spider chart for runner profile visualization.
  *

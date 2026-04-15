@@ -208,8 +208,8 @@ importers:
         specifier: ^13.1.4
         version: 13.4.0(react-native-nitro-modules@0.35.3(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
       '@nativesquare/soma':
-        specifier: ^0.9.4
-        version: 0.9.4(convex@1.34.1(react@19.1.0))(react@19.1.0)
+        specifier: ^0.10.0
+        version: 0.10.0(convex@1.34.1(react@19.1.0))(react@19.1.0)
       '@packages/backend':
         specifier: workspace:*
         version: link:../../packages/backend
@@ -457,6 +457,9 @@ importers:
         specifier: ^4.1.13
         version: 4.3.6
     devDependencies:
+      '@babel/plugin-transform-react-jsx':
+        specifier: ^7.28.6
+        version: 7.28.6(@babel/core@7.29.0)
       '@types/react':
         specifier: ~19.1.0
         version: 19.1.17
@@ -639,8 +642,8 @@ importers:
         specifier: ^1.0.0
         version: 1.0.0(@ai-sdk/openai@3.0.50(zod@4.3.6))(ai@6.0.146(zod@4.3.6))(convex@1.34.1(react@19.2.3))(zod@4.3.6)
       '@nativesquare/soma':
-        specifier: ^0.9.4
-        version: 0.9.4(convex@1.34.1(react@19.2.3))(react@19.2.3)
+        specifier: ^0.10.0
+        version: 0.10.0(convex@1.34.1(react@19.2.3))(react@19.2.3)
       '@packages/shared':
         specifier: workspace:*
         version: link:../shared
@@ -2302,8 +2305,8 @@ packages:
       zod:
         optional: true
 
-  '@nativesquare/soma@0.9.4':
-    resolution: {integrity: sha512-kU+0udqnVa9BUxTORWk7A00BVeBbaI0jgiqKO0l8r+XFZIptGwVCvzqgcMU/2E6eFvRGCLCjJFjaGZglvqtCjg==}
+  '@nativesquare/soma@0.10.0':
+    resolution: {integrity: sha512-NFimmyBEAxH+0jqVP1EyhW8RT2qNt4IqBfAdDge5DzCzSYIys2zfrkZpSCzcugYx1zBR7D5QA/7RJW6RWx8prA==}
     peerDependencies:
       convex: ^1.31.7
       react: ^18.3.1 || ^19.0.0
@@ -10994,13 +10997,13 @@ snapshots:
       ai: 6.0.146(zod@4.3.6)
       zod: 4.3.6
 
-  '@nativesquare/soma@0.9.4(convex@1.34.1(react@19.1.0))(react@19.1.0)':
+  '@nativesquare/soma@0.10.0(convex@1.34.1(react@19.1.0))(react@19.1.0)':
     dependencies:
       convex: 1.34.1(react@19.1.0)
       react: 19.1.0
       zod: 4.3.6
 
-  '@nativesquare/soma@0.9.4(convex@1.34.1(react@19.2.3))(react@19.2.3)':
+  '@nativesquare/soma@0.10.0(convex@1.34.1(react@19.2.3))(react@19.2.3)':
     dependencies:
       convex: 1.34.1(react@19.2.3)
       react: 19.2.3

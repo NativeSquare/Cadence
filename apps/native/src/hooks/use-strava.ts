@@ -1,57 +1,17 @@
 /**
- * useStrava - Hook for connecting to Strava via the Soma component.
+ * useStrava - Hook for connecting to Strava via server-side OAuth (Soma v0.10.0).
  *
- * Uses real Strava OAuth flow via useStravaAuth; exchanges the code with
- * Convex (connectStravaOAuth) and marks the runner as Strava-connected.
+ * Wraps useStravaAuth with status tracking. The OAuth flow and initial
+ * data sync happen server-side during the in-app browser session.
  */
 
 import { useState, useCallback } from "react";
 import { useStravaAuth } from "./use-strava-auth";
 
 export type StravaSyncStatus = {
-  phase: "idle" | "connecting" | "syncing" | "complete" | "error";
+  phase: "idle" | "connecting" | "complete" | "error";
   message: string;
-  synced?: number;
 };
-
-export type StravaResult = {
-  connectionId: string;
-  synced: number;
-  errors: Array<{ activityId: number; error: string }>;
-};
-
-/**
- * Extract user-friendly error message from Convex errors.
- * Strips stack traces and technical details.
- */
-function extractErrorMessage(err: unknown): string {
-  if (!(err instanceof Error)) {
-    return "Failed to connect to Strava";
-  }
-
-  const message = err.message;
-
-  // Handle Convex action errors which include "Uncaught" prefix and stack traces
-  if (message.includes("Uncaught")) {
-    const match = message.match(/Uncaught (\w+Error): (.+?)(?:\n|$)/);
-    if (match) {
-      return match[2].trim();
-    }
-  }
-
-  // Handle ConvexError with code/message structure
-  if (message.includes("code") && message.includes("message")) {
-    try {
-      const parsed = JSON.parse(message);
-      if (parsed.message) return parsed.message;
-    } catch {
-      // Not JSON, continue
-    }
-  }
-
-  const firstLine = message.split("\n")[0];
-  return firstLine || "Failed to connect to Strava";
-}
 
 export function useStrava() {
   const stravaAuth = useStravaAuth();
@@ -63,7 +23,7 @@ export function useStrava() {
     message: "",
   });
 
-  const connect = useCallback(async (): Promise<StravaResult | null> => {
+  const connect = useCallback(async (): Promise<boolean> => {
     setIsConnecting(true);
     setError(null);
     setSyncStatus({
@@ -72,37 +32,28 @@ export function useStrava() {
     });
 
     try {
-      setSyncStatus({
-        phase: "syncing",
-        message: "Syncing activities from Strava...",
-      });
+      const success = await stravaAuth.connect();
 
-      const result = await stravaAuth.connect();
-
-      if (!result) {
+      if (!success) {
         if (stravaAuth.error) {
           throw new Error(stravaAuth.error);
         }
         setSyncStatus({ phase: "idle", message: "" });
-        return null;
+        return false;
       }
 
       setSyncStatus({
         phase: "complete",
-        message: `Synced ${result.synced} activities from Strava`,
-        synced: result.synced,
+        message: "Connected to Strava",
       });
 
-      return {
-        connectionId: result.connectionId,
-        synced: result.synced,
-        errors: [],
-      };
+      return true;
     } catch (err) {
-      const message = extractErrorMessage(err);
+      const message =
+        err instanceof Error ? err.message : "Failed to connect to Strava";
       setError(message);
       setSyncStatus({ phase: "error", message });
-      return null;
+      return false;
     } finally {
       setIsConnecting(false);
     }

@@ -1,3 +1,4 @@
+"use no memo";
 /**
  * StatsGrid Component - Training stats display grid
  *

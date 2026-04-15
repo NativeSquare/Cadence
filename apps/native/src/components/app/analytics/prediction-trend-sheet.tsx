@@ -1,3 +1,4 @@
+"use no memo";
 /**
  * PredictionTrendSheet - Bottom sheet showing the race prediction trend chart
  *
