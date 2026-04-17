@@ -16,7 +16,7 @@ import { useState } from "react";
 const GARMIN_REDIRECT_URI = "cadence://oauth/garmin/complete";
 
 export function useGarminAuth() {
-  const getAuthUrl = useAction(api.integrations.garmin.sync.getGarminAuthUrl);
+  const getAuthUrl = useAction(api.soma.garmin.getAuthUrl);
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

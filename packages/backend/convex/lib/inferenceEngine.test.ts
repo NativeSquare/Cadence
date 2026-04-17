@@ -5,8 +5,8 @@
  * Run: pnpm add -D vitest
  * Then add to package.json: "test": "vitest"
  *
- * Story 4.6: Updated to use InferenceActivity/InferenceDaily types
- * from somaAdapter.ts instead of Doc<"activities">/Doc<"dailySummaries">.
+ * Story 4.6: Updated to use CadenceActivity/CadenceDailyBiometrics types
+ * from soma/adapter instead of Doc<"activities">/Doc<"dailySummaries">.
  *
  * Tests cover all Acceptance Criteria:
  * - AC1: Training Load Metrics (ATL, CTL, TSB, trend)
@@ -27,10 +27,10 @@ import {
   type DataQualityMetrics,
 } from "./inferenceEngine";
 import {
-  type InferenceActivity,
-  type InferenceDaily,
+  type CadenceActivity,
+  type CadenceDailyBiometrics,
   type SessionType,
-} from "./somaAdapter";
+} from "../soma/adapter";
 
 // =============================================================================
 // Test Fixtures
@@ -65,8 +65,8 @@ function createMockRunner(
 
 function createMockActivity(
   daysAgo: number,
-  overrides: Partial<InferenceActivity> = {}
-): InferenceActivity {
+  overrides: Partial<CadenceActivity> = {}
+): CadenceActivity {
   const startTime = Date.now() - daysAgo * MS_PER_DAY;
   return {
     id: `activity_${daysAgo}_${Math.random()}`,
@@ -82,8 +82,8 @@ function createMockActivity(
 
 function createMockDaily(
   daysAgo: number,
-  overrides: Partial<InferenceDaily> = {}
-): InferenceDaily {
+  overrides: Partial<CadenceDailyBiometrics> = {}
+): CadenceDailyBiometrics {
   const date = new Date(Date.now() - daysAgo * MS_PER_DAY);
   const dateStr = date.toISOString().split("T")[0];
   return {
@@ -104,8 +104,8 @@ function generateWeeksOfActivities(
   weeks: number,
   runsPerWeek: number = 4,
   avgDistanceKm: number = 10
-): InferenceActivity[] {
-  const activities: InferenceActivity[] = [];
+): CadenceActivity[] {
+  const activities: CadenceActivity[] = [];
   const totalDays = weeks * 7;
 
   for (let day = 0; day < totalDays; day++) {
@@ -305,7 +305,7 @@ function getRiskLevel(rampRate: number): InjuryRiskLevel {
 
 describe("AC3: Recent Patterns", () => {
   it("should calculate last7DaysVolume correctly", () => {
-    const activities: InferenceActivity[] = [
+    const activities: CadenceActivity[] = [
       createMockActivity(1, { distanceMeters: 10000 }),
       createMockActivity(3, { distanceMeters: 8000 }),
       createMockActivity(5, { distanceMeters: 12000 }),
@@ -325,7 +325,7 @@ describe("AC3: Recent Patterns", () => {
   });
 
   it("should calculate last7DaysRunCount correctly", () => {
-    const activities: InferenceActivity[] = [
+    const activities: CadenceActivity[] = [
       createMockActivity(1),
       createMockActivity(3),
       createMockActivity(5),
@@ -341,7 +341,7 @@ describe("AC3: Recent Patterns", () => {
   });
 
   it("should calculate last28DaysVolume correctly", () => {
-    const activities: InferenceActivity[] = [
+    const activities: CadenceActivity[] = [
       createMockActivity(5, { distanceMeters: 10000 }),
       createMockActivity(15, { distanceMeters: 12000 }),
       createMockActivity(25, { distanceMeters: 8000 }),
@@ -393,7 +393,7 @@ describe("AC3: Recent Patterns", () => {
 
 describe("AC4: Latest Biometrics", () => {
   it("should extract latestRestingHr from most recent daily summary", () => {
-    const summaries: InferenceDaily[] = [
+    const summaries: CadenceDailyBiometrics[] = [
       createMockDaily(0, { restingHeartRate: 52 }), // Today
       createMockDaily(1, { restingHeartRate: 55 }), // Yesterday
       createMockDaily(2, { restingHeartRate: 54 }),
@@ -408,7 +408,7 @@ describe("AC4: Latest Biometrics", () => {
   });
 
   it("should extract latestHrv from most recent daily summary", () => {
-    const summaries: InferenceDaily[] = [
+    const summaries: CadenceDailyBiometrics[] = [
       createMockDaily(0, { hrvMs: 48 }),
       createMockDaily(1, { hrvMs: 45 }),
     ];
@@ -419,7 +419,7 @@ describe("AC4: Latest Biometrics", () => {
   });
 
   it("should extract latestWeight from most recent daily summary", () => {
-    const summaries: InferenceDaily[] = [
+    const summaries: CadenceDailyBiometrics[] = [
       createMockDaily(0, { weight: 71.5 }),
       createMockDaily(3, { weight: 72.0 }),
     ];
@@ -430,7 +430,7 @@ describe("AC4: Latest Biometrics", () => {
   });
 
   it("should extract latestSleepScore from most recent daily summary", () => {
-    const summaries: InferenceDaily[] = [
+    const summaries: CadenceDailyBiometrics[] = [
       createMockDaily(0, { sleepScore: 85 }),
       createMockDaily(1, { sleepScore: 78 }),
     ];
@@ -457,7 +457,7 @@ describe("AC4: Latest Biometrics", () => {
   });
 
   it("should handle missing biometrics gracefully", () => {
-    const summaries: InferenceDaily[] = [
+    const summaries: CadenceDailyBiometrics[] = [
       createMockDaily(0, {
         restingHeartRate: undefined,
         hrvMs: undefined,
@@ -821,7 +821,7 @@ describe("Readiness Calculation", () => {
 
 describe("Edge Cases", () => {
   it("should handle empty activities array", () => {
-    const activities: InferenceActivity[] = [];
+    const activities: CadenceActivity[] = [];
 
     const last7DaysVolume = activities.reduce(
       (sum, a) => sum + (a.distanceMeters ?? 0) / 1000,
@@ -832,7 +832,7 @@ describe("Edge Cases", () => {
   });
 
   it("should handle empty daily summaries array", () => {
-    const summaries: InferenceDaily[] = [];
+    const summaries: CadenceDailyBiometrics[] = [];
 
     const latestHrv = summaries.find((s) => s.hrvMs)?.hrvMs;
     expect(latestHrv).toBeUndefined();

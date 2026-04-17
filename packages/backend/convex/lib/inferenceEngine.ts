@@ -13,17 +13,16 @@
 import type { Doc, Id } from "../_generated/dataModel";
 import type { QueryCtx } from "../_generated/server";
 import { components } from "../_generated/api";
+import type {
+  SomaActivity,
+  SomaBody,
+  SomaDaily,
+} from "@nativesquare/soma/validators";
 import {
-  type InferenceActivity,
-  type InferenceDaily,
-  type SomaActivity,
-  type SomaDaily,
-  type SomaBody,
-  transformSomaActivity,
-  transformSomaDaily,
-  transformSomaBody,
-  mergeInferenceDaily,
-} from "./somaAdapter";
+  fromSoma,
+  type CadenceActivity,
+  type CadenceDailyBiometrics,
+} from "../soma/adapter";
 
 // =============================================================================
 // Types (AC: 5, 6)
@@ -253,13 +252,13 @@ export async function calculateCurrentState(
 
 /**
  * Load recent activities for a user from Soma component.
- * Transforms Terra schema to flat InferenceActivity format.
+ * Transforms Terra schema to flat CadenceActivity format.
  */
 async function loadRecentActivities(
   ctx: QueryCtx,
   userId: string,
   days: number
-): Promise<InferenceActivity[]> {
+): Promise<CadenceActivity[]> {
   const cutoffDate = new Date(Date.now() - days * MS_PER_DAY);
   const startTime = cutoffDate.toISOString();
 
@@ -271,10 +270,9 @@ async function loadRecentActivities(
       startTime,
       order: "asc",
     }
-  ) as SomaActivity[];
+  ) as Array<SomaActivity & { _id: string }>;
 
-  // Transform to flat inference format
-  return somaActivities.map(transformSomaActivity);
+  return somaActivities.map(fromSoma.activity);
 }
 
 /**
@@ -285,7 +283,7 @@ async function loadRecentDailySummaries(
   ctx: QueryCtx,
   userId: string,
   days: number
-): Promise<InferenceDaily[]> {
+): Promise<CadenceDailyBiometrics[]> {
   const cutoffDate = new Date(Date.now() - days * MS_PER_DAY);
   const startTime = cutoffDate.toISOString();
 
@@ -303,21 +301,18 @@ async function loadRecentDailySummaries(
     }) as Promise<SomaBody[]>,
   ]);
 
-  // Transform and merge by date
-  const dailyByDate = new Map<string, InferenceDaily>();
+  const dailyByDate = new Map<string, CadenceDailyBiometrics>();
 
-  // Add daily summaries
   for (const daily of somaDaily) {
-    const transformed = transformSomaDaily(daily);
+    const transformed = fromSoma.daily(daily);
     dailyByDate.set(transformed.date, transformed);
   }
 
-  // Merge body measurements
   for (const body of somaBody) {
-    const transformed = transformSomaBody(body);
+    const transformed = fromSoma.body(body);
     if (transformed.date) {
       const existing = dailyByDate.get(transformed.date);
-      const merged = mergeInferenceDaily(existing, transformed);
+      const merged = fromSoma.mergeDailyBiometrics(existing, transformed);
       if (merged) {
         dailyByDate.set(transformed.date, merged);
       }
@@ -338,8 +333,8 @@ async function loadRecentDailySummaries(
  * Calculate data quality metrics
  */
 function calculateDataQuality(
-  activities: InferenceActivity[],
-  dailySummaries: InferenceDaily[]
+  activities: CadenceActivity[],
+  dailySummaries: CadenceDailyBiometrics[]
 ): DataQualityMetrics {
   const activitiesCount = activities.length;
   const dailySummariesCount = dailySummaries.length;
@@ -386,7 +381,7 @@ interface TrainingLoadResult {
  * Calculate training load metrics using EWMA
  */
 function calculateTrainingLoad(
-  activities: InferenceActivity[],
+  activities: CadenceActivity[],
   dataQuality: DataQualityMetrics
 ): TrainingLoadResult {
   const inferredFrom = ["soma.activities.last60days"];
@@ -454,14 +449,14 @@ function calculateTrainingLoad(
 interface DayLoad {
   date: string;
   totalTSS: number;
-  activities: InferenceActivity[];
+  activities: CadenceActivity[];
 }
 
 /**
  * Group activities by day and calculate daily TSS
  */
-function groupActivitiesByDay(activities: InferenceActivity[]): DayLoad[] {
-  const dayMap = new Map<string, InferenceActivity[]>();
+function groupActivitiesByDay(activities: CadenceActivity[]): DayLoad[] {
+  const dayMap = new Map<string, CadenceActivity[]>();
 
   for (const activity of activities) {
     const date = new Date(activity.startTime).toISOString().split("T")[0];
@@ -499,7 +494,7 @@ function groupActivitiesByDay(activities: InferenceActivity[]): DayLoad[] {
 /**
  * Estimate Training Stress Score for an activity
  */
-function estimateTSS(activity: InferenceActivity): number {
+function estimateTSS(activity: CadenceActivity): number {
   // Use provided training load if available
   if (activity.trainingLoad) {
     return activity.trainingLoad;
@@ -515,7 +510,7 @@ function estimateTSS(activity: InferenceActivity): number {
 /**
  * Estimate intensity factor from available data
  */
-function getIntensityFactor(activity: InferenceActivity): number {
+function getIntensityFactor(activity: CadenceActivity): number {
   // Use RPE if available (1-10 scale)
   if (activity.perceivedExertion) {
     return activity.perceivedExertion / 10;
@@ -602,7 +597,7 @@ interface InjuryRiskResult {
  * Calculate injury risk from activities and runner profile
  */
 function calculateInjuryRisk(
-  activities: InferenceActivity[],
+  activities: CadenceActivity[],
   runner: Doc<"runners"> | null,
   dataQuality: DataQualityMetrics
 ): InjuryRiskResult {
@@ -722,7 +717,7 @@ function calculateInjuryRisk(
  * Get weekly volume in km for a specific week ago
  * @param weeksAgo 0 = current week, 1 = last week, etc.
  */
-function getWeekVolume(activities: InferenceActivity[], weeksAgo: number): number {
+function getWeekVolume(activities: CadenceActivity[], weeksAgo: number): number {
   const now = Date.now();
   const weekEnd = now - weeksAgo * MS_PER_WEEK;
   const weekStart = weekEnd - MS_PER_WEEK;
@@ -748,7 +743,7 @@ interface PatternResult {
  * Calculate recent training patterns
  */
 function calculateRecentPatterns(
-  activities: InferenceActivity[],
+  activities: CadenceActivity[],
   dataQuality: DataQualityMetrics
 ): PatternResult {
   const now = Date.now();
@@ -817,7 +812,7 @@ function calculateRecentPatterns(
 /**
  * Calculate consistency score based on weekly volume variance
  */
-function calculateConsistencyScore(activities: InferenceActivity[]): number {
+function calculateConsistencyScore(activities: CadenceActivity[]): number {
   // Get weekly volumes for last 4 weeks
   const weeklyVolumes = [
     getWeekVolume(activities, 0),
@@ -857,7 +852,7 @@ interface BiometricsResult {
  * Extract latest biometrics from daily summaries
  */
 function extractLatestBiometrics(
-  dailySummaries: InferenceDaily[]
+  dailySummaries: CadenceDailyBiometrics[]
 ): BiometricsResult {
   const result: BiometricsResult = {};
   const inferredFrom = ["soma.daily.last7days", "soma.body.last7days"];

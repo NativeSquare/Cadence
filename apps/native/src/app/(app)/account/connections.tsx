@@ -20,6 +20,10 @@ import {
   GarminLogo,
   StravaLogo,
 } from "@/components/icons/provider-logos";
+import {
+  SyncDataSheet,
+  type SyncDataSheetHandle,
+} from "@/components/app/account/SyncDataSheet";
 import { Text } from "@/components/ui/text";
 import { useStrava } from "@/hooks/use-strava";
 import { useGarmin } from "@/hooks/use-garmin";
@@ -40,7 +44,7 @@ import {
 
 type ConnectionDef = {
   key: "strava" | "appleHealth" | "garmin";
-  providerKey: "strava" | "healthkit" | "garmin";
+  provider: "STRAVA" | "HEALTHKIT" | "GARMIN";
   name: string;
   description: string;
   logo: (props: { size?: number; color?: string }) => React.ReactNode;
@@ -49,21 +53,21 @@ type ConnectionDef = {
 const CONNECTIONS: ConnectionDef[] = [
   {
     key: "strava",
-    providerKey: "strava",
+    provider: "STRAVA",
     name: "Strava",
     description: "Sync activities, routes & training",
     logo: StravaLogo,
   },
   {
     key: "appleHealth",
-    providerKey: "healthkit",
+    provider: "HEALTHKIT",
     name: "Apple Health",
     description: "Heart rate, sleep & recovery data",
     logo: AppleHealthLogo,
   },
   {
     key: "garmin",
-    providerKey: "garmin",
+    provider: "GARMIN",
     name: "Garmin",
     description: "GPS watch & wearable data",
     logo: GarminLogo,
@@ -81,15 +85,15 @@ const COMING_SOON_PROVIDERS = [
 
 export default function ConnectionsScreen() {
   const router = useRouter();
-  const providers = useQuery(api.integrations.connections.getConnectedProviders);
+  const connections = useQuery(api.soma.index.listConnections);
   const disconnectStrava = useAction(
-    api.integrations.strava.sync.disconnectStravaAccount,
+    api.soma.strava.disconnect,
   );
   const disconnectGarmin = useAction(
-    api.integrations.garmin.sync.disconnectGarminAccount,
+    api.soma.garmin.disconnect,
   );
   const disconnectAppleHealth = useMutation(
-    api.integrations.connections.disconnectAppleHealth,
+    api.soma.index.disconnectAppleHealth,
   );
   const {
     connect: connectStrava,
@@ -107,14 +111,18 @@ export default function ConnectionsScreen() {
     error: healthKitError,
   } = useHealthKit();
 
+  const syncSheetRef = React.useRef<SyncDataSheetHandle>(null);
+
   const [saving, setSaving] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [confirmDisconnect, setConfirmDisconnect] =
     React.useState<ConnectionDef | null>(null);
 
   const isConnected = (conn: ConnectionDef): boolean => {
-    if (!providers) return false;
-    return providers[conn.providerKey].connected;
+    if (!connections) return false;
+    return connections.some(
+      (c) => c.provider === conn.provider && (c.active ?? false),
+    );
   };
 
   const handleConnectStrava = async () => {
@@ -127,7 +135,10 @@ export default function ConnectionsScreen() {
   const handleConnectGarmin = async () => {
     setError(null);
     const result = await connectGarminFlow();
-    if (result) return;
+    if (result) {
+      syncSheetRef.current?.present();
+      return;
+    }
     if (garminError) setError(garminError);
   };
 
@@ -152,11 +163,11 @@ export default function ConnectionsScreen() {
     }
   };
 
-  const connectedProviders = providers
-    ? CONNECTIONS.filter((c) => providers[c.providerKey].connected)
+  const connectedProviders = connections
+    ? CONNECTIONS.filter(isConnected)
     : [];
-  const notConnectedProviders = providers
-    ? CONNECTIONS.filter((c) => !providers[c.providerKey].connected)
+  const notConnectedProviders = connections
+    ? CONNECTIONS.filter((c) => !isConnected(c))
     : CONNECTIONS;
 
   return (
@@ -436,6 +447,8 @@ export default function ConnectionsScreen() {
           )}
         </View>
       </ScrollView>
+
+      <SyncDataSheet ref={syncSheetRef} providerName="Garmin" />
 
       {/* ── Disconnect Confirmation Dialog ── */}
       <AlertDialog

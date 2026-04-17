@@ -1,5 +1,5 @@
 /**
- * Garmin Activity Webhook Handler
+ * Soma Activity Webhook Handler
  *
  * Called by Soma's registerRoutes after activity ingestion completes.
  * Receives affected Cadence userIds and runs session matching:
@@ -8,16 +8,11 @@
  * 3. Sends a congratulatory push notification
  */
 
+import type { SomaActivity } from "@nativesquare/soma/validators";
 import { v } from "convex/values";
-import { components, internal } from "../../_generated/api";
-import {
-  internalAction,
-  internalMutation,
-} from "../../_generated/server";
-import {
-  transformSomaActivity,
-  type SomaActivity,
-} from "../../lib/somaAdapter";
+import { components, internal } from "../_generated/api";
+import { internalAction, internalMutation } from "../_generated/server";
+import { fromSoma } from "./adapter";
 
 // ─── Formatting helpers ──────────────────────────────────────────────────────
 
@@ -45,8 +40,8 @@ function fmtPace(sec?: number, meters?: number): string {
 
 /**
  * Called by the registerRoutes `activities` callback after Soma ingests
- * Garmin activity data. Receives the Cadence userIds of affected users
- * and runs session matching for each.
+ * activity data. Receives the Cadence userIds of affected users and runs
+ * session matching for each.
  */
 export const handleActivityIngested = internalAction({
   args: { affectedUserIds: v.array(v.string()) },
@@ -54,7 +49,7 @@ export const handleActivityIngested = internalAction({
   handler: async (ctx, args) => {
     console.log(
       `\n${"═".repeat(60)}\n` +
-      `  GARMIN ACTIVITY INGESTED (via Soma)\n` +
+      `  ACTIVITY INGESTED (via Soma)\n` +
       `  ${args.affectedUserIds.length} affected user${args.affectedUserIds.length === 1 ? "" : "s"}\n` +
       `  ${new Date().toLocaleString()}\n` +
       `${"═".repeat(60)}`,
@@ -64,7 +59,7 @@ export const handleActivityIngested = internalAction({
       console.log(`\n[Match] Running session matching for user ${userId}...`);
 
       await ctx.runMutation(
-        internal.integrations.garmin.webhook.matchActivityToSession,
+        internal.soma.webhook.matchActivityToSession,
         { cadenceUserId: userId as any },
       );
     }
@@ -80,7 +75,7 @@ export const handleActivityIngested = internalAction({
 });
 
 /**
- * Match an incoming Garmin activity to a planned session using tiered matching:
+ * Match an incoming activity to a planned session using tiered matching:
  *
  * Tier 1 — Exported workout match (high confidence):
  *   Query Soma planned workouts for the activity date. Find ones with
@@ -131,7 +126,7 @@ export const matchActivityToSession = internalMutation({
         startTime: sixHoursAgo,
         order: "desc" as const,
       },
-    )) as SomaActivity[];
+    )) as Array<SomaActivity & { _id: string }>;
 
     if (recentActivities.length === 0) {
       console.log(`${TAG} ✗ No activities found in last 6 hours. Nothing to match.`);
@@ -139,7 +134,7 @@ export const matchActivityToSession = internalMutation({
     }
 
     const latestActivity = recentActivities[0];
-    const inferenceActivity = transformSomaActivity(latestActivity);
+    const inferenceActivity = fromSoma.activity(latestActivity);
 
     console.log(
       `${TAG} ✓ Found ${recentActivities.length} recent activit${recentActivities.length === 1 ? "y" : "ies"}. Using latest:\n` +

@@ -137,7 +137,7 @@ const coachingSchema = v.optional(
 
 // Data Connections
 // Provider connection status (Strava, Garmin, HealthKit) is tracked by the
-// Soma component. Query via api.integrations.connections.getConnectedProviders.
+// Soma component. Query via api.soma.index.listConnections.
 // Legacy fields kept optional for backwards compatibility with existing documents.
 const connectionsSchema = v.object({
   calendarConnected: v.boolean(),

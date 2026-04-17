@@ -7,7 +7,6 @@
  * Handles connection management and runner profile updates.
  */
 
-import { Soma } from "@nativesquare/soma";
 import {
   activityData,
   sleepData,
@@ -26,8 +25,7 @@ import {
   getMissingFields,
   determinePhase,
 } from "../../table/runners";
-
-const soma = new Soma(components.soma);
+import { soma } from "../../soma";
 
 // Aggregates computed on-device from HealthKit data, stored in runner.inferred
 const aggregatesValidator = v.object({
@@ -121,10 +119,10 @@ export const syncHealthKitData = mutation({
     }
 
     // Ensure a Soma connection exists for this user + HEALTHKIT provider
-    const connectionId = await soma.connect(ctx, {
-      userId,
-      provider: "HEALTHKIT",
-    });
+    const connectionId = await ctx.runMutation(
+      components.soma.public.connect,
+      { userId, provider: "HEALTHKIT" },
+    );
 
     const stats = {
       activities: { ingested: 0, failed: 0 },

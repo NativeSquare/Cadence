@@ -213,9 +213,9 @@ export const streamChat = httpAction(async (ctx, request) => {
   type MessageContent =
     | string
     | Array<
-        | { type: "text"; text: string }
-        | { type: "file"; url: string; mediaType?: string }
-      >;
+      | { type: "text"; text: string }
+      | { type: "file"; url: string; mediaType?: string }
+    >;
 
   let body: {
     messages: Array<{ role: "user" | "assistant" | "system"; content: MessageContent }>;
@@ -241,12 +241,20 @@ export const streamChat = httpAction(async (ctx, request) => {
   console.log(`[AI] Stream request started [${requestId}]`);
 
   try {
-    const [user, runner, providers, upcomingSessions] = await Promise.all([
+    const [user, runner, connections, upcomingSessions] = await Promise.all([
       ctx.runQuery(api.table.users.currentUser, {}),
       ctx.runQuery(api.table.runners.getCurrentRunner, {}),
-      ctx.runQuery(api.integrations.connections.getConnectedProviders, {}),
+      ctx.runQuery(api.soma.index.listConnections, {}),
       ctx.runQuery(api.training.queries.getUpcomingSessions, {}),
     ]);
+
+    const isActive = (provider: string) =>
+      connections.some((c) => c.provider === provider && (c.active ?? false));
+    const providers = {
+      strava: { connected: isActive("STRAVA") },
+      garmin: { connected: isActive("GARMIN") },
+      healthkit: { connected: isActive("HEALTHKIT") },
+    };
 
     if (!user) {
       return new Response(
@@ -263,10 +271,10 @@ export const streamChat = httpAction(async (ctx, request) => {
       typeof c === "string"
         ? c
         : c
-            .map((p) =>
-              p.type === "text" ? p.text : "[Image attached]"
-            )
-            .join(" ");
+          .map((p) =>
+            p.type === "text" ? p.text : "[Image attached]"
+          )
+          .join(" ");
 
     const currentMessage = body.messages
       .filter((m) => m.role === "user")
@@ -353,13 +361,13 @@ export const streamChat = httpAction(async (ctx, request) => {
     const allTools = isOnboarding
       ? { ...uiTools, ...memoryTools }
       : {
-          ...uiTools,
-          ...actionTools,
-          ...memoryTools,
-          readRunnerProfile: readRunnerProfileWithCtx,
-          readPlannedSessions: readPlannedSessionsWithCtx,
-          readTrainingPlan: readTrainingPlanWithCtx,
-        };
+        ...uiTools,
+        ...actionTools,
+        ...memoryTools,
+        readRunnerProfile: readRunnerProfileWithCtx,
+        readPlannedSessions: readPlannedSessionsWithCtx,
+        readTrainingPlan: readTrainingPlanWithCtx,
+      };
 
     const result = streamText({
       model: openai("gpt-4o"),
@@ -388,7 +396,7 @@ export const streamChat = httpAction(async (ctx, request) => {
           if (compactionResult.compacted) {
             console.log(
               `[AI] [${requestId}] Compaction triggered, summary length: ${compactionResult.summary.length}, ` +
-                `archived before index ${compactionResult.archivedBeforeIndex}`,
+              `archived before index ${compactionResult.archivedBeforeIndex}`,
             );
 
             if (body.conversationId) {

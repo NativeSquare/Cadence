@@ -23,13 +23,8 @@ import type * as contacts from "../contacts.js";
 import type * as crons from "../crons.js";
 import type * as emails from "../emails.js";
 import type * as http from "../http.js";
-import type * as integrations_connections from "../integrations/connections.js";
-import type * as integrations_garmin_sync from "../integrations/garmin/sync.js";
-import type * as integrations_garmin_transform from "../integrations/garmin/transform.js";
-import type * as integrations_garmin_webhook from "../integrations/garmin/webhook.js";
 import type * as integrations_healthkit_sync from "../integrations/healthkit/sync.js";
 import type * as integrations_notifications from "../integrations/notifications.js";
-import type * as integrations_strava_sync from "../integrations/strava/sync.js";
 import type * as knowledge_index from "../knowledge/index.js";
 import type * as knowledge_query from "../knowledge/query.js";
 import type * as lib_auth_ResendOTP from "../lib/auth/ResendOTP.js";
@@ -37,13 +32,20 @@ import type * as lib_auth_ResendOTPPasswordReset from "../lib/auth/ResendOTPPass
 import type * as lib_inferenceEngine from "../lib/inferenceEngine.js";
 import type * as lib_mockDataGenerator from "../lib/mockDataGenerator.js";
 import type * as lib_provenanceHelpers from "../lib/provenanceHelpers.js";
-import type * as lib_somaAdapter from "../lib/somaAdapter.js";
 import type * as migrations from "../migrations.js";
 import type * as safeguards_check from "../safeguards/check.js";
 import type * as safeguards_index from "../safeguards/index.js";
 import type * as seeds_knowledgeBase from "../seeds/knowledgeBase.js";
 import type * as seeds_mockActivities from "../seeds/mockActivities.js";
 import type * as seeds_safeguards from "../seeds/safeguards.js";
+import type * as soma_adapter_fromSoma from "../soma/adapter/fromSoma.js";
+import type * as soma_adapter_index from "../soma/adapter/index.js";
+import type * as soma_adapter_toSoma from "../soma/adapter/toSoma.js";
+import type * as soma_adapter_types from "../soma/adapter/types.js";
+import type * as soma_garmin from "../soma/garmin.js";
+import type * as soma_index from "../soma/index.js";
+import type * as soma_strava from "../soma/strava.js";
+import type * as soma_webhook from "../soma/webhook.js";
 import type * as storage from "../storage.js";
 import type * as table_activities from "../table/activities.js";
 import type * as table_admin from "../table/admin.js";
@@ -98,13 +100,8 @@ declare const fullApi: ApiFromModules<{
   crons: typeof crons;
   emails: typeof emails;
   http: typeof http;
-  "integrations/connections": typeof integrations_connections;
-  "integrations/garmin/sync": typeof integrations_garmin_sync;
-  "integrations/garmin/transform": typeof integrations_garmin_transform;
-  "integrations/garmin/webhook": typeof integrations_garmin_webhook;
   "integrations/healthkit/sync": typeof integrations_healthkit_sync;
   "integrations/notifications": typeof integrations_notifications;
-  "integrations/strava/sync": typeof integrations_strava_sync;
   "knowledge/index": typeof knowledge_index;
   "knowledge/query": typeof knowledge_query;
   "lib/auth/ResendOTP": typeof lib_auth_ResendOTP;
@@ -112,13 +109,20 @@ declare const fullApi: ApiFromModules<{
   "lib/inferenceEngine": typeof lib_inferenceEngine;
   "lib/mockDataGenerator": typeof lib_mockDataGenerator;
   "lib/provenanceHelpers": typeof lib_provenanceHelpers;
-  "lib/somaAdapter": typeof lib_somaAdapter;
   migrations: typeof migrations;
   "safeguards/check": typeof safeguards_check;
   "safeguards/index": typeof safeguards_index;
   "seeds/knowledgeBase": typeof seeds_knowledgeBase;
   "seeds/mockActivities": typeof seeds_mockActivities;
   "seeds/safeguards": typeof seeds_safeguards;
+  "soma/adapter/fromSoma": typeof soma_adapter_fromSoma;
+  "soma/adapter/index": typeof soma_adapter_index;
+  "soma/adapter/toSoma": typeof soma_adapter_toSoma;
+  "soma/adapter/types": typeof soma_adapter_types;
+  "soma/garmin": typeof soma_garmin;
+  "soma/index": typeof soma_index;
+  "soma/strava": typeof soma_strava;
+  "soma/webhook": typeof soma_webhook;
   storage: typeof storage;
   "table/activities": typeof table_activities;
   "table/admin": typeof table_admin;
@@ -560,15 +564,24 @@ export declare const components: {
           },
           any
         >;
-        connectGarmin: FunctionReference<
+        deleteSchedule: FunctionReference<
           "action",
           "internal",
           {
             clientId: string;
             clientSecret: string;
-            code: string;
-            codeVerifier: string;
-            redirectUri?: string;
+            plannedWorkoutId: string;
+            userId: string;
+          },
+          any
+        >;
+        deleteWorkout: FunctionReference<
+          "action",
+          "internal",
+          {
+            clientId: string;
+            clientSecret: string;
+            plannedWorkoutId: string;
             userId: string;
           },
           any
@@ -582,34 +595,10 @@ export declare const components: {
         getGarminAuthUrl: FunctionReference<
           "action",
           "internal",
-          { clientId: string; redirectUri?: string; userId?: string },
+          { clientId: string; redirectUri?: string; userId: string },
           any
         >;
-        pushPlannedWorkout: FunctionReference<
-          "action",
-          "internal",
-          {
-            clientId: string;
-            clientSecret: string;
-            plannedWorkoutId: string;
-            userId: string;
-            workoutProvider?: string;
-          },
-          any
-        >;
-        syncAllTypes: FunctionReference<
-          "action",
-          "internal",
-          {
-            accessToken: string;
-            connectionId: string;
-            uploadEndTimeInSeconds: number;
-            uploadStartTimeInSeconds: number;
-            userId: string;
-          },
-          any
-        >;
-        syncGarmin: FunctionReference<
+        pullActivities: FunctionReference<
           "action",
           "internal",
           {
@@ -621,108 +610,276 @@ export declare const components: {
           },
           any
         >;
+        pullAll: FunctionReference<
+          "action",
+          "internal",
+          {
+            clientId: string;
+            clientSecret: string;
+            endTimeInSeconds?: number;
+            startTimeInSeconds?: number;
+            userId: string;
+          },
+          any
+        >;
+        pullBloodPressures: FunctionReference<
+          "action",
+          "internal",
+          {
+            clientId: string;
+            clientSecret: string;
+            endTimeInSeconds?: number;
+            startTimeInSeconds?: number;
+            userId: string;
+          },
+          any
+        >;
+        pullBody: FunctionReference<
+          "action",
+          "internal",
+          {
+            clientId: string;
+            clientSecret: string;
+            endTimeInSeconds?: number;
+            startTimeInSeconds?: number;
+            userId: string;
+          },
+          any
+        >;
+        pullDailies: FunctionReference<
+          "action",
+          "internal",
+          {
+            clientId: string;
+            clientSecret: string;
+            endTimeInSeconds?: number;
+            startTimeInSeconds?: number;
+            userId: string;
+          },
+          any
+        >;
+        pullHRV: FunctionReference<
+          "action",
+          "internal",
+          {
+            clientId: string;
+            clientSecret: string;
+            endTimeInSeconds?: number;
+            startTimeInSeconds?: number;
+            userId: string;
+          },
+          any
+        >;
+        pullMenstruation: FunctionReference<
+          "action",
+          "internal",
+          {
+            clientId: string;
+            clientSecret: string;
+            endTimeInSeconds?: number;
+            startTimeInSeconds?: number;
+            userId: string;
+          },
+          any
+        >;
+        pullPulseOx: FunctionReference<
+          "action",
+          "internal",
+          {
+            clientId: string;
+            clientSecret: string;
+            endTimeInSeconds?: number;
+            startTimeInSeconds?: number;
+            userId: string;
+          },
+          any
+        >;
+        pullRespiration: FunctionReference<
+          "action",
+          "internal",
+          {
+            clientId: string;
+            clientSecret: string;
+            endTimeInSeconds?: number;
+            startTimeInSeconds?: number;
+            userId: string;
+          },
+          any
+        >;
+        pullSkinTemperature: FunctionReference<
+          "action",
+          "internal",
+          {
+            clientId: string;
+            clientSecret: string;
+            endTimeInSeconds?: number;
+            startTimeInSeconds?: number;
+            userId: string;
+          },
+          any
+        >;
+        pullSleep: FunctionReference<
+          "action",
+          "internal",
+          {
+            clientId: string;
+            clientSecret: string;
+            endTimeInSeconds?: number;
+            startTimeInSeconds?: number;
+            userId: string;
+          },
+          any
+        >;
+        pullStressDetails: FunctionReference<
+          "action",
+          "internal",
+          {
+            clientId: string;
+            clientSecret: string;
+            endTimeInSeconds?: number;
+            startTimeInSeconds?: number;
+            userId: string;
+          },
+          any
+        >;
+        pullUserMetrics: FunctionReference<
+          "action",
+          "internal",
+          {
+            clientId: string;
+            clientSecret: string;
+            endTimeInSeconds?: number;
+            startTimeInSeconds?: number;
+            userId: string;
+          },
+          any
+        >;
+        pushSchedule: FunctionReference<
+          "action",
+          "internal",
+          {
+            clientId: string;
+            clientSecret: string;
+            date?: string;
+            plannedWorkoutId: string;
+            userId: string;
+          },
+          any
+        >;
+        pushWorkout: FunctionReference<
+          "action",
+          "internal",
+          {
+            clientId: string;
+            clientSecret: string;
+            plannedWorkoutId: string;
+            userId: string;
+            workoutProvider?: string;
+          },
+          any
+        >;
       };
       webhooks: {
         handleGarminWebhookActivities: FunctionReference<
           "action",
           "internal",
-          { payload: any },
+          { autoIngest?: boolean; payload: any },
           any
         >;
         handleGarminWebhookActivityDetails: FunctionReference<
           "action",
           "internal",
-          { payload: any },
+          { autoIngest?: boolean; payload: any },
           any
         >;
         handleGarminWebhookBloodPressures: FunctionReference<
           "action",
           "internal",
-          { payload: any },
+          { autoIngest?: boolean; payload: any },
           any
         >;
         handleGarminWebhookBodyCompositions: FunctionReference<
           "action",
           "internal",
-          { payload: any },
+          { autoIngest?: boolean; payload: any },
           any
         >;
         handleGarminWebhookDailies: FunctionReference<
           "action",
           "internal",
-          { payload: any },
+          { autoIngest?: boolean; payload: any },
           any
         >;
         handleGarminWebhookEpochs: FunctionReference<
           "action",
           "internal",
-          { payload: any },
+          { autoIngest?: boolean; payload: any },
           any
         >;
         handleGarminWebhookHealthSnapshot: FunctionReference<
           "action",
           "internal",
-          { payload: any },
+          { autoIngest?: boolean; payload: any },
           any
         >;
         handleGarminWebhookHRVSummary: FunctionReference<
           "action",
           "internal",
-          { payload: any },
+          { autoIngest?: boolean; payload: any },
           any
         >;
         handleGarminWebhookManuallyUpdatedActivities: FunctionReference<
           "action",
           "internal",
-          { payload: any },
+          { autoIngest?: boolean; payload: any },
           any
         >;
         handleGarminWebhookMenstrualCycleTracking: FunctionReference<
           "action",
           "internal",
-          { payload: any },
+          { autoIngest?: boolean; payload: any },
           any
         >;
         handleGarminWebhookMoveIQ: FunctionReference<
           "action",
           "internal",
-          { payload: any },
+          { autoIngest?: boolean; payload: any },
           any
         >;
         handleGarminWebhookPulseOx: FunctionReference<
           "action",
           "internal",
-          { payload: any },
+          { autoIngest?: boolean; payload: any },
           any
         >;
         handleGarminWebhookRespiration: FunctionReference<
           "action",
           "internal",
-          { payload: any },
+          { autoIngest?: boolean; payload: any },
           any
         >;
         handleGarminWebhookSkinTemp: FunctionReference<
           "action",
           "internal",
-          { payload: any },
+          { autoIngest?: boolean; payload: any },
           any
         >;
         handleGarminWebhookSleeps: FunctionReference<
           "action",
           "internal",
-          { payload: any },
+          { autoIngest?: boolean; payload: any },
           any
         >;
         handleGarminWebhookStress: FunctionReference<
           "action",
           "internal",
-          { payload: any },
+          { autoIngest?: boolean; payload: any },
           any
         >;
         handleGarminWebhookUserMetrics: FunctionReference<
           "action",
           "internal",
-          { payload: any },
+          { autoIngest?: boolean; payload: any },
           any
         >;
       };
@@ -2122,27 +2279,7 @@ export declare const components: {
             code: string;
             state: string;
           },
-          {
-            connectionId: string;
-            errors: Array<{ error: string; id: string; type: string }>;
-            synced: { activities: number; athletes: number };
-            userId: string;
-          }
-        >;
-        connectStrava: FunctionReference<
-          "action",
-          "internal",
-          {
-            clientId: string;
-            clientSecret: string;
-            code: string;
-            userId: string;
-          },
-          {
-            connectionId: string;
-            errors: Array<{ error: string; id: string; type: string }>;
-            synced: { activities: number; athletes: number };
-          }
+          { connectionId: string; userId: string }
         >;
         disconnectStrava: FunctionReference<
           "action",
@@ -2157,7 +2294,7 @@ export declare const components: {
             clientId: string;
             redirectUri: string;
             scope?: string;
-            userId?: string;
+            userId: string;
           },
           any
         >;
@@ -2183,8 +2320,8 @@ export declare const components: {
             userId: string;
           },
           {
-            errors: Array<{ error: string; id: string; type: string }>;
-            synced: { activities: number; athletes: number };
+            data: { synced: { activities: number; athletes: number } };
+            errors: Array<{ id: string; message: string; type: string }>;
           }
         >;
       };

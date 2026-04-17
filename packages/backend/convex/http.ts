@@ -41,14 +41,19 @@ registerRoutes(http, components.soma, {
   garmin: {
     oauth: {
       redirectTo: "cadence://oauth/garmin/complete",
+      onComplete: async (ctx, event) => {
+        await ctx.runAction(internal.soma.garmin.pullAll, {
+          userId: event.userId,
+        });
+      },
     },
     webhook: {
       events: {
         activities: async (ctx, event) => {
-          const userIds = event.affectedUsers.map((u) => u.userId);
+          const userIds = [...new Set(event.items.map((item) => item.userId))];
           if (userIds.length === 0) return;
           await ctx.runAction(
-            internal.integrations.garmin.webhook.handleActivityIngested,
+            internal.soma.webhook.handleActivityIngested,
             { affectedUserIds: userIds },
           );
         },

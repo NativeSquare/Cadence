@@ -16,7 +16,7 @@ import { useState } from "react";
 const STRAVA_REDIRECT_URI = "cadence://oauth/strava/complete";
 
 export function useStravaAuth() {
-  const getAuthUrl = useAction(api.integrations.strava.sync.getStravaAuthUrl);
+  const getAuthUrl = useAction(api.soma.strava.getAuthUrl);
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

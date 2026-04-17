@@ -379,13 +379,12 @@ export function ExportToWatchSheet({
     useState<WatchProvider | null>(null);
   const [errorMessage, setErrorMessage] = useState("");
 
-  const providers = useQuery(
-    api.integrations.connections.getConnectedProviders,
-  );
-  const garminConnected = providers?.garmin.connected ?? false;
+  const connections = useQuery(api.soma.index.listConnections);
+  const garminConnected =
+    connections?.some((c) => c.provider === "GARMIN" && c.active) ?? false;
 
   const exportToGarmin = useAction(
-    api.integrations.garmin.sync.exportSessionToGarmin,
+    api.soma.garmin.exportSession,
   );
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);

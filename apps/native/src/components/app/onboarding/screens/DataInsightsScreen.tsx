@@ -60,17 +60,17 @@ function getAccentColor(accent: AccentColor): string {
 // Provider Name Helper
 // =============================================================================
 
-type ProviderStatus = {
-  strava: { connected: boolean };
-  garmin: { connected: boolean };
-  healthkit: { connected: boolean };
-} | undefined;
+type Connection = { provider: string; active?: boolean };
 
-function getProviderDisplayName(providers: ProviderStatus): string {
-  if (!providers) return "your wearable";
-  if (providers.strava.connected) return "Strava";
-  if (providers.garmin.connected) return "Garmin";
-  if (providers.healthkit.connected) return "Apple Health";
+function getProviderDisplayName(
+  connections: Connection[] | undefined,
+): string {
+  if (!connections) return "your wearable";
+  const isActive = (p: string) =>
+    connections.some((c) => c.provider === p && (c.active ?? false));
+  if (isActive("STRAVA")) return "Strava";
+  if (isActive("GARMIN")) return "Garmin";
+  if (isActive("HEALTHKIT")) return "Apple Health";
   return "your wearable";
 }
 
@@ -315,8 +315,8 @@ export function DataInsightsScreen({ onNext, onNoData }: DataInsightsScreenProps
   });
 
   // Query connected providers from Soma
-  const providers = useQuery(api.integrations.connections.getConnectedProviders);
-  const providerName = getProviderDisplayName(providers);
+  const connections = useQuery(api.soma.index.listConnections);
+  const providerName = getProviderDisplayName(connections);
 
   // Compute insights when data loads
   const insights = useMemo(() => {

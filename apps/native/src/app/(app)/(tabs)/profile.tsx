@@ -57,7 +57,9 @@ export default function Profile() {
   const { signOut } = useAuthActions();
   const user = useQuery(api.table.users.currentUser);
   const runner = useQuery(api.table.runners.getCurrentRunner);
-  const providers = useQuery(api.integrations.connections.getConnectedProviders);
+  const connections = useQuery(api.soma.index.listConnections);
+  const isProviderConnected = (provider: string) =>
+    connections?.some((c) => c.provider === provider && c.active) ?? false;
   const deleteAccount = useMutation(api.table.users.deleteAccount);
 
   const logoutSheetRef = React.useRef<BottomSheetModal>(null);
@@ -112,11 +114,11 @@ export default function Profile() {
   })();
 
   const connectionsValue = (() => {
-    if (!providers) return "Not set";
+    if (!connections) return "Not set";
     const connected: string[] = [];
-    if (providers.strava.connected) connected.push("Strava");
-    if (providers.garmin.connected) connected.push("Garmin");
-    if (providers.healthkit.connected) connected.push("Apple Health");
+    if (isProviderConnected("STRAVA")) connected.push("Strava");
+    if (isProviderConnected("GARMIN")) connected.push("Garmin");
+    if (isProviderConnected("HEALTHKIT")) connected.push("Apple Health");
     return connected.length > 0 ? connected.join(", ") : "None";
   })();
 

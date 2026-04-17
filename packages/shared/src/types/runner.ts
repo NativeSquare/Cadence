@@ -111,7 +111,7 @@ export interface RunnerCoaching {
 // =============================================================================
 
 // Provider connection status (Strava, Garmin, HealthKit) is tracked by the
-// Soma component. Query via api.integrations.connections.getConnectedProviders.
+// Soma component. Query via api.soma.index.listConnections.
 export interface RunnerConnections {
   calendarConnected: boolean;
 }
