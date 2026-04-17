@@ -2298,31 +2298,48 @@ export declare const components: {
           },
           any
         >;
-        syncAllTypes: FunctionReference<
+        pullActivities: FunctionReference<
           "action",
           "internal",
           {
-            accessToken: string;
             after?: number;
             before?: number;
-            connectionId: string;
-            userId: string;
-          },
-          any
-        >;
-        syncStrava: FunctionReference<
-          "action",
-          "internal",
-          {
-            after?: number;
             clientId: string;
             clientSecret: string;
             userId: string;
           },
+          any
+        >;
+        pullAll: FunctionReference<
+          "action",
+          "internal",
           {
-            data: { synced: { activities: number; athletes: number } };
-            errors: Array<{ id: string; message: string; type: string }>;
-          }
+            after?: number;
+            before?: number;
+            clientId: string;
+            clientSecret: string;
+            userId: string;
+          },
+          any
+        >;
+        pullAthlete: FunctionReference<
+          "action",
+          "internal",
+          { clientId: string; clientSecret: string; userId: string },
+          any
+        >;
+      };
+      webhooks: {
+        handleStravaWebhook: FunctionReference<
+          "action",
+          "internal",
+          {
+            autoIngest?: boolean;
+            clientId: string;
+            clientSecret: string;
+            payload: any;
+          },
+          any
         >;
       };
     };

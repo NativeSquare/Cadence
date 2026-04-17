@@ -61,7 +61,7 @@ export const pullAll = internalAction({
     after: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const result = await soma.strava.sync(ctx, {
+    const result = await soma.strava.pullAll(ctx, {
       userId: args.userId,
       after: args.after,
     });

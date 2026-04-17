@@ -642,8 +642,8 @@ importers:
         specifier: ^1.0.0
         version: 1.0.0(@ai-sdk/openai@3.0.50(zod@4.3.6))(ai@6.0.146(zod@4.3.6))(convex@1.34.1(react@18.2.0))(zod@4.3.6)
       '@nativesquare/soma':
-        specifier: ^0.13.1
-        version: 0.13.1(convex@1.34.1(react@18.2.0))(react@18.2.0)
+        specifier: ^0.14.0
+        version: 0.14.0(convex@1.34.1(react@18.2.0))(react@18.2.0)
       '@packages/shared':
         specifier: workspace:*
         version: link:../shared
@@ -2311,8 +2311,8 @@ packages:
       convex: ^1.31.7
       react: ^18.3.1 || ^19.0.0
 
-  '@nativesquare/soma@0.13.1':
-    resolution: {integrity: sha512-96tRnA+EQHDVsuCzGDsU3rjXHFrx6sYr9Veeec3gyjes+2DR6BxyGDZzfDEKnfAITHQBV41k34pe6WkKUSeySw==}
+  '@nativesquare/soma@0.14.0':
+    resolution: {integrity: sha512-s8+TaWOb6FtT1S6d3inHJYY6W0wKUDiigfTppTKJHCv+vxKXpbI1weME+0gmvyR9NwZdLgf+BXKzXjTtYT3Ehg==}
     peerDependencies:
       convex: ^1.31.7
       react: ^18.3.1 || ^19.0.0
@@ -11034,7 +11034,7 @@ snapshots:
       react: 19.1.0
       zod: 4.3.6
 
-  '@nativesquare/soma@0.13.1(convex@1.34.1(react@18.2.0))(react@18.2.0)':
+  '@nativesquare/soma@0.14.0(convex@1.34.1(react@18.2.0))(react@18.2.0)':
     dependencies:
       convex: 1.34.1(react@18.2.0)
       react: 18.2.0
