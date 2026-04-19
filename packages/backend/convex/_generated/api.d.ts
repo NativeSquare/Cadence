@@ -43,6 +43,7 @@ import type * as soma_adapter_index from "../soma/adapter/index.js";
 import type * as soma_adapter_toSoma from "../soma/adapter/toSoma.js";
 import type * as soma_adapter_types from "../soma/adapter/types.js";
 import type * as soma_garmin from "../soma/garmin.js";
+import type * as soma_healthkit from "../soma/healthkit.js";
 import type * as soma_index from "../soma/index.js";
 import type * as soma_strava from "../soma/strava.js";
 import type * as soma_webhook from "../soma/webhook.js";
@@ -120,6 +121,7 @@ declare const fullApi: ApiFromModules<{
   "soma/adapter/toSoma": typeof soma_adapter_toSoma;
   "soma/adapter/types": typeof soma_adapter_types;
   "soma/garmin": typeof soma_garmin;
+  "soma/healthkit": typeof soma_healthkit;
   "soma/index": typeof soma_index;
   "soma/strava": typeof soma_strava;
   "soma/webhook": typeof soma_webhook;
@@ -552,6 +554,18 @@ export declare const components: {
   soma: {
     garmin: {
       public: {
+        backfillAll: FunctionReference<
+          "action",
+          "internal",
+          {
+            clientId: string;
+            clientSecret: string;
+            endTimeInSeconds?: number;
+            startTimeInSeconds?: number;
+            userId: string;
+          },
+          any
+        >;
         completeGarminOAuth: FunctionReference<
           "action",
           "internal",
@@ -884,6 +898,407 @@ export declare const components: {
         >;
       };
     };
+    healthkit: {
+      public: {
+        connect: FunctionReference<
+          "mutation",
+          "internal",
+          { userId: string },
+          string
+        >;
+        disconnect: FunctionReference<
+          "mutation",
+          "internal",
+          { userId: string },
+          null
+        >;
+        syncActivities: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            userId: string;
+            workouts: Array<{
+              device?: {
+                hardwareVersion?: string;
+                manufacturer?: string;
+                model?: string;
+                name?: string;
+                softwareVersion?: string;
+              };
+              duration: number;
+              endDate: string;
+              heartRateSamples?: Array<{
+                device?: {
+                  hardwareVersion?: string;
+                  manufacturer?: string;
+                  model?: string;
+                  name?: string;
+                  softwareVersion?: string;
+                };
+                endDate: string;
+                sampleType: string;
+                source?: { bundleIdentifier: string; name: string };
+                startDate: string;
+                unit: string;
+                uuid: string;
+                value: number;
+              }>;
+              routeData?: Array<{
+                locations: Array<{
+                  altitude?: number;
+                  latitude: number;
+                  longitude: number;
+                  timestamp: string;
+                }>;
+              }>;
+              source?: { bundleIdentifier: string; name: string };
+              startDate: string;
+              totalDistance?: number;
+              totalEnergyBurned?: number;
+              totalFlightsClimbed?: number;
+              totalSwimmingStrokeCount?: number;
+              uuid: string;
+              workoutActivityType: number;
+            }>;
+          },
+          {
+            data: { activities: number };
+            errors: Array<{ id: string; message: string; type: string }>;
+          }
+        >;
+        syncAll: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            bodySamples?: Array<{
+              device?: {
+                hardwareVersion?: string;
+                manufacturer?: string;
+                model?: string;
+                name?: string;
+                softwareVersion?: string;
+              };
+              endDate: string;
+              sampleType: string;
+              source?: { bundleIdentifier: string; name: string };
+              startDate: string;
+              unit: string;
+              uuid: string;
+              value: number;
+            }>;
+            bodyTimeRange?: { end_time: string; start_time: string };
+            characteristics?: {
+              biologicalSex?: "female" | "male" | "other" | "notSet";
+              bloodType?: string;
+              dateOfBirth?: string;
+              fitzpatrickSkinType?: number;
+              wheelchairUse?: boolean;
+            };
+            dailySamples?: Array<{
+              device?: {
+                hardwareVersion?: string;
+                manufacturer?: string;
+                model?: string;
+                name?: string;
+                softwareVersion?: string;
+              };
+              endDate: string;
+              sampleType: string;
+              source?: { bundleIdentifier: string; name: string };
+              startDate: string;
+              unit: string;
+              uuid: string;
+              value: number;
+            }>;
+            dailySummaries?: Array<{
+              activeEnergyBurned: number;
+              activeEnergyBurnedGoal: number;
+              appleExerciseTime: number;
+              appleExerciseTimeGoal: number;
+              appleStandHours: number;
+              appleStandHoursGoal: number;
+              dateComponents: { day: number; month: number; year: number };
+            }>;
+            dailyTimeRange?: { end_time: string; start_time: string };
+            menstruationSamples?: Array<{
+              device?: {
+                hardwareVersion?: string;
+                manufacturer?: string;
+                model?: string;
+                name?: string;
+                softwareVersion?: string;
+              };
+              endDate: string;
+              sampleType: string;
+              source?: { bundleIdentifier: string; name: string };
+              startDate: string;
+              uuid: string;
+              value: number;
+            }>;
+            menstruationTimeRange?: { end_time: string; start_time: string };
+            nutritionSamples?: Array<{
+              device?: {
+                hardwareVersion?: string;
+                manufacturer?: string;
+                model?: string;
+                name?: string;
+                softwareVersion?: string;
+              };
+              endDate: string;
+              sampleType: string;
+              source?: { bundleIdentifier: string; name: string };
+              startDate: string;
+              unit: string;
+              uuid: string;
+              value: number;
+            }>;
+            nutritionTimeRange?: { end_time: string; start_time: string };
+            sleepSessions?: Array<
+              Array<{
+                device?: {
+                  hardwareVersion?: string;
+                  manufacturer?: string;
+                  model?: string;
+                  name?: string;
+                  softwareVersion?: string;
+                };
+                endDate: string;
+                sampleType: string;
+                source?: { bundleIdentifier: string; name: string };
+                startDate: string;
+                uuid: string;
+                value: number;
+              }>
+            >;
+            userId: string;
+            workouts?: Array<{
+              device?: {
+                hardwareVersion?: string;
+                manufacturer?: string;
+                model?: string;
+                name?: string;
+                softwareVersion?: string;
+              };
+              duration: number;
+              endDate: string;
+              heartRateSamples?: Array<{
+                device?: {
+                  hardwareVersion?: string;
+                  manufacturer?: string;
+                  model?: string;
+                  name?: string;
+                  softwareVersion?: string;
+                };
+                endDate: string;
+                sampleType: string;
+                source?: { bundleIdentifier: string; name: string };
+                startDate: string;
+                unit: string;
+                uuid: string;
+                value: number;
+              }>;
+              routeData?: Array<{
+                locations: Array<{
+                  altitude?: number;
+                  latitude: number;
+                  longitude: number;
+                  timestamp: string;
+                }>;
+              }>;
+              source?: { bundleIdentifier: string; name: string };
+              startDate: string;
+              totalDistance?: number;
+              totalEnergyBurned?: number;
+              totalFlightsClimbed?: number;
+              totalSwimmingStrokeCount?: number;
+              uuid: string;
+              workoutActivityType: number;
+            }>;
+          },
+          {
+            data: Record<string, number>;
+            errors: Array<{ id: string; message: string; type: string }>;
+          }
+        >;
+        syncAthlete: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            characteristics: {
+              biologicalSex?: "female" | "male" | "other" | "notSet";
+              bloodType?: string;
+              dateOfBirth?: string;
+              fitzpatrickSkinType?: number;
+              wheelchairUse?: boolean;
+            };
+            userId: string;
+          },
+          {
+            data: { athletes: number };
+            errors: Array<{ id: string; message: string; type: string }>;
+          }
+        >;
+        syncBody: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            samples: Array<{
+              device?: {
+                hardwareVersion?: string;
+                manufacturer?: string;
+                model?: string;
+                name?: string;
+                softwareVersion?: string;
+              };
+              endDate: string;
+              sampleType: string;
+              source?: { bundleIdentifier: string; name: string };
+              startDate: string;
+              unit: string;
+              uuid: string;
+              value: number;
+            }>;
+            timeRange?: { end_time: string; start_time: string };
+            userId: string;
+          },
+          {
+            data: { body: number };
+            errors: Array<{ id: string; message: string; type: string }>;
+          }
+        >;
+        syncDaily: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            samples: Array<{
+              device?: {
+                hardwareVersion?: string;
+                manufacturer?: string;
+                model?: string;
+                name?: string;
+                softwareVersion?: string;
+              };
+              endDate: string;
+              sampleType: string;
+              source?: { bundleIdentifier: string; name: string };
+              startDate: string;
+              unit: string;
+              uuid: string;
+              value: number;
+            }>;
+            timeRange?: { end_time: string; start_time: string };
+            userId: string;
+          },
+          {
+            data: { daily: number };
+            errors: Array<{ id: string; message: string; type: string }>;
+          }
+        >;
+        syncDailyFromSummary: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            summaries: Array<{
+              activeEnergyBurned: number;
+              activeEnergyBurnedGoal: number;
+              appleExerciseTime: number;
+              appleExerciseTimeGoal: number;
+              appleStandHours: number;
+              appleStandHoursGoal: number;
+              dateComponents: { day: number; month: number; year: number };
+            }>;
+            userId: string;
+          },
+          {
+            data: { daily: number };
+            errors: Array<{ id: string; message: string; type: string }>;
+          }
+        >;
+        syncMenstruation: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            samples: Array<{
+              device?: {
+                hardwareVersion?: string;
+                manufacturer?: string;
+                model?: string;
+                name?: string;
+                softwareVersion?: string;
+              };
+              endDate: string;
+              sampleType: string;
+              source?: { bundleIdentifier: string; name: string };
+              startDate: string;
+              uuid: string;
+              value: number;
+            }>;
+            timeRange?: { end_time: string; start_time: string };
+            userId: string;
+          },
+          {
+            data: { menstruation: number };
+            errors: Array<{ id: string; message: string; type: string }>;
+          }
+        >;
+        syncNutrition: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            samples: Array<{
+              device?: {
+                hardwareVersion?: string;
+                manufacturer?: string;
+                model?: string;
+                name?: string;
+                softwareVersion?: string;
+              };
+              endDate: string;
+              sampleType: string;
+              source?: { bundleIdentifier: string; name: string };
+              startDate: string;
+              unit: string;
+              uuid: string;
+              value: number;
+            }>;
+            timeRange?: { end_time: string; start_time: string };
+            userId: string;
+          },
+          {
+            data: { nutrition: number };
+            errors: Array<{ id: string; message: string; type: string }>;
+          }
+        >;
+        syncSleep: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            sessions: Array<
+              Array<{
+                device?: {
+                  hardwareVersion?: string;
+                  manufacturer?: string;
+                  model?: string;
+                  name?: string;
+                  softwareVersion?: string;
+                };
+                endDate: string;
+                sampleType: string;
+                source?: { bundleIdentifier: string; name: string };
+                startDate: string;
+                uuid: string;
+                value: number;
+              }>
+            >;
+            userId: string;
+          },
+          {
+            data: { sleep: number };
+            errors: Array<{ id: string; message: string; type: string }>;
+          }
+        >;
+      };
+    };
     public: {
       connect: FunctionReference<
         "mutation",
@@ -926,6 +1341,15 @@ export declare const components: {
           lastDataUpdate?: string;
           provider: string;
           providerUserId?: string;
+          stats?: {
+            activities: { count: number; oldest: string | null };
+            body: { count: number; oldest: string | null };
+            daily: { count: number; oldest: string | null };
+            menstruation: { count: number; oldest: string | null };
+            nutrition: { count: number; oldest: string | null };
+            plannedWorkouts: { count: number; oldest: string | null };
+            sleep: { count: number; oldest: string | null };
+          };
           userId: string;
         }
       >;
@@ -940,6 +1364,15 @@ export declare const components: {
           lastDataUpdate?: string;
           provider: string;
           providerUserId?: string;
+          stats?: {
+            activities: { count: number; oldest: string | null };
+            body: { count: number; oldest: string | null };
+            daily: { count: number; oldest: string | null };
+            menstruation: { count: number; oldest: string | null };
+            nutrition: { count: number; oldest: string | null };
+            plannedWorkouts: { count: number; oldest: string | null };
+            sleep: { count: number; oldest: string | null };
+          };
           userId: string;
         }
       >;
@@ -948,6 +1381,20 @@ export declare const components: {
         "internal",
         { plannedWorkoutId: string },
         any
+      >;
+      getProviderStats: FunctionReference<
+        "query",
+        "internal",
+        { provider: string; userId: string },
+        null | {
+          activities: { count: number; oldest: string | null };
+          body: { count: number; oldest: string | null };
+          daily: { count: number; oldest: string | null };
+          menstruation: { count: number; oldest: string | null };
+          nutrition: { count: number; oldest: string | null };
+          plannedWorkouts: { count: number; oldest: string | null };
+          sleep: { count: number; oldest: string | null };
+        }
       >;
       ingestActivity: FunctionReference<
         "mutation",
@@ -2067,6 +2514,15 @@ export declare const components: {
           lastDataUpdate?: string;
           provider: string;
           providerUserId?: string;
+          stats?: {
+            activities: { count: number; oldest: string | null };
+            body: { count: number; oldest: string | null };
+            daily: { count: number; oldest: string | null };
+            menstruation: { count: number; oldest: string | null };
+            nutrition: { count: number; oldest: string | null };
+            plannedWorkouts: { count: number; oldest: string | null };
+            sleep: { count: number; oldest: string | null };
+          };
           userId: string;
         }>
       >;
