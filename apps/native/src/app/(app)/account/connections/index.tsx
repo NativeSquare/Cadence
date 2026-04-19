@@ -5,10 +5,6 @@ import {
   StravaLogo,
 } from "@/components/icons/provider-logos";
 import {
-  SyncDataSheet,
-  type SyncDataSheetHandle,
-} from "@/components/app/account/SyncDataSheet";
-import {
   ConnectPermissionSheet,
   type ConnectPermissionSheetHandle,
 } from "@/components/app/account/ConnectPermissionSheet";
@@ -116,7 +112,6 @@ export default function ConnectionsScreen() {
   const healthKitSync = useHealthKitSyncProgress();
   const healthKitSyncing = healthKitSync.phase === "syncing";
 
-  const syncSheetRef = React.useRef<SyncDataSheetHandle>(null);
   const permissionSheetRef = React.useRef<ConnectPermissionSheetHandle>(null);
 
   const [error, setError] = React.useState<string | null>(null);
@@ -140,11 +135,7 @@ export default function ConnectionsScreen() {
     setError(null);
     permissionSheetRef.current?.present("garmin", async () => {
       const result = await connectGarminFlow();
-      if (result) {
-        syncSheetRef.current?.present();
-        return;
-      }
-      if (garminError) setError(garminError);
+      if (!result && garminError) setError(garminError);
     });
   };
 
@@ -456,7 +447,6 @@ export default function ConnectionsScreen() {
         </View>
       </ScrollView>
 
-      <SyncDataSheet ref={syncSheetRef} providerName="Garmin" />
       <ConnectPermissionSheet ref={permissionSheetRef} />
     </View>
   );

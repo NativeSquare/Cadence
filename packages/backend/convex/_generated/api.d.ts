@@ -824,6 +824,12 @@ export declare const components: {
           { autoIngest?: boolean; payload: any },
           any
         >;
+        handleGarminWebhookDeregistration: FunctionReference<
+          "action",
+          "internal",
+          { autoIngest?: boolean; payload: any },
+          any
+        >;
         handleGarminWebhookEpochs: FunctionReference<
           "action",
           "internal",

@@ -63,6 +63,7 @@ registerRoutes(http, components.soma, {
           );
         },
         hrv: true,
+        deregistration: true,
       },
     },
   },
