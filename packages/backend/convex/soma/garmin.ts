@@ -58,13 +58,20 @@ export const disconnect = action({
   },
 });
 
-// ─── Pull ──────────────────────────────────────────────────────────────────
+// ─── Backfill ──────────────────────────────────────────────────────────────
 
-export const pullAll = internalAction({
+export const backfillAll = internalAction({
   args: { userId: v.string() },
   handler: async (ctx, { userId }) => {
-    const result = await soma.garmin.pullAll(ctx, { userId });
-    console.log(`[Soma] Garmin initial pull for user ${userId}:`, result);
+    // TEMP: 1-day window for webhook testing — revert to default 90d once validated
+    const endTimeInSeconds = Math.floor(Date.now() / 1000);
+    const startTimeInSeconds = endTimeInSeconds - 24 * 60 * 60;
+    const result = await soma.garmin.backfillAll(ctx, {
+      userId,
+      startTimeInSeconds,
+      endTimeInSeconds,
+    });
+    console.log(`[Soma] Garmin initial backfill for user ${userId}:`, result);
   },
 });
 

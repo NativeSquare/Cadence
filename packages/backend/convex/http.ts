@@ -37,7 +37,7 @@ registerRoutes(http, components.soma, {
     oauth: {
       redirectTo: "cadence://oauth/strava/complete",
       onComplete: async (ctx, event) => {
-        await ctx.runAction(internal.soma.strava.pullAll, {
+        await ctx.scheduler.runAfter(0, internal.soma.strava.pullAll, {
           userId: event.userId,
         });
       },
@@ -47,7 +47,7 @@ registerRoutes(http, components.soma, {
     oauth: {
       redirectTo: "cadence://oauth/garmin/complete",
       onComplete: async (ctx, event) => {
-        await ctx.runAction(internal.soma.garmin.pullAll, {
+        await ctx.scheduler.runAfter(0, internal.soma.garmin.backfillAll, {
           userId: event.userId,
         });
       },
@@ -62,6 +62,7 @@ registerRoutes(http, components.soma, {
             { affectedUserIds: userIds },
           );
         },
+        hrv: true,
       },
     },
   },

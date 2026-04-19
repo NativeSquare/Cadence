@@ -208,8 +208,8 @@ importers:
         specifier: ^13.1.4
         version: 13.4.0(react-native-nitro-modules@0.35.3(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
       '@nativesquare/soma':
-        specifier: ^0.12.0
-        version: 0.12.0(convex@1.34.1(react@19.1.0))(react@19.1.0)
+        specifier: ^0.16.4
+        version: 0.16.4(convex@1.34.1(react@19.1.0))(react@19.1.0)
       '@packages/backend':
         specifier: workspace:*
         version: link:../../packages/backend
@@ -642,8 +642,8 @@ importers:
         specifier: ^1.0.0
         version: 1.0.0(@ai-sdk/openai@3.0.50(zod@4.3.6))(ai@6.0.146(zod@4.3.6))(convex@1.34.1(react@18.2.0))(zod@4.3.6)
       '@nativesquare/soma':
-        specifier: ^0.14.0
-        version: 0.14.0(convex@1.34.1(react@18.2.0))(react@18.2.0)
+        specifier: ^0.16.5
+        version: 0.16.5(convex@1.34.1(react@18.2.0))(react@18.2.0)
       '@packages/shared':
         specifier: workspace:*
         version: link:../shared
@@ -2305,14 +2305,14 @@ packages:
       zod:
         optional: true
 
-  '@nativesquare/soma@0.12.0':
-    resolution: {integrity: sha512-PS7QNezb9hkgATFg9QhZ15911CtBh9h0AG9dChroEm24sjYN2tZixW2LixdOoxs9UtERpXvilrkyYyUUhMMLyQ==}
+  '@nativesquare/soma@0.16.4':
+    resolution: {integrity: sha512-QL7ytkGYfdLSNeru0TvkjdjQ+A6O3bsElz5LEjFDrAVcBVMn9uTKKtj39ewjXKcb+UznpMCMaCwOA7OcL8u5Hw==}
     peerDependencies:
       convex: ^1.31.7
       react: ^18.3.1 || ^19.0.0
 
-  '@nativesquare/soma@0.14.0':
-    resolution: {integrity: sha512-s8+TaWOb6FtT1S6d3inHJYY6W0wKUDiigfTppTKJHCv+vxKXpbI1weME+0gmvyR9NwZdLgf+BXKzXjTtYT3Ehg==}
+  '@nativesquare/soma@0.16.5':
+    resolution: {integrity: sha512-kHkXdXb8p6tx6+e/si5LW8sz9cE9I6/YVZ8K5v472bXhPX/PXXNJvGahBpqXheui2KQSSHoDWRhgi3RfR1qwPw==}
     peerDependencies:
       convex: ^1.31.7
       react: ^18.3.1 || ^19.0.0
@@ -11028,13 +11028,13 @@ snapshots:
       ai: 6.0.146(zod@4.3.6)
       zod: 4.3.6
 
-  '@nativesquare/soma@0.12.0(convex@1.34.1(react@19.1.0))(react@19.1.0)':
+  '@nativesquare/soma@0.16.4(convex@1.34.1(react@19.1.0))(react@19.1.0)':
     dependencies:
       convex: 1.34.1(react@19.1.0)
       react: 19.1.0
       zod: 4.3.6
 
-  '@nativesquare/soma@0.14.0(convex@1.34.1(react@18.2.0))(react@18.2.0)':
+  '@nativesquare/soma@0.16.5(convex@1.34.1(react@18.2.0))(react@18.2.0)':
     dependencies:
       convex: 1.34.1(react@18.2.0)
       react: 18.2.0

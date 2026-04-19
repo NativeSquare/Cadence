@@ -312,12 +312,12 @@ export default function Profile() {
               ]}
             />
 
-            {/* Connections */}
+            {/* Data & Connections */}
             <SettingsGroup
-              title="Connections"
+              title="Data & Connections"
               items={[
                 {
-                  label: "Connected Services",
+                  label: "Integrations",
                   icon: "link-outline",
                   value: connectionsValue,
                   iconColor: COLORS.ora,

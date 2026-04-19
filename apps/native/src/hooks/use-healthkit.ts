@@ -7,197 +7,216 @@ import {
   getHealthKitAuthStatus,
   checkIfAuthorizationDenied,
   openHealthSettings,
+  requestHealthKitAuthorization,
   PERMISSION_DENIED_GUIDANCE,
 } from "@/lib/healthkit";
+import type { HealthKitCollectedData } from "@/lib/healthkit";
 import { useNetworkOptional } from "@/contexts/network-context";
+import {
+  getHealthKitSyncState,
+  resetHealthKitSyncState,
+  setHealthKitSyncState,
+} from "./use-healthkit-sync-store";
 
-export type SyncStatus = {
-  phase:
-    | "idle"
-    | "authorizing"
-    | "fetching"
-    | "syncing"
-    | "complete"
-    | "error"
-    | "permission_denied";
-  message: string;
-  progress?: {
-    total: number;
-    activities: number;
-    sleep: number;
-    body: number;
-    daily: number;
-    nutrition: number;
-    menstruation: number;
-    athlete: boolean;
-  };
+export type ConnectResult = {
+  connected: true;
 };
 
-export type HealthKitResult = {
-  summary: string;
-  totalRuns: number;
-  syncStats: {
-    total: number;
-    activities: { ingested: number; failed: number };
-    sleep: { ingested: number; failed: number };
-    body: { ingested: number; failed: number };
-    daily: { ingested: number; failed: number };
-    nutrition: { ingested: number; failed: number };
-    menstruation: { ingested: number; failed: number };
-    athlete: boolean;
-  };
-};
+const SYNC_DAYS = 90;
+const CHUNK_SIZE = 1000;
+const COMPLETE_RESET_DELAY_MS = 3000;
+
+function chunk<T>(items: T[], size: number): T[][] {
+  if (items.length === 0) return [];
+  const out: T[][] = [];
+  for (let i = 0; i < items.length; i += size) {
+    out.push(items.slice(i, i + size));
+  }
+  return out;
+}
+
+function computeTimeRange(days: number) {
+  const end = new Date();
+  const start = new Date(end.getTime() - days * 24 * 60 * 60 * 1000);
+  return { start_time: start.toISOString(), end_time: end.toISOString() };
+}
 
 export function useHealthKit() {
-  const syncHealthKit = useMutation(
-    api.integrations.healthkit.sync.syncHealthKitData,
-  );
+  const connectMutation = useMutation(api.soma.healthkit.connect);
+  const syncActivities = useMutation(api.soma.healthkit.syncActivities);
+  const syncSleep = useMutation(api.soma.healthkit.syncSleep);
+  const syncBody = useMutation(api.soma.healthkit.syncBody);
+  const syncDaily = useMutation(api.soma.healthkit.syncDaily);
+  const syncNutrition = useMutation(api.soma.healthkit.syncNutrition);
+  const syncMenstruation = useMutation(api.soma.healthkit.syncMenstruation);
+  const syncAthlete = useMutation(api.soma.healthkit.syncAthlete);
+
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [permissionDenied, setPermissionDenied] = useState(false);
-  const [syncStatus, setSyncStatus] = useState<SyncStatus>({
-    phase: "idle",
-    message: "",
-  });
 
-  // Get network status (optional - works outside NetworkProvider too)
   const network = useNetworkOptional();
   const isOffline = network?.isOffline ?? false;
 
-  const connect = useCallback(async (): Promise<HealthKitResult | null> => {
-    // Guard against concurrent syncs
-    if (isConnecting) {
-      return null;
-    }
+  // ── Background sync ──────────────────────────────────────────────────────
+  //
+  // Runs after `connect` returns. Not awaited by the UI — phase is surfaced
+  // via the shared sync store so the Connections row can show "Syncing…"
+  // even if the caller unmounts. Each per-type array is chunked under
+  // CHUNK_SIZE to stay below Convex's 8192-item array validator limit.
+  const runBackgroundSync = useCallback(
+    async (data: HealthKitCollectedData) => {
+      const timeRange = computeTimeRange(SYNC_DAYS);
 
-    // Check network before API calls (Story 8.1 AC#2)
+      setHealthKitSyncState({ phase: "syncing", error: undefined });
+
+      const uploadChunks = async <T,>(
+        type: string,
+        items: T[],
+        call: (batch: T[]) => Promise<unknown>,
+      ) => {
+        if (items.length === 0) return;
+        for (const batch of chunk(items, CHUNK_SIZE)) {
+          try {
+            await call(batch);
+          } catch (err) {
+            if (__DEV__) {
+              console.warn(`[HealthKit] ${type} chunk failed:`, err);
+            }
+          }
+        }
+      };
+
+      await uploadChunks("workouts", data.workouts, (workouts) =>
+        syncActivities({ workouts }),
+      );
+      await uploadChunks("sleepSessions", data.sleepSessions, (sessions) =>
+        syncSleep({ sessions }),
+      );
+      await uploadChunks("bodySamples", data.bodySamples, (samples) =>
+        syncBody({ samples, timeRange }),
+      );
+      await uploadChunks("dailySamples", data.dailySamples, (samples) =>
+        syncDaily({ samples, timeRange }),
+      );
+      await uploadChunks("nutritionSamples", data.nutritionSamples, (samples) =>
+        syncNutrition({ samples, timeRange }),
+      );
+      await uploadChunks(
+        "menstruationSamples",
+        data.menstruationSamples,
+        (samples) => syncMenstruation({ samples, timeRange }),
+      );
+
+      if (data.characteristics) {
+        try {
+          await syncAthlete({ characteristics: data.characteristics });
+        } catch (err) {
+          if (__DEV__) {
+            console.warn("[HealthKit] athlete characteristics failed:", err);
+          }
+        }
+      }
+
+      setHealthKitSyncState({ phase: "complete" });
+
+      // Auto-reset to idle so the Connections row goes quiet.
+      setTimeout(() => {
+        if (getHealthKitSyncState().phase === "complete") {
+          resetHealthKitSyncState();
+        }
+      }, COMPLETE_RESET_DELAY_MS);
+    },
+    [
+      syncActivities,
+      syncSleep,
+      syncBody,
+      syncDaily,
+      syncNutrition,
+      syncMenstruation,
+      syncAthlete,
+    ],
+  );
+
+  // ── Connect flow (fast, blocking) ────────────────────────────────────────
+  //
+  // Phase 1 only: request permissions, register the connection. Data fetch
+  // + upload happens in `runBackgroundSync`, which is not awaited.
+  const connect = useCallback(async (): Promise<ConnectResult | null> => {
+    if (isConnecting) return null;
+
     if (isOffline) {
       setError("No network connection. Please check your internet and try again.");
-      setSyncStatus({ phase: "error", message: "No network connection" });
       return null;
     }
 
     if (!checkHealthKitAvailable()) {
       setError("HealthKit is not available on this device");
-      setSyncStatus({ phase: "error", message: "HealthKit not available" });
+      return null;
+    }
+
+    // Guard: don't start a new sync while one is in flight.
+    const currentPhase = getHealthKitSyncState().phase;
+    if (currentPhase === "syncing") {
       return null;
     }
 
     setIsConnecting(true);
     setError(null);
     setPermissionDenied(false);
-    setSyncStatus({
-      phase: "authorizing",
-      message: "Requesting HealthKit access...",
-    });
+    setHealthKitSyncState({ phase: "connecting", error: undefined });
 
     try {
-      // Fetch all health data from HealthKit using Soma transformers
-      setSyncStatus({
-        phase: "fetching",
-        message: "Fetching health data...",
-      });
-      const result = await importAllHealthKitData();
+      // iOS permission sheet. `requestAuthorization` resolves `true` whether
+      // the user grants or denies — we detect denial via a follow-up query.
+      await requestHealthKitAuthorization();
 
-      // Check if we got no data - might indicate denied permission
-      if (
-        result.totalRuns === 0 &&
-        result.activities.length === 0 &&
-        result.sleep.length === 0
-      ) {
-        const isDenied = await checkIfAuthorizationDenied();
-        if (isDenied) {
-          setPermissionDenied(true);
-          setSyncStatus({
-            phase: "permission_denied",
-            message: PERMISSION_DENIED_GUIDANCE.message,
-          });
-          setError(PERMISSION_DENIED_GUIDANCE.message);
-          return null;
-        }
+      const isDenied = await checkIfAuthorizationDenied();
+      if (isDenied) {
+        setPermissionDenied(true);
+        setError(PERMISSION_DENIED_GUIDANCE.message);
+        resetHealthKitSyncState();
+        return null;
       }
 
-      // Sync all health data to the Soma component FIRST
-      // This ensures we don't store aggregates if sync fails (atomic operation)
-      const totalRecords =
-        result.activities.length +
-        result.sleep.length +
-        result.body.length +
-        result.daily.length +
-        result.nutrition.length +
-        result.menstruation.length +
-        (result.athlete ? 1 : 0);
+      // Mark the connection active server-side. The Connections screen's
+      // `listConnections` subscription will flip the row to "Connected"
+      // within one Convex round-trip — before any data is uploaded.
+      await connectMutation();
 
-      setSyncStatus({
-        phase: "syncing",
-        message: `Syncing ${totalRecords} health records...`,
-      });
+      // Kick off the background sync without awaiting. The UI returns to
+      // the caller immediately; the user can navigate away while data
+      // uploads in the background.
+      void (async () => {
+        try {
+          const data = await importAllHealthKitData(SYNC_DAYS);
+          await runBackgroundSync(data);
+        } catch (err) {
+          const message =
+            err instanceof Error ? err.message : "Background sync failed";
+          setHealthKitSyncState({ phase: "error", error: message });
+          if (__DEV__) console.warn("[HealthKit] background sync failed:", err);
+        }
+      })();
 
-      // Sync all health data AND aggregates to Soma in a single call
-      // This ensures atomicity - aggregates only stored if raw data sync succeeds
-      const syncStats = await syncHealthKit({
-        activities: result.activities,
-        sleep: result.sleep,
-        body: result.body,
-        daily: result.daily,
-        nutrition: result.nutrition,
-        menstruation: result.menstruation,
-        athlete: result.athlete ?? undefined,
-        aggregates: {
-          avgWeeklyVolume: result.aggregates.avgWeeklyVolume,
-          volumeConsistency: result.aggregates.volumeConsistency,
-          easyPaceActual: result.aggregates.easyPaceActual,
-          longRunPattern: result.aggregates.longRunPattern,
-          restDayFrequency: result.aggregates.restDayFrequency,
-          trainingLoadTrend: result.aggregates.trainingLoadTrend,
-          estimatedFitness: result.aggregates.estimatedFitness,
-        },
-        totalRuns: result.totalRuns,
-      });
-
-      setSyncStatus({
-        phase: "complete",
-        message: `Synced ${syncStats.total} health records`,
-        progress: {
-          total: syncStats.total,
-          activities: syncStats.activities.ingested,
-          sleep: syncStats.sleep.ingested,
-          body: syncStats.body.ingested,
-          daily: syncStats.daily.ingested,
-          nutrition: syncStats.nutrition.ingested,
-          menstruation: syncStats.menstruation.ingested,
-          athlete: syncStats.athlete,
-        },
-      });
-
-      return {
-        summary: result.summary,
-        totalRuns: result.totalRuns,
-        syncStats,
-      };
+      return { connected: true };
     } catch (err) {
       const isDenied = await checkIfAuthorizationDenied();
       if (isDenied) {
         setPermissionDenied(true);
-        setSyncStatus({
-          phase: "permission_denied",
-          message: PERMISSION_DENIED_GUIDANCE.message,
-        });
         setError(PERMISSION_DENIED_GUIDANCE.message);
+        resetHealthKitSyncState();
         return null;
       }
-
       const message =
-        err instanceof Error
-          ? err.message
-          : "Failed to connect to Apple Health";
+        err instanceof Error ? err.message : "Failed to connect to Apple Health";
       setError(message);
-      setSyncStatus({ phase: "error", message });
+      setHealthKitSyncState({ phase: "error", error: message });
       return null;
     } finally {
       setIsConnecting(false);
     }
-  }, [isConnecting, isOffline, syncHealthKit]);
+  }, [isConnecting, isOffline, connectMutation, runBackgroundSync]);
 
   const checkAuthStatus = useCallback(async () => {
     return getHealthKitAuthStatus();
@@ -207,13 +226,9 @@ export function useHealthKit() {
     openHealthSettings();
   }, []);
 
-  const retryAfterSettings = useCallback(async (): Promise<HealthKitResult | null> => {
-    // Guard against concurrent syncs - early return if already syncing
-    if (isConnecting) {
-      return null;
-    }
+  const retryAfterSettings = useCallback(async (): Promise<ConnectResult | null> => {
+    if (isConnecting) return null;
     setPermissionDenied(false);
-    setSyncStatus({ phase: "idle", message: "" });
     setError(null);
     return connect();
   }, [isConnecting, connect]);
@@ -222,13 +237,11 @@ export function useHealthKit() {
     connect,
     isConnecting,
     error,
-    syncStatus,
     permissionDenied,
     permissionGuidance: PERMISSION_DENIED_GUIDANCE,
     checkAuthStatus,
     openSettings,
     retryAfterSettings,
-    /** Whether network is offline (cannot sync) */
     isOffline,
   };
 }

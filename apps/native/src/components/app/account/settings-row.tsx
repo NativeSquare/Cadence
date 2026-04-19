@@ -61,16 +61,23 @@ export function SettingsRow({
         />
       </View>
       <Text
-        className="flex-1 font-coach-medium text-[15px]"
+        numberOfLines={1}
+        className="font-coach-medium text-[15px]"
         style={{ color: destructive ? COLORS.red : LIGHT_THEME.wText }}
       >
         {label}
       </Text>
-      <View className="flex-row items-center gap-1.5">
+      <View className="min-w-0 flex-1 flex-row items-center justify-end gap-1.5">
         {value && (
           <Text
+            numberOfLines={1}
+            ellipsizeMode="tail"
             className={valueColor ? "font-coach-semibold text-[13px]" : "font-coach-medium text-[13px]"}
-            style={{ color: valueColor || LIGHT_THEME.wSub }}
+            style={{
+              color: valueColor || LIGHT_THEME.wSub,
+              flexShrink: 1,
+              textAlign: "right",
+            }}
           >
             {value}
           </Text>

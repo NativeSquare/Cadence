@@ -8,12 +8,11 @@
 import { Soma } from "@nativesquare/soma";
 import { plannedWorkoutValidator } from "@nativesquare/soma/validators";
 import { getAuthUserId } from "@convex-dev/auth/server";
-import { ConvexError, v } from "convex/values";
+import { v } from "convex/values";
 import { components } from "../_generated/api";
 import {
   internalMutation,
   internalQuery,
-  mutation,
   query,
 } from "../_generated/server";
 
@@ -76,27 +75,3 @@ export const ingestPlannedWorkout = internalMutation({
   },
 });
 
-// ---- HealthKit --------------------------------------------------------------
-
-/**
- * Disconnect Apple Health by deactivating the HEALTHKIT connection in Soma.
- */
-export const disconnectAppleHealth = mutation({
-  args: {},
-  returns: v.null(),
-  handler: async (ctx) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) {
-      throw new ConvexError({
-        code: "UNAUTHORIZED",
-        message: "Not authenticated",
-      });
-    }
-
-    await ctx.runMutation(components.soma.public.disconnect, {
-      userId,
-      provider: "HEALTHKIT",
-    });
-    return null;
-  },
-});

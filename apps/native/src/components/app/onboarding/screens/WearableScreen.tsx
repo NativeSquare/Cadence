@@ -101,9 +101,11 @@ export function WearableScreen({ onComplete, testID }: WearableScreenProps) {
         setConnectingId(null);
         if (result) {
           setConnectedIds((prev) => [...prev, "apple"]);
-          if (result.syncStats.activities.ingested > 0) {
-            setHasActivityData(true);
-          }
+          // The HealthKit sync runs in the background after connect() returns,
+          // so we don't yet know the ingested count. Assume the user has data
+          // if they granted access — HK on a worn device almost always has
+          // samples. The downstream onboarding step will reconcile.
+          setHasActivityData(true);
         }
       } else if (id === "strava") {
         setConnectingId("strava");
