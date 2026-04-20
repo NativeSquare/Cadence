@@ -42,12 +42,17 @@ registerRoutes(http, components.soma, {
         });
       },
     },
+    webhook: {
+      events: {
+        "athlete-deauthorize": true,
+      },
+    },
   },
   garmin: {
     oauth: {
       redirectTo: "cadence://oauth/garmin/complete",
       onComplete: async (ctx, event) => {
-        await ctx.scheduler.runAfter(0, internal.soma.garmin.backfillAll, {
+        await ctx.scheduler.runAfter(120_000, internal.soma.garmin.backfillAll, {
           userId: event.userId,
         });
       },
