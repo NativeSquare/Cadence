@@ -1,37 +1,26 @@
-import { useAuthToken } from "@convex-dev/auth/react";
-import { useCallback, useRef, useState, useEffect } from "react";
-import {
-  streamWithReconnect,
-  type MessagePart,
-  type StreamMessage,
-  type ToolCall,
-  type ToolResult,
-} from "@/lib/ai-stream";
+import { useCallback, useMemo, useRef, useState } from "react";
+import { useMutation, useQuery } from "convex/react";
+import { api } from "@packages/backend/convex/_generated/api";
+import type { Id } from "@packages/backend/convex/_generated/dataModel";
+import type { MessagePart } from "@/lib/ai-stream";
 import { useNetworkOptional } from "@/contexts/network-context";
-import { saveConversationProgress } from "@/lib/conversation-persistence";
 
 /**
- * AI Chat Hook
+ * AI Chat Hook (Router-backed)
  *
- * React hook for streaming AI conversations.
- * Handles SSE connection, message state, tool calls, and retry logic.
+ * Derives messages reactively from the `messages` table and posts user input
+ * through `intelligence.events.ingestChat`, which creates the user row,
+ * records a chat event, and schedules the Router. The Router's `delivery`
+ * mutation writes the assistant message back — this hook simply observes it.
  *
- * Source: Story 2.1 - AC#2, Story 8.3 - AC#2, AC#3
+ * Replaces the prior SSE streaming path. No local placeholder messages:
+ * everything the user sees is what's persisted.
  */
 
 // =============================================================================
-// Constants (Story 8.3 Task 3.2)
+// Constants
 // =============================================================================
 
-/**
- * Default timeout for LLM requests in milliseconds (Story 8.3 AC#2)
- * Note: This timeout covers the ENTIRE operation including internal retries
- * with exponential backoff (1s, 2s, 4s). Set higher than individual request
- * timeout to allow retries to complete.
- */
-export const LLM_TIMEOUT_MS = 45000;
-
-/** Maximum retries before showing exhausted message (Story 8.3 AC#3) */
 export const MAX_RETRIES = 3;
 
 // =============================================================================
@@ -45,566 +34,186 @@ export interface ChatMessage {
   parts: MessagePart[];
   isStreaming: boolean;
   createdAt: number;
-  /** True if this message was interrupted by network loss (partial content) */
   isInterrupted?: boolean;
 }
 
 export interface UseAIChatOptions {
-  /** Convex site URL (defaults to EXPO_PUBLIC_CONVEX_URL with .site suffix) */
-  convexSiteUrl?: string;
-  /** Conversation ID for persistence */
   conversationId?: string;
-  /** Called when a tool is invoked */
-  onToolCall?: (toolCall: ToolCall) => void;
-  /** Called when a tool returns a result */
-  onToolResult?: (toolResult: ToolResult) => void;
-  /** Called when an error occurs */
-  onError?: (error: Error) => void;
-  /** Called when streaming completes */
-  onComplete?: (message: ChatMessage) => void;
-  /** Initial messages to populate chat */
+  /** Kept for signature compatibility; no longer used. */
   initialMessages?: ChatMessage[];
-  /** Maximum retries before showing exhausted message (Story 8.3 Task 3.4) */
   maxRetries?: number;
-  /** Timeout in milliseconds for LLM requests (Story 8.3 Task 3.2) */
-  timeoutMs?: number;
+  /** Not called under the Router flow — delivery persists assistant messages. */
+  onComplete?: (message: ChatMessage) => void;
+  onError?: (error: Error) => void;
 }
 
 export interface UseAIChatReturn {
-  /** All messages in the conversation */
   messages: ChatMessage[];
-  /** Whether a response is currently streaming */
   isStreaming: boolean;
-  /** Any error that occurred */
   error: Error | null;
-  /** Whether network is offline (cannot send) */
   isOffline: boolean;
-  /** Whether currently trying to reconnect after network loss */
   isReconnecting: boolean;
-  /** Seconds since disconnection started (0 if not disconnected) */
   disconnectionDuration: number;
-  /** Current retry attempt count for the last failed message (Story 8.3 Task 3.4) */
   retryCount: number;
-  /** Maximum retries allowed before exhausted (Story 8.3 Task 3.4) */
   maxRetries: number;
-  /** Whether retries are exhausted (Story 8.3 AC#3) */
   isRetriesExhausted: boolean;
-  /** Send a message and get streaming response. Optionally include image URLs for vision. */
   sendMessage: (content: string, imageUrls?: string[]) => Promise<void>;
-  /** Append a message without sending (for system messages) */
   appendMessage: (message: Omit<ChatMessage, "id" | "createdAt">) => void;
-  /** Clear all messages */
   clearMessages: () => void;
-  /** Abort current stream */
   abort: () => void;
-  /** Retry last failed message */
   retry: () => Promise<void>;
-  /** Reset retry count (e.g., when user dismisses error) */
   resetRetryCount: () => void;
-  /** Save conversation progress to local storage (Story 8.3 Task 4.2) */
   saveProgress: () => Promise<string | null>;
+  /** Post a typed tool decision back through the Router. */
+  sendToolDecision: (args: {
+    toolName: string;
+    toolArgs: unknown;
+    decision: "accepted" | "declined";
+  }) => Promise<void>;
 }
 
 // =============================================================================
-// Hook Implementation
+// Hook
 // =============================================================================
 
 export function useAIChat(options: UseAIChatOptions = {}): UseAIChatReturn {
   const {
-    convexSiteUrl = getConvexSiteUrl(),
     conversationId,
-    onToolCall,
-    onToolResult,
-    onError,
-    onComplete,
-    initialMessages = [],
     maxRetries: maxRetriesOption = MAX_RETRIES,
-    timeoutMs = LLM_TIMEOUT_MS,
+    onError,
   } = options;
 
-  const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
-  const [isStreaming, setIsStreaming] = useState(false);
+  const history = useQuery(
+    api.ai.messages.getConversationHistory,
+    conversationId
+      ? { conversationId: conversationId as Id<"conversations"> }
+      : "skip",
+  );
+  const ingestChat = useMutation(api.intelligence.events.ingestChat);
+
   const [error, setError] = useState<Error | null>(null);
-  const [isReconnecting, setIsReconnecting] = useState(false);
-  const [disconnectionDuration, setDisconnectionDuration] = useState(0);
-  // Retry tracking (Story 8.3 Task 3.1)
   const [retryCount, setRetryCount] = useState(0);
+  const [sending, setSending] = useState(false);
+  const lastPayloadRef = useRef<{
+    text: string;
+    imageUrls?: string[];
+  } | null>(null);
 
-  const abortControllerRef = useRef<AbortController | null>(null);
-  const lastUserMessageRef = useRef<string | null>(null);
-  const pendingSendRef = useRef<string | null>(null);
-  const disconnectionStartRef = useRef<number | null>(null);
-  const wasStreamingRef = useRef(false);
-  const durationIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  // Store timeout ID for cleanup
-  const timeoutIdRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Store reconnection timeout IDs for cleanup (prevents state updates on unmounted component)
-  const reconnectTimeoutRefs = useRef<ReturnType<typeof setTimeout>[]>([]);
-  // Track if current send is a retry (to avoid resetting retry count) - Story 8.3 fix
-  const isRetryCallRef = useRef(false);
-
-  // Get auth token from Convex
-  const authToken = useAuthToken();
-
-  // Get network status (optional - works outside NetworkProvider too)
   const network = useNetworkOptional();
   const isOffline = network?.isOffline ?? false;
-  const isOnline = network?.isOnline ?? true;
 
-  // Track disconnection and handle auto-resume (Story 8.2 AC#1, AC#2, AC#5)
-  useEffect(() => {
-    if (isOffline && !disconnectionStartRef.current) {
-      // Network just went offline
-      disconnectionStartRef.current = Date.now();
-      setIsReconnecting(true);
-      setDisconnectionDuration(0);
+  const messages = useMemo<ChatMessage[]>(() => {
+    if (!history) return [];
+    return history
+      .filter((msg) => msg.role === "user" || msg.role === "assistant")
+      .map((msg) => ({
+        id: msg._id,
+        role: msg.role as "user" | "assistant",
+        content: msg.content,
+        parts: (msg.parts as MessagePart[] | undefined) ?? [
+          { type: "text", text: msg.content },
+        ],
+        isStreaming: false,
+        createdAt: msg.createdAt,
+      }));
+  }, [history]);
 
-      // Track how long we've been offline
-      durationIntervalRef.current = setInterval(() => {
-        if (disconnectionStartRef.current) {
-          const duration = Math.floor(
-            (Date.now() - disconnectionStartRef.current) / 1000
-          );
-          setDisconnectionDuration(duration);
-        }
-      }, 1000);
+  // Awaiting a reply = the last persisted message is from the user,
+  // or a mutation is in flight.
+  const isStreaming = useMemo(() => {
+    if (sending) return true;
+    const last = messages[messages.length - 1];
+    return last?.role === "user";
+  }, [sending, messages]);
 
-      // If streaming, abort cleanly (pause, not error)
-      if (isStreaming && abortControllerRef.current) {
-        wasStreamingRef.current = true;
-        abortControllerRef.current.abort();
-      }
-    } else if (isOnline && disconnectionStartRef.current) {
-      // Network just came back online
-      const wasStreaming = wasStreamingRef.current;
-      const pendingMessage = pendingSendRef.current;
-
-      // Clear tracking state
-      disconnectionStartRef.current = null;
-      wasStreamingRef.current = false;
-      pendingSendRef.current = null;
-      setDisconnectionDuration(0);
-
-      if (durationIntervalRef.current) {
-        clearInterval(durationIntervalRef.current);
-        durationIntervalRef.current = null;
-      }
-
-      // Clear error state on reconnection
-      setError(null);
-
-      // Clear any previous reconnection timeouts
-      for (const id of reconnectTimeoutRefs.current) {
-        clearTimeout(id);
-      }
-      reconnectTimeoutRefs.current = [];
-
-      // Show reconnecting briefly then clear (handled by overlay)
-      reconnectTimeoutRefs.current.push(
-        setTimeout(() => {
-          setIsReconnecting(false);
-        }, 100)
-      );
-
-      // Auto-resume pending send or interrupted stream
-      if (pendingMessage) {
-        // Had a pending message queued - send it now
-        // Using setTimeout to avoid state update during render
-        reconnectTimeoutRefs.current.push(
-          setTimeout(() => {
-            sendMessageRef.current?.(pendingMessage);
-          }, 500)
-        );
-      } else if (wasStreaming && lastUserMessageRef.current) {
-        // Stream was interrupted - retry the last message
-        reconnectTimeoutRefs.current.push(
-          setTimeout(() => {
-            retryRef.current?.();
-          }, 500)
-        );
-      }
-    }
-
-    return () => {
-      if (durationIntervalRef.current) {
-        clearInterval(durationIntervalRef.current);
-      }
-      for (const id of reconnectTimeoutRefs.current) {
-        clearTimeout(id);
-      }
-      reconnectTimeoutRefs.current = [];
-    };
-  }, [isOffline, isOnline, isStreaming]);
-
-  // Refs to enable calling functions from the effect
-  const sendMessageRef = useRef<((content: string) => Promise<void>) | null>(null);
-  const retryRef = useRef<(() => Promise<void>) | null>(null);
-
-  /**
-   * Send a message and stream the response
-   */
   const sendMessage = useCallback(
     async (content: string, imageUrls?: string[]) => {
-      if (!authToken) {
-        const authError = new Error("Not authenticated");
-        setError(authError);
-        onError?.(authError);
-        return;
-      }
+      if (!conversationId) return;
+      if (isOffline) return;
+      if (sending) return;
 
-      // Check network before sending (Story 8.1 AC#2, Story 8.2 AC#5)
-      if (isOffline) {
-        // Queue the message for when network returns (don't error)
-        pendingSendRef.current = content;
-        return;
-      }
-
-      if (isStreaming) {
-        return; // Don't allow concurrent streams
-      }
-
-      // Store for retry (Story 8.3 Task 3.3 - preserve user input)
-      lastUserMessageRef.current = content;
-
-      // Reset retry count on new message (not a retry) - Story 8.3 fix
-      // Only reset if this is NOT a retry call (checked via ref)
-      if (!isRetryCallRef.current && retryCount > 0) {
-        setRetryCount(0);
-      }
-      // Clear the retry flag after checking
-      isRetryCallRef.current = false;
-
-      // Add user message
-      const userMessage: ChatMessage = {
-        id: `user_${Date.now()}`,
-        role: "user",
-        content,
-        parts: [{ type: "text", text: content }],
-        isStreaming: false,
-        createdAt: Date.now(),
-      };
-
-      setMessages((prev) => [...prev, userMessage]);
-      setIsStreaming(true);
+      lastPayloadRef.current = { text: content, imageUrls };
+      setSending(true);
       setError(null);
-
-      // Create placeholder assistant message
-      const assistantMessageId = `assistant_${Date.now()}`;
-      const assistantMessage: ChatMessage = {
-        id: assistantMessageId,
-        role: "assistant",
-        content: "",
-        parts: [],
-        isStreaming: true,
-        createdAt: Date.now(),
-      };
-
-      setMessages((prev) => [...prev, assistantMessage]);
-
-      // Set up abort controller with timeout (Story 8.3 Task 3.2)
-      abortControllerRef.current = new AbortController();
-
-      // Set up timeout (Story 8.3 AC#2 - 30s default)
-      timeoutIdRef.current = setTimeout(() => {
-        if (abortControllerRef.current) {
-          abortControllerRef.current.abort();
-        }
-      }, timeoutMs);
 
       try {
-        // Build message history for context (content may be string or multimodal parts)
-        const messageHistory: Array<{
-          role: "user" | "assistant";
-          content: import("@/lib/ai-stream").StreamMessageContent;
-        }> = messages
-          .filter((m) => m.role === "user" || m.role === "assistant")
-          .map((m) => ({
-            role: m.role as "user" | "assistant",
-            content: m.content as import("@/lib/ai-stream").StreamMessageContent,
-          }));
-
-        // Build current user message: text only or text + images for vision
-        const hasImages = imageUrls && imageUrls.length > 0;
-        const currentUserContent: import("@/lib/ai-stream").StreamMessageContent = hasImages
-          ? [
-              ...(content.trim() ? [{ type: "text" as const, text: content }] : []),
-              ...imageUrls.map((url) => ({
-                type: "file" as const,
-                url,
-                mediaType: "image/jpeg" as const,
-              })),
-            ]
-          : content;
-
-        messageHistory.push({ role: "user", content: currentUserContent });
-
-        const streamMessage = await streamWithReconnect({
-          convexSiteUrl,
-          authToken,
-          messages: messageHistory,
-          conversationId,
-          signal: abortControllerRef.current.signal,
-          onTextDelta: (text) => {
-            setMessages((prev) =>
-              prev.map((m) =>
-                m.id === assistantMessageId
-                  ? { ...m, content: m.content + text }
-                  : m
-              )
-            );
-          },
-          onToolCall: (toolCall) => {
-            setMessages((prev) =>
-              prev.map((m) =>
-                m.id === assistantMessageId
-                  ? {
-                      ...m,
-                      parts: [
-                        ...m.parts,
-                        {
-                          type: "tool-call" as const,
-                          toolCallId: toolCall.toolCallId,
-                          toolName: toolCall.toolName,
-                          args: toolCall.args,
-                        },
-                      ],
-                    }
-                  : m
-              )
-            );
-            onToolCall?.(toolCall);
-          },
-          onToolResult: (toolResult) => {
-            setMessages((prev) =>
-              prev.map((m) =>
-                m.id === assistantMessageId
-                  ? {
-                      ...m,
-                      parts: [
-                        ...m.parts,
-                        {
-                          type: "tool-result" as const,
-                          toolCallId: toolResult.toolCallId,
-                          toolName: toolResult.toolName,
-                          result: toolResult.result,
-                        },
-                      ],
-                    }
-                  : m
-              )
-            );
-            onToolResult?.(toolResult);
-          },
-          onError: (err) => {
-            setError(err);
-            onError?.(err);
-          },
+        await ingestChat({
+          conversationId: conversationId as Id<"conversations">,
+          type: "user_message",
+          payload: { text: content, imageUrls: imageUrls ?? [] },
         });
-
-        // Clear timeout on success
-        if (timeoutIdRef.current) {
-          clearTimeout(timeoutIdRef.current);
-          timeoutIdRef.current = null;
-        }
-
-        // Reset retry count on success (Story 8.3)
         setRetryCount(0);
-
-        // Finalize message
-        const finalMessage: ChatMessage = {
-          id: assistantMessageId,
-          role: "assistant",
-          content: streamMessage.content,
-          parts: streamMessage.parts,
-          isStreaming: false,
-          createdAt: assistantMessage.createdAt,
-        };
-
-        setMessages((prev) =>
-          prev.map((m) => (m.id === assistantMessageId ? finalMessage : m))
-        );
-
-        onComplete?.(finalMessage);
       } catch (err) {
-        const chatError = err instanceof Error ? err : new Error(String(err));
-        const isAbort = chatError.name === "AbortError";
-
-        // Only set error state for non-abort errors
-        if (!isAbort) {
-          setError(chatError);
-          onError?.(chatError);
-        }
-
-        // Handle message differently based on error type
-        setMessages((prev) =>
-          prev.map((m) => {
-            if (m.id !== assistantMessageId) return m;
-
-            // If aborted (likely network loss), mark as interrupted if we had partial content
-            if (isAbort && m.content) {
-              return {
-                ...m,
-                isStreaming: false,
-                isInterrupted: true,
-              };
-            }
-
-            // For errors or empty aborts, mark as failed (content stays empty)
-            return {
-              ...m,
-              isStreaming: false,
-            };
-          })
-        );
+        const e = err instanceof Error ? err : new Error(String(err));
+        setError(e);
+        onError?.(e);
       } finally {
-        // Clean up timeout
-        if (timeoutIdRef.current) {
-          clearTimeout(timeoutIdRef.current);
-          timeoutIdRef.current = null;
-        }
-        setIsStreaming(false);
-        abortControllerRef.current = null;
+        setSending(false);
       }
     },
-    [authToken, isStreaming, isOffline, messages, convexSiteUrl, conversationId, onToolCall, onToolResult, onError, onComplete, retryCount, timeoutMs]
+    [conversationId, ingestChat, isOffline, sending, onError],
   );
 
-  /**
-   * Append a message without sending
-   */
-  const appendMessage = useCallback(
-    (message: Omit<ChatMessage, "id" | "createdAt">) => {
-      const fullMessage: ChatMessage = {
-        ...message,
-        id: `${message.role}_${Date.now()}`,
-        createdAt: Date.now(),
-      };
-      setMessages((prev) => [...prev, fullMessage]);
-    },
-    []
-  );
-
-  /**
-   * Clear all messages
-   */
-  const clearMessages = useCallback(() => {
-    setMessages([]);
-    setError(null);
-  }, []);
-
-  /**
-   * Abort current stream
-   */
-  const abort = useCallback(() => {
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-      abortControllerRef.current = null;
-      setIsStreaming(false);
-    }
-  }, []);
-
-  /**
-   * Retry last failed message (Story 8.3 Task 3.1 - track retry count)
-   */
-  const retry = useCallback(async () => {
-    if (lastUserMessageRef.current) {
-      // Increment retry count (Story 8.3 Task 3.1)
-      setRetryCount((prev) => prev + 1);
-
-      // Mark this as a retry call so sendMessage doesn't reset the count
-      isRetryCallRef.current = true;
-
-      // Clear error state
+  const sendToolDecision = useCallback(
+    async ({
+      toolName,
+      toolArgs,
+      decision,
+    }: {
+      toolName: string;
+      toolArgs: unknown;
+      decision: "accepted" | "declined";
+    }) => {
+      if (!conversationId) return;
+      setSending(true);
       setError(null);
+      try {
+        await ingestChat({
+          conversationId: conversationId as Id<"conversations">,
+          type: "tool_decision",
+          payload: { toolName, args: toolArgs, decision },
+        });
+      } catch (err) {
+        const e = err instanceof Error ? err : new Error(String(err));
+        setError(e);
+        onError?.(e);
+      } finally {
+        setSending(false);
+      }
+    },
+    [conversationId, ingestChat, onError],
+  );
 
-      // Remove the last failed assistant message
-      setMessages((prev) => {
-        const lastIndex = prev.length - 1;
-        if (lastIndex >= 0 && prev[lastIndex].role === "assistant") {
-          return prev.slice(0, -1);
-        }
-        return prev;
-      });
-
-      // Also remove the user message we're about to retry
-      setMessages((prev) => {
-        const lastIndex = prev.length - 1;
-        if (lastIndex >= 0 && prev[lastIndex].role === "user") {
-          return prev.slice(0, -1);
-        }
-        return prev;
-      });
-
-      await sendMessage(lastUserMessageRef.current);
-    }
+  const retry = useCallback(async () => {
+    if (!lastPayloadRef.current) return;
+    setRetryCount((prev) => prev + 1);
+    const { text, imageUrls } = lastPayloadRef.current;
+    await sendMessage(text, imageUrls);
   }, [sendMessage]);
 
-  /**
-   * Reset retry count (e.g., when user dismisses error or starts fresh)
-   */
   const resetRetryCount = useCallback(() => {
     setRetryCount(0);
     setError(null);
   }, []);
 
-  /**
-   * Save conversation progress to local storage (Story 8.3 Task 4.2)
-   * Called when retries are exhausted and user wants to try later.
-   */
-  const saveProgress = useCallback(async (): Promise<string | null> => {
-    if (messages.length === 0) return null;
-
-    try {
-      // Convert messages to saved format
-      const savedMessages = messages.map((m) => ({
-        id: m.id,
-        role: m.role,
-        content: m.content,
-        parts: m.parts,
-        createdAt: m.createdAt,
-        isInterrupted: m.isInterrupted,
-      }));
-
-      // Extract error info if available
-      const errorInfo = error
-        ? {
-            code: (error as { code?: string }).code || "LLM_ERROR",
-            message: error.message,
-            requestId: ((error as { debugInfo?: { requestId?: string } }).debugInfo?.requestId),
-          }
-        : undefined;
-
-      const savedId = await saveConversationProgress({
-        conversationId,
-        messages: savedMessages,
-        lastUserInput: lastUserMessageRef.current || undefined,
-        errorInfo,
-      });
-
-      console.log(`[useAIChat] Saved conversation progress: ${savedId}`);
-      return savedId;
-    } catch (err) {
-      console.error("[useAIChat] Failed to save progress:", err);
-      return null;
-    }
-  }, [messages, conversationId, error]);
-
-  // Update refs for use in effect
-  sendMessageRef.current = sendMessage;
-  retryRef.current = retry;
+  // No-op stubs preserved for API stability with callers that still expect them.
+  const appendMessage = useCallback(() => {}, []);
+  const clearMessages = useCallback(() => {}, []);
+  const abort = useCallback(() => {}, []);
+  const saveProgress = useCallback(async (): Promise<string | null> => null, []);
 
   return {
     messages,
     isStreaming,
     error,
     isOffline,
-    isReconnecting,
-    disconnectionDuration,
-    // Retry state (Story 8.3 Task 3.4)
+    isReconnecting: false,
+    disconnectionDuration: 0,
     retryCount,
     maxRetries: maxRetriesOption,
     isRetriesExhausted: retryCount >= maxRetriesOption,
     sendMessage,
+    sendToolDecision,
     appendMessage,
     clearMessages,
     abort,
@@ -612,22 +221,4 @@ export function useAIChat(options: UseAIChatOptions = {}): UseAIChatReturn {
     resetRetryCount,
     saveProgress,
   };
-}
-
-// =============================================================================
-// Utilities
-// =============================================================================
-
-/**
- * Get Convex site URL from environment
- */
-function getConvexSiteUrl(): string {
-  const convexUrl = process.env.EXPO_PUBLIC_CONVEX_URL;
-  if (!convexUrl) {
-    throw new Error("EXPO_PUBLIC_CONVEX_URL is not set");
-  }
-
-  // Convert cloud URL to site URL
-  // https://xxx.convex.cloud -> https://xxx.convex.site
-  return convexUrl.replace(".convex.cloud", ".convex.site");
 }

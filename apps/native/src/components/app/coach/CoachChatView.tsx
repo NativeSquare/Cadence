@@ -1,8 +1,10 @@
 /**
- * CoachChatView - Chat UI wired to the real AI streaming backend
+ * CoachChatView - Chat UI wired to the Router pipeline.
  *
- * Mounts only after conversation + history are loaded so that
- * `useAIChat` receives the correct initial messages on first render.
+ * Messages are derived reactively from the `messages` table via useAIChat.
+ * User sends go through intelligence.events.ingestChat; tool cards render
+ * from `parts: [{ type: "tool-call", ... }]` and post tool decisions back
+ * through the same ingest path when the user accepts/declines.
  */
 
 import { useState, useRef, useCallback, useEffect } from "react";
@@ -27,24 +29,18 @@ import { VoiceRecorder } from "./VoiceRecorder";
 import { CoachEmptyState } from "./CoachEmptyState";
 import { CoachToolRenderer } from "./CoachToolRenderer";
 import { UploadMediaBottomSheetModal } from "@/components/shared/upload-media-bottom-sheet-modal";
-import { useAIChat, type ChatMessage } from "@/hooks/use-ai-chat";
+import { useAIChat } from "@/hooks/use-ai-chat";
 import { useUploadImage } from "@/hooks/use-upload-image";
 import type { PendingAttachment } from "./types";
 import type { RescheduleProposal, SwapProposal, SkipProposal } from "./actions";
 
 export interface CoachChatViewProps {
   conversationId: string;
-  initialHistory: ChatMessage[];
-  persistUserMessage: (content: string) => Promise<void>;
-  persistAssistantMessage: (message: ChatMessage) => Promise<void>;
   initialPrompt?: string;
 }
 
 export function CoachChatView({
   conversationId,
-  initialHistory,
-  persistUserMessage,
-  persistAssistantMessage,
   initialPrompt,
 }: CoachChatViewProps) {
   const insets = useSafeAreaInsets();
@@ -55,29 +51,21 @@ export function CoachChatView({
   // Pending media attachments (local uri → upload → url for API)
   const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([]);
 
-  // Capture history snapshot on mount (ignore reactive updates)
-  const [stableInitialMessages] = useState<ChatMessage[]>(() => initialHistory);
-
   const {
     messages,
     isStreaming,
     error,
     isOffline,
     isReconnecting,
-    disconnectionDuration,
     retryCount,
     maxRetries,
     isRetriesExhausted,
     sendMessage,
-    abort,
+    sendToolDecision,
     retry,
-  } = useAIChat({
-    conversationId,
-    initialMessages: stableInitialMessages,
-    onComplete: persistAssistantMessage,
-  });
+  } = useAIChat({ conversationId });
 
-  // Convex mutations for action tools
+  // Convex mutations for action tools (executed on Accept)
   const rescheduleSession = useMutation(api.training.actionMutations.rescheduleSession);
   const modifySession = useMutation(api.training.actionMutations.modifySession);
   const swapSessions = useMutation(api.training.actionMutations.swapSessions);
@@ -108,10 +96,8 @@ export function CoachChatView({
     setInputValue("");
     setPendingAttachments([]);
 
-    // Persist text to Convex (images are sent in stream; compaction sees "[Image attached]")
-    persistUserMessage(text || "[Image attached]");
     await sendMessage(text || "What do you see?", attachmentUrls);
-  }, [inputValue, pendingAttachments, isStreaming, sendMessage, persistUserMessage]);
+  }, [inputValue, pendingAttachments, isStreaming, sendMessage]);
 
   const handleAttachmentPress = useCallback(() => {
     mediaSheetRef.current?.present();
@@ -144,10 +130,9 @@ export function CoachChatView({
     async (text: string) => {
       if (isStreaming) return;
       Keyboard.dismiss();
-      persistUserMessage(text);
       await sendMessage(text);
     },
-    [isStreaming, sendMessage, persistUserMessage]
+    [isStreaming, sendMessage]
   );
 
   // =========================================================================
@@ -211,24 +196,19 @@ export function CoachChatView({
     [rescheduleSession, modifySession, swapSessions, skipSession],
   );
 
-  /** Send confirmation back to LLM so it can acknowledge */
+  /** Post typed decision event to Router so it can follow up in Craftsperson voice. */
   const handleActionAccepted = useCallback(
     (toolName: string, args: unknown) => {
-      const name = (args as { sessionName?: string })?.sessionName ?? "session";
-      persistUserMessage(`[Confirmed: ${toolName} for ${name}]`);
-      sendMessage(`I confirmed the change to ${name}.`);
+      void sendToolDecision({ toolName, toolArgs: args, decision: "accepted" });
     },
-    [sendMessage, persistUserMessage],
+    [sendToolDecision],
   );
 
-  /** Send rejection back to LLM so it can offer alternatives */
   const handleActionRejected = useCallback(
     (toolName: string, args: unknown) => {
-      const name = (args as { sessionName?: string })?.sessionName ?? "session";
-      persistUserMessage(`[Declined: ${toolName} for ${name}]`);
-      sendMessage(`I declined the change to ${name}.`);
+      void sendToolDecision({ toolName, toolArgs: args, decision: "declined" });
     },
-    [sendMessage, persistUserMessage],
+    [sendToolDecision],
   );
 
   // =========================================================================
@@ -272,15 +252,14 @@ export function CoachChatView({
       const trimmed = text.trim();
       if (!trimmed || isStreaming) return;
 
-      persistUserMessage(trimmed);
       await sendMessage(trimmed);
     },
-    [isStreaming, sendMessage, persistUserMessage]
+    [isStreaming, sendMessage]
   );
 
   // Derive header status text
   const statusText = isOffline
-    ? `Offline · ${disconnectionDuration}s`
+    ? "Offline"
     : isReconnecting
       ? "Reconnecting..."
       : error

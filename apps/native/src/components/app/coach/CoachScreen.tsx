@@ -15,13 +15,7 @@ import { CoachChatView } from "./CoachChatView";
 
 export function CoachScreen({ initialPrompt }: { initialPrompt?: string }) {
   const insets = useSafeAreaInsets();
-  const {
-    phase,
-    conversationId,
-    initialMessages,
-    persistUserMessage,
-    persistAssistantMessage,
-  } = useCoachChat();
+  const { phase, conversationId } = useCoachChat();
 
   if (phase === "loading") {
     return (
@@ -54,9 +48,6 @@ export function CoachScreen({ initialPrompt }: { initialPrompt?: string }) {
     <CoachChatView
       key={conversationId}
       conversationId={conversationId}
-      initialHistory={initialMessages}
-      persistUserMessage={persistUserMessage}
-      persistAssistantMessage={persistAssistantMessage}
       initialPrompt={initialPrompt}
     />
   );

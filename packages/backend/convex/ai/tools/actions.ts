@@ -31,6 +31,7 @@ export const proposeRescheduleSession = tool({
       .optional()
       .describe("Any impact on other sessions or the weekly plan"),
   }),
+  execute: async () => ({ proposed: true }),
 });
 
 // =============================================================================
@@ -55,6 +56,7 @@ export const proposeModifySession = tool({
       .describe("List of fields to change with before/after values"),
     reason: z.string().describe("Clear explanation of why this modification is recommended"),
   }),
+  execute: async () => ({ proposed: true }),
 });
 
 // =============================================================================
@@ -83,6 +85,7 @@ export const proposeSwapSessions = tool({
     }),
     reason: z.string().describe("Clear explanation of why swapping is recommended"),
   }),
+  execute: async () => ({ proposed: true }),
 });
 
 // =============================================================================
@@ -105,6 +108,7 @@ export const proposeSkipSession = tool({
       .optional()
       .describe("Optional alternative suggestion, e.g. 'Light 20min walk instead'"),
   }),
+  execute: async () => ({ proposed: true }),
 });
 
 // =============================================================================

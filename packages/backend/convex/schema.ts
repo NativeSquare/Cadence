@@ -1,6 +1,8 @@
 import { authTables } from "@convex-dev/auth/server";
 import { defineSchema } from "convex/server";
 import { conversations, messages } from "./ai/messages";
+import { candidates } from "./intelligence/candidates";
+import { events } from "./intelligence/events";
 import { adminInvites } from "./table/adminInvites";
 import { audienceMembers } from "./table/audienceMembers";
 import { audiences } from "./table/audiences";
@@ -31,8 +33,10 @@ export default defineSchema({
   audiences,
   broadcastRecipients,
   broadcasts,
+  candidates,
   contacts,
   conversations,
+  events,
   feedback,
   knowledgeBase,
   messages,
