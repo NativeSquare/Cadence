@@ -32,7 +32,7 @@ import { COLORS, GRAYS, SURFACES } from "@/lib/design-tokens";
 
 export interface WearableScreenProps {
   /** Called when user completes this screen */
-  onComplete: (hasData: boolean) => void;
+  onComplete: () => void;
   /** Test ID for visual regression */
   testID?: string;
 }
@@ -60,7 +60,6 @@ export function WearableScreen({ onComplete, testID }: WearableScreenProps) {
   const [showOptions, setShowOptions] = useState(false);
   const [connectingId, setConnectingId] = useState<string | null>(null);
   const [connectedIds, setConnectedIds] = useState<string[]>([]);
-  const [hasActivityData, setHasActivityData] = useState(false);
   const [mockError, setMockError] = useState<string | null>(null);
   const { connect: connectHealthKit, error: healthKitError } = useHealthKit();
   const { connect: connectStrava, error: stravaError } = useStrava();
@@ -101,11 +100,6 @@ export function WearableScreen({ onComplete, testID }: WearableScreenProps) {
         setConnectingId(null);
         if (result) {
           setConnectedIds((prev) => [...prev, "apple"]);
-          // The HealthKit sync runs in the background after connect() returns,
-          // so we don't yet know the ingested count. Assume the user has data
-          // if they granted access — HK on a worn device almost always has
-          // samples. The downstream onboarding step will reconcile.
-          setHasActivityData(true);
         }
       } else if (id === "strava") {
         setConnectingId("strava");
@@ -113,7 +107,6 @@ export function WearableScreen({ onComplete, testID }: WearableScreenProps) {
         setConnectingId(null);
         if (success) {
           setConnectedIds((prev) => [...prev, "strava"]);
-          setHasActivityData(true);
         }
       } else if (id === "garmin") {
         setConnectingId("garmin");
@@ -121,7 +114,6 @@ export function WearableScreen({ onComplete, testID }: WearableScreenProps) {
         setConnectingId(null);
         if (success) {
           setConnectedIds((prev) => [...prev, "garmin"]);
-          setHasActivityData(true);
         }
       } else {
         // Other providers (COROS, etc.) - seed mock data in dev mode (Story 4.2)
@@ -135,7 +127,6 @@ export function WearableScreen({ onComplete, testID }: WearableScreenProps) {
               weeks: 12,
             });
             setConnectedIds((prev) => [...prev, id]);
-            setHasActivityData(true);
           } else {
             setMockError(`${id} integration coming soon`);
           }
@@ -151,12 +142,12 @@ export function WearableScreen({ onComplete, testID }: WearableScreenProps) {
   );
 
   const handleContinue = useCallback(() => {
-    onComplete(hasActivityData);
-  }, [onComplete, hasActivityData]);
+    onComplete();
+  }, [onComplete]);
 
   const handleSkip = useCallback(() => {
-    onComplete(hasActivityData);
-  }, [onComplete, hasActivityData]);
+    onComplete();
+  }, [onComplete]);
 
   return (
     <View style={styles.container} testID={testID}>

@@ -68,8 +68,6 @@ function getSessionColors(
 // =============================================================================
 
 export interface CalendarScreenProps {
-  /** Optional mock path for path-specific messaging */
-  mockPath?: "data" | "no-data";
   /** Custom schedule data (uses mock if not provided) */
   schedule?: SessionData[];
   /** Phase label for the calendar header */
@@ -143,7 +141,6 @@ function CoachComment() {
 // =============================================================================
 
 export function CalendarScreen({
-  mockPath = "data",
   schedule: providedSchedule,
   phaseLabel: providedPhaseLabel,
   onComplete,

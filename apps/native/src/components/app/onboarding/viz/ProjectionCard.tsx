@@ -1,11 +1,5 @@
 /**
  * ProjectionCard Component - Projected finish time display with confidence metrics.
- *
- * Shows: Time range, confidence percentage, and range deviation.
- * Path-dependent styling: lime (DATA) vs orange (NO DATA).
- *
- * Source: Story 3.4 - AC#2, #3, #4
- * Reference: cadence-v3.jsx lines 864-913
  */
 
 import { StyleSheet, View } from "react-native";
@@ -14,10 +8,6 @@ import { Text } from "@/components/ui/text";
 import { useScaleIn } from "@/lib/use-animations";
 import { COLORS, GRAYS, SURFACES } from "@/lib/design-tokens";
 
-// =============================================================================
-// Types
-// =============================================================================
-
 export interface ProjectionCardProps {
   /** Time range tuple ["1:43", "1:46"] */
   timeRange: [string, string];
@@ -25,9 +15,7 @@ export interface ProjectionCardProps {
   confidence: number;
   /** Range deviation label (e.g., "±90s", "±6 min") */
   rangeLabel: string;
-  /** Whether user has connected data (affects styling) */
-  hasData: boolean;
-  /** Explanation text (NO DATA path only) */
+  /** Optional explanation text shown beneath the metrics */
   explanationText?: string;
   /** Whether to animate on mount */
   animate?: boolean;
@@ -35,25 +23,20 @@ export interface ProjectionCardProps {
   delay?: number;
 }
 
-// =============================================================================
-// Main Component
-// =============================================================================
-
 export function ProjectionCard({
   timeRange,
   confidence,
   rangeLabel,
-  hasData,
   explanationText,
   animate = true,
   delay = 0,
 }: ProjectionCardProps) {
   const animatedStyle = useScaleIn(animate, delay, 500);
 
-  const accentColor = hasData ? COLORS.lime : COLORS.ora;
-  const glowColor = hasData ? COLORS.limeGlow : COLORS.oraDim;
-  const borderColor = hasData ? SURFACES.sb : "rgba(255,138,0,0.3)";
-  const headerText = hasData ? "Projected Finish" : "Estimated Range";
+  const accentColor = COLORS.lime;
+  const glowColor = COLORS.limeGlow;
+  const borderColor = SURFACES.sb;
+  const headerText = "Projected Finish";
 
   return (
     <Animated.View

@@ -1,4 +1,4 @@
-import { OnboardingFlowMock } from "@/components/app/onboarding/OnboardingFlowMock";
+import { OnboardingFlow } from "@/components/app/onboarding/OnboardingFlow";
 import { OfflineScreen } from "@/components/common/OfflineScreen";
 import { useNetwork } from "@/contexts/network-context";
 import { api } from "@packages/backend/convex/_generated/api";
@@ -34,8 +34,7 @@ export default function Onboarding() {
   const userName = athlete?.name || user?.name || "";
 
   return (
-    <OnboardingFlowMock
-      initialPath="no-data"
+    <OnboardingFlow
       userName={userName}
       onComplete={handleComplete}
     />

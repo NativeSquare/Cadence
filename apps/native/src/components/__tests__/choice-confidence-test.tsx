@@ -153,21 +153,18 @@ export function ChoiceConfidenceTest() {
         </Text>
 
         <View style={{ gap: 12 }}>
-          {/* HIGH with wearable data */}
           <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-            <ConfidenceBadge level="HIGH" hasData />
+            <ConfidenceBadge level="HIGH" />
             <Text className="text-g3 text-sm">Wearable data detected</Text>
           </View>
 
-          {/* MODERATE self-reported */}
           <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-            <ConfidenceBadge level="MODERATE" hasData={false} />
+            <ConfidenceBadge level="MODERATE" />
             <Text className="text-g3 text-sm">Self-reported info</Text>
           </View>
 
-          {/* LOW */}
           <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-            <ConfidenceBadge level="LOW" hasData={false} />
+            <ConfidenceBadge level="LOW" />
             <Text className="text-g3 text-sm">Insufficient data</Text>
           </View>
         </View>

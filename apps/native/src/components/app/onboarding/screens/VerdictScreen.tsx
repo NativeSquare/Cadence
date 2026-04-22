@@ -19,7 +19,6 @@ import { Btn } from "../generative/Choice";
 import {
   ProjectionCard,
   PROJECTION_MOCK_DATA,
-  PROJECTION_MOCK_NO_DATA,
 } from "../viz/ProjectionCard";
 import {
   DecisionAudit,
@@ -27,13 +26,7 @@ import {
   type Decision,
 } from "../viz/DecisionAudit";
 
-// =============================================================================
-// Types
-// =============================================================================
-
 export interface VerdictScreenProps {
-  /** Mock path for path-specific messaging */
-  mockPath?: "data" | "no-data";
   /** Custom projection data */
   projection?: {
     timeRange: [string, string];
@@ -57,16 +50,8 @@ const PHASE_FOLLOWUP_START = 3800;
 const PHASE_AUDIT_START = 5000;
 const PHASE_BUTTON_START = 6200;
 
-// =============================================================================
-// Coach Messages
-// =============================================================================
-
-const COACH_INTRO_DATA = "So here's where I think you land.";
-const COACH_INTRO_NO_DATA = "Based on what you've told me, here's my best estimate.";
-
-const COACH_FOLLOWUP_DATA = "The sub-1:45 isn't the ceiling — it's the floor.";
-const COACH_FOLLOWUP_NO_DATA =
-  "The first two weeks are calibration. After that, I'll know you.";
+const COACH_INTRO = "So here's where I think you land.";
+const COACH_FOLLOWUP = "The sub-1:45 isn't the ceiling — it's the floor.";
 
 // =============================================================================
 // Coach Message Component
@@ -108,18 +93,13 @@ function CoachMessage({ text, active, delay, variant = "intro" }: CoachMessagePr
 // =============================================================================
 
 export function VerdictScreen({
-  mockPath = "data",
   projection,
   decisions = DECISION_AUDIT_MOCK,
   onComplete,
 }: VerdictScreenProps) {
-  const hasData = mockPath === "data";
-
-  // Phase state
   const [phase, setPhase] = useState(0);
   const [showButton, setShowButton] = useState(false);
 
-  // Phase progression
   useEffect(() => {
     const timers: ReturnType<typeof setTimeout>[] = [];
 
@@ -132,12 +112,7 @@ export function VerdictScreen({
     return () => timers.forEach(clearTimeout);
   }, []);
 
-  // Get projection data based on path
-  const projectionData = projection ?? (hasData ? PROJECTION_MOCK_DATA : PROJECTION_MOCK_NO_DATA);
-
-  // Coach messages based on path
-  const introText = hasData ? COACH_INTRO_DATA : COACH_INTRO_NO_DATA;
-  const followupText = hasData ? COACH_FOLLOWUP_DATA : COACH_FOLLOWUP_NO_DATA;
+  const projectionData = projection ?? PROJECTION_MOCK_DATA;
 
   return (
     <View style={styles.container}>
@@ -145,17 +120,14 @@ export function VerdictScreen({
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Coach Intro */}
-        <CoachMessage text={introText} active={phase >= 1} delay={0} variant="intro" />
+        <CoachMessage text={COACH_INTRO} active={phase >= 1} delay={0} variant="intro" />
 
-        {/* Projection Card */}
         {phase >= 2 && (
           <View style={styles.cardSection}>
             <ProjectionCard
               timeRange={projectionData.timeRange}
               confidence={projectionData.confidence}
               rangeLabel={projectionData.rangeLabel}
-              hasData={hasData}
               explanationText={
                 "explanationText" in projectionData
                   ? (projectionData.explanationText as string)
@@ -167,18 +139,16 @@ export function VerdictScreen({
           </View>
         )}
 
-        {/* Coach Follow-up */}
         {phase >= 3 && (
           <View style={styles.followupSection}>
-            <CoachMessage text={followupText} active={phase >= 3} delay={0} variant="followup" />
+            <CoachMessage text={COACH_FOLLOWUP} active={phase >= 3} delay={0} variant="followup" />
           </View>
         )}
 
-        {/* Decision Audit (DATA path only, or can show for both) */}
         {phase >= 4 && (
           <DecisionAudit
             decisions={decisions}
-            show={hasData}
+            show={true}
             animate={true}
             delay={0}
           />
@@ -266,13 +236,6 @@ const styles = StyleSheet.create({
   },
 });
 
-// =============================================================================
-// Re-exports
-// =============================================================================
-
 export type { Decision } from "../viz/DecisionAudit";
-export {
-  PROJECTION_MOCK_DATA,
-  PROJECTION_MOCK_NO_DATA,
-} from "../viz/ProjectionCard";
+export { PROJECTION_MOCK_DATA } from "../viz/ProjectionCard";
 export { DECISION_AUDIT_MOCK } from "../viz/DecisionAudit";

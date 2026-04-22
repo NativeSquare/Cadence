@@ -29,8 +29,6 @@ type ConfidenceLevel = "HIGH" | "MODERATE" | "LOW";
 interface ConfidenceBadgeProps {
   /** Confidence level: HIGH, MODERATE, or LOW */
   level: ConfidenceLevel;
-  /** Whether data comes from wearable (DATA) or user input (SELF-REPORTED) */
-  hasData?: boolean;
 }
 
 // =============================================================================
@@ -71,10 +69,7 @@ const getBorderColor = (level: ConfidenceLevel): string => {
 // ConfidenceBadge Component
 // =============================================================================
 
-export function ConfidenceBadge({
-  level,
-  hasData = true,
-}: ConfidenceBadgeProps) {
+export function ConfidenceBadge({ level }: ConfidenceBadgeProps) {
   const entrance = useSharedValue(0);
 
   // springUp entrance animation
@@ -93,7 +88,7 @@ export function ConfidenceBadge({
   const color = LEVEL_COLORS[level];
   const backgroundColor = getBackgroundColor(level);
   const borderColor = getBorderColor(level);
-  const label = hasData ? "DATA" : "SELF-REPORTED";
+  const label = "DATA";
 
   return (
     <Animated.View

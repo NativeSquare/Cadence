@@ -1,8 +1,6 @@
 /**
- * Mock data for conversation flow screens.
- * Provides realistic simulated responses for UI validation.
- *
- * Source: Story 2.12 - AC#21
+ * Coach prompts, choice options, and progress milestones for the onboarding
+ * conversation screens.
  */
 
 // =============================================================================

@@ -23,43 +23,20 @@ import { COLORS, GRAYS, SURFACES } from "@/lib/design-tokens";
 // =============================================================================
 
 export interface PaywallScreenProps {
-  /** Mock path for conditional messaging */
-  mockPath?: "data" | "no-data";
   /** Called when user makes a choice */
   onComplete: (startedTrial: boolean) => void;
   /** Test ID for visual regression */
   testID?: string;
 }
 
-// =============================================================================
-// Constants
-// =============================================================================
-
-const FEATURES_DATA = [
+const FEATURES = [
   { icon: "📋", text: "Full plan through race day" },
   { icon: "🔄", text: "Daily adaptive sessions" },
   { icon: "🧠", text: "Visible reasoning for every decision" },
   { icon: "⚙️", text: "Unlimited plan adjustments" },
 ];
 
-const FEATURES_NO_DATA = [
-  { icon: "📋", text: "Full plan through race day" },
-  { icon: "🔄", text: "Sessions that adapt as you log runs" },
-  { icon: "📡", text: "Connect wearable for deeper insights" },
-  { icon: "🧠", text: "See why every decision was made" },
-];
-
-// =============================================================================
-// Component
-// =============================================================================
-
-export function PaywallScreen({
-  mockPath = "data",
-  onComplete,
-  testID,
-}: PaywallScreenProps) {
-  const hasData = mockPath === "data";
-  const features = hasData ? FEATURES_DATA : FEATURES_NO_DATA;
+export function PaywallScreen({ onComplete, testID }: PaywallScreenProps) {
 
   // Phase-based reveal matching reference
   const [phase, setPhase] = useState(0);
@@ -130,7 +107,7 @@ export function PaywallScreen({
 
               {/* Features list */}
               <View style={styles.featuresList}>
-                {features.map((feature, index) => (
+                {FEATURES.map((feature, index) => (
                   <Animated.View
                     key={feature.text}
                     entering={FadeInRight.delay(100 + index * 60).duration(350)}

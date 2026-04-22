@@ -1,12 +1,7 @@
 /**
  * ProgressionScreen - Displays training volume progression with coach commentary.
  *
- * Shows: ProgressionChart visualization, StreamBlock coach message.
- * Supports both DATA (wearable) and NO DATA (self-reported) paths.
- * Queries real plan data when available, falls back to mock data.
- *
- * Source: Story 3.2 - AC#6-#7
- * Reference: cadence-v3.jsx lines 755-818
+ * Queries real plan data; renders an error state when no plan is available.
  */
 
 import { useCallback, useMemo, useState } from "react";
@@ -17,75 +12,42 @@ import { api } from "@packages/backend/convex/_generated/api";
 import { StreamBlock } from "../StreamBlock";
 import {
   ProgressionChart,
-  PROGRESSION_MOCK_DATA,
   type WeekData,
 } from "../viz/ProgressionChart";
 import { Btn } from "../generative/Choice";
 import { COLORS, GRAYS } from "@/lib/design-tokens";
 import { Text } from "@/components/ui/text";
 
-// =============================================================================
-// Types
-// =============================================================================
-
 export interface ProgressionScreenProps {
-  /** Which mock path to use: 'data' (wearable) or 'no-data' (self-reported) */
-  mockPath?: "data" | "no-data";
-  /** Custom data to display (overrides mockPath) */
+  /** Custom data to display */
   data?: WeekData[];
-  /** Whether data comes from wearable */
-  hasData?: boolean;
   /** Called when user taps continue button */
   onComplete?: () => void;
 }
 
-// =============================================================================
-// Coach Messages
-// =============================================================================
+const COACH_MESSAGE =
+  "Here's how we build — three weeks on, one recovery. Your data shows you respond well to this rhythm. The blue weeks are non-negotiable.";
 
-const COACH_MESSAGES = {
-  data: "Here's how we build \u2014 three weeks on, one recovery. Your data shows you respond well to this rhythm. The blue weeks are non-negotiable.",
-  noData:
-    "We're starting conservative. Weeks 1-3 establish your baseline, then we build from there. Recovery weeks are where the adaptation actually happens.",
-};
-
-// =============================================================================
-// Main Component
-// =============================================================================
-
-export function ProgressionScreen({
-  mockPath = "data",
-  data,
-  hasData,
-  onComplete,
-}: ProgressionScreenProps) {
-  const [chartAnimationComplete, setChartAnimationComplete] = useState(false);
+export function ProgressionScreen({ data, onComplete }: ProgressionScreenProps) {
   const [showCoachMessage, setShowCoachMessage] = useState(false);
   const [showButton, setShowButton] = useState(false);
 
-  // Query athlete to get active plan
   const athlete = useQuery(api.plan.reads.getAthlete);
   const planId = useQuery(
     api.plan.legacy.getActivePlanForRunner,
     athlete?._id ? {} : "skip"
   );
 
-  // Query progression data from plan
   const progressionData = useQuery(
     api.plan.legacy.getProgressionChartData,
     planId ? { planId } : "skip"
   );
 
-  // Determine loading and error states
   const isLoading = athlete === undefined || (athlete?._id && planId === undefined);
   const noPlanAvailable = athlete !== undefined && planId === null;
 
-  // Map backend data to component format
   const chartData = useMemo((): WeekData[] | null => {
-    // Use provided data first
     if (data) return data;
-
-    // Use real plan data if available
     if (progressionData?.weeks && progressionData.weeks.length > 0) {
       return progressionData.weeks.map((w) => ({
         week: w.week,
@@ -95,36 +57,23 @@ export function ProgressionScreen({
         label: w.label,
       }));
     }
-
-    // No data available
     return null;
   }, [data, progressionData]);
 
-  // Calculate plan duration for header
   const planDuration = chartData?.length ?? 0;
 
-  // Determine data source
-  const isDataPath = hasData ?? mockPath === "data";
-
-  // Show coach message after chart animation
   const handleChartAnimationComplete = useCallback(() => {
-    setChartAnimationComplete(true);
-    // Delay before showing coach message
     setTimeout(() => {
       setShowCoachMessage(true);
     }, 400);
   }, []);
 
-  // Show button after coach message streams
   const handleCoachMessageDone = useCallback(() => {
     setTimeout(() => {
       setShowButton(true);
     }, 300);
   }, []);
 
-  const coachMessage = isDataPath ? COACH_MESSAGES.data : COACH_MESSAGES.noData;
-
-  // Show loading state
   if (isLoading) {
     return (
       <View style={styles.container}>
@@ -135,7 +84,6 @@ export function ProgressionScreen({
     );
   }
 
-  // Show error state when no plan is available
   if (noPlanAvailable || !chartData) {
     return (
       <View style={styles.container}>
@@ -160,7 +108,6 @@ export function ProgressionScreen({
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header with title */}
         <Animated.View
           entering={FadeIn.duration(400)}
           style={styles.header}
@@ -169,7 +116,6 @@ export function ProgressionScreen({
           <Text style={styles.headerSubtitle}>{planDuration}-week build</Text>
         </Animated.View>
 
-        {/* Progression Chart */}
         <View style={styles.chartContainer}>
           <ProgressionChart
             data={chartData}
@@ -180,14 +126,13 @@ export function ProgressionScreen({
           />
         </View>
 
-        {/* Coach Commentary */}
         {showCoachMessage && (
           <Animated.View
             entering={FadeIn.duration(300)}
             style={styles.coachSection}
           >
             <StreamBlock
-              text={coachMessage}
+              text={COACH_MESSAGE}
               size={17}
               color={GRAYS.g2}
               onDone={handleCoachMessageDone}
@@ -196,7 +141,6 @@ export function ProgressionScreen({
         )}
       </ScrollView>
 
-      {/* Continue Button */}
       {showButton && onComplete && (
         <Animated.View
           entering={FadeIn.duration(300)}
@@ -208,10 +152,6 @@ export function ProgressionScreen({
     </View>
   );
 }
-
-// =============================================================================
-// Styles
-// =============================================================================
 
 const styles = StyleSheet.create({
   container: {
@@ -250,8 +190,8 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: 24,
-    paddingTop: 70, // Account for status bar
-    paddingBottom: 120, // Room for button
+    paddingTop: 70,
+    paddingBottom: 120,
   },
   header: {
     marginBottom: 24,

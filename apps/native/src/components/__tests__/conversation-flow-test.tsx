@@ -27,7 +27,7 @@ import {
   StyleScreen,
   OpenQuestionScreen,
 } from "../app/onboarding/screens";
-import { PROGRESS_MILESTONES } from "../app/onboarding/mocks/conversationMocks";
+import { PROGRESS_MILESTONES } from "../app/onboarding/conversation-prompts";
 import { GRAYS, COLORS, SURFACES } from "@/lib/design-tokens";
 
 // =============================================================================
