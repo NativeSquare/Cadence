@@ -1,9 +1,9 @@
-import { openai } from "@ai-sdk/openai";
+import { anthropic } from "@ai-sdk/anthropic";
 import { generateText, stepCountIs, tool } from "ai";
 import { v } from "convex/values";
 import { z } from "zod";
 import { internal } from "../_generated/api";
-import type { Doc, Id } from "../_generated/dataModel";
+import type { Doc } from "../_generated/dataModel";
 import { ActionCtx, internalAction } from "../_generated/server";
 import {
   proposeModifySession,
@@ -11,6 +11,7 @@ import {
   proposeSkipSession,
   proposeSwapSessions,
 } from "../ai/tools/actions";
+import type { RouterContext } from "./context";
 import { CRAFTSPERSON_SYSTEM_PROMPT } from "./prompts";
 import { consultBody } from "./specialists/body";
 import { consultMind } from "./specialists/mind";
@@ -29,20 +30,6 @@ const PROPOSAL_TOOL_NAMES = new Set([
   "proposeSkipSession",
 ]);
 
-type RouterContext = {
-  userId: Id<"users">;
-  profile: unknown; // stub — filled when User Profile store exists
-  plan: unknown;    // stub — filled when Plan Model exists
-};
-
-async function loadRouterContext(
-  _ctx: ActionCtx,
-  userId: Id<"users">,
-): Promise<RouterContext> {
-  // TODO: hydrate profile and plan once those stores exist.
-  return { userId, profile: null, plan: null };
-}
-
 function buildRouterPrompt(
   event: Doc<"events">,
   context: RouterContext,
@@ -54,8 +41,8 @@ function buildRouterPrompt(
   payload: ${JSON.stringify(event.payload)}
 
 CONTEXT
-  profile: ${context.profile === null ? "(stub)" : JSON.stringify(context.profile)}
-  plan: ${context.plan === null ? "(stub)" : JSON.stringify(context.plan)}
+  profile: ${context.profile === null ? "(no runner profile)" : JSON.stringify(context.profile)}
+  plan: ${context.plan === null ? "(no active plan)" : JSON.stringify(context.plan)}
 
 Decide whether to consult Body, Mind, both, or neither with focused sub-queries. Then call your emission tool (emit_reply for reactive chat, emit_decision for proactive) to finalize.`;
 }
@@ -134,7 +121,7 @@ async function runRouter(
   });
 
   const result = await generateText({
-    model: openai("gpt-4o"),
+    model: anthropic("claude-sonnet-4-6"),
     system: CRAFTSPERSON_SYSTEM_PROMPT,
     prompt: buildRouterPrompt(event, context),
     tools: {
@@ -210,7 +197,10 @@ export const route = internalAction({
     });
     if (!event) return;
 
-    const context = await loadRouterContext(ctx, event.userId);
+    const context = await ctx.runQuery(
+      internal.intelligence.context.loadRouterContext,
+      { userId: event.userId, occurredAt: event.occurredAt },
+    );
     const { text, shouldPush, reason, perspectives, toolCalls } =
       await runRouter(ctx, event, context);
 

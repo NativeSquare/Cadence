@@ -26,6 +26,7 @@ import type * as http from "../http.js";
 import type * as integrations_healthkit_sync from "../integrations/healthkit/sync.js";
 import type * as integrations_notifications from "../integrations/notifications.js";
 import type * as intelligence_candidates from "../intelligence/candidates.js";
+import type * as intelligence_context from "../intelligence/context.js";
 import type * as intelligence_delivery from "../intelligence/delivery.js";
 import type * as intelligence_events from "../intelligence/events.js";
 import type * as intelligence_prompts from "../intelligence/prompts.js";
@@ -112,6 +113,7 @@ declare const fullApi: ApiFromModules<{
   "integrations/healthkit/sync": typeof integrations_healthkit_sync;
   "integrations/notifications": typeof integrations_notifications;
   "intelligence/candidates": typeof intelligence_candidates;
+  "intelligence/context": typeof intelligence_context;
   "intelligence/delivery": typeof intelligence_delivery;
   "intelligence/events": typeof intelligence_events;
   "intelligence/prompts": typeof intelligence_prompts;

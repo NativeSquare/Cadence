@@ -1,7 +1,12 @@
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { defineTable } from "convex/server";
 import { ConvexError, v } from "convex/values";
-import { internalMutation, mutation, query } from "../_generated/server";
+import {
+  internalMutation,
+  internalQuery,
+  mutation,
+  query,
+} from "../_generated/server";
 
 /**
  * AI Conversation Messages Schema
@@ -335,6 +340,38 @@ export const getLastIncompleteMessage = query({
       .first();
 
     return messages;
+  },
+});
+
+/**
+ * Internal: fetch recent non-archived messages from a user's active
+ * conversation. Used by the Mind specialist (runs in an action, can't call
+ * auth-gated queries). Returns an empty array if there is no active
+ * conversation.
+ */
+export const listRecentForUser = internalQuery({
+  args: {
+    userId: v.id("users"),
+    since: v.number(),
+  },
+  handler: async (ctx, { userId, since }) => {
+    const conversation = await ctx.db
+      .query("conversations")
+      .withIndex("by_active", (q) =>
+        q.eq("userId", userId).eq("isActive", true),
+      )
+      .first();
+    if (!conversation) return [];
+
+    const msgs = await ctx.db
+      .query("messages")
+      .withIndex("by_conversation_time", (q) =>
+        q.eq("conversationId", conversation._id).gte("createdAt", since),
+      )
+      .order("asc")
+      .collect();
+
+    return msgs.filter((m) => !m.archived);
   },
 });
 
