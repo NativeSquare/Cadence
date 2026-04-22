@@ -152,22 +152,22 @@ export function CalendarScreen({
   const [showCoachComment, setShowCoachComment] = useState(false);
   const [showButton, setShowButton] = useState(false);
 
-  // Query runner to get active plan
-  const runner = useQuery(api.table.runners.getCurrentRunner);
+  // Query athlete to get active plan
+  const athlete = useQuery(api.plan.reads.getAthlete);
   const planId = useQuery(
-    api.training.queries.getActivePlanForRunner,
-    runner?._id ? { runnerId: runner._id } : "skip"
+    api.plan.legacy.getActivePlanForRunner,
+    athlete?._id ? {} : "skip"
   );
 
   // Query week 1 sessions from plan (for onboarding preview)
   const weekSessions = useQuery(
-    api.training.queries.getWeekSessions,
+    api.plan.legacy.getWeekSessions,
     planId ? { planId, weekNumber: 1 } : "skip"
   );
 
   // Determine loading and error states
-  const isLoading = runner === undefined || (runner?._id && planId === undefined);
-  const noPlanAvailable = runner !== undefined && planId === null;
+  const isLoading = athlete === undefined || (athlete?._id && planId === undefined);
+  const noPlanAvailable = athlete !== undefined && planId === null;
 
   // Map backend data to SessionData format
   const schedule = useMemo((): SessionData[] | null => {

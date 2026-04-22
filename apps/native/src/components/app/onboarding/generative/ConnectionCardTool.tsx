@@ -10,8 +10,6 @@
 
 import { useState, useCallback } from "react";
 import { Platform, View } from "react-native";
-import { useMutation } from "convex/react";
-import { api } from "@packages/backend/convex/_generated/api";
 import { selectionFeedback, questionPause } from "@/lib/haptics";
 import { useHealthKit } from "@/hooks/use-healthkit";
 import { ConnectionCard } from "../connection-card";
@@ -53,7 +51,6 @@ export function ConnectionCardTool({
   const [connectedProviders, setConnectedProviders] = useState<string[]>([]);
   const [hasSubmitted, setHasSubmitted] = useState(false);
 
-  const skipWearable = useMutation(api.table.runners.skipWearableConnection);
   // Use full HealthKit hook to access permission denied state (Story 8.4 AC#3)
   const {
     connect: connectHealthKit,
@@ -123,9 +120,10 @@ export function ConnectionCardTool({
   /**
    * Handle skip button tap.
    * If providers are already connected, behaves like continue.
-   * Otherwise marks wearable as skipped.
+   * Otherwise signals skip via onSubmit — the coach chat captures the
+   * decision into coach memory.
    */
-  const handleSkip = useCallback(async () => {
+  const handleSkip = useCallback(() => {
     if (disabled || hasSubmitted || isConnecting) return;
 
     selectionFeedback();
@@ -140,27 +138,10 @@ export function ConnectionCardTool({
       return;
     }
 
-    setIsConnecting(true);
-    try {
-      await skipWearable();
-      questionPause();
-      setHasSubmitted(true);
-      onSubmit({ action: "skip", provider: null });
-    } catch (error) {
-      console.warn("[ConnectionCardTool] Skip mutation failed:", error);
-      setHasSubmitted(true);
-      onSubmit({ action: "skip", provider: null });
-    } finally {
-      setIsConnecting(false);
-    }
-  }, [
-    disabled,
-    hasSubmitted,
-    isConnecting,
-    connectedProviders,
-    skipWearable,
-    onSubmit,
-  ]);
+    questionPause();
+    setHasSubmitted(true);
+    onSubmit({ action: "skip", provider: null });
+  }, [disabled, hasSubmitted, isConnecting, connectedProviders, onSubmit]);
 
   // Handle retry after permission denied (Story 8.4 AC#3)
   const handleRetryPermission = useCallback(async () => {

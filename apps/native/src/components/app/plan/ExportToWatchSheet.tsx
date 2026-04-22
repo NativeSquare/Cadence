@@ -22,8 +22,6 @@ import Animated, {
 import Svg, { Path } from "react-native-svg";
 import { useAction, useQuery } from "convex/react";
 import { api } from "@packages/backend/convex/_generated/api";
-import type { Id } from "@packages/backend/convex/_generated/dataModel";
-
 import { BottomSheetModal } from "@/components/custom/bottom-sheet";
 import { Text } from "@/components/ui/text";
 import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
@@ -33,7 +31,7 @@ export type WatchProvider = "garmin" | "coros";
 export interface ExportToWatchSheetProps {
   sheetRef: React.RefObject<GorhomBottomSheetModal | null>;
   sessionType: string;
-  sessionId?: Id<"plannedSessions">;
+  sessionId?: string;
   onExportComplete: (provider: WatchProvider) => void;
 }
 
@@ -409,7 +407,7 @@ export function ExportToWatchSheet({
 
       if (provider === "garmin" && sessionId) {
         try {
-          await exportToGarmin({ sessionId });
+          await exportToGarmin({ workoutId: sessionId });
           setStep("success");
           onExportComplete(provider);
 

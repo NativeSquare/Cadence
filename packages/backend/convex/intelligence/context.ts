@@ -1,26 +1,56 @@
 import { v } from "convex/values";
+import { components } from "../_generated/api";
 import { internalQuery } from "../_generated/server";
-import type { Doc } from "../_generated/dataModel";
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
-const SESSION_WINDOW_PAST_DAYS = 7;
-const SESSION_WINDOW_FUTURE_DAYS = 14;
+const WORKOUT_WINDOW_PAST_DAYS = 7;
+const WORKOUT_WINDOW_FUTURE_DAYS = 14;
 
-type RouterProfile = {
+type RouterAthlete = {
+  _id: string;
+  name?: string;
+  sex?: "male" | "female" | "other";
+  dateOfBirth?: string;
+  weightKg?: number;
+  heightCm?: number;
+  maxHr?: number;
+  restingHr?: number;
+  thresholdPaceMps?: number;
+  thresholdHr?: number;
+};
+
+type RouterWorkout = {
+  _id: string;
+  scheduledDate: string;
   name: string;
-  physical: Doc<"runners">["physical"];
-} | null;
+  description?: string;
+  status: "planned" | "completed" | "missed" | "skipped";
+  targetDurationSeconds?: number;
+  targetDistanceMeters?: number;
+};
 
 type RouterPlan = {
-  plan: Doc<"trainingPlans">;
+  plan: {
+    _id: string;
+    name: string;
+    startDate: string;
+    endDate: string;
+    status: "draft" | "active" | "completed" | "archived";
+    methodology?: string;
+    notes?: string;
+  };
   currentWeekNumber: number;
-  sessions: Doc<"plannedSessions">[];
+  workouts: RouterWorkout[];
 } | null;
 
 export type RouterContext = {
-  profile: RouterProfile;
+  athlete: RouterAthlete | null;
   plan: RouterPlan;
 };
+
+function toIsoDate(ms: number): string {
+  return new Date(ms).toISOString().slice(0, 10);
+}
 
 export const loadRouterContext = internalQuery({
   args: {
@@ -28,47 +58,71 @@ export const loadRouterContext = internalQuery({
     occurredAt: v.number(),
   },
   handler: async (ctx, { userId, occurredAt }): Promise<RouterContext> => {
-    const runner = await ctx.db
-      .query("runners")
-      .withIndex("by_userId", (q) => q.eq("userId", userId))
-      .first();
+    const athlete = await ctx.runQuery(
+      components.agoge.public.getAthleteByUserId,
+      { userId },
+    );
+    if (!athlete) return { athlete: null, plan: null };
 
-    const profile: RouterProfile = runner
-      ? { name: runner.identity.name, physical: runner.physical }
-      : null;
+    const athleteSnapshot: RouterAthlete = {
+      _id: athlete._id,
+      name: athlete.name,
+      sex: athlete.sex,
+      dateOfBirth: athlete.dateOfBirth,
+      weightKg: athlete.weightKg,
+      heightCm: athlete.heightCm,
+      maxHr: athlete.maxHr,
+      restingHr: athlete.restingHr,
+      thresholdPaceMps: athlete.thresholdPaceMps,
+      thresholdHr: athlete.thresholdHr,
+    };
 
-    if (!runner) return { profile, plan: null };
+    const plans = await ctx.runQuery(components.agoge.public.listPlans, {
+      athleteId: athlete._id,
+      status: "active",
+    });
+    const activePlan = plans[0];
+    if (!activePlan) return { athlete: athleteSnapshot, plan: null };
 
-    const activePlan = await ctx.db
-      .query("trainingPlans")
-      .withIndex("by_runnerId", (q) => q.eq("runnerId", runner._id))
-      .filter((q) => q.eq(q.field("status"), "active"))
-      .first();
-
-    if (!activePlan) return { profile, plan: null };
-
-    const windowStart = occurredAt - SESSION_WINDOW_PAST_DAYS * MS_PER_DAY;
-    const windowEnd = occurredAt + SESSION_WINDOW_FUTURE_DAYS * MS_PER_DAY;
-
-    const sessions = await ctx.db
-      .query("plannedSessions")
-      .withIndex("by_date", (q) =>
-        q
-          .eq("runnerId", runner._id)
-          .gte("scheduledDate", windowStart)
-          .lte("scheduledDate", windowEnd),
-      )
-      .collect();
-
-    const rawWeek = Math.floor((occurredAt - activePlan.startDate) / (7 * MS_PER_DAY)) + 1;
-    const currentWeekNumber = Math.min(
-      Math.max(rawWeek, 1),
-      activePlan.durationWeeks,
+    const windowStart = toIsoDate(
+      occurredAt - WORKOUT_WINDOW_PAST_DAYS * MS_PER_DAY,
+    );
+    const windowEnd = toIsoDate(
+      occurredAt + WORKOUT_WINDOW_FUTURE_DAYS * MS_PER_DAY,
     );
 
+    const workouts = await ctx.runQuery(
+      components.agoge.public.listWorkoutsByDate,
+      { athleteId: athlete._id, startDate: windowStart, endDate: windowEnd },
+    );
+
+    const planStartMs = Date.parse(activePlan.startDate);
+    const rawWeek = Math.floor((occurredAt - planStartMs) / (7 * MS_PER_DAY)) + 1;
+    const currentWeekNumber = Math.max(rawWeek, 1);
+
     return {
-      profile,
-      plan: { plan: activePlan, currentWeekNumber, sessions },
+      athlete: athleteSnapshot,
+      plan: {
+        plan: {
+          _id: activePlan._id,
+          name: activePlan.name,
+          startDate: activePlan.startDate,
+          endDate: activePlan.endDate,
+          status: activePlan.status,
+          methodology: activePlan.methodology,
+          notes: activePlan.notes,
+        },
+        currentWeekNumber,
+        workouts: workouts.map((w) => ({
+          _id: w._id,
+          scheduledDate: w.scheduledDate,
+          name: w.name,
+          description: w.description,
+          status: w.status,
+          targetDurationSeconds: w.targetDurationSeconds,
+          targetDistanceMeters: w.targetDistanceMeters,
+        })),
+      },
     };
   },
 });

@@ -41,7 +41,7 @@ function buildRouterPrompt(
   payload: ${JSON.stringify(event.payload)}
 
 CONTEXT
-  profile: ${context.profile === null ? "(no runner profile)" : JSON.stringify(context.profile)}
+  athlete: ${context.athlete === null ? "(no athlete profile)" : JSON.stringify(context.athlete)}
   plan: ${context.plan === null ? "(no active plan)" : JSON.stringify(context.plan)}
 
 Decide whether to consult Body, Mind, both, or neither with focused sub-queries. Then call your emission tool (emit_reply for reactive chat, emit_decision for proactive) to finalize.`;

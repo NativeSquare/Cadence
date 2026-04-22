@@ -1,6 +1,9 @@
 /**
- * Utility functions for Plan Screen components
- * Reference: cadence-full-v9.jsx bc() function (line 86)
+ * Plan display helpers (formatting, colors, status labels, agoge → UI transforms).
+ *
+ * Agoge workout docs are the source of truth. Transforms here shape them into
+ * `SessionData` for the Plan/Today UI. Plan-level metadata (race goal, weekly
+ * totals) remains optional until the plan generator writes richer `plan.notes`.
  */
 
 import {
@@ -9,73 +12,188 @@ import {
   SESSION_TYPE_COLORS,
   getSessionCategory,
 } from "@/lib/design-tokens";
-import type { Id } from "@packages/backend/convex/_generated/dataModel";
 import type {
+  RaceGoalData,
   SessionData,
   SessionIntensity,
   SyncStatus,
   SyncedData,
-  RaceGoalData,
 } from "./types";
 
-export interface BackendSession {
-  _id: Id<"plannedSessions">;
-  weekNumber: number;
-  sessionTypeDisplay: string;
-  targetDurationDisplay: string;
+/**
+ * Subset of the agoge workout doc the Plan UI consumes.
+ * Mirrors `components.agoge.public.listWorkoutsByDate` return shape.
+ */
+export interface AgogeWorkout {
+  _id: string;
+  scheduledDate: string;
+  name: string;
+  description?: string;
   targetDurationSeconds?: number;
   targetDistanceMeters?: number;
-  description: string;
-  scheduledDate: number;
-  isKeySession: boolean;
-  isRestDay: boolean;
-  effortLevel?: number;
-  effortDisplay: string;
-  targetPaceDisplay?: string;
-  structureDisplay?: string;
-  status: string;
-  dayOfWeekShort: string;
-  actualDurationSeconds?: number;
-  actualDistanceMeters?: number;
-  adherenceScore?: number;
+  status: "planned" | "completed" | "missed" | "skipped";
+  completed?: {
+    durationSeconds: number;
+    distanceMeters?: number;
+  };
+  compliance?: number;
 }
 
-export interface BackendWeekPlan {
-  weekNumber: number;
-  phaseName: string;
-  volumeKm: number;
-  isRecoveryWeek: boolean;
-  weekLabel?: string;
+/** Key format used by CalendarStrip (y-m-d, 0-indexed month, unpadded). */
+function planDateKey(d: Date): string {
+  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
 }
 
-export interface BackendPlan {
-  _id: Id<"trainingPlans">;
-  name: string;
-  goalType: string;
-  targetEvent?: string;
-  targetDate?: number;
-  targetTime?: number;
-  startDate: number;
-  durationWeeks: number;
-  currentWeek: number;
-  coachSummary: string;
-  weeklyPlan: BackendWeekPlan[];
+function formatDistance(meters?: number): string {
+  if (meters == null) return "-";
+  return (meters / 1000).toFixed(1);
 }
 
-/**
- * Get the accent color for a session based on its type category.
- * Done sessions keep their type color (no longer overridden to lime)
- * so the 4-color scheme stays consistent across the app.
- */
+function formatDurationShort(seconds?: number): string {
+  if (seconds == null) return "-";
+  const m = Math.round(seconds / 60);
+  if (m < 60) return `${m}min`;
+  const h = Math.floor(m / 60);
+  const rem = m % 60;
+  return rem === 0 ? `${h}h` : `${h}h${rem.toString().padStart(2, "0")}`;
+}
+
+function formatDurationLong(seconds: number): string {
+  const m = Math.round(seconds / 60);
+  if (m < 60) return `${m}m`;
+  const h = Math.floor(m / 60);
+  const rem = m % 60;
+  return rem === 0 ? `${h}h` : `${h}h ${rem}m`;
+}
+
+function intensityFromName(name: string): SessionIntensity {
+  const category = getSessionCategory(name);
+  if (category === "race") return "key";
+  if (category === "long") return "key";
+  if (category === "easy") return "low";
+  return "high";
+}
+
+export function workoutToSessionData(
+  workout: AgogeWorkout,
+  today: Date,
+): SessionData {
+  const date = new Date(`${workout.scheduledDate}T00:00:00`);
+  const isToday =
+    date.getFullYear() === today.getFullYear() &&
+    date.getMonth() === today.getMonth() &&
+    date.getDate() === today.getDate();
+
+  return {
+    sessionId: workout._id,
+    type: workout.name,
+    km: formatDistance(
+      workout.completed?.distanceMeters ?? workout.targetDistanceMeters,
+    ),
+    dur: formatDurationShort(
+      workout.completed?.durationSeconds ?? workout.targetDurationSeconds,
+    ),
+    done: workout.status === "completed",
+    intensity: intensityFromName(workout.name),
+    desc: workout.description ?? "",
+    zone: "-",
+    today: isToday,
+    actualDur:
+      workout.completed?.durationSeconds != null
+        ? formatDurationShort(workout.completed.durationSeconds)
+        : undefined,
+    actualKm:
+      workout.completed?.distanceMeters != null
+        ? formatDistance(workout.completed.distanceMeters)
+        : undefined,
+    adherenceScore: workout.compliance,
+  };
+}
+
+export function buildSessionsByDate(
+  workouts: AgogeWorkout[],
+  today: Date,
+): Record<string, SessionData> {
+  const result: Record<string, SessionData> = {};
+  for (const w of workouts) {
+    const d = new Date(`${w.scheduledDate}T00:00:00`);
+    result[planDateKey(d)] = workoutToSessionData(w, today);
+  }
+  return result;
+}
+
+export function buildRaceGoal(_workouts: AgogeWorkout[]): RaceGoalData | null {
+  return null;
+}
+
+function isoWeekStart(d: Date): Date {
+  const out = new Date(d);
+  out.setHours(0, 0, 0, 0);
+  const dow = out.getDay();
+  const diff = dow === 0 ? -6 : 1 - dow;
+  out.setDate(out.getDate() + diff);
+  return out;
+}
+
+export function computeWeekInsights(
+  workouts: AgogeWorkout[],
+  today: Date,
+): {
+  volumeCompleted: number;
+  volumePlanned: number;
+  timeCompleted: string;
+  avgPace: string;
+  currentWeekSessions: SessionData[];
+} {
+  const weekStart = isoWeekStart(today);
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekEnd.getDate() + 6);
+
+  let volumeCompletedMeters = 0;
+  let volumePlannedMeters = 0;
+  let timeCompletedSeconds = 0;
+  const currentWeekSessions: SessionData[] = [];
+
+  for (const w of workouts) {
+    const d = new Date(`${w.scheduledDate}T00:00:00`);
+    if (d < weekStart || d > weekEnd) continue;
+    currentWeekSessions.push(workoutToSessionData(w, today));
+
+    volumePlannedMeters += w.targetDistanceMeters ?? 0;
+    if (w.status === "completed" && w.completed) {
+      volumeCompletedMeters +=
+        w.completed.distanceMeters ?? w.targetDistanceMeters ?? 0;
+      timeCompletedSeconds += w.completed.durationSeconds;
+    }
+  }
+
+  const avgPace =
+    volumeCompletedMeters > 0 && timeCompletedSeconds > 0
+      ? formatPace(timeCompletedSeconds / volumeCompletedMeters)
+      : "-:--";
+
+  return {
+    volumeCompleted: Math.round((volumeCompletedMeters / 1000) * 10) / 10,
+    volumePlanned: Math.round((volumePlannedMeters / 1000) * 10) / 10,
+    timeCompleted:
+      timeCompletedSeconds > 0 ? formatDurationLong(timeCompletedSeconds) : "0m",
+    avgPace,
+    currentWeekSessions,
+  };
+}
+
+function formatPace(secondsPerMeter: number): string {
+  const secondsPerKm = secondsPerMeter * 1000;
+  const m = Math.floor(secondsPerKm / 60);
+  const s = Math.round(secondsPerKm % 60);
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
 export function getSessionColor(session: SessionData): string {
   const category = getSessionCategory(session.type);
   return SESSION_TYPE_COLORS[category];
 }
 
-/**
- * Get the greeting based on the current time of day
- * @returns "Morning", "Afternoon", or "Evening"
- */
 export function getGreeting(): string {
   const hour = new Date().getHours();
   if (hour < 12) return "Morning";
@@ -83,11 +201,6 @@ export function getGreeting(): string {
   return "Evening";
 }
 
-/**
- * Format a date to display format (e.g., "Thursday, Feb 20")
- * @param date - Date to format
- * @returns Formatted date string
- */
 export function formatDate(date: Date = new Date()): string {
   const days = [
     "Sunday",
@@ -113,18 +226,9 @@ export function formatDate(date: Date = new Date()): string {
     "Dec",
   ];
 
-  const dayName = days[date.getDay()];
-  const monthName = months[date.getMonth()];
-  const dayNum = date.getDate();
-
-  return `${dayName}, ${monthName} ${dayNum}`;
+  return `${days[date.getDay()]}, ${months[date.getMonth()]} ${date.getDate()}`;
 }
 
-/**
- * Get short date format (e.g., "Thu, Feb 20")
- * @param date - Date to format
- * @returns Short formatted date string
- */
 export function formatShortDate(date: Date = new Date()): string {
   const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   const months = [
@@ -142,23 +246,13 @@ export function formatShortDate(date: Date = new Date()): string {
     "Dec",
   ];
 
-  const dayName = days[date.getDay()];
-  const monthName = months[date.getMonth()];
-  const dayNum = date.getDate();
-
-  return `${dayName}, ${monthName} ${dayNum}`;
+  return `${days[date.getDay()]}, ${months[date.getMonth()]} ${date.getDate()}`;
 }
 
-/**
- * Capitalize first letter of a string
- */
 function capitalize(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1).replace(/_/g, " ");
 }
 
-/**
- * Get the display color for a sync status
- */
 export function getSyncStatusColor(status: SyncStatus): string {
   switch (status) {
     case "exported":
@@ -174,198 +268,24 @@ export function getSyncStatusColor(status: SyncStatus): string {
   }
 }
 
-/**
- * Get the display label for a sync status
- */
 export function getSyncStatusLabel(
   status: SyncStatus,
   syncSource?: string,
-  syncedData?: SyncedData
+  syncedData?: SyncedData,
 ): string {
   const source = syncSource ? capitalize(syncSource) : "Watch";
   switch (status) {
     case "exported":
       return `Exported to ${source}`;
     case "syncing":
-      return "Syncing\u2026";
+      return "Syncing…";
     case "synced":
       return syncedData
-        ? `Synced \u00B7 ${syncedData.km} km recorded`
+        ? `Synced · ${syncedData.km} km recorded`
         : "Synced";
     case "failed":
-      return "Sync failed \u00B7 Retry";
+      return "Sync failed · Retry";
     default:
       return "";
   }
-}
-
-// =============================================================================
-// Backend → Frontend Transforms
-// =============================================================================
-
-function isSameDay(a: Date, b: Date): boolean {
-  return (
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate()
-  );
-}
-
-function toDateKey(d: Date): string {
-  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
-}
-
-function deriveIntensity(session: BackendSession): SessionIntensity {
-  if (session.isRestDay) return "rest";
-  if (session.isKeySession) return "key";
-  if (session.effortLevel != null && session.effortLevel >= 7) return "high";
-  return "low";
-}
-
-function computeKm(session: BackendSession): string {
-  if (session.isRestDay) return "-";
-  if (session.targetDistanceMeters != null) {
-    return (session.targetDistanceMeters / 1000).toFixed(1);
-  }
-  return "-";
-}
-
-function formatDuration(seconds: number): string {
-  const m = Math.floor(seconds / 60);
-  const s = Math.round(seconds % 60);
-  if (m >= 60) {
-    const h = Math.floor(m / 60);
-    const rm = m % 60;
-    return rm > 0 ? `${h}h${rm.toString().padStart(2, "0")}` : `${h}h`;
-  }
-  return `${m}min`;
-}
-
-export function toSessionData(
-  session: BackendSession,
-  today: Date
-): SessionData {
-  const isCompleted = session.status === "completed";
-
-  return {
-    sessionId: session._id,
-    type: session.sessionTypeDisplay,
-    km: computeKm(session),
-    dur: session.targetDurationDisplay,
-    done: isCompleted,
-    intensity: deriveIntensity(session),
-    desc: session.description,
-    zone: session.effortDisplay,
-    today: isSameDay(new Date(session.scheduledDate), today),
-    actualDur: isCompleted && session.actualDurationSeconds != null
-      ? formatDuration(session.actualDurationSeconds)
-      : undefined,
-    actualKm: isCompleted && session.actualDistanceMeters != null
-      ? (session.actualDistanceMeters / 1000).toFixed(1)
-      : undefined,
-    adherenceScore: isCompleted ? session.adherenceScore : undefined,
-  };
-}
-
-export function buildSessionsByDate(
-  sessions: BackendSession[],
-  today: Date
-): Record<string, SessionData> {
-  const result: Record<string, SessionData> = {};
-  for (const s of sessions) {
-    const date = new Date(s.scheduledDate);
-    result[toDateKey(date)] = toSessionData(s, today);
-  }
-  return result;
-}
-
-const GOAL_DISPLAY: Record<string, string> = {
-  "5k": "5K",
-  "10k": "10K",
-  half_marathon: "Half Marathon",
-  marathon: "Marathon",
-  base_building: "Base Building",
-};
-
-function formatTargetTime(seconds: number): string {
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  const s = seconds % 60;
-  if (h > 0) {
-    return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
-  }
-  return `${m}:${String(s).padStart(2, "0")}`;
-}
-
-export function buildRaceGoal(plan: BackendPlan): RaceGoalData | null {
-  if (!plan.targetDate) return null;
-
-  const currentWeekItem = plan.weeklyPlan.find(
-    (w) => w.weekNumber === plan.currentWeek
-  );
-
-  return {
-    raceName: plan.targetEvent ?? plan.name,
-    raceDistance: GOAL_DISPLAY[plan.goalType] ?? plan.goalType,
-    raceDate: plan.targetDate,
-    targetTime: plan.targetTime ? formatTargetTime(plan.targetTime) : undefined,
-    currentWeek: plan.currentWeek,
-    totalWeeks: plan.durationWeeks,
-    phase: currentWeekItem?.phaseName ?? "Build",
-  };
-}
-
-export function computeWeekInsights(
-  sessions: BackendSession[],
-  plan: BackendPlan
-): {
-  volumeCompleted: number;
-  volumePlanned: number;
-  timeCompleted: string;
-  avgPace: string;
-  currentWeekSessions: SessionData[];
-} {
-  const today = new Date();
-  const currentWeekSessions = sessions.filter(
-    (s) => s.weekNumber === plan.currentWeek
-  );
-
-  const weekPlan = plan.weeklyPlan.find(
-    (w) => w.weekNumber === plan.currentWeek
-  );
-  const volumePlanned = weekPlan?.volumeKm ?? 0;
-
-  const completedSessions = currentWeekSessions.filter(
-    (s) => s.status === "completed"
-  );
-  let totalDistanceM = 0;
-  let totalDurationS = 0;
-  for (const s of completedSessions) {
-    totalDistanceM += s.targetDistanceMeters ?? 0;
-    totalDurationS += s.targetDurationSeconds ?? 0;
-  }
-  const volumeCompleted = Math.round((totalDistanceM / 1000) * 10) / 10;
-
-  const hours = Math.floor(totalDurationS / 3600);
-  const mins = Math.round((totalDurationS % 3600) / 60);
-  const timeCompleted =
-    hours > 0 ? `${hours}h ${mins}m` : mins > 0 ? `${mins}m` : "0m";
-
-  let avgPace = "-:--";
-  if (totalDistanceM > 0 && totalDurationS > 0) {
-    const paceSecsPerKm = totalDurationS / (totalDistanceM / 1000);
-    const paceMin = Math.floor(paceSecsPerKm / 60);
-    const paceSec = Math.round(paceSecsPerKm % 60);
-    avgPace = `${paceMin}:${String(paceSec).padStart(2, "0")}`;
-  }
-
-  const mapped = currentWeekSessions.map((s) => toSessionData(s, today));
-
-  return {
-    volumeCompleted,
-    volumePlanned,
-    timeCompleted,
-    avgPace,
-    currentWeekSessions: mapped,
-  };
 }

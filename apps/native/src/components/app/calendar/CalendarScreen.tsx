@@ -50,7 +50,7 @@ import {
   buildPhaseLookup,
   blendWithBg,
   buildCalendarSessions,
-  buildPhasesFromPlan,
+  buildPhasesFromBlocks,
 } from "./helpers";
 import type { CalSession, CalSessionType } from "./types";
 
@@ -58,6 +58,13 @@ type ViewMode = "sessions" | "blocks";
 
 const GRID_GAP = 6;
 const GRID_PADDING = 10;
+
+function toIsoDate(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
 
 function ViewToggle({
   value,
@@ -137,16 +144,30 @@ export function CalendarScreen() {
   const contentFade = useSharedValue(1);
   const contentTranslateX = useSharedValue(0);
 
-  const planData = useQuery(api.training.queries.getPlanScreenData);
+  const monthRange = useMemo(() => {
+    const start = new Date(currentYear, currentMonth, 1);
+    const end = new Date(currentYear, currentMonth + 1, 0);
+    return {
+      startDate: toIsoDate(start),
+      endDate: toIsoDate(end),
+    };
+  }, [currentYear, currentMonth]);
+
+  const workouts = useQuery(api.plan.reads.listWorkoutsInRange, monthRange);
+  const activePlan = useQuery(api.plan.reads.getActivePlan);
+  const blocks = useQuery(
+    api.plan.reads.listBlocks,
+    activePlan ? { planId: activePlan._id } : "skip",
+  );
 
   const calSessions = useMemo(
-    () => (planData ? buildCalendarSessions(planData.sessions) : {}),
-    [planData],
+    () => (workouts ? buildCalendarSessions(workouts) : {}),
+    [workouts],
   );
 
   const phases = useMemo(
-    () => (planData ? buildPhasesFromPlan(planData.plan) : []),
-    [planData],
+    () => (blocks ? buildPhasesFromBlocks(blocks) : []),
+    [blocks],
   );
 
   const weeks = useMemo(
@@ -235,7 +256,7 @@ export function CalendarScreen() {
     currentMonth === todayDate.getMonth() &&
     currentYear === todayDate.getFullYear();
 
-  if (planData === undefined) {
+  if (workouts === undefined) {
     return (
       <View style={[st.root, { alignItems: "center", justifyContent: "center" }]}>
         <ActivityIndicator size="large" color={GRAYS.g3} />

@@ -63,22 +63,22 @@ export function ProgressionScreen({
   const [showCoachMessage, setShowCoachMessage] = useState(false);
   const [showButton, setShowButton] = useState(false);
 
-  // Query runner to get active plan
-  const runner = useQuery(api.table.runners.getCurrentRunner);
+  // Query athlete to get active plan
+  const athlete = useQuery(api.plan.reads.getAthlete);
   const planId = useQuery(
-    api.training.queries.getActivePlanForRunner,
-    runner?._id ? { runnerId: runner._id } : "skip"
+    api.plan.legacy.getActivePlanForRunner,
+    athlete?._id ? {} : "skip"
   );
 
   // Query progression data from plan
   const progressionData = useQuery(
-    api.training.queries.getProgressionChartData,
+    api.plan.legacy.getProgressionChartData,
     planId ? { planId } : "skip"
   );
 
   // Determine loading and error states
-  const isLoading = runner === undefined || (runner?._id && planId === undefined);
-  const noPlanAvailable = runner !== undefined && planId === null;
+  const isLoading = athlete === undefined || (athlete?._id && planId === undefined);
+  const noPlanAvailable = athlete !== undefined && planId === null;
 
   // Map backend data to component format
   const chartData = useMemo((): WeekData[] | null => {

@@ -12,9 +12,9 @@ import {
  * AI Conversation Messages Schema
  *
  * Persists conversation history for context continuity and delta streaming.
- * Messages are tied to a conversation which is tied to a runner.
- *
- * Source: Story 2.1 - AC#2, AC#4
+ * Messages are tied to a conversation which is tied to an agoge athlete
+ * (`athleteId` is the branded agoge `Id<"athletes">` held as a string, since
+ * Cadence does not own the athletes table).
  */
 
 // Tool call schema for persisted messages
@@ -67,7 +67,7 @@ const messageSchema = {
 
 // Conversation schema
 const conversationSchema = {
-  runnerId: v.id("runners"),
+  athleteId: v.string(),
   userId: v.id("users"),
   phase: v.union(
     v.literal("intro"),
@@ -86,7 +86,7 @@ const conversationSchema = {
 
 // Table definitions
 export const conversations = defineTable(conversationSchema)
-  .index("by_runnerId", ["runnerId"])
+  .index("by_athleteId", ["athleteId"])
   .index("by_userId", ["userId"])
   .index("by_active", ["userId", "isActive"]);
 
@@ -99,11 +99,11 @@ export const messages = defineTable(messageSchema)
 // =============================================================================
 
 /**
- * Create or get active conversation for the current user's runner
+ * Create or get active conversation for the current user's agoge athlete.
  */
 export const getOrCreateConversation = mutation({
   args: {
-    runnerId: v.id("runners"),
+    athleteId: v.string(),
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
@@ -114,7 +114,7 @@ export const getOrCreateConversation = mutation({
     // Check for existing active conversation
     const existing = await ctx.db
       .query("conversations")
-      .withIndex("by_runnerId", (q) => q.eq("runnerId", args.runnerId))
+      .withIndex("by_athleteId", (q) => q.eq("athleteId", args.athleteId))
       .filter((q) => q.eq(q.field("isActive"), true))
       .first();
 
@@ -125,7 +125,7 @@ export const getOrCreateConversation = mutation({
     // Create new conversation
     const now = Date.now();
     const conversationId = await ctx.db.insert("conversations", {
-      runnerId: args.runnerId,
+      athleteId: args.athleteId,
       userId,
       phase: "intro",
       isActive: true,

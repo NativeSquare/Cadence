@@ -27,7 +27,7 @@ type OnboardingProgress = {
  * Returns real-time updates from Convex as the runner's data changes.
  */
 export function useOnboardingProgress(): OnboardingProgress {
-  const runner = useQuery(api.table.runners.getCurrentRunner);
+  const runner = useQuery(api.plan.reads.getAthlete);
 
   // Loading state
   if (runner === undefined) {

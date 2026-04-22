@@ -20,14 +20,11 @@ import { getAuthUserId } from "@convex-dev/auth/server";
 import { ConvexError, v, type PropertyValidators } from "convex/values";
 import { components } from "../../_generated/api";
 import { mutation } from "../../_generated/server";
-import {
-  calculateDataCompleteness,
-  getMissingFields,
-  determinePhase,
-} from "../../table/runners";
 import { soma } from "../../soma";
 
-// Aggregates computed on-device from HealthKit data, stored in runner.inferred
+// Aggregates are accepted from the native app for compatibility but no longer
+// persisted — derived metrics (ATL/CTL/volume trend) are computed on demand
+// from the ingested Soma activity stream via plan/state.ts.
 const aggregatesValidator = v.object({
   avgWeeklyVolume: v.number(),
   volumeConsistency: v.number(),
@@ -102,19 +99,6 @@ export const syncHealthKitData = mutation({
       throw new ConvexError({
         code: "UNAUTHORIZED",
         message: "Not authenticated",
-      });
-    }
-
-    // Ensure runner exists
-    const runner = await ctx.db
-      .query("runners")
-      .withIndex("by_userId", (q) => q.eq("userId", userId))
-      .first();
-
-    if (!runner) {
-      throw new ConvexError({
-        code: "RUNNER_NOT_FOUND",
-        message: "Runner not found. Complete initial onboarding first.",
       });
     }
 
@@ -251,41 +235,9 @@ export const syncHealthKitData = mutation({
       }
     }
 
-    // Build updated inferred data from aggregates (if provided)
-    const updatedInferred = args.aggregates
-      ? {
-          ...runner.inferred,
-          avgWeeklyVolume: args.aggregates.avgWeeklyVolume,
-          volumeConsistency: args.aggregates.volumeConsistency,
-          easyPaceActual: args.aggregates.easyPaceActual,
-          longRunPattern: args.aggregates.longRunPattern,
-          restDayFrequency: args.aggregates.restDayFrequency,
-          trainingLoadTrend: args.aggregates.trainingLoadTrend,
-          estimatedFitness: args.aggregates.estimatedFitness,
-        }
-      : runner.inferred;
-
-    // Build merged runner for recalculation
-    const mergedRunner = {
-      ...runner,
-      inferred: updatedInferred,
-    };
-
-    // Recalculate completeness, missing fields, and phase
-    const dataCompleteness = calculateDataCompleteness(mergedRunner);
-    const fieldsMissing = getMissingFields(mergedRunner);
-    const currentPhase = determinePhase(mergedRunner);
-
-    // Update runner with inferred data and conversation state
-    await ctx.db.patch(runner._id, {
-      inferred: updatedInferred,
-      conversationState: {
-        ...runner.conversationState,
-        dataCompleteness,
-        fieldsMissing,
-        currentPhase,
-      },
-    });
+    // args.aggregates is accepted from the native app for backward compatibility
+    // but no longer persisted. Derived metrics (ATL/CTL, volume trend, etc.)
+    // are computed on demand via plan/state.ts from the ingested activity data.
 
     stats.total =
       stats.activities.ingested +

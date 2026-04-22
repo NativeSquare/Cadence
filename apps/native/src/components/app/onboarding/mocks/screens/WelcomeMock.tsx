@@ -141,7 +141,7 @@ export function WelcomeMock({
   const [showNameInput, setShowNameInput] = useState(false);
   const [displayName, setDisplayName] = useState(userName);
 
-  const confirmName = useMutation(api.table.runners.confirmName);
+  const upsertAthlete = useMutation(api.plan.athlete.upsertAthlete);
 
   // Phrase 1: Welcome greeting (2s delay to create moment of entry)
   const s1 = useStream({
@@ -198,12 +198,12 @@ export function WelcomeMock({
 
   const handleConfirmName = useCallback(
     async (trimmedName: string) => {
-      await confirmName({ name: trimmedName });
+      await upsertAthlete({ name: trimmedName });
       setDisplayName(trimmedName);
       onNameChanged?.(trimmedName);
       setShowNameInput(false);
     },
-    [confirmName, onNameChanged],
+    [upsertAthlete, onNameChanged],
   );
 
   // Name input view - rendered in separate component to isolate state

@@ -66,10 +66,10 @@ export function CoachChatView({
   } = useAIChat({ conversationId });
 
   // Convex mutations for action tools (executed on Accept)
-  const rescheduleSession = useMutation(api.training.actionMutations.rescheduleSession);
-  const modifySession = useMutation(api.training.actionMutations.modifySession);
-  const swapSessions = useMutation(api.training.actionMutations.swapSessions);
-  const skipSession = useMutation(api.training.actionMutations.skipSession);
+  const rescheduleSession = useMutation(api.plan.actions.rescheduleWorkout);
+  const modifySession = useMutation(api.plan.actions.modifyWorkout);
+  const swapSessions = useMutation(api.plan.actions.swapWorkouts);
+  const skipSession = useMutation(api.plan.actions.skipWorkout);
 
   // Voice recording state
   const [inputValue, setInputValue] = useState(initialPrompt ?? "");
@@ -146,42 +146,48 @@ export function CoachChatView({
         switch (toolName) {
           case "proposeRescheduleSession": {
             const p = args as RescheduleProposal;
-            return await rescheduleSession({
-              sessionId: p.sessionId as any,
-              newDate: new Date(p.proposedDate).getTime(),
-              expectedCurrentDate: new Date(p.currentDate).getTime(),
-              reason: p.reason,
+            await rescheduleSession({
+              workoutId: p.sessionId,
+              scheduledDate: new Date(p.proposedDate).toISOString().slice(0, 10),
             });
+            return { success: true };
           }
           case "proposeModifySession": {
-            const p = args as { sessionId: string; changes: Array<{ field: string; newValue: string }>; reason: string };
-            // Build the changes object from the field/value pairs
-            const changes: Record<string, any> = {};
+            const p = args as {
+              sessionId: string;
+              changes: Array<{ field: string; newValue: string }>;
+              reason: string;
+            };
+            const patch: {
+              workoutId: string;
+              name?: string;
+              description?: string;
+              targetDurationSeconds?: number;
+              targetDistanceMeters?: number;
+            } = { workoutId: p.sessionId };
             for (const c of p.changes) {
-              changes[c.field] = c.newValue;
+              if (c.field === "name") patch.name = c.newValue;
+              else if (c.field === "description") patch.description = c.newValue;
+              else if (c.field === "targetDurationSeconds")
+                patch.targetDurationSeconds = Number(c.newValue);
+              else if (c.field === "targetDistanceMeters")
+                patch.targetDistanceMeters = Number(c.newValue);
             }
-            return await modifySession({
-              sessionId: p.sessionId as any,
-              changes,
-              reason: p.reason,
-            });
+            await modifySession(patch);
+            return { success: true };
           }
           case "proposeSwapSessions": {
             const p = args as SwapProposal;
-            return await swapSessions({
-              sessionAId: p.sessionA.sessionId as any,
-              sessionBId: p.sessionB.sessionId as any,
-              expectedDateA: new Date(p.sessionA.date).getTime(),
-              expectedDateB: new Date(p.sessionB.date).getTime(),
-              reason: p.reason,
+            await swapSessions({
+              workoutAId: p.sessionA.sessionId,
+              workoutBId: p.sessionB.sessionId,
             });
+            return { success: true };
           }
           case "proposeSkipSession": {
             const p = args as SkipProposal;
-            return await skipSession({
-              sessionId: p.sessionId as any,
-              reason: p.reason,
-            });
+            await skipSession({ workoutId: p.sessionId });
+            return { success: true };
           }
           default:
             return { success: false, error: `Unknown action: ${toolName}` };

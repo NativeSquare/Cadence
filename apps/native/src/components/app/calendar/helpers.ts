@@ -14,7 +14,17 @@ import type {
 } from "./types";
 import { DAY_HEADERS_FULL, PHASE_COLORS } from "./constants";
 import { getSessionCategory } from "@/lib/design-tokens";
-import type { BackendSession, BackendPlan } from "../plan/utils";
+import type { AgogeWorkout } from "../plan/utils";
+
+/** Subset of the agoge block doc the Calendar UI consumes. */
+export interface AgogeBlock {
+  _id: string;
+  name: string;
+  type: "base" | "build" | "peak" | "taper" | "recovery";
+  startDate: string;
+  endDate: string;
+  order: number;
+}
 
 /**
  * Blend hex color with off-white background (#F8F8F6) to produce a solid RGB color.
@@ -193,85 +203,82 @@ export function getWeekDates(dateKey: string): WeekDate[] {
 }
 
 /**
- * Transform backend sessions into the calendar's date-keyed lookup.
- * Rest days are excluded so they show as empty tiles.
+ * Transform agoge workouts into the calendar's date-keyed lookup.
+ * Skipped workouts are excluded so they render as empty tiles.
  */
 export function buildCalendarSessions(
-  sessions: BackendSession[],
+  workouts: AgogeWorkout[],
 ): Record<string, CalSession[]> {
   const result: Record<string, CalSession[]> = {};
-  for (const s of sessions) {
-    if (s.isRestDay) continue;
-    const date = new Date(s.scheduledDate);
-    const key = formatDateKey(date.getFullYear(), date.getMonth(), date.getDate());
+  for (const w of workouts) {
+    if (w.status === "skipped") continue;
+    // scheduledDate is already YYYY-MM-DD, which matches formatDateKey output.
+    const key = w.scheduledDate;
+    const km =
+      w.completed?.distanceMeters != null
+        ? (w.completed.distanceMeters / 1000).toFixed(1)
+        : w.targetDistanceMeters != null
+          ? (w.targetDistanceMeters / 1000).toFixed(1)
+          : "-";
+    const dur = formatWorkoutDuration(
+      w.completed?.durationSeconds ?? w.targetDurationSeconds,
+    );
     const calSession: CalSession = {
-      sessionId: s._id as string,
-      type: getSessionCategory(s.sessionTypeDisplay) as CalSessionType,
-      label: s.sessionTypeDisplay,
-      km: s.targetDistanceMeters != null
-        ? (s.targetDistanceMeters / 1000).toFixed(1)
-        : "-",
-      dur: s.targetDurationDisplay,
-      done: s.status === "completed",
+      sessionId: w._id,
+      type: getSessionCategory(w.name) as CalSessionType,
+      label: w.name,
+      km,
+      dur,
+      done: w.status === "completed",
     };
-    if (!result[key]) {
-      result[key] = [];
-    }
+    if (!result[key]) result[key] = [];
     result[key].push(calSession);
   }
   return result;
 }
 
-const MS_PER_DAY = 24 * 60 * 60 * 1000;
+function formatWorkoutDuration(seconds?: number): string {
+  if (seconds == null) return "-";
+  const m = Math.round(seconds / 60);
+  if (m < 60) return `${m}min`;
+  const h = Math.floor(m / 60);
+  const rem = m % 60;
+  return rem === 0 ? `${h}h` : `${h}h${rem.toString().padStart(2, "0")}`;
+}
 
-function mapPhaseKey(phaseName: string): PhaseName {
-  const lower = phaseName.toLowerCase();
-  if (lower.includes("foundation")) return "foundation";
-  if (lower.includes("development")) return "development";
-  if (lower.includes("consolidation")) return "consolidation";
-  if (lower.includes("base")) return "base";
-  if (lower.includes("build") && lower.includes("2")) return "build2";
-  if (lower.includes("build")) return "build1";
-  if (lower.includes("taper")) return "taper";
-  if (lower.includes("race")) return "race";
-  if (lower.includes("recovery")) return "recovery";
-  return "base";
+function mapBlockTypeToPhaseKey(
+  type: AgogeBlock["type"],
+): PhaseName {
+  switch (type) {
+    case "base":
+      return "base";
+    case "build":
+      return "build1";
+    case "peak":
+      return "build2";
+    case "taper":
+      return "taper";
+    case "recovery":
+      return "recovery";
+  }
 }
 
 /**
- * Derive training phase date ranges from the plan's weekly schedule.
- * Groups consecutive weeks with the same phase name into Phase objects.
+ * Derive training phases from agoge blocks.
+ * Each block becomes one Phase; the block's date range is used directly.
  */
-export function buildPhasesFromPlan(plan: BackendPlan): Phase[] {
-  const weeks = plan.weeklyPlan;
-  if (weeks.length === 0) return [];
-
-  const phases: Phase[] = [];
-  let groupStart = 0;
-
-  for (let i = 0; i <= weeks.length; i++) {
-    if (i === weeks.length || weeks[i].phaseName !== weeks[groupStart].phaseName) {
-      const phaseName = weeks[groupStart].phaseName;
-      const firstWeek = weeks[groupStart].weekNumber;
-      const lastWeek = weeks[i - 1].weekNumber;
-
-      const startMs = plan.startDate + (firstWeek - 1) * 7 * MS_PER_DAY;
-      const endMs = plan.startDate + (lastWeek - 1) * 7 * MS_PER_DAY + 6 * MS_PER_DAY;
-      const startDate = new Date(startMs);
-      const endDate = new Date(endMs);
-
-      const key = mapPhaseKey(phaseName);
-      phases.push({
-        name: phaseName,
+export function buildPhasesFromBlocks(blocks: AgogeBlock[]): Phase[] {
+  return blocks
+    .slice()
+    .sort((a, b) => a.order - b.order)
+    .map((block) => {
+      const key = mapBlockTypeToPhaseKey(block.type);
+      return {
+        name: block.name,
         key,
-        start: formatDateKey(startDate.getFullYear(), startDate.getMonth(), startDate.getDate()),
-        end: formatDateKey(endDate.getFullYear(), endDate.getMonth(), endDate.getDate()),
+        start: block.startDate,
+        end: block.endDate,
         color: PHASE_COLORS[key],
-      });
-
-      groupStart = i;
-    }
-  }
-
-  return phases;
+      };
+    });
 }

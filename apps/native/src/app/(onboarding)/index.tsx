@@ -8,7 +8,7 @@ import { View, ActivityIndicator } from "react-native";
 export default function Onboarding() {
   const { isOffline, status } = useNetwork();
   const user = useQuery(api.table.users.currentUser);
-  const runner = useQuery(api.table.runners.getCurrentRunner);
+  const athlete = useQuery(api.plan.reads.getAthlete);
   const patchUser = useMutation(api.table.users.patch);
 
   // Show offline screen immediately if no network (AC#3: no loading then error)
@@ -17,7 +17,7 @@ export default function Onboarding() {
   }
 
   // Loading state - wait for both queries
-  if (user === undefined || runner === undefined || status === "unknown") {
+  if (user === undefined || athlete === undefined || status === "unknown") {
     return (
       <View className="flex-1 bg-[#0a0a0a] items-center justify-center">
         <ActivityIndicator color="#a3e635" />
@@ -30,8 +30,8 @@ export default function Onboarding() {
     patchUser({ id: user._id, data: { hasCompletedOnboarding: true } });
   };
 
-  // Runner name is source of truth, fallback to auth provider name
-  const userName = runner?.identity?.name || user?.name || "";
+  // Athlete name is source of truth, fallback to auth provider name
+  const userName = athlete?.name || user?.name || "";
 
   return (
     <OnboardingFlowMock

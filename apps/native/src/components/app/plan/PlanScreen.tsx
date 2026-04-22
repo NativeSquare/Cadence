@@ -50,6 +50,22 @@ const REST_FALLBACK: SessionData = {
   today: true,
 };
 
+function toIsoDate(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function computeWeekNumber(planStartDate: string, today: Date): number {
+  const start = new Date(`${planStartDate}T00:00:00`);
+  const diffDays = Math.floor(
+    (today.getTime() - start.getTime()) / (24 * 60 * 60 * 1000),
+  );
+  if (diffDays < 0) return 0;
+  return Math.floor(diffDays / 7) + 1;
+}
+
 export function PlanScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -57,16 +73,28 @@ export function PlanScreen() {
   const scrollY = useSharedValue(0);
   const headerHeight = useSharedValue(0);
 
-  const runner = useQuery(api.table.runners.getCurrentRunner);
-  const userName = runner?.identity?.name || "there";
-
-  const planData = useQuery(api.training.queries.getPlanScreenData);
+  const athlete = useQuery(api.plan.reads.getAthlete);
+  const userName = athlete?.name || "there";
 
   const today = useMemo(() => new Date(), []);
 
+  const workoutRange = useMemo(() => {
+    const start = new Date(today);
+    start.setDate(start.getDate() - 84);
+    const end = new Date(today);
+    end.setDate(end.getDate() + 84);
+    return {
+      startDate: toIsoDate(start),
+      endDate: toIsoDate(end),
+    };
+  }, [today]);
+
+  const workouts = useQuery(api.plan.reads.listWorkoutsInRange, workoutRange);
+  const activePlan = useQuery(api.plan.reads.getActivePlan);
+
   const sessionsByDate = useMemo(
-    () => (planData ? buildSessionsByDate(planData.sessions, today) : {}),
-    [planData, today]
+    () => (workouts ? buildSessionsByDate(workouts, today) : {}),
+    [workouts, today]
   );
 
   const isSelectedToday =
@@ -80,21 +108,17 @@ export function PlanScreen() {
     sessionsByDate[selectedDateKey] ?? REST_FALLBACK;
 
   const weekInsights = useMemo(
-    () =>
-      planData
-        ? computeWeekInsights(planData.sessions, planData.plan)
-        : null,
-    [planData]
+    () => (workouts ? computeWeekInsights(workouts, today) : null),
+    [workouts, today]
   );
 
   const raceGoal = useMemo(
-    () => (planData ? buildRaceGoal(planData.plan) : null),
-    [planData]
+    () => (workouts ? buildRaceGoal(workouts) : null),
+    [workouts]
   );
 
-  const weekNumber = planData?.plan.currentWeek ?? 0;
-  const coachMessage =
-    planData?.plan.coachSummary ?? "Your coach is preparing your plan...";
+  const weekNumber = activePlan ? computeWeekNumber(activePlan.startDate, today) : 0;
+  const coachMessage = "Your coach is preparing your plan...";
 
   const exportSheetRef = useRef<BottomSheetModal>(null);
 
@@ -193,8 +217,8 @@ export function PlanScreen() {
     return { backgroundColor };
   });
 
-  // Loading state -- planData is undefined while the query is in flight
-  if (planData === undefined) {
+  // Loading state -- wait for the workouts query to resolve
+  if (workouts === undefined) {
     return (
       <View className="flex-1 bg-w2 items-center justify-center">
         <ActivityIndicator size="large" color={LIGHT_THEME.wMute} />

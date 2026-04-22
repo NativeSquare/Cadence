@@ -12,19 +12,16 @@ import { contacts } from "./table/contacts";
 import { feedback } from "./table/feedback";
 import { knowledgeBase } from "./table/knowledgeBase";
 import { pushTokens } from "./table/pushTokens";
-import { runners } from "./table/runners";
 import { safeguards } from "./table/safeguards";
-import { plannedSessions } from "./table/plannedSessions";
-import { trainingPlans } from "./table/trainingPlans";
 import { users } from "./table/users";
 
-// NOTE: The following tables are now owned by Soma component (@nativesquare/soma):
-// - activities → api.soma.listActivities / ingestActivity
-// - sleepSessions → api.soma.listSleep / ingestSleep
-// - dailySummaries → api.soma.listDaily / ingestDaily
-// - bodyMeasurements → api.soma.listBody / ingestBody
-// - stravaConnections → api.soma.listConnections / connect
-// Access via: const soma = new Soma(components.soma);
+// NOTE: Training-domain tables (athletes, zones, events, plans, blocks, workouts,
+// workoutTemplates) are owned by the Agoge component (@nativesquare/agoge).
+// Access via: ctx.runQuery/Mutation(components.agoge.public.*, { ... })
+// or the Agoge client wrapper: new Agoge(components.agoge).
+//
+// Biometrics/activities (activities, sleepSessions, dailySummaries, bodyMeasurements,
+// stravaConnections) are owned by the Soma component (@nativesquare/soma).
 
 export default defineSchema({
   ...authTables,
@@ -40,10 +37,7 @@ export default defineSchema({
   feedback,
   knowledgeBase,
   messages,
-  plannedSessions,
   pushTokens,
-  runners,
   safeguards,
-  trainingPlans,
   users,
 });

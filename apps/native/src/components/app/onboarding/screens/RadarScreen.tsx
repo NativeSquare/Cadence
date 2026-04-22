@@ -68,23 +68,23 @@ export function RadarScreen({
   const [showCoachMessage, setShowCoachMessage] = useState(false);
   const [showButton, setShowButton] = useState(false);
 
-  // Query runner to get active plan
-  const runner = useQuery(api.table.runners.getCurrentRunner);
+  // Query athlete to get active plan
+  const athlete = useQuery(api.plan.reads.getAthlete);
   const planId = useQuery(
-    api.training.queries.getActivePlanForRunner,
-    runner?._id ? { runnerId: runner._id } : "skip"
+    api.plan.legacy.getActivePlanForRunner,
+    athlete?._id ? {} : "skip"
   );
 
   // Query radar data from plan
   const radarData = useQuery(
-    api.training.queries.getRadarChartData,
+    api.plan.legacy.getRadarChartData,
     planId ? { planId } : "skip"
   );
 
   // Determine loading and error states
-  const isLoading = runner === undefined || (runner?._id && planId === undefined);
+  const isLoading = athlete === undefined || (athlete?._id && planId === undefined);
   const hasPlanData = radarData?.data && radarData.data.length > 0;
-  const noPlanAvailable = runner !== undefined && planId === null;
+  const noPlanAvailable = athlete !== undefined && planId === null;
 
   // Map backend data to component format
   const chartData = useMemo((): RadarDataPoint[] | null => {

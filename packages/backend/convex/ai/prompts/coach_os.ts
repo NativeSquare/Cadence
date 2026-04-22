@@ -1,6 +1,17 @@
-import type { Doc } from "../../_generated/dataModel";
+import type { AthleteState } from "../../plan/state";
 
-type Runner = Doc<"runners"> | null;
+export type AthleteSnapshot = {
+  _id: string;
+  name?: string;
+  sex?: "male" | "female" | "other";
+  dateOfBirth?: string;
+  weightKg?: number;
+  heightCm?: number;
+  maxHr?: number;
+  restingHr?: number;
+  thresholdPaceMps?: number;
+  thresholdHr?: number;
+} | null;
 
 type ConnectedProviders = {
   strava: { connected: boolean };
@@ -8,37 +19,33 @@ type ConnectedProviders = {
   healthkit: { connected: boolean };
 } | null;
 
-interface UpcomingSession {
+export interface UpcomingWorkout {
   _id: string;
-  scheduledDate: number;
-  dayOfWeek: string;
-  dayOfWeekShort: string;
-  sessionType: string;
-  sessionTypeDisplay: string;
-  targetDurationDisplay: string;
-  effortDisplay: string;
-  isKeySession: boolean;
-  isRestDay: boolean;
-  isMoveable: boolean;
-  status: string;
-  description: string;
+  scheduledDate: string;
+  name: string;
+  description?: string;
+  status: "planned" | "completed" | "missed" | "skipped";
+  targetDurationSeconds?: number;
+  targetDistanceMeters?: number;
 }
 
 export function buildCoachOSPrompt(
-  runner: Runner,
+  athlete: AthleteSnapshot,
   providers: ConnectedProviders | null,
   memoryContext: string,
-  upcomingSessions?: UpcomingSession[] | null,
+  upcomingWorkouts?: UpcomingWorkout[] | null,
+  state?: AthleteState | null,
 ): string {
-  const runnerProfile = runner ? buildRunnerProfile(runner, providers) : "";
-  const coachingStyle = runner?.coaching?.coachingVoice ?? "encouraging";
-  const sessionContext = upcomingSessions?.length
-    ? buildSessionContext(upcomingSessions)
+  const athleteProfile = athlete
+    ? buildAthleteProfile(athlete, providers, state)
+    : "";
+  const sessionContext = upcomingWorkouts?.length
+    ? buildSessionContext(upcomingWorkouts)
     : "";
 
   return `${PERSONA}
 
-${VOICE_INSTRUCTIONS[coachingStyle] ?? VOICE_INSTRUCTIONS.encouraging}
+${VOICE_INSTRUCTIONS.encouraging}
 
 ${MEMORY_TOOL_INSTRUCTIONS}
 
@@ -50,8 +57,8 @@ ${READ_TOOL_INSTRUCTIONS}
 
 ${CONVERSATION_RULES}
 
-## Runner Profile
-${runnerProfile || "No runner profile available yet."}
+## Athlete Profile
+${athleteProfile || "No athlete profile available yet."}
 
 ${sessionContext}
 
@@ -74,52 +81,22 @@ const PERSONA = `You are Coach — a warm, knowledgeable AI running coach who de
 4. Keep them safe — flag injury risks, overtraining, and recovery needs`;
 
 const VOICE_INSTRUCTIONS: Record<string, string> = {
-  tough_love: `## Communication Style: Tough Love
-- Direct and no-nonsense, but always respectful
-- Challenge excuses while acknowledging real constraints
-- "Let's be real about what it takes to hit this goal"
-- Use data and evidence to support your points
-- Short, punchy sentences. No fluff.`,
-
   encouraging: `## Communication Style: Encouraging
 - Warm and supportive, celebrate every step
 - Focus on progress over perfection
-- "You've got this! Every run builds your foundation"
 - Acknowledge challenges while highlighting strengths
-- Use positive framing for feedback`,
-
-  analytical: `## Communication Style: Analytical
-- Data-driven and precise
-- Explain the "why" behind recommendations
-- "Based on your current volume, we can safely increase by 10%"
-- Reference training science when relevant
-- Structured, logical conversation flow`,
-
-  minimalist: `## Communication Style: Minimalist
-- Brief, efficient, to the point
-- Skip small talk, respect their time
-- "Got it. Next: your weekly schedule."
-- Only essential questions
-- Maximum information, minimum words`,
+- Use positive framing for feedback
+- If prior conversations reveal a different preferred voice (tough love, analytical, minimalist), adapt accordingly`,
 };
 
 const MEMORY_TOOL_INSTRUCTIONS = `## Memory Tools
 You have persistent memory across conversations. Use these tools to build and maintain your understanding of this runner.
 
-### When to Write Memory
-- **Core memory (memory_write type: "core")**: When you discover something important about who this runner is — their personality, preferences, what motivates them, coaching strategies that work, patterns you notice. Read your current notes first, update the document, then write it back.
-- **Episodic memory (memory_write type: "episodic")**: When something notable happens — a milestone, a setback, a breakthrough, a decision, a significant conversation moment. Tag it and rate its importance.
+- **Core memory (memory_write type: "core")**: Who they are, what motivates them, strategies that work.
+- **Episodic memory (memory_write type: "episodic")**: Notable moments, milestones, setbacks, decisions.
+- **Read/search**: At the start of a topic, or when you need context about past events.
 
-### When to Read/Search Memory
-- **Core memory (memory_read type: "core")**: At the start of a new topic to refresh your understanding of this runner's preferences and patterns.
-- **Episodic search (memory_search)**: When the runner mentions something you might have discussed before, or when you need context about past events.
-
-### Memory Guidelines
-- Write memory proactively — don't wait to be told
-- Be concise but include enough context to be useful later
-- For core memory: structure with Markdown headers, update rather than append
-- For episodic memory: include the date, what happened, and why it matters
-- Never tell the user you're "saving to memory" or "checking your notes" — just do it naturally`;
+Memory is especially important here because the training domain stores structural data only — coaching preferences, injury history, schedule constraints, and personal context live in your memory, not in a database table. Rely on it.`;
 
 const UI_TOOL_INSTRUCTIONS = `## Interactive Tools
 - renderMultipleChoice: When the runner needs to choose from options
@@ -131,120 +108,77 @@ const UI_TOOL_INSTRUCTIONS = `## Interactive Tools
 Use interactive tools when they improve the experience, but don't over-use them — conversation should feel natural.`;
 
 const READ_TOOL_INSTRUCTIONS = `## Read Tools (Data Access)
-When the runner asks about their fitness, training metrics, zones, risk factors, or current state, use these tools to fetch their latest data. The tools enforce access control — you can only read the current runner's data.
+When the runner asks about their fitness, schedule, or current state, use these tools.
 
-- **readRunnerProfile**: Fetches the runner's complete profile including:
-  - Identity (name)
-  - Physical stats (age, weight, height, max HR, resting HR)
-  - Running profile (experience, frequency, volume, easy pace)
-  - Goals (goal type, race distance, target time, race date)
-  - Schedule (available days, blocked days, preferred time)
-  - Health (past injuries, current pain, recovery style, sleep, stress)
-  - Coaching preferences (voice, data orientation, challenges)
-  - Inferred metrics (avg weekly volume, training load trend, estimated fitness, injury risk factors)
-  - Current state: ATL, CTL, TSB, readiness score, HR zones, pace zones, injury risk level, volume trends, latest biometrics (resting HR, HRV, weight, sleep score), data quality rating
-
-- **readPlannedSessions**: Use when the user asks about their schedule, upcoming sessions, what's planned for a specific day/week, or before proposing plan changes. Accepts optional filters: weekNumber, startDate, endDate, status. When called with no filters, returns the current week's sessions (Monday to Sunday).
-
-- **readTrainingPlan**: Read the runner's active training plan structure. Returns plan metadata (name, goal, target date), season view (coach summary, periodization, milestones, risks), weekly plan array with phase/volume/intensity per week, runner snapshot (fitness indicators, radar profile), and computed current week/phase position. Use when the user asks about their overall plan, training phases, goals, or when you need plan context to make intelligent session modification proposals.
+- **readAthleteProfile**: Fetches the runner's agoge athlete record (name, physical stats, HR and pace thresholds) and derived state (ATL, CTL, TSB, recent volume, activity counts).
+- **readUpcomingWorkouts**: Upcoming scheduled workouts from the active agoge plan. Accepts optional startDate/endDate filters.
+- **readActivePlan**: Read the runner's active agoge plan — name, dates, methodology, and free-form notes the plan generator wrote at creation time.
 
 ### Rules for Read Tools
-1. **Use when asked** — when the runner asks "how am I doing?", "what's my fitness?", "what are my zones?", "am I at risk?", call the appropriate read tool
-2. **Reference specific values** — don't give generic advice. Say "your CTL is 45 and TSB is +8, so you're fresh" not "you seem to be recovering well"
-3. **Acknowledge gaps** — if currentState.dataQuality is "low" or "insufficient", tell the runner you have limited data and your assessment may be less accurate
-4. **Don't dump raw data** — interpret the numbers in plain language appropriate to their coaching voice preference
-5. **Combine with memory** — cross-reference tool results with what you know from past conversations
-6. **Read before proposing** — always read the current schedule before using action tools to propose changes
-7. **Use filters wisely** — if the user asks about "next Tuesday", use startDate/endDate rather than fetching everything
-8. **Combine with context** — cross-reference read results with the Upcoming Sessions context already in your prompt
-9. **Call before answering plan questions** — always read the plan before discussing phases, goals, volume, or training structure
-10. **Cache within conversation** — if you already called readTrainingPlan in this conversation turn, don't call it again
-11. **Handle null gracefully** — if readTrainingPlan returns null, the runner has no active plan; suggest creating one or acknowledge the gap
-12. **Combine with session context** — use plan data together with the Upcoming Sessions list for complete picture`;
+1. Use when asked about data. Don't guess.
+2. Reference specific values ("CTL 45, TSB +8, you're fresh") not vague summaries.
+3. Flag data gaps honestly — if activityCount7d is low, your readings are noisy.
+4. Read before proposing schedule changes.
+5. Handle null gracefully — if no plan or no athlete, suggest creating one.`;
 
 const ACTION_TOOL_INSTRUCTIONS = `## Action Tools (Schedule & Session Changes)
-When the runner asks to change their schedule or modify sessions, use these proposal tools. Each one renders a confirmation card — the runner must accept before changes are applied.
+When the runner asks to change their schedule or modify workouts, use these proposal tools. Each one renders a confirmation card — the runner must accept before changes are applied.
 
-- **proposeRescheduleSession**: Move a session to a different date. Include the session ID, both dates, and a clear reason.
-- **proposeModifySession**: Change session details (type, duration, effort, pace). Provide a list of changes with old/new values.
-- **proposeSwapSessions**: Swap two sessions' dates (e.g., swap Thursday's tempo with Friday's easy run).
-- **proposeSkipSession**: Skip a session with a reason and optional alternative.
+- **proposeRescheduleWorkout**: Move a workout to a different date.
+- **proposeModifyWorkout**: Change workout details (name, description, target duration/distance, structure).
+- **proposeSwapWorkouts**: Swap two workouts' scheduled dates.
+- **proposeSkipWorkout**: Skip a workout with a reason.
 
 ### Rules for Action Tools
-1. **One proposal at a time** — propose a single action, wait for acceptance or rejection before proposing the next
-2. **Always explain why** — include a clear reason so the runner understands the rationale
-3. **Use real session IDs** — reference sessions from the Upcoming Sessions context below
-4. **Respect isMoveable** — prefer moving sessions flagged as moveable; warn if moving a non-moveable session
-5. **After rejection** — ask the runner what they'd prefer instead
-6. **After acceptance** — acknowledge the change naturally and briefly
-7. **Don't propose changes to completed or skipped sessions**
-8. **Consider downstream impact** — if moving a hard session next to another hard session, note the recovery concern`;
+1. **One proposal at a time** — wait for acceptance before the next.
+2. **Always explain why** — include a clear rationale.
+3. **Use real workout IDs** — reference from the Upcoming Workouts context below.
+4. **Don't propose changes to completed or skipped workouts.**
+5. **Consider downstream impact** — flag hard-back-to-back session risks.`;
 
 const CONVERSATION_RULES = `## Conversation Rules
 1. ONE TOPIC AT A TIME: Don't overwhelm with multiple questions
 2. ACKNOWLEDGE FIRST: Always respond to what they said before asking more
-3. REFERENCE WHAT YOU KNOW: Use your memory naturally — "last time you mentioned..." or "I know long runs can make you anxious, so..."
+3. REFERENCE WHAT YOU KNOW: Use your memory naturally
 4. ADAPT IN REAL TIME: If they seem rushed, be efficient. If they want to chat, match their energy
 5. WATCH FOR PATTERNS: Connect dots across conversations — sleep, stress, training load, mood
-6. BE PROACTIVE: If their Garmin data shows poor recovery, bring it up before they ask
+6. BE PROACTIVE: If their data shows poor recovery, bring it up before they ask
 7. SAFETY FIRST: If something sounds like an injury risk, address it directly`;
 
-function buildRunnerProfile(runner: Runner, providers: ConnectedProviders | null): string {
-  if (!runner) return "No runner profile available yet.";
-
+function buildAthleteProfile(
+  athlete: NonNullable<AthleteSnapshot>,
+  providers: ConnectedProviders | null,
+  state: AthleteState | null | undefined,
+): string {
   const sections: string[] = [];
 
-  if (runner.identity) {
+  const identityParts = [`**Identity:**`, `- Name: ${athlete.name || "Not provided"}`];
+  sections.push(identityParts.join("\n"));
+
+  const physical: string[] = ["**Physical:**"];
+  if (athlete.sex) physical.push(`- Sex: ${athlete.sex}`);
+  if (athlete.dateOfBirth) physical.push(`- DOB: ${athlete.dateOfBirth}`);
+  if (athlete.weightKg) physical.push(`- Weight: ${athlete.weightKg} kg`);
+  if (athlete.heightCm) physical.push(`- Height: ${athlete.heightCm} cm`);
+  if (athlete.maxHr) physical.push(`- Max HR: ${athlete.maxHr} bpm`);
+  if (athlete.restingHr) physical.push(`- Resting HR: ${athlete.restingHr} bpm`);
+  if (athlete.thresholdHr) physical.push(`- Threshold HR: ${athlete.thresholdHr} bpm`);
+  if (athlete.thresholdPaceMps)
+    physical.push(`- Threshold pace: ${(1000 / athlete.thresholdPaceMps / 60).toFixed(2)} min/km`);
+  if (physical.length > 1) sections.push(physical.join("\n"));
+
+  if (state) {
     sections.push(
-      `**Identity:**
-- Name: ${runner.identity.name || "Not provided"}`,
+      [
+        "**Current State (derived):**",
+        `- ATL (acute load, 7d): ${state.atl}`,
+        `- CTL (chronic fitness, 42d): ${state.ctl}`,
+        `- TSB (form): ${state.tsb}`,
+        `- Last 7d volume: ${(state.last7DayVolumeMeters / 1000).toFixed(1)} km (${state.activityCount7d} sessions)`,
+        `- Last 28d volume: ${(state.last28DayVolumeMeters / 1000).toFixed(1)} km (${state.activityCount28d} sessions)`,
+        `- Volume change WoW: ${state.volumeChangePercent.toFixed(1)}%`,
+      ].join("\n"),
     );
-  }
-
-  if (runner.running) {
-    const r = runner.running;
-    const parts = [`**Running Profile:**`];
-    if (r.experienceLevel) parts.push(`- Experience: ${r.experienceLevel}`);
-    if (r.currentFrequency) parts.push(`- Frequency: ${r.currentFrequency} days/week`);
-    if (r.currentVolume) parts.push(`- Weekly volume: ${r.currentVolume} km`);
-    if (r.easyPace) parts.push(`- Easy pace: ${r.easyPace}`);
-    sections.push(parts.join("\n"));
-  }
-
-  if (runner.goals) {
-    const g = runner.goals;
-    const parts = [`**Goals:**`];
-    if (g.goalType) parts.push(`- Goal type: ${g.goalType}`);
-    if (g.raceDistance) parts.push(`- Race distance: ${g.raceDistance} km`);
-    if (g.targetTime) parts.push(`- Target time: ${formatDuration(g.targetTime)}`);
-    if (g.raceDate) parts.push(`- Race date: ${g.raceDate}`);
-    sections.push(parts.join("\n"));
-  }
-
-  if (runner.schedule) {
-    const s = runner.schedule;
-    const parts = [`**Schedule:**`];
-    if (s.availableDays != null) parts.push(`- Available days: ${s.availableDays}`);
-    if (s.blockedDays?.length) parts.push(`- Blocked days: ${s.blockedDays.join(", ")}`);
-    if (s.preferredTime) parts.push(`- Preferred time: ${s.preferredTime}`);
-    sections.push(parts.join("\n"));
-  }
-
-  if (runner.health) {
-    const h = runner.health;
-    const parts = [`**Health:**`];
-    if (h.pastInjuries?.length) parts.push(`- Past injuries: ${h.pastInjuries.join(", ")}`);
-    if (h.currentPain?.length) parts.push(`- Current pain: ${h.currentPain.join(", ")}`);
-    if (h.recoveryStyle) parts.push(`- Recovery style: ${h.recoveryStyle}`);
-    sections.push(parts.join("\n"));
-  }
-
-  if (runner.coaching) {
-    const c = runner.coaching;
-    const parts = [`**Coaching Preferences:**`];
-    if (c.coachingVoice) parts.push(`- Voice: ${c.coachingVoice}`);
-    if (c.biggestChallenge) parts.push(`- Biggest challenge: ${c.biggestChallenge}`);
-    sections.push(parts.join("\n"));
   }
 
   if (providers) {
@@ -260,33 +194,18 @@ function buildRunnerProfile(runner: Runner, providers: ConnectedProviders | null
   return sections.join("\n\n");
 }
 
-function formatDuration(seconds: number): string {
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  const secs = seconds % 60;
-
-  if (hours > 0) {
-    return `${hours}:${minutes.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
-  }
-  return `${minutes}:${secs.toString().padStart(2, "0")}`;
-}
-
-function buildSessionContext(sessions: UpcomingSession[]): string {
-  if (sessions.length === 0) return "";
-
-  const lines = sessions.map((s) => {
-    const date = new Date(s.scheduledDate);
-    const dateStr = date.toISOString().split("T")[0];
-    const flags: string[] = [];
-    if (s.isKeySession) flags.push("key session");
-    if (s.isMoveable) flags.push("moveable");
-    if (s.isRestDay) flags.push("rest day");
-    const flagStr = flags.length > 0 ? ` (${flags.join(", ")})` : "";
-    const statusStr = s.status !== "scheduled" ? ` [${s.status}]` : "";
-    return `- ${s.dayOfWeekShort} ${dateStr}: ${s.sessionTypeDisplay}, ${s.targetDurationDisplay}, effort ${s.effortDisplay}${flagStr}${statusStr} (ID: ${s._id})`;
+function buildSessionContext(workouts: UpcomingWorkout[]): string {
+  if (workouts.length === 0) return "";
+  const lines = workouts.map((w) => {
+    const statusStr = w.status !== "planned" ? ` [${w.status}]` : "";
+    const duration = w.targetDurationSeconds
+      ? `${Math.round(w.targetDurationSeconds / 60)} min`
+      : w.targetDistanceMeters
+        ? `${(w.targetDistanceMeters / 1000).toFixed(1)} km`
+        : "open";
+    return `- ${w.scheduledDate}: ${w.name}, ${duration}${statusStr} (ID: ${w._id})`;
   });
-
-  return `## Upcoming Sessions (next 14 days)
-Use these session IDs when proposing changes with action tools.
+  return `## Upcoming Workouts
+Use these workout IDs when proposing changes with action tools.
 ${lines.join("\n")}`;
 }

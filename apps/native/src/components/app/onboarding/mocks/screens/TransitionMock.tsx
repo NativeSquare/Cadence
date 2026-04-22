@@ -17,7 +17,7 @@ import Animated, {
   withTiming,
   Easing,
 } from "react-native-reanimated";
-import { useMutation } from "convex/react";
+import { useAction, useQuery } from "convex/react";
 import { api } from "@packages/backend/convex/_generated/api";
 import { Text } from "@/components/ui/text";
 import { useStream } from "@/hooks/use-stream";
@@ -26,6 +26,26 @@ import { COLORS, GRAYS } from "@/lib/design-tokens";
 
 interface TransitionMockProps {
   onDone: () => void;
+}
+
+type GoalType = "5k" | "10k" | "half_marathon" | "marathon" | "base_building";
+
+/**
+ * Map the athlete's nearest future event distance to a training goal type.
+ * Fallback to `base_building` when no event exists (or distance is unset).
+ */
+function inferGoalType(
+  events: Array<{ date: string; distanceMeters?: number }> | null | undefined,
+): GoalType {
+  if (!events || events.length === 0) return "base_building";
+  const nearest = [...events].sort((a, b) => a.date.localeCompare(b.date))[0];
+  const d = nearest?.distanceMeters;
+  if (!d) return "base_building";
+  if (Math.abs(d - 5000) < 500) return "5k";
+  if (Math.abs(d - 10000) < 500) return "10k";
+  if (Math.abs(d - 21097) < 1000) return "half_marathon";
+  if (Math.abs(d - 42195) < 1500) return "marathon";
+  return "base_building";
 }
 
 function Spinner() {
@@ -51,8 +71,10 @@ export function TransitionMock({ onDone }: TransitionMockProps) {
   const [planGenerated, setPlanGenerated] = useState(false);
   const planGenerationStarted = useRef(false);
 
-  // Plan generation mutation
-  const generatePlan = useMutation(api.training.mutations.generateAndPersistPlan);
+  const generatePlan = useAction(api.plan.generate.generatePlan);
+  const futureEvents = useQuery(api.plan.reads.listEvents, {
+    startDate: new Date().toISOString().slice(0, 10),
+  });
 
   const s1 = useStream({
     text: "Okay. I believe I have what I need to draft your game plan.",
@@ -73,13 +95,19 @@ export function TransitionMock({ onDone }: TransitionMockProps) {
     }
   }, [s2.done]);
 
-  // Trigger plan generation when spinner appears
+  // Trigger plan generation when spinner appears. Wait until the events
+  // query has resolved so we can pick the right goal type.
   useEffect(() => {
-    if (showSpinner && !planGenerationStarted.current) {
+    if (
+      showSpinner &&
+      !planGenerationStarted.current &&
+      futureEvents !== undefined
+    ) {
       planGenerationStarted.current = true;
-      console.log("[TransitionMock] Starting plan generation...");
+      const goalType = inferGoalType(futureEvents);
+      console.log("[TransitionMock] Starting plan generation:", { goalType });
 
-      generatePlan({})
+      generatePlan({ goalType })
         .then((result) => {
           console.log("[TransitionMock] Plan generated successfully:", result);
           setPlanGenerated(true);
@@ -90,7 +118,7 @@ export function TransitionMock({ onDone }: TransitionMockProps) {
           // User will need to retry or debug
         });
     }
-  }, [showSpinner, generatePlan]);
+  }, [showSpinner, generatePlan, futureEvents]);
 
   // Only advance when spinner is showing AND plan is generated
   useEffect(() => {

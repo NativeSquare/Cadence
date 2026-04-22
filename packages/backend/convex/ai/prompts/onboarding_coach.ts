@@ -1,15 +1,13 @@
-import type { Doc } from "../../_generated/dataModel";
+import type { AthleteSnapshot } from "./coach_os";
 
 /**
  * Onboarding Coach System Prompt
  *
  * Builds the system prompt for the conversational onboarding coach.
- * Adapts based on Runner Object state and coaching preferences.
- *
- * Source: Story 2.1 - AC#2
+ * Operates on the agoge athlete shape (optional fields). Fields the agoge
+ * model doesn't cover (schedule, health, coaching prefs) are captured in
+ * conversation memory rather than a database table.
  */
-
-type Runner = Doc<"runners"> | null;
 
 type ConnectedProviders = {
   strava: { connected: boolean };
@@ -17,23 +15,24 @@ type ConnectedProviders = {
   healthkit: { connected: boolean };
 } | null;
 
-/**
- * Build system prompt with runner context injected
- */
-export function buildSystemPrompt(runner: Runner, providers?: ConnectedProviders): string {
-  const runnerContext = runner ? buildRunnerContext(runner, providers ?? null) : getDefaultContext();
-  const coachingStyle = runner?.coaching?.coachingVoice ?? "encouraging";
+export function buildSystemPrompt(
+  athlete: AthleteSnapshot,
+  providers?: ConnectedProviders,
+): string {
+  const athleteContext = athlete
+    ? buildAthleteContext(athlete, providers ?? null)
+    : getDefaultContext();
 
   return `${BASE_PROMPT}
 
-${VOICE_INSTRUCTIONS[coachingStyle] ?? VOICE_INSTRUCTIONS.encouraging}
+${VOICE_INSTRUCTIONS.encouraging}
 
 ${TOOL_INSTRUCTIONS}
 
 ${CONVERSATION_RULES}
 
-## Current Runner Context
-${runnerContext}
+## Current Athlete Context
+${athleteContext}
 
 ${PHASE_GUIDANCE}`;
 }
@@ -48,38 +47,21 @@ const BASE_PROMPT = `You are an expert running coach helping a new user set up t
 
 ## Core Objectives
 1. Build rapport and trust with the runner
-2. Gather complete profile information for plan generation
+2. Gather profile information for plan generation and store it using the tools:
+   - Structural fields (name, sex, DOB, height, weight, HR thresholds) → upsertAthlete
+   - Training events (target races, dates, goal times) → createEvent
+   - Everything else (coaching preferences, schedule constraints, injury history,
+     stress/sleep style, motivations) → commit to memory via memory_write
 3. Make the onboarding feel like a conversation, not a form
 4. Use tools to collect structured data while maintaining flow`;
 
 const VOICE_INSTRUCTIONS: Record<string, string> = {
-  tough_love: `## Communication Style: Tough Love
-- Direct and no-nonsense, but always respectful
-- Challenge excuses while acknowledging real constraints
-- "Let's be real about what it takes to hit this goal"
-- Use data and evidence to support your points
-- Short, punchy sentences. No fluff.`,
-
   encouraging: `## Communication Style: Encouraging
 - Warm and supportive, celebrate every step
 - Focus on progress over perfection
-- "You've got this! Every run builds your foundation"
 - Acknowledge challenges while highlighting strengths
-- Use positive framing for feedback`,
-
-  analytical: `## Communication Style: Analytical
-- Data-driven and precise
-- Explain the "why" behind recommendations
-- "Based on your current volume, we can safely increase by 10%"
-- Reference training science when relevant
-- Structured, logical conversation flow`,
-
-  minimalist: `## Communication Style: Minimalist
-- Brief, efficient, to the point
-- Skip small talk, respect their time
-- "Got it. Next: your weekly schedule."
-- Only essential questions
-- Maximum information, minimum words`,
+- Use positive framing for feedback
+- Adapt to the runner's preferred voice if you learn it from the conversation`,
 };
 
 const TOOL_INSTRUCTIONS = `## Tool Usage Rules
@@ -112,114 +94,47 @@ Follow this general flow, adapting based on conversation:
 
 1. **Intro Phase**: Confirm their name, set expectations for the conversation
 2. **Data Bridge Phase**: After name confirmation, use renderConnectionCard to offer wearable connection
-   - Say something like: "Before we dig in, would you like to connect your watch or Strava? It helps me understand your running better, but no pressure."
-   - If they skip: "No problem. I'll learn as we go." Then proceed to Profile phase.
-   - If they attempt to connect (mock): Continue as if they skipped for MVP.
-3. **Profile Phase**: Running experience, current fitness, typical week
-4. **Goals Phase**: What they want to achieve, timeline, target race
-5. **Schedule Phase**: Available days, time of day, life constraints
-6. **Health Phase**: Injury history, current issues, recovery style
-7. **Coaching Phase**: Preferred coaching style, biggest challenges, what motivates them
+3. **Physical Phase**: Sex, DOB, weight, height, max HR, resting HR, threshold pace/HR — write with upsertAthlete
+4. **Goals Phase**: Target race, distance, date, goal time — write with createEvent
+5. **Schedule Phase**: Available days, time of day, constraints — commit to memory (memory_write type: "core")
+6. **Health Phase**: Injury history, current issues, recovery style, sleep, stress — commit to memory
+7. **Coaching Phase**: Preferred voice, biggest challenges, motivations — commit to memory
 
 At each phase transition, use renderConfirmation to verify data before moving on.
 Use renderProgress periodically to show completion status.`;
 
-/**
- * Build context string from runner data
- */
-function buildRunnerContext(runner: Runner, providers: ConnectedProviders): string {
-  if (!runner) return getDefaultContext();
-
+function buildAthleteContext(
+  athlete: NonNullable<AthleteSnapshot>,
+  providers: ConnectedProviders,
+): string {
   const sections: string[] = [];
 
-  // Identity
-  if (runner.identity) {
-    sections.push(
-      `**Identity:**
-- Name: ${runner.identity.name || "Not provided"}
-- Name confirmed: ${runner.identity.nameConfirmed ? "Yes" : "No"}`
-    );
-  }
+  sections.push(
+    [
+      `**Identity:**`,
+      `- Name: ${athlete.name || "Not provided"}`,
+    ].join("\n"),
+  );
 
-  // Running profile
-  if (runner.running) {
-    const r = runner.running;
-    sections.push(
-      `**Running Profile:**
-- Experience: ${r.experienceLevel || "Unknown"}
-- Current frequency: ${r.currentFrequency ? `${r.currentFrequency} days/week` : "Unknown"}
-- Weekly volume: ${r.currentVolume ? `${r.currentVolume} km` : "Unknown"}
-- Easy pace: ${r.easyPace || "Unknown"}`
-    );
-  }
+  const physical: string[] = ["**Physical:**"];
+  if (athlete.sex) physical.push(`- Sex: ${athlete.sex}`);
+  if (athlete.dateOfBirth) physical.push(`- DOB: ${athlete.dateOfBirth}`);
+  if (athlete.weightKg) physical.push(`- Weight: ${athlete.weightKg} kg`);
+  if (athlete.heightCm) physical.push(`- Height: ${athlete.heightCm} cm`);
+  if (athlete.maxHr) physical.push(`- Max HR: ${athlete.maxHr} bpm`);
+  if (athlete.restingHr) physical.push(`- Resting HR: ${athlete.restingHr} bpm`);
+  if (athlete.thresholdHr) physical.push(`- Threshold HR: ${athlete.thresholdHr} bpm`);
+  if (athlete.thresholdPaceMps)
+    physical.push(`- Threshold pace: ${(1000 / athlete.thresholdPaceMps / 60).toFixed(2)} min/km`);
+  if (physical.length > 1) sections.push(physical.join("\n"));
 
-  // Goals
-  if (runner.goals) {
-    const g = runner.goals;
-    sections.push(
-      `**Goals:**
-- Goal type: ${g.goalType || "Not set"}
-- Race distance: ${g.raceDistance ? `${g.raceDistance} km` : "N/A"}
-- Target time: ${g.targetTime ? formatDuration(g.targetTime) : "N/A"}`
-    );
-  }
-
-  // Schedule
-  if (runner.schedule) {
-    const s = runner.schedule;
-    sections.push(
-      `**Schedule:**
-- Available days: ${s.availableDays ?? "Unknown"}
-- Blocked days: ${s.blockedDays?.join(", ") || "None specified"}
-- Preferred time: ${s.preferredTime || "Unknown"}`
-    );
-  }
-
-  // Health
-  if (runner.health) {
-    const h = runner.health;
-    sections.push(
-      `**Health:**
-- Past injuries: ${h.pastInjuries?.join(", ") || "None reported"}
-- Current pain: ${h.currentPain?.join(", ") || "None"}
-- Recovery style: ${h.recoveryStyle || "Unknown"}
-- Sleep: ${h.sleepQuality || "Unknown"}
-- Stress: ${h.stressLevel || "Unknown"}`
-    );
-  }
-
-  // Coaching preferences
-  if (runner.coaching) {
-    const c = runner.coaching;
-    sections.push(
-      `**Coaching Preferences:**
-- Voice preference: ${c.coachingVoice || "Not set"}
-- Data orientation: ${c.dataOrientation || "Unknown"}
-- Biggest challenge: ${c.biggestChallenge || "Not shared"}`
-    );
-  }
-
-  // Data Connections (from Soma)
   if (providers) {
-    const connectedNames: string[] = [];
-    if (providers.strava.connected) connectedNames.push("Strava");
-    if (providers.garmin.connected) connectedNames.push("Garmin");
-    if (providers.healthkit.connected) connectedNames.push("Apple Health");
+    const connected: string[] = [];
+    if (providers.strava.connected) connected.push("Strava");
+    if (providers.garmin.connected) connected.push("Garmin");
+    if (providers.healthkit.connected) connected.push("Apple Health");
     sections.push(
-      `**Data Connections:**
-- Connected providers: ${connectedNames.length > 0 ? connectedNames.join(", ") : "None"}`
-    );
-  }
-
-  // Conversation state
-  if (runner.conversationState) {
-    const cs = runner.conversationState;
-    sections.push(
-      `**Conversation State:**
-- Current phase: ${cs.currentPhase}
-- Data completeness: ${cs.dataCompleteness}%
-- Ready for plan: ${cs.readyForPlan ? "Yes" : "No"}
-- Missing fields: ${cs.fieldsMissing.length > 0 ? cs.fieldsMissing.join(", ") : "None"}`
+      `**Data Connections:**\n- Connected providers: ${connected.length > 0 ? connected.join(", ") : "None"}`,
     );
   }
 
@@ -227,18 +142,6 @@ function buildRunnerContext(runner: Runner, providers: ConnectedProviders): stri
 }
 
 function getDefaultContext(): string {
-  return `**New User** - No profile data collected yet.
+  return `**New User** - No athlete profile yet.
 Start with name confirmation and introduction.`;
 }
-
-function formatDuration(seconds: number): string {
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  const secs = seconds % 60;
-
-  if (hours > 0) {
-    return `${hours}:${minutes.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
-  }
-  return `${minutes}:${secs.toString().padStart(2, "0")}`;
-}
-

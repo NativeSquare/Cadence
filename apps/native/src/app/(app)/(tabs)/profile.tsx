@@ -56,7 +56,7 @@ export default function Profile() {
   const router = useRouter();
   const { signOut } = useAuthActions();
   const user = useQuery(api.table.users.currentUser);
-  const runner = useQuery(api.table.runners.getCurrentRunner);
+  const runner = useQuery(api.plan.reads.getAthlete);
   const connections = useQuery(api.soma.index.listConnections);
   const isProviderConnected = (provider: string) =>
     connections?.some((c) => c.provider === provider && c.active) ?? false;
@@ -72,47 +72,22 @@ export default function Profile() {
     return (fromName || "?").toUpperCase();
   }, [displayName]);
 
-  // Derive display values from backend data
-  const goalValue = (() => {
-    const g = runner?.goals;
-    if (!g?.goalType) return "Not set";
-    const label = GOAL_LABELS[g.goalType] ?? g.goalType;
-    if (g.goalType === "race" && g.raceDistance) {
-      const dist = RACE_LABELS[g.raceDistance] ?? `${g.raceDistance} km`;
-      return dist;
-    }
-    return label;
-  })();
-
-  const coachingValue =
-    VOICE_LABELS[runner?.coaching?.coachingVoice ?? ""] ?? "Not set";
-
-  const scheduleValue = (() => {
-    const s = runner?.schedule;
-    if (!s?.availableDays) return "Not set";
-    return `${s.availableDays} days/week`;
-  })();
-
+  // Agoge-migration: rich profile fields (goals/coaching/schedule/health) are
+  // no longer stored — these derivations return placeholders until the
+  // account screens are rebuilt on agoge.athlete + agoge.events.
+  const goalValue = "Not set";
+  const coachingValue = "Not set";
+  const scheduleValue = "Not set";
   const bodyValue = (() => {
-    const p = runner?.physical;
-    if (!p) return "Not set";
+    if (!runner) return "Not set";
     const parts: string[] = [];
-    if (p.gender) parts.push(p.gender === "male" ? "M" : "F");
-    if (p.weight) parts.push(`${p.weight} kg`);
-    if (p.height) parts.push(`${p.height} cm`);
-    if (p.maxHr) parts.push(`${p.maxHr} bpm`);
+    if (runner.sex) parts.push(runner.sex === "male" ? "M" : runner.sex === "female" ? "F" : "O");
+    if (runner.weightKg) parts.push(`${runner.weightKg} kg`);
+    if (runner.heightCm) parts.push(`${runner.heightCm} cm`);
+    if (runner.maxHr) parts.push(`${runner.maxHr} bpm`);
     return parts.length > 0 ? parts.join(" · ") : "Not set";
   })();
-
-  const healthValue = (() => {
-    const h = runner?.health;
-    if (!h?.recoveryStyle && !h?.sleepQuality) return "Not set";
-    const parts: string[] = [];
-    if (h.sleepQuality) parts.push(`Sleep: ${h.sleepQuality}`);
-    if (h.stressLevel) parts.push(`Stress: ${h.stressLevel}`);
-    return parts.length > 0 ? parts.join(" · ") : "Not set";
-  })();
-
+  const healthValue = "Not set";
   const connectionsValue = (() => {
     if (!connections) return "Not set";
     const connected: string[] = [];
@@ -121,16 +96,7 @@ export default function Profile() {
     if (isProviderConnected("HEALTHKIT")) connected.push("Apple Health");
     return connected.length > 0 ? connected.join(", ") : "None";
   })();
-
-  const planPhase = (() => {
-    const g = runner?.goals;
-    if (!g?.goalType) return "No active plan";
-    if (g.goalType === "race" && g.raceDistance) {
-      const dist = RACE_LABELS[g.raceDistance] ?? `${g.raceDistance} km`;
-      return `${dist} Training`;
-    }
-    return GOAL_LABELS[g.goalType] ?? "Training";
-  })();
+  const planPhase = "No active plan";
 
   // Scroll-driven status bar transition (dark -> light)
   const scrollY = useSharedValue(0);

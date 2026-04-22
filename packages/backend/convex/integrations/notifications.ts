@@ -87,7 +87,7 @@ export const getTokensForUser = internalQuery({
 export const sendSessionCompleteNotification = internalAction({
   args: {
     userId: v.id("users"),
-    sessionId: v.id("plannedSessions"),
+    workoutId: v.string(),
     sessionType: v.string(),
   },
   returns: v.null(),
@@ -97,7 +97,7 @@ export const sendSessionCompleteNotification = internalAction({
     console.log(
       `\n${TAG} ── Sending push notification ──\n` +
         `    User: ${args.userId}\n` +
-        `    Session: ${args.sessionType} (${args.sessionId})\n` +
+        `    Session: ${args.sessionType} (${args.workoutId})\n` +
         `    Deep link: screen=debrief`,
     );
 
@@ -118,7 +118,7 @@ export const sendSessionCompleteNotification = internalAction({
       title: "Run Complete!",
       body: `Your ${args.sessionType} session is logged. Tap to debrief.`,
       data: {
-        sessionId: args.sessionId,
+        workoutId: args.workoutId,
         screen: "debrief",
       },
       sound: "default" as const,

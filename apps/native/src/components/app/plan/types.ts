@@ -3,8 +3,6 @@
  * Reference: cadence-full-v9.jsx PLAN array (lines 76-84)
  */
 
-import type { Id } from "@packages/backend/convex/_generated/dataModel";
-
 /**
  * Session intensity level determines the visual color
  */
@@ -29,8 +27,8 @@ export interface SyncedData {
  * Individual training session data
  */
 export interface SessionData {
-  /** Convex document ID from plannedSessions table (present when loaded from DB) */
-  sessionId?: Id<"plannedSessions">;
+  /** Agoge workout ID (present when loaded from DB) */
+  sessionId?: string;
   /** Session type (e.g., "Tempo", "Easy Run", "Intervals", "Rest", "Long Run") */
   type: string;
   /** Distance in kilometers (or "-" for rest days) */

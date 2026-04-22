@@ -1,16 +1,15 @@
 /**
- * Garmin - OAuth, sync, disconnect, and export-to-watch via Soma
+ * Garmin - OAuth, sync, disconnect, and export-to-watch via Soma.
+ *
+ * Export-to-watch is currently stubbed. The full path (agoge workout →
+ * step-tree → Soma planned workout → Garmin push) requires the adapter
+ * rewrite tracked in the plan generator work.
  */
 
 import { ConvexError, v } from "convex/values";
-import { api, internal } from "../_generated/api";
-import {
-  action,
-  internalAction,
-  internalMutation,
-} from "../_generated/server";
+import { internal } from "../_generated/api";
+import { action, internalAction } from "../_generated/server";
 import { soma } from "./index";
-import { toSoma } from "./adapter";
 
 // ─── OAuth ──────────────────────────────────────────────────────────────────
 
@@ -63,7 +62,6 @@ export const disconnect = action({
 export const backfillAll = internalAction({
   args: { userId: v.string() },
   handler: async (ctx, { userId }) => {
-    // TEMP: 1-day window for webhook testing — revert to default 90d once validated
     const endTimeInSeconds = Math.floor(Date.now() / 1000);
     const startTimeInSeconds = endTimeInSeconds - 24 * 60 * 60;
     const result = await soma.garmin.backfillAll(ctx, {
@@ -78,109 +76,16 @@ export const backfillAll = internalAction({
 // ─── Export to Watch ──────────────────────────────────────────────────────────────────
 
 export const exportSession = action({
-  args: { sessionId: v.id("plannedSessions") },
+  args: { workoutId: v.string() },
   returns: v.object({
     garminWorkoutId: v.number(),
     garminScheduleId: v.union(v.number(), v.null()),
   }),
-  handler: async (ctx, args) => {
-    const userId: string | null = await ctx.runQuery(
-      internal.soma.index.getAuthenticatedUserId,
-    );
-    if (!userId) {
-      throw new ConvexError({
-        code: "UNAUTHORIZED",
-        message: "Not authenticated",
-      });
-    }
-
-    const connection = await ctx.runQuery(
-      internal.soma.index.getConnectionByProvider,
-      { userId, provider: "GARMIN" },
-    );
-    if (!connection || !connection.active) {
-      throw new ConvexError({
-        code: "NOT_CONNECTED",
-        message: "No active Garmin connection. Connect Garmin first in Settings.",
-      });
-    }
-
-    const session = await ctx.runQuery(api.training.queries.getSessionById, {
-      sessionId: args.sessionId,
+  handler: async (_ctx, _args) => {
+    throw new ConvexError({
+      code: "NOT_IMPLEMENTED",
+      message:
+        "Export to Garmin watch is pending the agoge step-tree → Soma adapter rewrite.",
     });
-    if (!session) {
-      throw new ConvexError({
-        code: "NOT_FOUND",
-        message: "Planned session not found",
-      });
-    }
-
-    const somaWorkout = toSoma.plannedWorkout({
-      id: session._id,
-      scheduledDate: session.scheduledDate,
-      sessionTypeDisplay: session.sessionTypeDisplay,
-      description: session.description,
-      targetDurationSeconds: session.targetDurationSeconds,
-      targetDistanceMeters: session.targetDistanceMeters,
-      targetPaceMin: session.targetPaceMin,
-      targetPaceMax: session.targetPaceMax,
-      targetHeartRateMin: session.targetHeartRateMin,
-      targetHeartRateMax: session.targetHeartRateMax,
-      structureSegments: session.structureSegments,
-    });
-
-    const plannedWorkoutId: string = await ctx.runMutation(
-      internal.soma.index.ingestPlannedWorkout,
-      {
-        connectionId: connection._id,
-        userId,
-        steps: somaWorkout.steps,
-        metadata: somaWorkout.metadata,
-      },
-    );
-
-    const pushResult = await soma.garmin.pushWorkout(ctx, {
-      userId,
-      plannedWorkoutId,
-      workoutProvider: "Cadence",
-    });
-    if (!pushResult.data) {
-      throw new ConvexError({
-        code: "GARMIN_PUSH_FAILED",
-        message: pushResult.errors[0]?.message ?? "Failed to push workout to Garmin",
-      });
-    }
-    const { garminWorkoutId } = pushResult.data;
-
-    const scheduleResult = await soma.garmin.pushSchedule(ctx, {
-      userId,
-      plannedWorkoutId,
-    });
-    const garminScheduleId = scheduleResult.data?.garminScheduleId ?? null;
-
-    // Store the Garmin workout ID on the session for webhook matching
-    await ctx.runMutation(
-      internal.soma.garmin.patchSessionGarminWorkoutId,
-      {
-        sessionId: args.sessionId,
-        garminWorkoutId,
-      },
-    );
-
-    return { garminWorkoutId, garminScheduleId };
-  },
-});
-
-export const patchSessionGarminWorkoutId = internalMutation({
-  args: {
-    sessionId: v.id("plannedSessions"),
-    garminWorkoutId: v.number(),
-  },
-  returns: v.null(),
-  handler: async (ctx, args) => {
-    await ctx.db.patch(args.sessionId, {
-      garminWorkoutId: args.garminWorkoutId,
-    });
-    return null;
   },
 });

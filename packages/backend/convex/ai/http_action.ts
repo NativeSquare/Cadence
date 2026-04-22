@@ -6,9 +6,10 @@ import { httpAction } from "../_generated/server";
 import { api, components, internal } from "../_generated/api";
 import { ConvexError } from "convex/values";
 import { uiTools, actionTools } from "./tools";
-import { readRunnerProfile, readPlannedSessions, readTrainingPlan } from "./tools/reads";
+import { readAthleteProfile, readUpcomingWorkouts, readActivePlan } from "./tools/reads";
 import { buildSystemPrompt } from "./prompts/onboarding_coach";
 import { buildCoachOSPrompt } from "./prompts/coach_os";
+import { computeAthleteState } from "../plan/state";
 
 const seshat = new Seshat({ component: components.seshat });
 
@@ -241,15 +242,24 @@ export const streamChat = httpAction(async (ctx, request) => {
   console.log(`[AI] Stream request started [${requestId}]`);
 
   try {
-    const [user, runner, connections, upcomingSessions] = await Promise.all([
+    const [user, athlete, connections, upcomingWorkouts] = await Promise.all([
       ctx.runQuery(api.table.users.currentUser, {}),
-      ctx.runQuery(api.table.runners.getCurrentRunner, {}),
+      ctx.runQuery(api.plan.reads.getAthlete, {}),
       ctx.runQuery(api.soma.index.listConnections, {}),
-      ctx.runQuery(api.training.queries.getUpcomingSessions, {}),
+      (async () => {
+        const today = new Date();
+        const fourteenOut = new Date(today.getTime() + 14 * 24 * 60 * 60 * 1000);
+        return await ctx.runQuery(api.plan.reads.listWorkoutsInRange, {
+          startDate: today.toISOString().slice(0, 10),
+          endDate: fourteenOut.toISOString().slice(0, 10),
+        });
+      })(),
     ]);
 
     const isActive = (provider: string) =>
-      connections.some((c) => c.provider === provider && (c.active ?? false));
+      connections.some((c: { provider: string; active?: boolean }) =>
+        c.provider === provider && (c.active ?? false),
+      );
     const providers = {
       strava: { connected: isActive("STRAVA") },
       garmin: { connected: isActive("GARMIN") },
@@ -287,73 +297,96 @@ export const streamChat = httpAction(async (ctx, request) => {
       seshat.getMemoryTools(ctx, { userId }),
     ]);
 
-    const systemPrompt = isOnboarding
-      ? buildSystemPrompt(runner, providers)
-      : buildCoachOSPrompt(runner, providers, memoryContext, upcomingSessions);
+    const upcomingForPrompt = upcomingWorkouts.map((w) => ({
+      _id: w._id,
+      scheduledDate: w.scheduledDate,
+      name: w.name,
+      description: w.description,
+      status: w.status,
+      targetDurationSeconds: w.targetDurationSeconds,
+      targetDistanceMeters: w.targetDistanceMeters,
+    }));
 
-    // Server-executed read tool: closes over ctx to fetch runner data on demand
-    const readRunnerProfileWithCtx = tool({
-      description: readRunnerProfile.description ?? "Fetch the runner's full profile including identity, physical stats, running profile, goals, schedule, health, coaching preferences, inferred metrics, and current training state.",
+    const systemPrompt = isOnboarding
+      ? buildSystemPrompt(athlete, providers)
+      : buildCoachOSPrompt(athlete, providers, memoryContext, upcomingForPrompt);
+
+    // Server-executed read tool: closes over ctx to fetch athlete profile + derived state on demand
+    const readAthleteProfileWithCtx = tool({
+      description:
+        readAthleteProfile.description ??
+        "Fetch the athlete's agoge profile and derived state.",
       inputSchema: z.object({}),
       execute: async () => {
         try {
-          // RBAC: Distinguish UNAUTHORIZED from NOT_FOUND (AC 2)
           if (!user) {
-            throw new ConvexError({ code: "UNAUTHORIZED", message: "Must be authenticated" });
+            throw new ConvexError({
+              code: "UNAUTHORIZED",
+              message: "Must be authenticated",
+            });
           }
-
-          // Re-query for freshest data (runner may have been updated since request start)
-          const freshRunner = await ctx.runQuery(api.table.runners.getCurrentRunner, {});
-          if (!freshRunner) {
-            throw new ConvexError({ code: "NOT_FOUND", message: "Runner profile not found" });
+          const freshAthlete = await ctx.runQuery(api.plan.reads.getAthlete, {});
+          if (!freshAthlete) {
+            throw new ConvexError({
+              code: "NOT_FOUND",
+              message: "Athlete profile not found",
+            });
           }
-
-          return {
-            identity: freshRunner.identity,
-            physical: freshRunner.physical ?? null,
-            running: freshRunner.running ?? null,
-            goals: freshRunner.goals ?? null,
-            schedule: freshRunner.schedule ?? null,
-            health: freshRunner.health ?? null,
-            coaching: freshRunner.coaching ?? null,
-            connections: freshRunner.connections ?? null,
-            inferred: freshRunner.inferred ?? null,
-            currentState: freshRunner.currentState ?? null,
-          };
+          const ninetyDaysAgoMs = Date.now() - 90 * 24 * 60 * 60 * 1000;
+          const activities = await ctx.runQuery(
+            components.soma.public.listActivities,
+            {
+              userId,
+              startTime: new Date(ninetyDaysAgoMs).toISOString(),
+              order: "desc",
+            },
+          );
+          const state = computeAthleteState(
+            (activities as Array<{
+              startTime: string | number;
+              durationSec?: number;
+              distance?: number;
+              trainingLoad?: number;
+            }>).map((a) => ({
+              startTime:
+                typeof a.startTime === "string"
+                  ? Date.parse(a.startTime)
+                  : a.startTime,
+              durationSec: a.durationSec,
+              distance: a.distance,
+              trainingLoad: a.trainingLoad,
+            })),
+          );
+          return { athlete: freshAthlete, state };
         } catch (error) {
-          if (error instanceof ConvexError) {
-            throw error;
-          }
-          console.error(`[AI] [${requestId}] readRunnerProfile execute error:`, error);
-          return { error: "Failed to fetch runner profile", code: "INTERNAL_ERROR" };
+          if (error instanceof ConvexError) throw error;
+          console.error(`[AI] [${requestId}] readAthleteProfile execute error:`, error);
+          return { error: "Failed to fetch athlete profile", code: "INTERNAL_ERROR" };
         }
       },
     });
 
-    // Server-executed read tool: closes over ctx to fetch planned sessions on demand
-    const readPlannedSessionsWithCtx = tool({
-      description: readPlannedSessions.description ?? "Look up the runner's planned training sessions.",
-      inputSchema: readPlannedSessions.inputSchema,
+    const readUpcomingWorkoutsWithCtx = tool({
+      description: readUpcomingWorkouts.description ?? "Look up upcoming workouts.",
+      inputSchema: readUpcomingWorkouts.inputSchema,
       execute: async (args) => {
-        const result = await ctx.runQuery(
-          api.training.queries.readPlannedSessionsForCoach,
-          {
-            weekNumber: args.weekNumber,
-            startDate: args.startDate,
-            endDate: args.endDate,
-            status: args.status,
-          }
-        );
-        return result ?? [];
+        const today = new Date();
+        const fourteenOut = new Date(today.getTime() + 14 * 24 * 60 * 60 * 1000);
+        const workouts = await ctx.runQuery(api.plan.reads.listWorkoutsInRange, {
+          startDate: args.startDate ?? today.toISOString().slice(0, 10),
+          endDate: args.endDate ?? fourteenOut.toISOString().slice(0, 10),
+        });
+        return args.status
+          ? workouts.filter((w) => w.status === args.status)
+          : workouts;
       },
     });
 
-    // Server-executed read tool: queries on-demand for freshest data (consistent with 11.1/11.2)
-    const readTrainingPlanWithCtx = tool({
-      description: readTrainingPlan.description ?? "Read the runner's active training plan structure.",
+    const readActivePlanWithCtx = tool({
+      description: readActivePlan.description ?? "Read the athlete's active plan.",
       inputSchema: z.object({}),
       execute: async () => {
-        const plan = await ctx.runQuery(api.training.queries.getActivePlanForCoach, {});
+        const plan = await ctx.runQuery(api.plan.reads.getActivePlan, {});
         return plan ? { plan } : { plan: null };
       },
     });
@@ -361,13 +394,13 @@ export const streamChat = httpAction(async (ctx, request) => {
     const allTools = isOnboarding
       ? { ...uiTools, ...memoryTools }
       : {
-        ...uiTools,
-        ...actionTools,
-        ...memoryTools,
-        readRunnerProfile: readRunnerProfileWithCtx,
-        readPlannedSessions: readPlannedSessionsWithCtx,
-        readTrainingPlan: readTrainingPlanWithCtx,
-      };
+          ...uiTools,
+          ...actionTools,
+          ...memoryTools,
+          readAthleteProfile: readAthleteProfileWithCtx,
+          readUpcomingWorkouts: readUpcomingWorkoutsWithCtx,
+          readActivePlan: readActivePlanWithCtx,
+        };
 
     const result = streamText({
       model: openai("gpt-4o"),

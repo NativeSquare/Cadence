@@ -100,38 +100,33 @@ function RootStack() {
     api.table.users.currentUser,
     isAuthenticated ? {} : "skip",
   );
-  const runner = useQuery(
-    api.table.runners.getCurrentRunner,
+  const athlete = useQuery(
+    api.plan.reads.getAthlete,
     isAuthenticated ? {} : "skip",
   );
-  const createRunner = useMutation(api.table.runners.createRunner);
+  const upsertAthlete = useMutation(api.plan.athlete.upsertAthlete);
   const hasCompletedOnboarding = user?.hasCompletedOnboarding ?? false;
-  const runnerCreationAttempted = useRef(false);
+  const athleteCreationAttempted = useRef(false);
 
-  // Auto-create Runner Object for new users
+  // Auto-create agoge athlete for new users
   useEffect(() => {
     if (
       isAuthenticated &&
       user &&
-      runner === null &&
-      !runnerCreationAttempted.current
+      athlete === null &&
+      !athleteCreationAttempted.current
     ) {
-      runnerCreationAttempted.current = true;
-      createRunner({
-        identity: {
-          name: user.name ?? "",
-          nameConfirmed: false,
-        },
-      }).catch((err) => {
-        console.error("Failed to create runner:", err);
-        runnerCreationAttempted.current = false;
+      athleteCreationAttempted.current = true;
+      upsertAthlete(user.name ? { name: user.name } : {}).catch((err) => {
+        console.error("Failed to create athlete:", err);
+        athleteCreationAttempted.current = false;
       });
     }
     // Reset flag when user changes (e.g., sign out)
     if (!isAuthenticated) {
-      runnerCreationAttempted.current = false;
+      athleteCreationAttempted.current = false;
     }
-  }, [isAuthenticated, user, runner, createRunner]);
+  }, [isAuthenticated, user, athlete, upsertAthlete]);
 
   // Register push notifications when authenticated and onboarded
   usePushNotifications(isAuthenticated && hasCompletedOnboarding);
