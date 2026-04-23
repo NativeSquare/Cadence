@@ -6,15 +6,16 @@
 
 import { useState, useCallback, useMemo } from "react";
 import { View, StyleSheet } from "react-native";
-import { FlowProgressBar } from "./FlowProgressBar";
+// import { FlowProgressBar } from "./FlowProgressBar";
 import { ScreenTransition } from "./ScreenTransition";
-import { screenProgressMap } from "./preview-data";
+// import { screenProgressMap } from "./preview-data";
 import { COLORS } from "@/lib/design-tokens";
 
 import {
   WelcomeScreen,
   WearableScreen,
   DataInsightsScreen,
+  AthleteScreen,
   GoalsScreen,
   HealthScreen,
   StyleScreen,
@@ -27,21 +28,11 @@ import {
   PaywallScreen,
 } from "./screens";
 
-export interface OnboardingFlowProps {
-  /** Called when flow completes */
-  onComplete?: (result: { startedTrial: boolean }) => void;
-  /** Initial screen index */
-  initialScreenIndex?: number;
-  /** User name from database (agoge athlete.name or fallback to user.name) */
-  userName?: string;
-  /** Test ID for visual regression */
-  testID?: string;
-}
-
 type ScreenName =
   | "welcome"
   | "wearable"
   | "selfReport"
+  | "athlete"
   | "goals"
   | "health"
   | "style"
@@ -62,6 +53,7 @@ const SCREENS: ScreenConfig[] = [
   { name: "welcome", label: "Welcome" },
   { name: "wearable", label: "Wearable" },
   { name: "selfReport", label: "SelfReport" },
+  { name: "athlete", label: "Athlete" },
   { name: "goals", label: "Goals" },
   { name: "health", label: "Health" },
   { name: "style", label: "Style" },
@@ -74,54 +66,31 @@ const SCREENS: ScreenConfig[] = [
   { name: "paywall", label: "Paywall" },
 ];
 
-export function OnboardingFlow({
-  onComplete,
-  initialScreenIndex = 0,
-  userName: initialUserName = "",
-  testID,
-}: OnboardingFlowProps) {
-  const [currentScreenIndex, setCurrentScreenIndex] =
-    useState(initialScreenIndex);
-  const [userName, setUserName] = useState(initialUserName);
+export function OnboardingFlow() {
+  const [currentScreenIndex, setCurrentScreenIndex] = useState(0);
 
   const currentScreen = SCREENS[currentScreenIndex];
-  const progress = screenProgressMap[currentScreenIndex] ?? 0;
+  // const progress = screenProgressMap[currentScreenIndex] ?? 0;
 
   const goToNext = useCallback(() => {
     if (currentScreenIndex < SCREENS.length - 1) {
-      setCurrentScreenIndex((i) => i + 1);
+      setCurrentScreenIndex((i: number) => i + 1);
     }
   }, [currentScreenIndex]);
-
-  const handleNameChanged = useCallback((newName: string) => {
-    setUserName(newName);
-  }, []);
-
-  const handlePaywallComplete = useCallback(
-    (startedTrial: boolean) => {
-      onComplete?.({ startedTrial });
-    },
-    [onComplete],
-  );
 
   const renderScreen = useMemo(() => {
     switch (currentScreen.name) {
       case "welcome":
-        return (
-          <WelcomeScreen
-            userName={userName}
-            onNext={goToNext}
-            onNameChanged={handleNameChanged}
-          />
-        );
+        return <WelcomeScreen onNext={goToNext} />;
 
       case "wearable":
-        return (
-          <WearableScreen onComplete={goToNext} testID="screen-wearable" />
-        );
+        return <WearableScreen onComplete={goToNext} />;
 
       case "selfReport":
         return <DataInsightsScreen onNext={goToNext} />;
+
+      case "athlete":
+        return <AthleteScreen onNext={goToNext} />;
 
       case "goals":
         return <GoalsScreen onNext={goToNext} />;
@@ -151,36 +120,25 @@ export function OnboardingFlow({
         return <VerdictScreen onComplete={goToNext} />;
 
       case "paywall":
-        return (
-          <PaywallScreen
-            onComplete={handlePaywallComplete}
-            testID="screen-paywall"
-          />
-        );
+        return <PaywallScreen testID="screen-paywall" />;
 
       default:
         return null;
     }
-  }, [
-    currentScreen.name,
-    userName,
-    goToNext,
-    handleNameChanged,
-    handlePaywallComplete,
-  ]);
+  }, [currentScreen.name, goToNext]);
 
   // Progress bar visible from wearable through transition (screens 1-7)
-  const showProgressBar =
-    currentScreen.name !== "welcome" &&
-    !["radar", "progression", "calendar", "verdict", "paywall"].includes(
-      currentScreen.name,
-    );
+  // const showProgressBar =
+  //   currentScreen.name !== "welcome" &&
+  //   !["radar", "progression", "calendar", "verdict", "paywall"].includes(
+  //     currentScreen.name,
+  //   );
 
   return (
-    <View style={styles.container} testID={testID}>
-      {showProgressBar && (
+    <View style={styles.container}>
+      {/* {showProgressBar && (
         <FlowProgressBar progress={progress} testID="flow-progress-bar" />
-      )}
+      )} */}
 
       <ScreenTransition
         screenKey={currentScreen.name}

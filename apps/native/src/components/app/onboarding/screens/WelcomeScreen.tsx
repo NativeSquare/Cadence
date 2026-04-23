@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import {
   View,
   StyleSheet,
@@ -12,15 +12,13 @@ import Animated, { FadeIn } from "react-native-reanimated";
 import { Text } from "@/components/ui/text";
 import { useStream } from "@/hooks/use-stream";
 import { Cursor } from "../Cursor";
-import { COLORS, GRAYS } from "@/lib/design-tokens";
+import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
 import { api } from "@packages/backend/convex/_generated/api";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { selectionFeedback } from "@/lib/haptics";
 
 interface WelcomeScreenProps {
-  userName?: string;
   onNext: () => void;
-  onNameChanged?: (newName: string) => void;
 }
 
 // Separate component for name input to isolate state updates
@@ -76,7 +74,7 @@ function NameInputView({ initialName, onConfirm }: NameInputViewProps) {
               valueRef.current = text;
             }}
             placeholder="Your name"
-            placeholderTextColor={GRAYS.g4}
+            placeholderTextColor={LIGHT_THEME.wMute}
             autoCapitalize="none"
             autoCorrect={false}
             autoComplete="off"
@@ -126,25 +124,34 @@ function renderWithCadenceBold(text: string) {
   );
 }
 
-export function WelcomeScreen({
-  userName = "Alex",
-  onNext,
-  onNameChanged,
-}: WelcomeScreenProps) {
-  const [ready, setReady] = useState(false);
-  const [showNameInput, setShowNameInput] = useState(false);
-  const [displayName, setDisplayName] = useState(userName);
-
+export function WelcomeScreen({ onNext }: WelcomeScreenProps) {
+  const athlete = useQuery(api.plan.reads.getAthlete);
+  const user = useQuery(api.table.users.currentUser);
   const upsertAthlete = useMutation(api.plan.athlete.upsertAthlete);
 
-  // Phrase 1: Welcome greeting (2s delay to create moment of entry)
+  const queriesReady = athlete !== undefined && user !== undefined;
+
+  // Athlete name is source of truth, fallback to auth provider name.
+  // Derived synchronously so the stream text is stable from first render.
+  const serverName = useMemo(
+    () => (queriesReady ? athlete?.name || user?.name || "" : null),
+    [queriesReady, athlete, user],
+  );
+
+  const [ready, setReady] = useState(false);
+  const [showNameInput, setShowNameInput] = useState(false);
+  const [localName, setLocalName] = useState<string | null>(null);
+  const displayName = localName ?? serverName ?? "";
+
+  // Phrase 1: Welcome greeting (2s delay to create moment of entry).
+  // Gate on queriesReady so text is stable before streaming starts.
   const s1 = useStream({
     text: displayName
       ? `Welcome to the team, ${displayName}.`
       : "Welcome to the team.",
     speed: 32,
     delay: 2000,
-    active: !showNameInput,
+    active: queriesReady && !showNameInput,
   });
 
   // Phrase 2: Identity - "I'm cadence."
@@ -193,11 +200,10 @@ export function WelcomeScreen({
   const handleConfirmName = useCallback(
     async (trimmedName: string) => {
       await upsertAthlete({ name: trimmedName });
-      setDisplayName(trimmedName);
-      onNameChanged?.(trimmedName);
+      setLocalName(trimmedName);
       setShowNameInput(false);
     },
-    [upsertAthlete, onNameChanged],
+    [upsertAthlete],
   );
 
   // Name input view - rendered in separate component to isolate state
@@ -266,7 +272,7 @@ export function WelcomeScreen({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.black,
+    backgroundColor: LIGHT_THEME.w2,
     justifyContent: "space-between",
     paddingTop: 120,
     paddingHorizontal: 32,
@@ -279,7 +285,7 @@ const styles = StyleSheet.create({
     fontSize: 42,
     fontFamily: "Outfit-Light",
     fontWeight: "300",
-    color: GRAYS.g1,
+    color: LIGHT_THEME.wText,
     lineHeight: 50,
     letterSpacing: -1.26,
   },
@@ -287,7 +293,7 @@ const styles = StyleSheet.create({
     fontSize: 42,
     fontFamily: "Outfit-Medium",
     fontWeight: "500",
-    color: GRAYS.g1,
+    color: LIGHT_THEME.wText,
     lineHeight: 50,
     letterSpacing: -1.26,
   },
@@ -295,14 +301,14 @@ const styles = StyleSheet.create({
     fontFamily: "Outfit-Bold",
     fontSize: 42,
     lineHeight: 50,
-    color: GRAYS.g1,
+    color: LIGHT_THEME.wText,
     letterSpacing: -1.28,
   },
   subheadline: {
     fontSize: 42,
     fontFamily: "Outfit-Light",
     fontWeight: "300",
-    color: GRAYS.g2,
+    color: LIGHT_THEME.wSub,
     lineHeight: 50,
     letterSpacing: -1.26,
   },
@@ -343,7 +349,7 @@ const styles = StyleSheet.create({
   secondaryButtonText: {
     fontFamily: "Outfit-Regular",
     fontSize: 15,
-    color: GRAYS.g3,
+    color: LIGHT_THEME.wMute,
   },
   nameInputContainer: {
     flex: 1,
@@ -359,7 +365,7 @@ const styles = StyleSheet.create({
     // Avoid lineHeight on TextInput — it causes a layout recalc / shift on
     // every keystroke. Use an explicit height for stable sizing instead.
     height: 56,
-    color: GRAYS.g1,
+    color: LIGHT_THEME.wText,
     fontFamily: "Outfit-Light",
     fontWeight: "300",
     letterSpacing: -1.26,

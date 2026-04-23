@@ -1,30 +1,41 @@
 /**
  * WearableScreen - Wearable connection or skip path selection.
  *
- * Presents wearable connection options with skip path.
- * Uses streaming text pattern matching cadence-v3.jsx prototype.
- *
- * Source: Story 3.5 - Task 9 (AC#1)
+ * Light-sheet Act 2 entry. Reuses the provider-card pattern and
+ * ConnectPermissionSheet from the Data & Connections screen so onboarding and
+ * settings stay visually aligned.
  */
 
-import { useState, useCallback, useEffect } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  View,
-  StyleSheet,
-  Pressable,
-  Platform,
   ActivityIndicator,
+  Platform,
+  Pressable,
+  StyleSheet,
+  View,
 } from "react-native";
 import Animated, { FadeIn, FadeInUp } from "react-native-reanimated";
+import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
+import { useQuery } from "convex/react";
+import { api } from "@packages/backend/convex/_generated/api";
+
 import { Text } from "@/components/ui/text";
 import { useStream } from "@/hooks/use-stream";
 import { useHealthKit } from "@/hooks/use-healthkit";
 import { useStrava } from "@/hooks/use-strava";
 import { useGarmin } from "@/hooks/use-garmin";
-import { useMutation } from "convex/react";
-import { api } from "@packages/backend/convex/_generated/api";
+import {
+  ConnectPermissionSheet,
+  type ConnectPermissionSheetHandle,
+} from "@/components/app/account/ConnectPermissionSheet";
+import {
+  AppleHealthLogo,
+  CorosLogo,
+  GarminLogo,
+  StravaLogo,
+} from "@/components/icons/provider-logos";
 import { Cursor } from "../Cursor";
-import { COLORS, GRAYS, SURFACES } from "@/lib/design-tokens";
+import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
 
 // =============================================================================
 // Types
@@ -33,43 +44,98 @@ import { COLORS, GRAYS, SURFACES } from "@/lib/design-tokens";
 export interface WearableScreenProps {
   /** Called when user completes this screen */
   onComplete: () => void;
-  /** Test ID for visual regression */
-  testID?: string;
 }
+
+type ProviderKey = "strava" | "appleHealth" | "garmin";
+
+type ProviderDef = {
+  key: ProviderKey;
+  provider: "STRAVA" | "HEALTHKIT" | "GARMIN";
+  name: string;
+  description: string;
+  logo: (props: { size?: number; color?: string }) => React.ReactNode;
+  iosOnly?: boolean;
+};
 
 // =============================================================================
 // Constants
 // =============================================================================
 
-const ALL_OPTIONS = [
-  { id: "strava", label: "Connect Strava", icon: "⌚" },
-  { id: "apple", label: "Apple Health", icon: "❤️", iosOnly: true },
-  { id: "garmin", label: "Garmin Connect", icon: "📍" },
+const ALL_PROVIDERS: ProviderDef[] = [
+  {
+    key: "strava",
+    provider: "STRAVA",
+    name: "Strava",
+    description: "Sync activities, routes & training",
+    logo: StravaLogo,
+  },
+  {
+    key: "appleHealth",
+    provider: "HEALTHKIT",
+    name: "Apple Health",
+    description: "Heart rate, sleep & recovery data",
+    logo: AppleHealthLogo,
+    iosOnly: true,
+  },
+  {
+    key: "garmin",
+    provider: "GARMIN",
+    name: "Garmin",
+    description: "GPS watch & wearable data",
+    logo: GarminLogo,
+  },
 ];
 
-// Filter options based on platform - Apple Health only available on iOS
-const OPTIONS = ALL_OPTIONS.filter(
-  (opt) => !opt.iosOnly || Platform.OS === "ios"
+const PROVIDERS: ProviderDef[] = ALL_PROVIDERS.filter(
+  (p) => !p.iosOnly || Platform.OS === "ios",
 );
+
+const COMING_SOON_PROVIDERS = [
+  {
+    key: "coros" as const,
+    name: "COROS",
+    description: "GPS watch & training data",
+    logo: CorosLogo,
+  },
+];
 
 // =============================================================================
 // Component
 // =============================================================================
 
-export function WearableScreen({ onComplete, testID }: WearableScreenProps) {
+export function WearableScreen({ onComplete }: WearableScreenProps) {
   const [showOptions, setShowOptions] = useState(false);
-  const [connectingId, setConnectingId] = useState<string | null>(null);
-  const [connectedIds, setConnectedIds] = useState<string[]>([]);
-  const [mockError, setMockError] = useState<string | null>(null);
-  const { connect: connectHealthKit, error: healthKitError } = useHealthKit();
-  const { connect: connectStrava, error: stravaError } = useStrava();
-  const { connect: connectGarmin, error: garminError } = useGarmin();
+  const [error, setError] = useState<string | null>(null);
+  const permissionSheetRef = useRef<ConnectPermissionSheetHandle>(null);
 
-  // Mock wearable seeder for dev mode (Story 4.2)
-  const seedMockWearable = useMutation(api.seeds.mockActivities.seedMockWearableData);
+  const connections = useQuery(api.soma.index.listConnections);
 
-  const hasConnected = connectedIds.length > 0;
-  const connectionError = healthKitError || stravaError || garminError || mockError;
+  const {
+    connect: connectStrava,
+    isConnecting: stravaConnecting,
+    error: stravaError,
+  } = useStrava();
+  const {
+    connect: connectGarmin,
+    isConnecting: garminConnecting,
+    error: garminError,
+  } = useGarmin();
+  const {
+    connect: connectHealthKit,
+    isConnecting: healthKitConnecting,
+    error: healthKitError,
+    checkAuthStatus: checkHealthKitAuthStatus,
+  } = useHealthKit();
+
+  const isConnected = useCallback(
+    (provider: ProviderDef["provider"]) =>
+      !!connections?.find(
+        (c) => c.provider === provider && (c.active ?? false),
+      ),
+    [connections],
+  );
+
+  const hasAnyConnection = PROVIDERS.some((p) => isConnected(p.provider));
 
   const s1 = useStream({
     text: "I'm your running coach. I learn, I adapt, and I get better the more I know.",
@@ -86,156 +152,171 @@ export function WearableScreen({ onComplete, testID }: WearableScreenProps) {
 
   useEffect(() => {
     if (s2.done) {
-      setTimeout(() => setShowOptions(true), 400);
+      const t = setTimeout(() => setShowOptions(true), 400);
+      return () => clearTimeout(t);
     }
   }, [s2.done]);
 
-  const handleConnect = useCallback(
-    async (id: string) => {
-      if (connectedIds.includes(id) || connectingId) return;
+  const handleConnectStrava = useCallback(() => {
+    setError(null);
+    permissionSheetRef.current?.present("strava", async () => {
+      const success = await connectStrava();
+      if (!success && stravaError) setError(stravaError);
+    });
+  }, [connectStrava, stravaError]);
 
-      if (id === "apple" && Platform.OS === "ios") {
-        setConnectingId("apple");
-        const result = await connectHealthKit();
-        setConnectingId(null);
-        if (result) {
-          setConnectedIds((prev) => [...prev, "apple"]);
-        }
-      } else if (id === "strava") {
-        setConnectingId("strava");
-        const success = await connectStrava();
-        setConnectingId(null);
-        if (success) {
-          setConnectedIds((prev) => [...prev, "strava"]);
-        }
-      } else if (id === "garmin") {
-        setConnectingId("garmin");
-        const success = await connectGarmin();
-        setConnectingId(null);
-        if (success) {
-          setConnectedIds((prev) => [...prev, "garmin"]);
-        }
-      } else {
-        // Other providers (COROS, etc.) - seed mock data in dev mode (Story 4.2)
-        setConnectingId(id);
-        setMockError(null);
-        try {
-          if (__DEV__) {
-            await seedMockWearable({
-              provider: id,
-              profile: "intermediate",
-              weeks: 12,
-            });
-            setConnectedIds((prev) => [...prev, id]);
-          } else {
-            setMockError(`${id} integration coming soon`);
-          }
-        } catch (err) {
-          const message = err instanceof Error ? err.message : `Failed to connect ${id}`;
-          setMockError(message);
-        } finally {
-          setConnectingId(null);
-        }
-      }
+  const handleConnectGarmin = useCallback(() => {
+    setError(null);
+    permissionSheetRef.current?.present("garmin", async () => {
+      const result = await connectGarmin();
+      if (!result && garminError) setError(garminError);
+    });
+  }, [connectGarmin, garminError]);
+
+  const handleConnectAppleHealth = useCallback(async () => {
+    setError(null);
+    const runConnect = async () => {
+      const result = await connectHealthKit();
+      if (!result && healthKitError) setError(healthKitError);
+    };
+    const status = await checkHealthKitAuthStatus();
+    if (status !== "shouldRequest") {
+      runConnect();
+      return;
+    }
+    permissionSheetRef.current?.present("appleHealth", runConnect);
+  }, [connectHealthKit, healthKitError, checkHealthKitAuthStatus]);
+
+  const handleConnect = useCallback(
+    (key: ProviderKey) => {
+      if (key === "strava") return handleConnectStrava();
+      if (key === "garmin") return handleConnectGarmin();
+      if (key === "appleHealth") return handleConnectAppleHealth();
     },
-    [connectedIds, connectingId, connectHealthKit, connectStrava, connectGarmin, seedMockWearable],
+    [handleConnectStrava, handleConnectGarmin, handleConnectAppleHealth],
   );
 
-  const handleContinue = useCallback(() => {
-    onComplete();
-  }, [onComplete]);
+  const isProviderConnecting = (key: ProviderKey) =>
+    (key === "strava" && stravaConnecting) ||
+    (key === "garmin" && garminConnecting) ||
+    (key === "appleHealth" && healthKitConnecting);
 
-  const handleSkip = useCallback(() => {
-    onComplete();
-  }, [onComplete]);
+  const displayError = error ?? stravaError ?? garminError ?? healthKitError;
 
   return (
-    <View style={styles.container} testID={testID}>
-      {/* Text area */}
-      <View style={styles.textArea}>
-        <Text style={styles.headline}>
-          {s1.displayed}
-          {!s1.done && s1.started && <Cursor visible height={26} />}
-        </Text>
-
-        {s2.started && (
-          <Text style={[styles.subheadline, styles.marginTop]}>
-            {s2.displayed}
-            {!s2.done && <Cursor visible height={26} />}
+    <BottomSheetModalProvider>
+      <View style={styles.container}>
+        <View style={styles.textArea}>
+          <Text style={styles.headline}>
+            {s1.displayed}
+            {!s1.done && s1.started && <Cursor visible height={26} />}
           </Text>
-        )}
-      </View>
 
-      {/* Connection options */}
-      {showOptions && (
-        <Animated.View
-          entering={FadeIn.duration(400)}
-          style={styles.optionsSection}
-        >
-          {connectionError && (
-            <Text style={styles.errorText}>{connectionError}</Text>
-          )}
-          {OPTIONS.map((option) => {
-            const isConnected = connectedIds.includes(option.id);
-            const isThisConnecting = connectingId === option.id;
-            const isDisabled = isConnected || !!connectingId;
-
-            return (
-              <Pressable
-                key={option.id}
-                onPress={() => handleConnect(option.id)}
-                disabled={isDisabled}
-                style={[
-                  styles.optionCard,
-                  isConnected && styles.optionCardConnected,
-                  !isConnected &&
-                    !!connectingId &&
-                    !isThisConnecting &&
-                    styles.optionCardDisabled,
-                ]}
-              >
-                <Text style={styles.optionIcon}>{option.icon}</Text>
-                <Text style={styles.optionLabel}>{option.label}</Text>
-                {isThisConnecting ? (
-                  <ActivityIndicator size="small" color={GRAYS.g3} />
-                ) : isConnected ? (
-                  <Text style={styles.connectedLabel}>Connected</Text>
-                ) : (
-                  <Text style={styles.chevron}>›</Text>
-                )}
-              </Pressable>
-            );
-          })}
-
-          {/* Continue button - appears after at least one connection */}
-          {hasConnected && (
-            <Animated.View entering={FadeInUp.duration(300)}>
-              <Pressable
-                onPress={handleContinue}
-                disabled={!!connectingId}
-                style={[
-                  styles.continueButton,
-                  !!connectingId && styles.continueButtonDisabled,
-                ]}
-              >
-                <Text style={styles.continueText}>Continue</Text>
-              </Pressable>
-            </Animated.View>
-          )}
-
-          {/* Skip / done option */}
-          <Pressable
-            onPress={handleSkip}
-            disabled={!!connectingId}
-            style={styles.skipButton}
-          >
-            <Text style={styles.skipText}>
-              {hasConnected ? "That's all for now" : "Skip for now"}
+          {s2.started && (
+            <Text style={[styles.subheadline, styles.marginTop]}>
+              {s2.displayed}
+              {!s2.done && <Cursor visible height={26} />}
             </Text>
-          </Pressable>
-        </Animated.View>
-      )}
-    </View>
+          )}
+        </View>
+
+        {showOptions && (
+          <Animated.View
+            entering={FadeIn.duration(400)}
+            style={styles.optionsSection}
+          >
+            <View style={styles.card}>
+              {PROVIDERS.map((p, index) => {
+                const connected = isConnected(p.provider);
+                const connecting = isProviderConnecting(p.key);
+                const isLast =
+                  index === PROVIDERS.length - 1 &&
+                  COMING_SOON_PROVIDERS.length === 0;
+
+                return (
+                  <View
+                    key={p.key}
+                    style={[styles.row, !isLast && styles.rowDivider]}
+                  >
+                    <View style={styles.logoBadge}>
+                      <p.logo size={18} />
+                    </View>
+
+                    <View style={styles.rowText}>
+                      <Text style={styles.rowTitle}>{p.name}</Text>
+                      <Text style={styles.rowSubtitle}>{p.description}</Text>
+                    </View>
+
+                    {connecting ? (
+                      <ActivityIndicator
+                        size="small"
+                        color={LIGHT_THEME.wMute}
+                      />
+                    ) : connected ? (
+                      <View style={styles.connectedChip}>
+                        <Text style={styles.connectedChipText}>Connected</Text>
+                      </View>
+                    ) : (
+                      <Pressable
+                        onPress={() => handleConnect(p.key)}
+                        style={styles.connectPill}
+                      >
+                        <Text style={styles.connectPillText}>Connect</Text>
+                      </Pressable>
+                    )}
+                  </View>
+                );
+              })}
+
+              {COMING_SOON_PROVIDERS.map((p, index) => {
+                const isLast = index === COMING_SOON_PROVIDERS.length - 1;
+                return (
+                  <View
+                    key={p.key}
+                    style={[
+                      styles.row,
+                      styles.rowComingSoon,
+                      !isLast && styles.rowDivider,
+                    ]}
+                  >
+                    <View style={styles.logoBadge}>
+                      <p.logo size={18} />
+                    </View>
+
+                    <View style={styles.rowText}>
+                      <Text style={styles.rowTitle}>{p.name}</Text>
+                      <Text style={styles.rowSubtitle}>{p.description}</Text>
+                    </View>
+
+                    <View style={styles.comingSoonChip}>
+                      <Text style={styles.comingSoonChipText}>Coming soon</Text>
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
+
+            {displayError && (
+              <Text style={styles.errorText}>{displayError}</Text>
+            )}
+
+            {hasAnyConnection ? (
+              <Animated.View entering={FadeInUp.duration(300)}>
+                <Pressable onPress={onComplete} style={styles.continueButton}>
+                  <Text style={styles.continueText}>Continue</Text>
+                </Pressable>
+              </Animated.View>
+            ) : (
+              <Pressable onPress={onComplete} style={styles.skipButton}>
+                <Text style={styles.skipText}>Skip for now</Text>
+              </Pressable>
+            )}
+          </Animated.View>
+        )}
+
+        <ConnectPermissionSheet ref={permissionSheetRef} />
+      </View>
+    </BottomSheetModalProvider>
   );
 }
 
@@ -246,19 +327,21 @@ export function WearableScreen({ onComplete, testID }: WearableScreenProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingHorizontal: 32,
+    backgroundColor: LIGHT_THEME.w2,
+    paddingHorizontal: 20,
     paddingTop: 100,
     paddingBottom: 48,
     justifyContent: "space-between",
   },
   textArea: {
+    paddingHorizontal: 12,
     paddingTop: 4,
   },
   headline: {
     fontSize: 26,
     fontFamily: "Outfit-Light",
     fontWeight: "300",
-    color: GRAYS.g1,
+    color: LIGHT_THEME.wText,
     lineHeight: 36,
     letterSpacing: -0.52,
   },
@@ -266,58 +349,98 @@ const styles = StyleSheet.create({
     fontSize: 26,
     fontFamily: "Outfit-Light",
     fontWeight: "300",
-    color: GRAYS.g2,
+    color: LIGHT_THEME.wSub,
     lineHeight: 36,
     letterSpacing: -0.52,
   },
   marginTop: {
     marginTop: 12,
   },
-  errorText: {
-    fontFamily: "Outfit-Regular",
-    fontSize: 14,
-    color: "#FF5A5A",
-    textAlign: "center",
-    marginBottom: 4,
-  },
   optionsSection: {
     gap: 12,
   },
-  optionCard: {
+  card: {
+    overflow: "hidden",
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: LIGHT_THEME.wBrd,
+    backgroundColor: LIGHT_THEME.w1,
+  },
+  row: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 16,
+    gap: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+  },
+  rowDivider: {
+    borderBottomWidth: 1,
+    borderBottomColor: LIGHT_THEME.wBrd,
+  },
+  rowComingSoon: {
+    opacity: 0.55,
+  },
+  logoBadge: {
+    width: 38,
+    height: 38,
+    flexShrink: 0,
+    alignItems: "center",
+    justifyContent: "center",
     borderRadius: 12,
-    borderWidth: 1,
-    borderColor: SURFACES.brd,
-    backgroundColor: SURFACES.card,
+    backgroundColor: LIGHT_THEME.w3,
   },
-  optionCardConnected: {
-    borderColor: "rgba(52,211,153,0.3)",
-    backgroundColor: "rgba(52,211,153,0.08)",
-  },
-  optionCardDisabled: {
-    opacity: 0.5,
-  },
-  optionIcon: {
-    fontSize: 20,
-    marginRight: 12,
-  },
-  optionLabel: {
+  rowText: {
     flex: 1,
-    fontFamily: "Outfit-Regular",
-    fontSize: 16,
-    color: GRAYS.g1,
   },
-  connectedLabel: {
+  rowTitle: {
     fontFamily: "Outfit-Medium",
-    fontSize: 13,
-    color: "rgb(52,211,153)",
+    fontSize: 15,
+    color: LIGHT_THEME.wText,
   },
-  chevron: {
-    fontFamily: "Outfit-Light",
-    fontSize: 24,
-    color: GRAYS.g3,
+  rowSubtitle: {
+    marginTop: 2,
+    fontFamily: "Outfit-Regular",
+    fontSize: 12,
+    color: LIGHT_THEME.wMute,
+  },
+  connectPill: {
+    borderRadius: 999,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: COLORS.lime,
+  },
+  connectPillText: {
+    fontFamily: "Outfit-SemiBold",
+    fontSize: 13,
+    color: LIGHT_THEME.wText,
+  },
+  connectedChip: {
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: "rgba(52,211,153,0.15)",
+  },
+  connectedChipText: {
+    fontFamily: "Outfit-Medium",
+    fontSize: 12,
+    color: "rgb(16,128,88)",
+  },
+  comingSoonChip: {
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: LIGHT_THEME.w3,
+  },
+  comingSoonChipText: {
+    fontFamily: "Outfit-Medium",
+    fontSize: 12,
+    color: LIGHT_THEME.wMute,
+  },
+  errorText: {
+    fontFamily: "Outfit-Regular",
+    fontSize: 14,
+    color: COLORS.red,
+    textAlign: "center",
   },
   continueButton: {
     backgroundColor: COLORS.lime,
@@ -326,13 +449,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: 4,
   },
-  continueButtonDisabled: {
-    opacity: 0.5,
-  },
   continueText: {
     fontFamily: "Outfit-SemiBold",
     fontSize: 16,
-    color: "#000",
+    color: COLORS.black,
   },
   skipButton: {
     paddingVertical: 14,
@@ -341,6 +461,6 @@ const styles = StyleSheet.create({
   skipText: {
     fontFamily: "Outfit-Regular",
     fontSize: 15,
-    color: GRAYS.g3,
+    color: LIGHT_THEME.wMute,
   },
 });

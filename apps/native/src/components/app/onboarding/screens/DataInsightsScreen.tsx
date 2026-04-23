@@ -21,7 +21,7 @@ import { api } from "@packages/backend/convex/_generated/api";
 import { Text } from "@/components/ui/text";
 import { useStream } from "@/hooks/use-stream";
 import { Cursor } from "../Cursor";
-import { COLORS, GRAYS } from "@/lib/design-tokens";
+import { ACTIVITY_COLORS, COLORS, LIGHT_THEME } from "@/lib/design-tokens";
 import {
   computeInsights,
   buildInsightCards,
@@ -47,12 +47,12 @@ type Phase = "loading" | "connecting" | "insights" | "closing";
 function getAccentColor(accent: AccentColor): string {
   switch (accent) {
     case "lime":
-      return COLORS.lime;
+      return ACTIVITY_COLORS.barEasy;
     case "orange":
-      return "#FF8A00";
+      return COLORS.ora;
     case "white":
     default:
-      return GRAYS.g1;
+      return LIGHT_THEME.wText;
   }
 }
 
@@ -437,6 +437,7 @@ export function DataInsightsScreen({ onNext, onNoData }: DataInsightsScreenProps
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: LIGHT_THEME.w2,
     paddingTop: 100,
     paddingBottom: 48,
   },
@@ -453,7 +454,7 @@ const styles = StyleSheet.create({
     fontFamily: "Outfit-Light",
     fontSize: 22,
     fontWeight: "300",
-    color: GRAYS.g3,
+    color: LIGHT_THEME.wMute,
     letterSpacing: -0.44,
   },
 
@@ -465,16 +466,16 @@ const styles = StyleSheet.create({
     fontFamily: "Outfit-Light",
     fontSize: 22,
     fontWeight: "300",
-    color: GRAYS.g1,
+    color: LIGHT_THEME.wText,
     lineHeight: 30,
     letterSpacing: -0.44,
   },
   connectingLineDim: {
-    color: GRAYS.g3,
+    color: LIGHT_THEME.wMute,
     marginTop: 4,
   },
   connectingLineLime: {
-    color: COLORS.lime,
+    color: ACTIVITY_COLORS.barEasy,
     marginTop: 4,
   },
   counterRow: {
@@ -487,17 +488,17 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: COLORS.lime,
+    backgroundColor: ACTIVITY_COLORS.barEasy,
   },
   counterText: {
     fontFamily: "JetBrainsMono-Regular",
     fontSize: 13,
-    color: GRAYS.g3,
+    color: LIGHT_THEME.wMute,
   },
   counterNumber: {
     fontFamily: "JetBrainsMono-Medium",
     fontWeight: "500",
-    color: GRAYS.g1,
+    color: LIGHT_THEME.wText,
   },
 
   // Insight cards
@@ -507,7 +508,7 @@ const styles = StyleSheet.create({
   card: {
     paddingBottom: 36,
     borderBottomWidth: 1,
-    borderBottomColor: GRAYS.g6,
+    borderBottomColor: LIGHT_THEME.wBrd,
     marginBottom: 32,
   },
   cardBig: {
@@ -522,7 +523,7 @@ const styles = StyleSheet.create({
     fontFamily: "Outfit-Light",
     fontSize: 18,
     fontWeight: "300",
-    color: GRAYS.g2,
+    color: LIGHT_THEME.wSub,
     lineHeight: 27,
     letterSpacing: -0.18,
   },
@@ -530,7 +531,7 @@ const styles = StyleSheet.create({
     fontFamily: "Outfit-Light",
     fontSize: 15,
     fontWeight: "300",
-    color: GRAYS.g3,
+    color: LIGHT_THEME.wMute,
     lineHeight: 23,
     letterSpacing: -0.15,
     marginTop: 8,
@@ -544,7 +545,7 @@ const styles = StyleSheet.create({
     fontFamily: "Outfit-Light",
     fontSize: 18,
     fontWeight: "300",
-    color: COLORS.lime,
+    color: ACTIVITY_COLORS.barEasy,
     lineHeight: 27,
     letterSpacing: -0.18,
   },

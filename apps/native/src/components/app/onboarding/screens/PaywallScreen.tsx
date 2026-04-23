@@ -17,14 +17,14 @@ import { Text } from "@/components/ui/text";
 import { StreamBlock } from "../StreamBlock";
 import { Btn } from "../generative/Choice";
 import { COLORS, GRAYS, SURFACES } from "@/lib/design-tokens";
+import { api } from "@packages/backend/convex/_generated/api";
+import { useMutation, useQuery } from "convex/react";
 
 // =============================================================================
 // Types
 // =============================================================================
 
 export interface PaywallScreenProps {
-  /** Called when user makes a choice */
-  onComplete: (startedTrial: boolean) => void;
   /** Test ID for visual regression */
   testID?: string;
 }
@@ -36,7 +36,9 @@ const FEATURES = [
   { icon: "⚙️", text: "Unlimited plan adjustments" },
 ];
 
-export function PaywallScreen({ onComplete, testID }: PaywallScreenProps) {
+export function PaywallScreen({ testID }: PaywallScreenProps) {
+  const user = useQuery(api.table.users.currentUser);
+  const patchUser = useMutation(api.table.users.patch);
 
   // Phase-based reveal matching reference
   const [phase, setPhase] = useState(0);
@@ -60,13 +62,11 @@ export function PaywallScreen({ onComplete, testID }: PaywallScreenProps) {
     }
   }, [phase]);
 
-  const handleStartTrial = useCallback(() => {
-    onComplete(true);
-  }, [onComplete]);
-
-  const handleMaybeLater = useCallback(() => {
-    onComplete(false);
-  }, [onComplete]);
+  const handleComplete = useCallback(() => {
+    if (user?._id) {
+      patchUser({ id: user._id, data: { hasCompletedOnboarding: true } });
+    }
+  }, [patchUser, user?._id]);
 
   return (
     <View style={styles.container} testID={testID}>
@@ -138,8 +138,8 @@ export function PaywallScreen({ onComplete, testID }: PaywallScreenProps) {
           entering={FadeIn.duration(300)}
           style={styles.ctaSection}
         >
-          <Btn label="Start Free Trial" onPress={handleStartTrial} />
-          <Btn label="Maybe later" onPress={handleMaybeLater} ghost />
+          <Btn label="Start Free Trial" onPress={handleComplete} />
+          <Btn label="Maybe later" onPress={handleComplete} ghost />
         </Animated.View>
       )}
     </View>

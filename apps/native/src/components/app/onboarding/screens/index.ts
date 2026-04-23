@@ -1,6 +1,7 @@
 export { WelcomeScreen } from "./WelcomeScreen";
 export { WearableScreen } from "./WearableScreen";
 export { DataInsightsScreen } from "./DataInsightsScreen";
+export { AthleteScreen } from "./AthleteScreen";
 export { GoalsScreen } from "./GoalsScreen";
 export { HealthScreen } from "./HealthScreen";
 export { StyleScreen } from "./StyleScreen";
