@@ -29,34 +29,15 @@ import Animated, {
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const VOICE_LABELS: Record<string, string> = {
-  tough_love: "Tough Love",
-  encouraging: "Encouraging",
-  analytical: "Analytical",
-  minimalist: "Minimalist",
-};
-
-const GOAL_LABELS: Record<string, string> = {
-  race: "Race",
-  speed: "Get Faster",
-  base_building: "Base Building",
-  return_to_fitness: "Return to Fitness",
-  general_health: "General Health",
-};
-
-const RACE_LABELS: Record<number, string> = {
-  5: "5K",
-  10: "10K",
-  21.1: "Half Marathon",
-  42.2: "Marathon",
-};
-
 export default function Profile() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { signOut } = useAuthActions();
   const user = useQuery(api.table.users.currentUser);
   const runner = useQuery(api.plan.reads.getAthlete);
+  const zones = useQuery(api.plan.zones.listCurrentZones);
+  const events = useQuery(api.plan.events.listMyEvents);
+  const templates = useQuery(api.plan.workoutTemplates.listMyTemplates);
   const connections = useQuery(api.soma.index.listConnections);
   const isProviderConnected = (provider: string) =>
     connections?.some((c) => c.provider === provider && c.active) ?? false;
@@ -72,13 +53,7 @@ export default function Profile() {
     return (fromName || "?").toUpperCase();
   }, [displayName]);
 
-  // Agoge-migration: rich profile fields (goals/coaching/schedule/health) are
-  // no longer stored — these derivations return placeholders until the
-  // account screens are rebuilt on agoge.athlete + agoge.events.
-  const goalValue = "Not set";
-  const coachingValue = "Not set";
-  const scheduleValue = "Not set";
-  const bodyValue = (() => {
+  const athleteValue = (() => {
     if (!runner) return "Not set";
     const parts: string[] = [];
     if (runner.sex) parts.push(runner.sex === "male" ? "M" : runner.sex === "female" ? "F" : "O");
@@ -87,7 +62,26 @@ export default function Profile() {
     if (runner.maxHr) parts.push(`${runner.maxHr} bpm`);
     return parts.length > 0 ? parts.join(" · ") : "Not set";
   })();
-  const healthValue = "Not set";
+  const zonesValue = (() => {
+    if (!zones) return "Not set";
+    const parts: string[] = [];
+    if (zones.hr) parts.push("HR");
+    if (zones.pace) parts.push("Pace");
+    return parts.length > 0 ? parts.join(" · ") : "Not set";
+  })();
+  const eventsValue = (() => {
+    if (!events) return "—";
+    const today = new Date().toISOString().slice(0, 10);
+    const upcoming = events.filter((e) => e.date >= today).length;
+    if (upcoming === 0) return "No events";
+    return upcoming === 1 ? "1 upcoming" : `${upcoming} upcoming`;
+  })();
+  const templatesValue = (() => {
+    if (!templates) return "—";
+    const count = templates.length;
+    if (count === 0) return "None";
+    return count === 1 ? "1 template" : `${count} templates`;
+  })();
   const connectionsValue = (() => {
     if (!connections) return "Not set";
     const connected: string[] = [];
@@ -96,6 +90,9 @@ export default function Profile() {
     if (isProviderConnected("HEALTHKIT")) connected.push("Apple Health");
     return connected.length > 0 ? connected.join(", ") : "None";
   })();
+  const coachingVoiceValue = "Not set";
+  const notificationsValue = "On";
+  const unitsValue = "km";
   const planPhase = "No active plan";
 
   // Scroll-driven status bar transition (dark -> light)
@@ -229,61 +226,46 @@ export default function Profile() {
               title="Training"
               items={[
                 {
-                  label: "Goal",
-                  icon: "trophy-outline",
-                  value: goalValue,
+                  label: "Athlete",
+                  icon: "body-outline",
+                  value: athleteValue,
+                  iconColor: COLORS.blu,
+                  iconBgColor: "rgba(91,158,255,0.1)",
+                  onPress: () => router.push("/account/athlete"),
+                },
+                {
+                  label: "Zones",
+                  icon: "pulse-outline",
+                  value: zonesValue,
                   iconColor: ACTIVITY_COLORS.barHigh,
                   iconBgColor: "rgba(168,217,0,0.1)",
-                  onPress: () => router.push("/account/goal"),
+                  onPress: () => router.push("/account/zones"),
                 },
                 {
-                  label: "Schedule",
-                  icon: "calendar-outline",
-                  value: scheduleValue,
+                  label: "Events",
+                  icon: "flag-outline",
+                  value: eventsValue,
                   iconColor: COLORS.ora,
                   iconBgColor: "rgba(255,149,0,0.1)",
-                  onPress: () => router.push("/account/schedule"),
+                  onPress: () => router.push("/account/events"),
                 },
                 {
-                  label: "Coaching Style",
-                  icon: "chatbubble-ellipses-outline",
-                  value: coachingValue,
-                  iconColor: COLORS.blu,
-                  iconBgColor: "rgba(91,158,255,0.1)",
-                  onPress: () => router.push("/account/coaching"),
-                },
-              ]}
-            />
-
-            {/* Body & Health */}
-            <SettingsGroup
-              title="Body & Health"
-              items={[
-                {
-                  label: "Physical Profile",
-                  icon: "body-outline",
-                  value: bodyValue,
-                  iconColor: COLORS.blu,
-                  iconBgColor: "rgba(91,158,255,0.1)",
-                  onPress: () => router.push("/account/body"),
-                },
-                {
-                  label: "Health & Recovery",
-                  icon: "fitness-outline",
-                  value: healthValue,
-                  iconColor: COLORS.grn,
-                  iconBgColor: "rgba(74,222,128,0.1)",
-                  onPress: () => router.push("/account/health"),
+                  label: "Workout Templates",
+                  icon: "barbell-outline",
+                  value: templatesValue,
+                  iconColor: COLORS.lime,
+                  iconBgColor: "rgba(168,217,0,0.1)",
+                  onPress: () => router.push("/account/workout-templates"),
                 },
               ]}
             />
 
-            {/* Data & Connections */}
+            {/* Data */}
             <SettingsGroup
-              title="Data & Connections"
+              title="Data"
               items={[
                 {
-                  label: "Integrations",
+                  label: "Connections",
                   icon: "link-outline",
                   value: connectionsValue,
                   iconColor: COLORS.ora,
@@ -298,29 +280,50 @@ export default function Profile() {
               title="Account"
               items={[
                 {
-                  label: "Edit Profile",
+                  label: "Profile",
                   icon: "person-outline",
                   onPress: () => router.push("/account/edit"),
-                },
-                {
-                  label: "Notifications",
-                  icon: "notifications-outline",
-                  value: "On",
-                  onPress: () => {},
                 },
                 {
                   label: "Subscription",
                   icon: "lock-closed-outline",
                   value: "Pro",
                   valueColor: ACTIVITY_COLORS.barHigh,
-                  onPress: () => {},
+                  onPress: () => router.push("/account/subscription"),
                 },
               ]}
             />
 
-            {/* Support */}
+            {/* Preferences */}
             <SettingsGroup
-              title="Support"
+              title="Preferences"
+              items={[
+                {
+                  label: "Coaching Voice",
+                  icon: "chatbubble-ellipses-outline",
+                  value: coachingVoiceValue,
+                  iconColor: COLORS.blu,
+                  iconBgColor: "rgba(91,158,255,0.1)",
+                  onPress: () => router.push("/account/coaching"),
+                },
+                {
+                  label: "Notifications",
+                  icon: "notifications-outline",
+                  value: notificationsValue,
+                  onPress: () => router.push("/account/notifications"),
+                },
+                {
+                  label: "Units & Language",
+                  icon: "globe-outline",
+                  value: unitsValue,
+                  onPress: () => router.push("/account/units"),
+                },
+              ]}
+            />
+
+            {/* About */}
+            <SettingsGroup
+              title="About"
               items={[
                 {
                   label: "Send Feedback",
