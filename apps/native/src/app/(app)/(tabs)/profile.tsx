@@ -68,11 +68,10 @@ export default function Profile() {
     if (zones.pace) parts.push("Pace");
     return parts.length > 0 ? parts.join(" · ") : "Not set";
   })();
-  const eventsValue = (() => {
+  const racesValue = (() => {
     if (!events) return "—";
-    const today = new Date().toISOString().slice(0, 10);
-    const upcoming = events.filter((e) => e.date >= today).length;
-    if (upcoming === 0) return "No events";
+    const upcoming = events.filter((e) => e.status === "upcoming").length;
+    if (upcoming === 0) return "No races";
     return upcoming === 1 ? "1 upcoming" : `${upcoming} upcoming`;
   })();
   const templatesValue = (() => {
@@ -225,27 +224,21 @@ export default function Profile() {
               title="Training"
               items={[
                 {
-                  label: "Events",
+                  label: "Races",
                   icon: "flag-outline",
-                  value: eventsValue,
-                  iconColor: COLORS.ora,
-                  iconBgColor: "rgba(255,149,0,0.1)",
-                  onPress: () => router.push("/account/events"),
+                  value: racesValue,
+                  onPress: () => router.push("/account/races"),
                 },
                 {
                   label: "Zones",
                   icon: "pulse-outline",
                   value: zonesValue,
-                  iconColor: ACTIVITY_COLORS.barHigh,
-                  iconBgColor: "rgba(168,217,0,0.1)",
                   onPress: () => router.push("/account/zones"),
                 },
                 {
                   label: "Workout Templates",
                   icon: "barbell-outline",
                   value: templatesValue,
-                  iconColor: COLORS.lime,
-                  iconBgColor: "rgba(168,217,0,0.1)",
                   onPress: () => router.push("/account/workout-templates"),
                 },
               ]}
@@ -259,9 +252,13 @@ export default function Profile() {
                   label: "Connections",
                   icon: "link-outline",
                   value: connectionsValue,
-                  iconColor: COLORS.ora,
-                  iconBgColor: "rgba(255,149,0,0.1)",
                   onPress: () => router.push("/account/connections"),
+                },
+                {
+                  label: "Calendars",
+                  icon: "calendar-outline",
+                  value: "Coming soon",
+                  onPress: () => router.push("/account/calendars"),
                 },
               ]}
             />
@@ -274,8 +271,6 @@ export default function Profile() {
                   label: "Profile",
                   icon: "person-outline",
                   value: profileValue,
-                  iconColor: COLORS.blu,
-                  iconBgColor: "rgba(91,158,255,0.1)",
                   onPress: () => router.push("/account/edit"),
                 },
                 {
@@ -296,8 +291,6 @@ export default function Profile() {
                   label: "Coaching Voice",
                   icon: "chatbubble-ellipses-outline",
                   value: coachingVoiceValue,
-                  iconColor: COLORS.blu,
-                  iconBgColor: "rgba(91,158,255,0.1)",
                   onPress: () => router.push("/account/coaching"),
                 },
                 {

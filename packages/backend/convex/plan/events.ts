@@ -5,7 +5,12 @@
  * and a "race" is the runner's entry into that event (distance, priority,
  * status, result). From the user's point of view the two are one thing, so we
  * expose a flattened shape: `{ ...event, raceId, priority, distanceMeters,
- * status }` and write to both tables in lockstep.
+ * status, ...raceFields, result }` and write to both tables in lockstep.
+ *
+ * The native UI surface for these calls is called "Races"
+ * (apps/native/src/app/(app)/account/races/). The Convex function names keep
+ * the "event" prefix for historical reasons and to avoid churning
+ * TransitionScreen.tsx and the generated API types.
  */
 
 import { getAuthUserId } from "@convex-dev/auth/server";
@@ -26,6 +31,32 @@ const raceStatus = v.union(
   v.literal("dnf"),
   v.literal("dns"),
 );
+const courseType = v.union(
+  v.literal("loop"),
+  v.literal("point_to_point"),
+  v.literal("out_and_back"),
+  v.literal("laps"),
+  v.literal("other"),
+);
+const surface = v.union(
+  v.literal("pavement"),
+  v.literal("mixed"),
+  v.literal("trail"),
+  v.literal("technical_trail"),
+  v.literal("track"),
+  v.literal("other"),
+);
+const locationArg = v.object({
+  city: v.optional(v.string()),
+  country: v.optional(v.string()),
+  venue: v.optional(v.string()),
+});
+const resultArg = v.object({
+  finishTime: v.optional(v.string()),
+  finishTimeSec: v.optional(v.number()),
+  placement: v.optional(v.number()),
+  notes: v.optional(v.string()),
+});
 
 async function requireAthlete(ctx: QueryCtx | MutationCtx) {
   const userId = await getAuthUserId(ctx);
@@ -38,13 +69,43 @@ async function requireAthlete(ctx: QueryCtx | MutationCtx) {
   return athlete;
 }
 
-type EventDoc = { _id: string; athleteId: string; name: string; date: string };
+type EventDoc = {
+  _id: string;
+  athleteId: string;
+  name: string;
+  date: string;
+  location?: {
+    city?: string;
+    country?: string;
+    venue?: string;
+    lat?: number;
+    lng?: number;
+  };
+  notes?: string;
+};
 type RaceDoc = {
   _id: string;
   eventId: string;
   priority: "A" | "B" | "C";
   distanceMeters: number;
   status: "upcoming" | "completed" | "cancelled" | "dnf" | "dns";
+  elevationGainMeters?: number;
+  courseType?: "loop" | "point_to_point" | "out_and_back" | "laps" | "other";
+  surface?:
+    | "pavement"
+    | "mixed"
+    | "trail"
+    | "technical_trail"
+    | "track"
+    | "other";
+  bibNumber?: string;
+  registrationUrl?: string;
+  result?: {
+    finishTime?: string;
+    finishTimeSec?: number;
+    placement?: number;
+    notes?: string;
+  };
 };
 
 function flatten(event: EventDoc & Record<string, unknown>, race: RaceDoc | null) {
@@ -54,6 +115,12 @@ function flatten(event: EventDoc & Record<string, unknown>, race: RaceDoc | null
     priority: (race?.priority ?? "B") as "A" | "B" | "C",
     distanceMeters: race?.distanceMeters,
     status: (race?.status ?? "upcoming") as RaceDoc["status"],
+    elevationGainMeters: race?.elevationGainMeters,
+    courseType: race?.courseType,
+    surface: race?.surface,
+    bibNumber: race?.bibNumber,
+    registrationUrl: race?.registrationUrl,
+    result: race?.result,
   };
 }
 
@@ -111,12 +178,31 @@ export const createMyEvent = mutation({
     date: v.string(),
     priority: racePriority,
     distanceMeters: v.optional(v.number()),
-    location: v.optional(v.string()),
+    status: v.optional(raceStatus),
+    location: v.optional(locationArg),
     notes: v.optional(v.string()),
+    elevationGainMeters: v.optional(v.number()),
+    courseType: v.optional(courseType),
+    surface: v.optional(surface),
+    bibNumber: v.optional(v.string()),
+    registrationUrl: v.optional(v.string()),
   },
   handler: async (
     ctx,
-    { name, date, priority, distanceMeters, location, notes },
+    {
+      name,
+      date,
+      priority,
+      distanceMeters,
+      status,
+      location,
+      notes,
+      elevationGainMeters,
+      courseType: courseTypeArg,
+      surface: surfaceArg,
+      bibNumber,
+      registrationUrl,
+    },
   ) => {
     const athlete = await requireAthlete(ctx);
     const eventId = await ctx.runMutation(components.agoge.public.createEvent, {
@@ -125,7 +211,7 @@ export const createMyEvent = mutation({
       type: "race" as const,
       name,
       date,
-      location: location ? { city: location } : undefined,
+      location,
       notes,
     });
     if (distanceMeters != null) {
@@ -135,7 +221,12 @@ export const createMyEvent = mutation({
         eventId: eventId as any,
         priority,
         distanceMeters,
-        status: "upcoming" as const,
+        status: status ?? "upcoming",
+        elevationGainMeters,
+        courseType: courseTypeArg,
+        surface: surfaceArg,
+        bibNumber,
+        registrationUrl,
       });
     }
     return eventId;
@@ -149,13 +240,30 @@ export const updateMyEvent = mutation({
     date: v.optional(v.string()),
     priority: v.optional(racePriority),
     distanceMeters: v.optional(v.number()),
-    location: v.optional(v.string()),
+    location: v.optional(locationArg),
     notes: v.optional(v.string()),
     status: v.optional(raceStatus),
+    elevationGainMeters: v.optional(v.number()),
+    courseType: v.optional(courseType),
+    surface: v.optional(surface),
+    bibNumber: v.optional(v.string()),
+    registrationUrl: v.optional(v.string()),
+    result: v.optional(resultArg),
   },
   handler: async (ctx, args) => {
-    const { eventId, priority, distanceMeters, status, location, ...eventPatch } =
-      args;
+    const {
+      eventId,
+      priority,
+      distanceMeters,
+      status,
+      elevationGainMeters,
+      courseType: courseTypeArg,
+      surface: surfaceArg,
+      bibNumber,
+      registrationUrl,
+      result,
+      ...eventPatch
+    } = args;
     const athlete = await requireAthlete(ctx);
     const event = await ctx.runQuery(components.agoge.public.getEvent, {
       // biome-ignore lint/suspicious/noExplicitAny: agoge Id is a branded string
@@ -168,13 +276,18 @@ export const updateMyEvent = mutation({
       // biome-ignore lint/suspicious/noExplicitAny: agoge Id is a branded string
       eventId: eventId as any,
       ...eventPatch,
-      location: location !== undefined ? { city: location } : undefined,
     });
 
     const racePatch = {
       ...(priority !== undefined ? { priority } : {}),
       ...(distanceMeters !== undefined ? { distanceMeters } : {}),
       ...(status !== undefined ? { status } : {}),
+      ...(elevationGainMeters !== undefined ? { elevationGainMeters } : {}),
+      ...(courseTypeArg !== undefined ? { courseType: courseTypeArg } : {}),
+      ...(surfaceArg !== undefined ? { surface: surfaceArg } : {}),
+      ...(bibNumber !== undefined ? { bibNumber } : {}),
+      ...(registrationUrl !== undefined ? { registrationUrl } : {}),
+      ...(result !== undefined ? { result } : {}),
     };
     if (Object.keys(racePatch).length === 0) return null;
 
@@ -196,6 +309,11 @@ export const updateMyEvent = mutation({
         priority: priority ?? "B",
         distanceMeters,
         status: status ?? "upcoming",
+        elevationGainMeters,
+        courseType: courseTypeArg,
+        surface: surfaceArg,
+        bibNumber,
+        registrationUrl,
       });
     }
     return null;

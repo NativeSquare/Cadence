@@ -7,7 +7,7 @@ import { useRouter } from "expo-router";
 import React from "react";
 import { Pressable, ScrollView, View } from "react-native";
 
-type EventDoc = NonNullable<
+type RaceDoc = NonNullable<
   ReturnType<typeof useQuery<typeof api.plan.events.listMyEvents>>
 >[number];
 
@@ -21,6 +21,18 @@ const PRIORITY_TEXT_COLORS: Record<"A" | "B" | "C", string> = {
   A: COLORS.black,
   B: COLORS.black,
   C: LIGHT_THEME.wSub,
+};
+
+const PRIORITY_RANK: Record<"A" | "B" | "C", number> = { A: 0, B: 1, C: 2 };
+
+const STATUS_PILL_LABEL: Record<
+  "completed" | "cancelled" | "dnf" | "dns",
+  string
+> = {
+  completed: "Done",
+  cancelled: "Cancelled",
+  dnf: "DNF",
+  dns: "DNS",
 };
 
 function formatDate(iso: string): string {
@@ -39,23 +51,32 @@ function formatDistance(meters?: number): string | null {
   return `${meters} m`;
 }
 
-function sortEvents(events: EventDoc[]): EventDoc[] {
-  const today = new Date().toISOString().slice(0, 10);
-  const upcoming = events
-    .filter((e) => e.date >= today)
-    .sort((a, b) => a.date.localeCompare(b.date));
-  const past = events
-    .filter((e) => e.date < today)
-    .sort((a, b) => b.date.localeCompare(a.date));
-  return [...upcoming, ...past];
+function partitionAndSort(races: RaceDoc[]) {
+  const upcoming: RaceDoc[] = [];
+  const past: RaceDoc[] = [];
+  for (const r of races) {
+    if (r.status === "upcoming") upcoming.push(r);
+    else past.push(r);
+  }
+  const byPriorityThen = (dir: 1 | -1) => (a: RaceDoc, b: RaceDoc) => {
+    const pa = PRIORITY_RANK[a.priority as "A" | "B" | "C"];
+    const pb = PRIORITY_RANK[b.priority as "A" | "B" | "C"];
+    if (pa !== pb) return pa - pb;
+    return dir * a.date.localeCompare(b.date);
+  };
+  upcoming.sort(byPriorityThen(1));
+  past.sort(byPriorityThen(-1));
+  return { upcoming, past };
 }
 
-export default function EventsListScreen() {
+export default function RacesListScreen() {
   const router = useRouter();
-  const events = useQuery(api.plan.events.listMyEvents);
+  const races = useQuery(api.plan.events.listMyEvents);
 
-  const sorted = React.useMemo(() => (events ? sortEvents(events) : []), [events]);
-  const today = new Date().toISOString().slice(0, 10);
+  const { upcoming, past } = React.useMemo(
+    () => (races ? partitionAndSort(races) : { upcoming: [], past: [] }),
+    [races],
+  );
 
   return (
     <View className="mt-safe flex-1" style={{ backgroundColor: LIGHT_THEME.w2 }}>
@@ -74,15 +95,10 @@ export default function EventsListScreen() {
           className="flex-1 font-coach-bold text-lg"
           style={{ color: LIGHT_THEME.wText }}
         >
-          Events
+          Races
         </Text>
         <Pressable
-          onPress={() =>
-            router.push({
-              pathname: "/(app)/account/events/[id]",
-              params: { id: "new" },
-            })
-          }
+          onPress={() => router.push("/(app)/account/races/new")}
           className="size-9 items-center justify-center rounded-full active:opacity-70"
           style={{ backgroundColor: LIGHT_THEME.wText }}
         >
@@ -94,13 +110,14 @@ export default function EventsListScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerClassName="px-4 py-6"
       >
-        {events === undefined ? null : sorted.length === 0 ? (
+        {races === undefined ? null : upcoming.length === 0 &&
+          past.length === 0 ? (
           <View className="w-full max-w-md items-center gap-2 self-center pt-20">
             <Text
               className="font-coach-medium text-[15px]"
               style={{ color: LIGHT_THEME.wText }}
             >
-              No events yet
+              No races yet
             </Text>
             <Text
               className="text-center font-coach text-[13px]"
@@ -110,20 +127,13 @@ export default function EventsListScreen() {
             </Text>
           </View>
         ) : (
-          <View className="w-full max-w-md gap-3 self-center">
-            {sorted.map((event) => (
-              <EventRow
-                key={event._id}
-                event={event}
-                past={event.date < today}
-                onPress={() =>
-                  router.push({
-                    pathname: "/(app)/account/events/[id]",
-                    params: { id: event._id },
-                  })
-                }
-              />
-            ))}
+          <View className="w-full max-w-md gap-6 self-center">
+            {upcoming.length > 0 && (
+              <RaceSection title="Upcoming" races={upcoming} />
+            )}
+            {past.length > 0 && (
+              <RaceSection title="Past" races={past} dimmed />
+            )}
           </View>
         )}
       </ScrollView>
@@ -131,17 +141,58 @@ export default function EventsListScreen() {
   );
 }
 
-function EventRow({
-  event,
-  past,
+function RaceSection({
+  title,
+  races,
+  dimmed = false,
+}: {
+  title: string;
+  races: RaceDoc[];
+  dimmed?: boolean;
+}) {
+  const router = useRouter();
+  return (
+    <View className="gap-3">
+      <Text
+        className="px-1 font-coach-extrabold text-[11px] uppercase tracking-widest"
+        style={{ color: LIGHT_THEME.wSub }}
+      >
+        {title}
+      </Text>
+      <View className="gap-3">
+        {races.map((race) => (
+          <RaceRow
+            key={race._id}
+            race={race}
+            dimmed={dimmed}
+            onPress={() =>
+              router.push({
+                pathname: "/(app)/account/races/[id]",
+                params: { id: race._id },
+              })
+            }
+          />
+        ))}
+      </View>
+    </View>
+  );
+}
+
+function RaceRow({
+  race,
+  dimmed,
   onPress,
 }: {
-  event: EventDoc;
-  past: boolean;
+  race: RaceDoc;
+  dimmed: boolean;
   onPress: () => void;
 }) {
-  const priority = event.priority as "A" | "B" | "C";
-  const distance = formatDistance(event.distanceMeters);
+  const priority = race.priority as "A" | "B" | "C";
+  const distance = formatDistance(race.distanceMeters);
+  const statusPill =
+    race.status !== "upcoming"
+      ? STATUS_PILL_LABEL[race.status as keyof typeof STATUS_PILL_LABEL]
+      : null;
 
   return (
     <Pressable
@@ -150,7 +201,7 @@ function EventRow({
       style={{
         backgroundColor: LIGHT_THEME.w1,
         borderColor: LIGHT_THEME.wBrd,
-        opacity: past ? 0.55 : 1,
+        opacity: dimmed ? 0.65 : 1,
       }}
     >
       <View
@@ -170,15 +221,30 @@ function EventRow({
           className="font-coach-semibold text-[15px]"
           style={{ color: LIGHT_THEME.wText }}
         >
-          {event.name}
+          {race.name}
         </Text>
-        <Text
-          className="mt-0.5 font-coach text-[12px]"
-          style={{ color: LIGHT_THEME.wSub }}
-        >
-          {formatDate(event.date)}
-          {distance ? ` · ${distance}` : ""}
-        </Text>
+        <View className="mt-0.5 flex-row items-center gap-2">
+          <Text
+            className="font-coach text-[12px]"
+            style={{ color: LIGHT_THEME.wSub }}
+          >
+            {formatDate(race.date)}
+            {distance ? ` · ${distance}` : ""}
+          </Text>
+          {statusPill && (
+            <View
+              className="rounded-full px-2 py-0.5"
+              style={{ backgroundColor: LIGHT_THEME.w3 }}
+            >
+              <Text
+                className="font-coach-semibold text-[10px]"
+                style={{ color: LIGHT_THEME.wSub }}
+              >
+                {statusPill}
+              </Text>
+            </View>
+          )}
+        </View>
       </View>
       <Ionicons name="chevron-forward" size={16} color={LIGHT_THEME.wMute} />
     </Pressable>
