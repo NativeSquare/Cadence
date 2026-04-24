@@ -29,6 +29,27 @@ function countSteps(structure: unknown): number {
   return total;
 }
 
+const WORKOUT_TYPE_LABELS: Record<string, string> = {
+  easy: "Easy",
+  long: "Long",
+  tempo: "Tempo",
+  threshold: "Threshold",
+  intervals: "Intervals",
+  vo2max: "VO2max",
+  fartlek: "Fartlek",
+  progression: "Progression",
+  race_pace: "Race pace",
+  recovery: "Recovery",
+  strides: "Strides",
+  hills: "Hills",
+  race: "Race",
+  test: "Test",
+  cross_training: "Cross-training",
+  strength: "Strength",
+  rest: "Rest",
+  other: "Other",
+};
+
 export default function WorkoutTemplatesListScreen() {
   const router = useRouter();
   const templates = useQuery(api.plan.workoutTemplates.listMyTemplates);
@@ -75,7 +96,7 @@ export default function WorkoutTemplatesListScreen() {
           </View>
         ) : (
           <View className="w-full max-w-md gap-3 self-center">
-            {templates.map((template) => (
+            {templates.map((template: TemplateDoc) => (
               <TemplateRow
                 key={template._id}
                 template={template}
@@ -101,8 +122,8 @@ function TemplateRow({
   template: TemplateDoc;
   onPress: () => void;
 }) {
-  const stepCount = countSteps(template.structure);
-  const tagsPreview = template.tags.slice(0, 3).join(" · ");
+  const stepCount = countSteps(template.content?.structure);
+  const typeLabel = WORKOUT_TYPE_LABELS[template.type] ?? template.type;
 
   return (
     <Pressable
@@ -132,8 +153,7 @@ function TemplateRow({
           className="mt-0.5 font-coach text-[12px]"
           style={{ color: LIGHT_THEME.wSub }}
         >
-          {stepCount} {stepCount === 1 ? "step" : "steps"}
-          {tagsPreview ? ` · ${tagsPreview}` : ""}
+          {typeLabel} · {stepCount} {stepCount === 1 ? "step" : "steps"}
         </Text>
       </View>
       <Ionicons name="chevron-forward" size={16} color={LIGHT_THEME.wMute} />

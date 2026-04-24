@@ -2,7 +2,7 @@
  * Plan generation — LLM-driven action that materialises a training plan
  * directly into the Agoge component.
  *
- * Flow: load athlete + onboarding transcript + (optional) target event →
+ * Flow: load athlete + onboarding transcript + (optional) target race →
  * build a system prompt and tool factory → call Claude with four write-tools
  * (createPlan, createBlock, createWorkout, finalizePlan) → return the planId.
  * The plan is born in `draft` status; finalizePlan flips it to `active`,
@@ -64,32 +64,46 @@ export const generatePlan = action({
 
     const today = todayIso();
 
-    // ── Resolve target event for race goals ────────────────────────────────
+    // ── Resolve target race for race goals ─────────────────────────────────
     let targetDate = args.targetDate;
     let targetTimeSeconds = args.targetTimeSeconds;
-    let targetEventId: string | undefined;
+    let targetRaceId: string | undefined;
 
     if (args.goalType !== "base_building") {
       const goalDistance = GOAL_DISTANCE_METERS[args.goalType];
-      const futureEvents = await ctx.runQuery(
-        components.agoge.public.listEvents,
-        { athleteId: athlete._id, startDate: today },
+      type Race = {
+        _id: string;
+        eventId: string;
+        distanceMeters: number;
+      };
+      type EventDoc = { _id: string; date: string };
+      const upcomingRaces = (await ctx.runQuery(
+        components.agoge.public.getRacesByAthleteAndStatus,
+        { athleteId: athlete._id, status: "upcoming" as const },
+      )) as Race[];
+      const racesWithEvents = await Promise.all(
+        upcomingRaces.map(async (race: Race) => {
+          const event = (await ctx.runQuery(components.agoge.public.getEvent, {
+            eventId: race.eventId,
+          })) as EventDoc | null;
+          return event ? { race, event } : null;
+        }),
       );
-      const matchingEvent = futureEvents
-        .filter((e) =>
-          e.distanceMeters !== undefined
-            ? Math.abs(e.distanceMeters - goalDistance) < 500
-            : true,
+      const matching = racesWithEvents
+        .filter(
+          (pair): pair is NonNullable<typeof pair> =>
+            pair !== null &&
+            pair.event.date >= today &&
+            Math.abs(pair.race.distanceMeters - goalDistance) < 500,
         )
-        .sort((a, b) => a.date.localeCompare(b.date))[0];
+        .sort((a, b) => a.event.date.localeCompare(b.event.date))[0];
 
-      targetDate = targetDate ?? matchingEvent?.date;
-      targetTimeSeconds = targetTimeSeconds ?? matchingEvent?.goalTimeSeconds;
-      targetEventId = matchingEvent?._id;
+      targetDate = targetDate ?? matching?.event.date;
+      targetRaceId = matching?.race._id;
 
       if (!targetDate) {
         throw new Error(
-          `Goal ${args.goalType} requires a target date. Provide targetDate or create a future event for this athlete.`,
+          `Goal ${args.goalType} requires a target date. Provide targetDate or create an upcoming race of the right distance for this athlete.`,
         );
       }
       if (targetDate <= today) {
@@ -105,6 +119,18 @@ export const generatePlan = action({
       { userId },
     );
 
+    // ── Load thresholds from zones (physiology lives there since agoge 1.1) ─
+    const [hrRow, paceRow] = await Promise.all([
+      ctx.runQuery(components.agoge.public.getZoneByAthleteKind, {
+        athleteId: athlete._id,
+        kind: "hr" as const,
+      }),
+      ctx.runQuery(components.agoge.public.getZoneByAthleteKind, {
+        athleteId: athlete._id,
+        kind: "pace" as const,
+      }),
+    ]);
+
     // ── Build prompt + tools ───────────────────────────────────────────────
     const systemPrompt = buildPlanGeneratorPrompt({
       goalType: args.goalType,
@@ -115,10 +141,10 @@ export const generatePlan = action({
         dateOfBirth: athlete.dateOfBirth,
         weightKg: athlete.weightKg,
         heightCm: athlete.heightCm,
-        maxHr: athlete.maxHr,
-        restingHr: athlete.restingHr,
-        thresholdPaceMps: athlete.thresholdPaceMps,
-        thresholdHr: athlete.thresholdHr,
+        maxHr: hrRow?.maxHr,
+        restingHr: hrRow?.restingHr,
+        thresholdPaceMps: paceRow?.threshold,
+        thresholdHr: hrRow?.threshold,
       },
       transcript,
       today,
@@ -128,7 +154,7 @@ export const generatePlan = action({
 
     const { tools, getState } = buildPlanGenerationTools(ctx, {
       athleteId: athlete._id,
-      targetEventId,
+      targetRaceId,
     });
 
     // ── Run the LLM generation loop ────────────────────────────────────────

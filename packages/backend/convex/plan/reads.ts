@@ -32,10 +32,10 @@ export const getActivePlan = query({
       { userId },
     );
     if (!athlete) return null;
-    const plans = await ctx.runQuery(components.agoge.public.listPlans, {
-      athleteId: athlete._id,
-      status: "active",
-    });
+    const plans = await ctx.runQuery(
+      components.agoge.public.getPlansByAthleteAndStatus,
+      { athleteId: athlete._id, status: "active" as const },
+    );
     return plans[0] ?? null;
   },
 });
@@ -68,7 +68,7 @@ export const listWorkoutsInRange = query({
       { userId },
     );
     if (!athlete) return [];
-    return await ctx.runQuery(components.agoge.public.listWorkoutsByDate, {
+    return await ctx.runQuery(components.agoge.public.getWorkoutsByAthlete, {
       athleteId: athlete._id,
       startDate,
       endDate,
@@ -81,7 +81,7 @@ export const listPlanWorkouts = query({
   handler: async (ctx, { planId }) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) return [];
-    return await ctx.runQuery(components.agoge.public.listWorkoutsByPlan, {
+    return await ctx.runQuery(components.agoge.public.getWorkoutsByPlan, {
       // biome-ignore lint/suspicious/noExplicitAny: agoge Id is a branded string
       planId: planId as any,
     });
@@ -91,27 +91,9 @@ export const listPlanWorkouts = query({
 export const listBlocks = query({
   args: { planId: v.string() },
   handler: async (ctx, { planId }) => {
-    return await ctx.runQuery(components.agoge.public.listBlocks, {
+    return await ctx.runQuery(components.agoge.public.getBlocksByPlan, {
       // biome-ignore lint/suspicious/noExplicitAny: agoge Id is a branded string
       planId: planId as any,
-    });
-  },
-});
-
-export const listEvents = query({
-  args: { startDate: v.optional(v.string()), endDate: v.optional(v.string()) },
-  handler: async (ctx, { startDate, endDate }) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) return [];
-    const athlete = await ctx.runQuery(
-      components.agoge.public.getAthleteByUserId,
-      { userId },
-    );
-    if (!athlete) return [];
-    return await ctx.runQuery(components.agoge.public.listEvents, {
-      athleteId: athlete._id,
-      startDate,
-      endDate,
     });
   },
 });
@@ -120,15 +102,29 @@ export const listZones = query({
   args: { kind: v.optional(v.union(v.literal("hr"), v.literal("pace"))) },
   handler: async (ctx, { kind }) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) return [];
+    if (!userId) return { hr: null, pace: null };
     const athlete = await ctx.runQuery(
       components.agoge.public.getAthleteByUserId,
       { userId },
     );
-    if (!athlete) return [];
-    return await ctx.runQuery(components.agoge.public.listZones, {
-      athleteId: athlete._id,
-      kind,
-    });
+    if (!athlete) return { hr: null, pace: null };
+    if (kind) {
+      const zone = await ctx.runQuery(
+        components.agoge.public.getZoneByAthleteKind,
+        { athleteId: athlete._id, kind },
+      );
+      return kind === "hr" ? { hr: zone, pace: null } : { hr: null, pace: zone };
+    }
+    const [hr, pace] = await Promise.all([
+      ctx.runQuery(components.agoge.public.getZoneByAthleteKind, {
+        athleteId: athlete._id,
+        kind: "hr" as const,
+      }),
+      ctx.runQuery(components.agoge.public.getZoneByAthleteKind, {
+        athleteId: athlete._id,
+        kind: "pace" as const,
+      }),
+    ]);
+    return { hr, pace };
   },
 });

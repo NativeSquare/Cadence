@@ -15,9 +15,10 @@ import { pushTokens } from "./table/pushTokens";
 import { safeguards } from "./table/safeguards";
 import { users } from "./table/users";
 
-// NOTE: Training-domain tables (athletes, zones, events, plans, blocks, workouts,
-// workoutTemplates) are owned by the Agoge component (@nativesquare/agoge).
-// Access via: ctx.runQuery/Mutation(components.agoge.public.*, { ... })
+// NOTE: Training-domain tables (athletes, zones, events, races, goals, plans,
+// blocks, workouts, workoutTemplates) are owned by the Agoge component
+// (@nativesquare/agoge). Access via:
+// ctx.runQuery/Mutation(components.agoge.public.*, { ... })
 // or the Agoge client wrapper: new Agoge(components.agoge).
 //
 // Biometrics/activities (activities, sleepSessions, dailySummaries, bodyMeasurements,

@@ -80,6 +80,26 @@ const stepTreeZ = z.array(z.union([stepZ, repeatZ]));
 // ── Enum zods mirroring Agoge's validators ───────────────────────────────────
 
 const blockTypeZ = z.enum(["base", "build", "peak", "taper", "recovery"]);
+const workoutTypeZ = z.enum([
+  "easy",
+  "long",
+  "tempo",
+  "threshold",
+  "intervals",
+  "vo2max",
+  "fartlek",
+  "progression",
+  "race_pace",
+  "recovery",
+  "strides",
+  "hills",
+  "race",
+  "test",
+  "cross_training",
+  "strength",
+  "rest",
+  "other",
+]);
 const isoDateZ = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, "Must be ISO date YYYY-MM-DD");
@@ -100,8 +120,8 @@ export function buildPlanGenerationTools(
   ctx: ActionCtx,
   {
     athleteId,
-    targetEventId,
-  }: { athleteId: string; targetEventId?: string },
+    targetRaceId,
+  }: { athleteId: string; targetRaceId?: string },
 ) {
   let planId: string | null = null;
   const blocks: Array<{
@@ -119,17 +139,12 @@ export function buildPlanGenerationTools(
       name: z.string().min(3).max(80),
       startDate: isoDateZ.describe("Plan start date (ISO YYYY-MM-DD)"),
       endDate: isoDateZ.describe("Plan end date (ISO YYYY-MM-DD)"),
-      methodology: z
-        .string()
-        .max(120)
-        .optional()
-        .describe("Short methodology label, e.g. 'Daniels-style 5k build'"),
       notes: z
         .string()
         .max(2000)
         .optional()
         .describe(
-          "Free-form coach summary the athlete will read: periodization rationale, key milestones, caveats.",
+          "Free-form coach summary the athlete will read: periodization rationale, key milestones, caveats, methodology.",
         ),
     }),
     execute: async (args) => {
@@ -144,9 +159,9 @@ export function buildPlanGenerationTools(
           name: args.name,
           startDate: args.startDate,
           endDate: args.endDate,
+          status: "draft" as const,
           // biome-ignore lint/suspicious/noExplicitAny: agoge Ids are branded strings at the component boundary
-          targetEventId: targetEventId as any,
-          methodology: args.methodology,
+          targetRaceId: targetRaceId as any,
           notes: args.notes,
         },
       );
@@ -196,7 +211,7 @@ export function buildPlanGenerationTools(
 
   const createWorkout = tool({
     description:
-      "Create a planned workout on a specific date. The block is inferred from the date (must fall within a previously-created block's range). Provide a step-tree `structure` for quality sessions (warmup/main/cooldown, intervals with repeats). For easy recovery runs, you may omit `structure` and set only `targetDurationSeconds`.",
+      "Create a planned workout on a specific date. The block is inferred from the date (must fall within a previously-created block's range). Provide a step-tree `structure` inside `planned` for quality sessions (warmup/main/cooldown, intervals with repeats). For easy recovery runs, you may set only `planned.durationSeconds`.",
     inputSchema: z.object({
       scheduledDate: isoDateZ,
       name: z
@@ -206,6 +221,9 @@ export function buildPlanGenerationTools(
         .describe(
           "Short session name, e.g. 'Easy Run', 'Tempo', '6 x 800m Intervals', 'Long Run'.",
         ),
+      type: workoutTypeZ.describe(
+        "Workout type — drives how the athlete and coach reason about the session.",
+      ),
       description: z
         .string()
         .max(500)
@@ -213,17 +231,23 @@ export function buildPlanGenerationTools(
         .describe(
           "One- or two-sentence coach note explaining the purpose and how to execute.",
         ),
-      targetDurationSeconds: z.number().int().positive().optional(),
-      targetDistanceMeters: z.number().int().positive().optional(),
-      targetLoad: z
-        .number()
-        .positive()
-        .optional()
-        .describe("Expected training load (TSS-equivalent), if known."),
-      structure: stepTreeZ
-        .optional()
+      planned: z
+        .object({
+          durationSeconds: z.number().int().positive().optional(),
+          distanceMeters: z.number().int().positive().optional(),
+          load: z
+            .number()
+            .positive()
+            .optional()
+            .describe("Expected training load (TSS-equivalent), if known."),
+          structure: stepTreeZ
+            .optional()
+            .describe(
+              "Ordered step-tree. Each node is either a Step or a Repeat wrapping steps. Required for structured sessions (tempo, intervals, progressive runs).",
+            ),
+        })
         .describe(
-          "Ordered step-tree. Each node is either a Step or a Repeat wrapping steps. Required for structured sessions (tempo, intervals, progressive runs).",
+          "Planned effort — at least one of durationSeconds/distanceMeters/structure should be set.",
         ),
     }),
     execute: async (args) => {
@@ -247,7 +271,8 @@ export function buildPlanGenerationTools(
         {
           // biome-ignore lint/suspicious/noExplicitAny: agoge Ids are branded strings at the component boundary
           athleteId: athleteId as any,
-          sport: "run",
+          sport: "run" as const,
+          type: args.type,
           // biome-ignore lint/suspicious/noExplicitAny: agoge Ids are branded strings at the component boundary
           planId: planId as any,
           // biome-ignore lint/suspicious/noExplicitAny: agoge Ids are branded strings at the component boundary
@@ -255,10 +280,8 @@ export function buildPlanGenerationTools(
           scheduledDate: args.scheduledDate,
           name: args.name,
           description: args.description,
-          targetDurationSeconds: args.targetDurationSeconds,
-          targetDistanceMeters: args.targetDistanceMeters,
-          targetLoad: args.targetLoad,
-          structure: args.structure,
+          status: "planned" as const,
+          planned: args.planned,
         },
       );
       workoutCount += 1;

@@ -22,21 +22,25 @@ import type {
 
 /**
  * Subset of the agoge workout doc the Plan UI consumes.
- * Mirrors `components.agoge.public.listWorkoutsByDate` return shape.
+ * Mirrors `components.agoge.public.getWorkoutsByAthlete` return shape.
  */
 export interface AgogeWorkout {
   _id: string;
   scheduledDate: string;
   name: string;
   description?: string;
-  targetDurationSeconds?: number;
-  targetDistanceMeters?: number;
   status: "planned" | "completed" | "missed" | "skipped";
-  completed?: {
-    durationSeconds: number;
+  planned?: {
+    durationSeconds?: number;
     distanceMeters?: number;
   };
-  compliance?: number;
+  actual?: {
+    durationSeconds?: number;
+    distanceMeters?: number;
+  };
+  adherence?: {
+    score: number;
+  };
 }
 
 /** Key format used by CalendarStrip (y-m-d, 0-indexed month, unpadded). */
@@ -88,10 +92,10 @@ export function workoutToSessionData(
     sessionId: workout._id,
     type: workout.name,
     km: formatDistance(
-      workout.completed?.distanceMeters ?? workout.targetDistanceMeters,
+      workout.actual?.distanceMeters ?? workout.planned?.distanceMeters,
     ),
     dur: formatDurationShort(
-      workout.completed?.durationSeconds ?? workout.targetDurationSeconds,
+      workout.actual?.durationSeconds ?? workout.planned?.durationSeconds,
     ),
     done: workout.status === "completed",
     intensity: intensityFromName(workout.name),
@@ -99,14 +103,14 @@ export function workoutToSessionData(
     zone: "-",
     today: isToday,
     actualDur:
-      workout.completed?.durationSeconds != null
-        ? formatDurationShort(workout.completed.durationSeconds)
+      workout.actual?.durationSeconds != null
+        ? formatDurationShort(workout.actual.durationSeconds)
         : undefined,
     actualKm:
-      workout.completed?.distanceMeters != null
-        ? formatDistance(workout.completed.distanceMeters)
+      workout.actual?.distanceMeters != null
+        ? formatDistance(workout.actual.distanceMeters)
         : undefined,
-    adherenceScore: workout.compliance,
+    adherenceScore: workout.adherence?.score,
   };
 }
 
@@ -159,11 +163,11 @@ export function computeWeekInsights(
     if (d < weekStart || d > weekEnd) continue;
     currentWeekSessions.push(workoutToSessionData(w, today));
 
-    volumePlannedMeters += w.targetDistanceMeters ?? 0;
-    if (w.status === "completed" && w.completed) {
+    volumePlannedMeters += w.planned?.distanceMeters ?? 0;
+    if (w.status === "completed" && w.actual) {
       volumeCompletedMeters +=
-        w.completed.distanceMeters ?? w.targetDistanceMeters ?? 0;
-      timeCompletedSeconds += w.completed.durationSeconds;
+        w.actual.distanceMeters ?? w.planned?.distanceMeters ?? 0;
+      timeCompletedSeconds += w.actual.durationSeconds ?? 0;
     }
   }
 

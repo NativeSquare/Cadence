@@ -53,14 +53,13 @@ export default function Profile() {
     return (fromName || "?").toUpperCase();
   }, [displayName]);
 
-  const athleteValue = (() => {
-    if (!runner) return "Not set";
+  const profileValue = (() => {
+    if (!runner) return undefined;
     const parts: string[] = [];
     if (runner.sex) parts.push(runner.sex === "male" ? "M" : runner.sex === "female" ? "F" : "O");
     if (runner.weightKg) parts.push(`${runner.weightKg} kg`);
     if (runner.heightCm) parts.push(`${runner.heightCm} cm`);
-    if (runner.maxHr) parts.push(`${runner.maxHr} bpm`);
-    return parts.length > 0 ? parts.join(" · ") : "Not set";
+    return parts.length > 0 ? parts.join(" · ") : undefined;
   })();
   const zonesValue = (() => {
     if (!zones) return "Not set";
@@ -226,12 +225,12 @@ export default function Profile() {
               title="Training"
               items={[
                 {
-                  label: "Athlete",
-                  icon: "body-outline",
-                  value: athleteValue,
-                  iconColor: COLORS.blu,
-                  iconBgColor: "rgba(91,158,255,0.1)",
-                  onPress: () => router.push("/account/athlete"),
+                  label: "Events",
+                  icon: "flag-outline",
+                  value: eventsValue,
+                  iconColor: COLORS.ora,
+                  iconBgColor: "rgba(255,149,0,0.1)",
+                  onPress: () => router.push("/account/events"),
                 },
                 {
                   label: "Zones",
@@ -240,14 +239,6 @@ export default function Profile() {
                   iconColor: ACTIVITY_COLORS.barHigh,
                   iconBgColor: "rgba(168,217,0,0.1)",
                   onPress: () => router.push("/account/zones"),
-                },
-                {
-                  label: "Events",
-                  icon: "flag-outline",
-                  value: eventsValue,
-                  iconColor: COLORS.ora,
-                  iconBgColor: "rgba(255,149,0,0.1)",
-                  onPress: () => router.push("/account/events"),
                 },
                 {
                   label: "Workout Templates",
@@ -282,6 +273,9 @@ export default function Profile() {
                 {
                   label: "Profile",
                   icon: "person-outline",
+                  value: profileValue,
+                  iconColor: COLORS.blu,
+                  iconBgColor: "rgba(91,158,255,0.1)",
                   onPress: () => router.push("/account/edit"),
                 },
                 {

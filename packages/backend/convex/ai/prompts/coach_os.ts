@@ -25,8 +25,8 @@ export interface UpcomingWorkout {
   name: string;
   description?: string;
   status: "planned" | "completed" | "missed" | "skipped";
-  targetDurationSeconds?: number;
-  targetDistanceMeters?: number;
+  plannedDurationSeconds?: number;
+  plannedDistanceMeters?: number;
 }
 
 export function buildCoachOSPrompt(
@@ -112,7 +112,7 @@ When the runner asks about their fitness, schedule, or current state, use these 
 
 - **readAthleteProfile**: Fetches the runner's agoge athlete record (name, physical stats, HR and pace thresholds) and derived state (ATL, CTL, TSB, recent volume, activity counts).
 - **readUpcomingWorkouts**: Upcoming scheduled workouts from the active agoge plan. Accepts optional startDate/endDate filters.
-- **readActivePlan**: Read the runner's active agoge plan — name, dates, methodology, and free-form notes the plan generator wrote at creation time.
+- **readActivePlan**: Read the runner's active agoge plan — name, dates, and free-form notes the plan generator wrote at creation time (periodization rationale, milestones, methodology).
 
 ### Rules for Read Tools
 1. Use when asked about data. Don't guess.
@@ -198,10 +198,10 @@ function buildSessionContext(workouts: UpcomingWorkout[]): string {
   if (workouts.length === 0) return "";
   const lines = workouts.map((w) => {
     const statusStr = w.status !== "planned" ? ` [${w.status}]` : "";
-    const duration = w.targetDurationSeconds
-      ? `${Math.round(w.targetDurationSeconds / 60)} min`
-      : w.targetDistanceMeters
-        ? `${(w.targetDistanceMeters / 1000).toFixed(1)} km`
+    const duration = w.plannedDurationSeconds
+      ? `${Math.round(w.plannedDurationSeconds / 60)} min`
+      : w.plannedDistanceMeters
+        ? `${(w.plannedDistanceMeters / 1000).toFixed(1)} km`
         : "open";
     return `- ${w.scheduledDate}: ${w.name}, ${duration}${statusStr} (ID: ${w._id})`;
   });

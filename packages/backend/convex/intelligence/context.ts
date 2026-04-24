@@ -25,8 +25,8 @@ type RouterWorkout = {
   name: string;
   description?: string;
   status: "planned" | "completed" | "missed" | "skipped";
-  targetDurationSeconds?: number;
-  targetDistanceMeters?: number;
+  plannedDurationSeconds?: number;
+  plannedDistanceMeters?: number;
 };
 
 type RouterPlan = {
@@ -36,7 +36,6 @@ type RouterPlan = {
     startDate: string;
     endDate: string;
     status: "draft" | "active" | "completed" | "archived";
-    methodology?: string;
     notes?: string;
   };
   currentWeekNumber: number;
@@ -64,6 +63,17 @@ export const loadRouterContext = internalQuery({
     );
     if (!athlete) return { athlete: null, plan: null };
 
+    const [hrRow, paceRow] = await Promise.all([
+      ctx.runQuery(components.agoge.public.getZoneByAthleteKind, {
+        athleteId: athlete._id,
+        kind: "hr" as const,
+      }),
+      ctx.runQuery(components.agoge.public.getZoneByAthleteKind, {
+        athleteId: athlete._id,
+        kind: "pace" as const,
+      }),
+    ]);
+
     const athleteSnapshot: RouterAthlete = {
       _id: athlete._id,
       name: athlete.name,
@@ -71,16 +81,16 @@ export const loadRouterContext = internalQuery({
       dateOfBirth: athlete.dateOfBirth,
       weightKg: athlete.weightKg,
       heightCm: athlete.heightCm,
-      maxHr: athlete.maxHr,
-      restingHr: athlete.restingHr,
-      thresholdPaceMps: athlete.thresholdPaceMps,
-      thresholdHr: athlete.thresholdHr,
+      maxHr: hrRow?.maxHr,
+      restingHr: hrRow?.restingHr,
+      thresholdPaceMps: paceRow?.threshold,
+      thresholdHr: hrRow?.threshold,
     };
 
-    const plans = await ctx.runQuery(components.agoge.public.listPlans, {
-      athleteId: athlete._id,
-      status: "active",
-    });
+    const plans = await ctx.runQuery(
+      components.agoge.public.getPlansByAthleteAndStatus,
+      { athleteId: athlete._id, status: "active" as const },
+    );
     const activePlan = plans[0];
     if (!activePlan) return { athlete: athleteSnapshot, plan: null };
 
@@ -91,10 +101,18 @@ export const loadRouterContext = internalQuery({
       occurredAt + WORKOUT_WINDOW_FUTURE_DAYS * MS_PER_DAY,
     );
 
-    const workouts = await ctx.runQuery(
-      components.agoge.public.listWorkoutsByDate,
+    type AgogeWorkout = {
+      _id: string;
+      scheduledDate: string;
+      name: string;
+      description?: string;
+      status: "planned" | "completed" | "missed" | "skipped";
+      planned?: { durationSeconds?: number; distanceMeters?: number };
+    };
+    const workouts = (await ctx.runQuery(
+      components.agoge.public.getWorkoutsByAthlete,
       { athleteId: athlete._id, startDate: windowStart, endDate: windowEnd },
-    );
+    )) as AgogeWorkout[];
 
     const planStartMs = Date.parse(activePlan.startDate);
     const rawWeek = Math.floor((occurredAt - planStartMs) / (7 * MS_PER_DAY)) + 1;
@@ -109,7 +127,6 @@ export const loadRouterContext = internalQuery({
           startDate: activePlan.startDate,
           endDate: activePlan.endDate,
           status: activePlan.status,
-          methodology: activePlan.methodology,
           notes: activePlan.notes,
         },
         currentWeekNumber,
@@ -119,8 +136,8 @@ export const loadRouterContext = internalQuery({
           name: w.name,
           description: w.description,
           status: w.status,
-          targetDurationSeconds: w.targetDurationSeconds,
-          targetDistanceMeters: w.targetDistanceMeters,
+          plannedDurationSeconds: w.planned?.durationSeconds,
+          plannedDistanceMeters: w.planned?.distanceMeters,
         })),
       },
     };

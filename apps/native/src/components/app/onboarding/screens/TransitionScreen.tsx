@@ -68,9 +68,9 @@ export function TransitionScreen({ onDone }: TransitionScreenProps) {
   const planGenerationStarted = useRef(false);
 
   const generatePlan = useAction(api.plan.generate.generatePlan);
-  const futureEvents = useQuery(api.plan.reads.listEvents, {
-    startDate: new Date().toISOString().slice(0, 10),
-  });
+  const events = useQuery(api.plan.events.listMyEvents);
+  const today = new Date().toISOString().slice(0, 10);
+  const futureEvents = events?.filter((e) => e.date >= today);
 
   const s1 = useStream({
     text: "Okay. I believe I have what I need to draft your game plan.",

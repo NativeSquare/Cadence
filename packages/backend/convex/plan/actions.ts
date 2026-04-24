@@ -47,10 +47,20 @@ export const modifyWorkout = mutation({
     workoutId: v.string(),
     name: v.optional(v.string()),
     description: v.optional(v.string()),
-    structure: v.optional(v.any()),
-    targetDurationSeconds: v.optional(v.number()),
-    targetDistanceMeters: v.optional(v.number()),
-    targetLoad: v.optional(v.number()),
+    planned: v.optional(
+      v.object({
+        structure: v.optional(v.any()),
+        durationSeconds: v.optional(v.number()),
+        distanceMeters: v.optional(v.number()),
+        load: v.optional(v.number()),
+        avgPaceMps: v.optional(v.number()),
+        avgHr: v.optional(v.number()),
+        maxHr: v.optional(v.number()),
+        elevationGainMeters: v.optional(v.number()),
+        rpe: v.optional(v.number()),
+        notes: v.optional(v.string()),
+      }),
+    ),
   },
   handler: async (ctx, args) => {
     await assertWorkoutOwnership(ctx, args.workoutId);
@@ -98,9 +108,10 @@ export const skipWorkout = mutation({
   args: { workoutId: v.string() },
   handler: async (ctx, { workoutId }) => {
     await assertWorkoutOwnership(ctx, workoutId);
-    await ctx.runMutation(components.agoge.public.skipWorkout, {
+    await ctx.runMutation(components.agoge.public.updateWorkout, {
       // biome-ignore lint/suspicious/noExplicitAny: agoge Id is a branded string
       workoutId: workoutId as any,
+      status: "skipped" as const,
     });
   },
 });
@@ -108,7 +119,6 @@ export const skipWorkout = mutation({
 export const completeWorkout = mutation({
   args: {
     workoutId: v.string(),
-    startedAt: v.number(),
     durationSeconds: v.number(),
     distanceMeters: v.optional(v.number()),
     avgPaceMps: v.optional(v.number()),
@@ -117,16 +127,16 @@ export const completeWorkout = mutation({
     elevationGainMeters: v.optional(v.number()),
     load: v.optional(v.number()),
     rpe: v.optional(v.number()),
-    feelNotes: v.optional(v.string()),
-    externalRef: v.optional(v.string()),
+    notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     await assertWorkoutOwnership(ctx, args.workoutId);
-    const { workoutId, ...completed } = args;
-    await ctx.runMutation(components.agoge.public.completeWorkout, {
+    const { workoutId, ...actual } = args;
+    await ctx.runMutation(components.agoge.public.updateWorkout, {
       // biome-ignore lint/suspicious/noExplicitAny: agoge Id is a branded string
       workoutId: workoutId as any,
-      completed,
+      status: "completed" as const,
+      actual,
     });
   },
 });
@@ -144,18 +154,18 @@ export const submitWorkoutDebrief = mutation({
       // biome-ignore lint/suspicious/noExplicitAny: agoge Id is a branded string
       workoutId: workoutId as any,
     });
-    if (!workout?.completed) throw new Error("Workout not completed yet");
+    if (!workout?.actual) throw new Error("Workout not completed yet");
     const tagSuffix = tags?.length ? ` ${tags.map((t) => `#${t}`).join(" ")}` : "";
     const composedNotes = feelNotes
       ? `${feelNotes}${tagSuffix}`
       : tagSuffix.trim() || undefined;
-    await ctx.runMutation(components.agoge.public.completeWorkout, {
+    await ctx.runMutation(components.agoge.public.updateWorkout, {
       // biome-ignore lint/suspicious/noExplicitAny: agoge Id is a branded string
       workoutId: workoutId as any,
-      completed: {
-        ...workout.completed,
-        rpe: rpe ?? workout.completed.rpe,
-        feelNotes: composedNotes ?? workout.completed.feelNotes,
+      actual: {
+        ...workout.actual,
+        rpe: rpe ?? workout.actual.rpe,
+        notes: composedNotes ?? workout.actual.notes,
       },
     });
   },

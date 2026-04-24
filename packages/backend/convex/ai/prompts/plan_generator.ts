@@ -107,7 +107,7 @@ Rolling 4–6 weeks of aerobic development. No target date, no taper.
 
 const STEP_TREE_GUIDE = `## Step-tree structure (workouts)
 
-The \`structure\` field on createWorkout is an ordered array of nodes. Each node is either a \`step\` (a single interval with intensity, duration, and target) or a \`repeat\` (count + children, used for sets of intervals).
+The \`planned.structure\` field on createWorkout is an ordered array of nodes. Each node is either a \`step\` (a single interval with intensity, duration, and target) or a \`repeat\` (count + children, used for sets of intervals).
 
 Step \`intensity\` enum: \`warmup\`, \`active\`, \`interval\`, \`recovery\`, \`cooldown\`, \`rest\`.
 Step \`duration\` types: \`{type:"time", seconds}\`, \`{type:"distance", meters}\`, \`{type:"hrBelow", bpm}\`, \`{type:"hrAbove", bpm}\`, \`{type:"open"}\`.
@@ -115,8 +115,8 @@ Step \`target\` types: \`{type:"pace", minMps, maxMps}\`, \`{type:"hr", minBpm, 
 
 ### Examples
 
-Easy 45-minute recovery run (no structure needed — just set \`targetDurationSeconds: 2700\` and describe it):
-(no \`structure\` field)
+Easy 45-minute recovery run (no structure needed — just set \`planned.durationSeconds: 2700\` and describe it):
+(omit \`planned.structure\`)
 
 Tempo workout — 10 min warmup / 20 min tempo / 10 min cooldown, using RPE if no pace is known:
 \`\`\`json

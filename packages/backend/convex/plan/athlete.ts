@@ -16,10 +16,9 @@ const athleteProfileFields = {
   dateOfBirth: v.optional(v.string()),
   weightKg: v.optional(v.number()),
   heightCm: v.optional(v.number()),
-  maxHr: v.optional(v.number()),
-  restingHr: v.optional(v.number()),
-  thresholdPaceMps: v.optional(v.number()),
-  thresholdHr: v.optional(v.number()),
+  experienceLevel: v.optional(v.string()),
+  yearsRunning: v.optional(v.number()),
+  injuryStatus: v.optional(v.string()),
 };
 
 export const upsertAthlete = mutation({

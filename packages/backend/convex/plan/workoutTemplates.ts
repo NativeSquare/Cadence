@@ -1,20 +1,22 @@
 /**
  * Workout-template queries/mutations for the account flow.
  *
- * Scope: list/read/rename/retag/describe/delete. Structure (step tree) is
- * authored through the AI coach's tools, not this UI, so no create/update
- * paths for `structure` are exposed here.
+ * Scope: list/read/rename/describe/delete. Content (step tree) is authored
+ * through the AI coach's tools, not this UI, so no create/update paths for
+ * `content` are exposed here.
  */
 
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { v } from "convex/values";
 import { components } from "../_generated/api";
-import { mutation, query } from "../_generated/server";
+import {
+  type MutationCtx,
+  type QueryCtx,
+  mutation,
+  query,
+} from "../_generated/server";
 
-async function requireAthlete(
-  // biome-ignore lint/suspicious/noExplicitAny: context union is verbose
-  ctx: any,
-) {
+async function requireAthlete(ctx: QueryCtx | MutationCtx) {
   const userId = await getAuthUserId(ctx);
   if (!userId) throw new Error("Not authenticated");
   const athlete = await ctx.runQuery(
@@ -35,9 +37,10 @@ export const listMyTemplates = query({
       { userId },
     );
     if (!athlete) return [];
-    return await ctx.runQuery(components.agoge.public.listWorkoutTemplates, {
-      athleteId: athlete._id,
-    });
+    return await ctx.runQuery(
+      components.agoge.public.getWorkoutTemplatesByAthlete,
+      { athleteId: athlete._id },
+    );
   },
 });
 
@@ -66,7 +69,6 @@ export const updateMyTemplateMetadata = mutation({
   args: {
     templateId: v.string(),
     name: v.optional(v.string()),
-    tags: v.optional(v.array(v.string())),
     description: v.optional(v.string()),
   },
   handler: async (ctx, { templateId, ...patch }) => {

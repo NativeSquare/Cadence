@@ -297,14 +297,22 @@ export const streamChat = httpAction(async (ctx, request) => {
       seshat.getMemoryTools(ctx, { userId }),
     ]);
 
-    const upcomingForPrompt = upcomingWorkouts.map((w) => ({
+    type AgogeWorkout = {
+      _id: string;
+      scheduledDate: string;
+      name: string;
+      description?: string;
+      status: "planned" | "completed" | "missed" | "skipped";
+      planned?: { durationSeconds?: number; distanceMeters?: number };
+    };
+    const upcomingForPrompt = (upcomingWorkouts as AgogeWorkout[]).map((w) => ({
       _id: w._id,
       scheduledDate: w.scheduledDate,
       name: w.name,
       description: w.description,
       status: w.status,
-      targetDurationSeconds: w.targetDurationSeconds,
-      targetDistanceMeters: w.targetDistanceMeters,
+      plannedDurationSeconds: w.planned?.durationSeconds,
+      plannedDistanceMeters: w.planned?.distanceMeters,
     }));
 
     const systemPrompt = isOnboarding
@@ -372,10 +380,16 @@ export const streamChat = httpAction(async (ctx, request) => {
       execute: async (args) => {
         const today = new Date();
         const fourteenOut = new Date(today.getTime() + 14 * 24 * 60 * 60 * 1000);
-        const workouts = await ctx.runQuery(api.plan.reads.listWorkoutsInRange, {
-          startDate: args.startDate ?? today.toISOString().slice(0, 10),
-          endDate: args.endDate ?? fourteenOut.toISOString().slice(0, 10),
-        });
+        const workouts = (await ctx.runQuery(
+          api.plan.reads.listWorkoutsInRange,
+          {
+            startDate: args.startDate ?? today.toISOString().slice(0, 10),
+            endDate: args.endDate ?? fourteenOut.toISOString().slice(0, 10),
+          },
+        )) as Array<{
+          status: "planned" | "completed" | "missed" | "skipped";
+          [k: string]: unknown;
+        }>;
         return args.status
           ? workouts.filter((w) => w.status === args.status)
           : workouts;

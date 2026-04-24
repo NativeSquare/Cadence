@@ -162,16 +162,31 @@ export function CoachChatView({
               workoutId: string;
               name?: string;
               description?: string;
-              targetDurationSeconds?: number;
-              targetDistanceMeters?: number;
+              planned?: {
+                durationSeconds?: number;
+                distanceMeters?: number;
+              };
             } = { workoutId: p.sessionId };
             for (const c of p.changes) {
               if (c.field === "name") patch.name = c.newValue;
               else if (c.field === "description") patch.description = c.newValue;
-              else if (c.field === "targetDurationSeconds")
-                patch.targetDurationSeconds = Number(c.newValue);
-              else if (c.field === "targetDistanceMeters")
-                patch.targetDistanceMeters = Number(c.newValue);
+              else if (
+                c.field === "plannedDurationSeconds" ||
+                c.field === "targetDurationSeconds"
+              ) {
+                patch.planned = {
+                  ...patch.planned,
+                  durationSeconds: Number(c.newValue),
+                };
+              } else if (
+                c.field === "plannedDistanceMeters" ||
+                c.field === "targetDistanceMeters"
+              ) {
+                patch.planned = {
+                  ...patch.planned,
+                  distanceMeters: Number(c.newValue),
+                };
+              }
             }
             await modifySession(patch);
             return { success: true };

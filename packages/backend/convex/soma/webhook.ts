@@ -3,7 +3,8 @@
  *
  * Called by Soma's registerRoutes after activity ingestion completes.
  * Matches the latest activity to an agoge planned workout by date/time,
- * completes it via agoge.completeWorkout, and fires a push notification.
+ * flips its status to "completed" with the `actual` workoutFace populated,
+ * and fires a push notification.
  */
 
 import type { SomaActivity } from "@nativesquare/soma/validators";
@@ -71,8 +72,8 @@ export const handleActivityIngested = internalAction({
 
 /**
  * Match an incoming activity to an agoge planned workout (closest scheduled
- * planned workout by time, within ±24h/+3h window). If matched, call
- * agoge.completeWorkout with externalRef = soma activity id.
+ * planned workout by time, within ±24h/+3h window). If matched, flip the
+ * workout's status to "completed" with the `actual` workoutFace populated.
  */
 export const matchActivityToWorkout = internalAction({
   args: { cadenceUserId: v.string() },
@@ -150,14 +151,20 @@ export const matchActivityToWorkout = internalAction({
     const windowStartMs = now - 24 * 60 * 60 * 1000;
     const windowEndMs = now + 3 * 60 * 60 * 1000;
 
-    const candidates = await ctx.runQuery(
-      components.agoge.public.listWorkoutsByDate,
+    type AgogeWorkout = {
+      _id: string;
+      name: string;
+      scheduledDate: string;
+      status: "planned" | "completed" | "missed" | "skipped";
+    };
+    const candidates = (await ctx.runQuery(
+      components.agoge.public.getWorkoutsByAthlete,
       {
         athleteId: athlete._id,
         startDate: toIsoDate(windowStartMs),
         endDate: toIsoDate(windowEndMs),
       },
-    );
+    )) as AgogeWorkout[];
 
     const eligible = candidates.filter((w) => w.status === "planned");
 
@@ -186,11 +193,11 @@ export const matchActivityToWorkout = internalAction({
     );
 
     // ── Complete the workout in agoge ───────────────────────────────────────
-    await ctx.runMutation(components.agoge.public.completeWorkout, {
+    await ctx.runMutation(components.agoge.public.updateWorkout, {
       workoutId: matched._id,
-      completed: {
-        startedAt: inferenceActivity.startTime,
-        durationSeconds: inferenceActivity.durationSeconds ?? 0,
+      status: "completed" as const,
+      actual: {
+        durationSeconds: inferenceActivity.durationSeconds,
         distanceMeters: inferenceActivity.distanceMeters,
         avgPaceMps:
           inferenceActivity.distanceMeters && inferenceActivity.durationSeconds
@@ -198,7 +205,8 @@ export const matchActivityToWorkout = internalAction({
             : undefined,
         avgHr: inferenceActivity.avgHeartRate,
         maxHr: inferenceActivity.maxHeartRate,
-        externalRef: latestActivity._id,
+        load: inferenceActivity.trainingLoad,
+        notes: `externalRef:${latestActivity._id}`,
       },
     });
 
@@ -225,7 +233,7 @@ export const matchActivityToWorkout = internalAction({
 // ─── Matching Helpers ─────────────────────────────────────────────────────────
 
 function findClosestByDate<T extends { scheduledDate: string }>(
-  workouts: T[],
+  workouts: readonly T[],
   targetMs: number,
 ): T | null {
   if (workouts.length === 0) return null;

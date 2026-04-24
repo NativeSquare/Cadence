@@ -215,13 +215,13 @@ export function buildCalendarSessions(
     // scheduledDate is already YYYY-MM-DD, which matches formatDateKey output.
     const key = w.scheduledDate;
     const km =
-      w.completed?.distanceMeters != null
-        ? (w.completed.distanceMeters / 1000).toFixed(1)
-        : w.targetDistanceMeters != null
-          ? (w.targetDistanceMeters / 1000).toFixed(1)
+      w.actual?.distanceMeters != null
+        ? (w.actual.distanceMeters / 1000).toFixed(1)
+        : w.planned?.distanceMeters != null
+          ? (w.planned.distanceMeters / 1000).toFixed(1)
           : "-";
     const dur = formatWorkoutDuration(
-      w.completed?.durationSeconds ?? w.targetDurationSeconds,
+      w.actual?.durationSeconds ?? w.planned?.durationSeconds,
     );
     const calSession: CalSession = {
       sessionId: w._id,

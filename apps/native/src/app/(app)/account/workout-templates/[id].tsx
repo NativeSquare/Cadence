@@ -128,12 +128,11 @@ function isStepNodeArray(x: unknown): x is StepNode[] {
 
 type FormState = {
   name: string;
-  tags: string;
   description: string;
 };
 
 function isFormEqual(a: FormState, b: FormState): boolean {
-  return a.name === b.name && a.tags === b.tags && a.description === b.description;
+  return a.name === b.name && a.description === b.description;
 }
 
 export default function TemplateDetailScreen() {
@@ -151,7 +150,6 @@ export default function TemplateDetailScreen() {
 
   const [initial, setInitial] = React.useState<FormState>({
     name: "",
-    tags: "",
     description: "",
   });
   const [form, setForm] = React.useState<FormState>(initial);
@@ -169,7 +167,6 @@ export default function TemplateDetailScreen() {
     }
     const next: FormState = {
       name: template.name,
-      tags: template.tags.join(", "),
       description: template.description ?? "",
     };
     setInitial(next);
@@ -186,17 +183,11 @@ export default function TemplateDetailScreen() {
     Keyboard.dismiss();
     if (!canSave) return;
 
-    const tags = form.tags
-      .split(",")
-      .map((t) => t.trim())
-      .filter((t) => t.length > 0);
-
     setIsLoading(true);
     try {
       await updateMetadata({
         templateId: id,
         name: form.name.trim(),
-        tags,
         description: form.description.trim(),
       });
       router.back();
@@ -270,25 +261,6 @@ export default function TemplateDetailScreen() {
             />
           </Field>
 
-          <Field label="Tags (comma-separated)">
-            <TextInput
-              className="h-12 rounded-xl border px-4 font-coach-medium text-[15px]"
-              style={{
-                backgroundColor: LIGHT_THEME.w1,
-                borderColor: LIGHT_THEME.wBrd,
-                color: LIGHT_THEME.wText,
-              }}
-              placeholder="e.g. tempo, 5k, intervals"
-              placeholderTextColor={LIGHT_THEME.wMute}
-              value={form.tags}
-              onChangeText={(v) => setForm((f) => ({ ...f, tags: v }))}
-              editable={!isGlobal}
-              autoCapitalize="none"
-              selectionColor={COLORS.lime}
-              cursorColor={COLORS.lime}
-            />
-          </Field>
-
           <Field label="Description">
             <TextInput
               className="rounded-xl border px-4 py-3 font-coach-medium text-[15px]"
@@ -325,9 +297,10 @@ export default function TemplateDetailScreen() {
                 borderColor: LIGHT_THEME.wBrd,
               }}
             >
-              {template == null ? null : isStepNodeArray(template.structure) &&
-                template.structure.length > 0 ? (
-                <StepTreeView nodes={template.structure} />
+              {template == null ? null : isStepNodeArray(
+                template.content?.structure,
+              ) && template.content.structure.length > 0 ? (
+                <StepTreeView nodes={template.content.structure} />
               ) : (
                 <Text
                   className="px-4 py-6 text-center font-coach text-[13px]"
