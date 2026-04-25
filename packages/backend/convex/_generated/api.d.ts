@@ -8,7 +8,6 @@
  * @module
  */
 
-import type * as agoge from "../agoge.js";
 import type * as ai_http_action from "../ai/http_action.js";
 import type * as ai_messages from "../ai/messages.js";
 import type * as ai_prompts_coach_os from "../ai/prompts/coach_os.js";
@@ -43,11 +42,11 @@ import type * as lib_provenanceHelpers from "../lib/provenanceHelpers.js";
 import type * as migrations from "../migrations.js";
 import type * as plan_actions from "../plan/actions.js";
 import type * as plan_athlete from "../plan/athlete.js";
-import type * as plan_events from "../plan/events.js";
 import type * as plan_generate from "../plan/generate.js";
 import type * as plan_goals from "../plan/goals.js";
 import type * as plan_index from "../plan/index.js";
 import type * as plan_legacy from "../plan/legacy.js";
+import type * as plan_races from "../plan/races.js";
 import type * as plan_reads from "../plan/reads.js";
 import type * as plan_state from "../plan/state.js";
 import type * as plan_tools from "../plan/tools.js";
@@ -91,7 +90,6 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
-  agoge: typeof agoge;
   "ai/http_action": typeof ai_http_action;
   "ai/messages": typeof ai_messages;
   "ai/prompts/coach_os": typeof ai_prompts_coach_os;
@@ -126,11 +124,11 @@ declare const fullApi: ApiFromModules<{
   migrations: typeof migrations;
   "plan/actions": typeof plan_actions;
   "plan/athlete": typeof plan_athlete;
-  "plan/events": typeof plan_events;
   "plan/generate": typeof plan_generate;
   "plan/goals": typeof plan_goals;
   "plan/index": typeof plan_index;
   "plan/legacy": typeof plan_legacy;
+  "plan/races": typeof plan_races;
   "plan/reads": typeof plan_reads;
   "plan/state": typeof plan_state;
   "plan/tools": typeof plan_tools;
@@ -447,7 +445,7 @@ export declare const components: {
           weightKg?: number;
           yearsRunning?: number;
         },
-        any
+        string
       >;
       createBlock: FunctionReference<
         "mutation",
@@ -461,27 +459,7 @@ export declare const components: {
           startDate: string;
           type: "base" | "build" | "peak" | "taper" | "recovery";
         },
-        any
-      >;
-      createEvent: FunctionReference<
-        "mutation",
-        "internal",
-        {
-          athleteId: string;
-          date: string;
-          location?: {
-            city?: string;
-            country?: string;
-            lat?: number;
-            lng?: number;
-            venue?: string;
-          };
-          name: string;
-          notes?: string;
-          sport: "run";
-          type?: "race" | "life_event";
-        },
-        any
+        string
       >;
       createGoal: FunctionReference<
         "mutation",
@@ -503,7 +481,7 @@ export declare const components: {
             | "body"
             | "other";
         },
-        any
+        string
       >;
       createPlan: FunctionReference<
         "mutation",
@@ -517,7 +495,7 @@ export declare const components: {
           status: "draft" | "active" | "completed" | "archived";
           targetRaceId?: string;
         },
-        any
+        string
       >;
       createRace: FunctionReference<
         "mutation",
@@ -532,11 +510,11 @@ export declare const components: {
             | "laps"
             | "stages"
             | "other";
+          date: string;
           discipline: "road" | "trail" | "track" | "cross_country" | "ultra";
           distanceMeters: number;
           elevationGainMeters?: number;
           elevationLossMeters?: number;
-          eventId: string;
           format?:
             | "5k"
             | "10k"
@@ -553,6 +531,15 @@ export declare const components: {
             | "relay"
             | "custom";
           itraCategory?: "XXS" | "XS" | "S" | "M" | "L" | "XL" | "XXL";
+          location?: {
+            city?: string;
+            country?: string;
+            lat?: number;
+            lng?: number;
+            venue?: string;
+          };
+          name: string;
+          notes?: string;
           priority: "A" | "B" | "C";
           registrationUrl?: string;
           result?: {
@@ -565,6 +552,7 @@ export declare const components: {
             placementInGender?: number;
             totalFinishers?: number;
           };
+          sport: "run";
           status: "upcoming" | "completed" | "cancelled" | "dnf" | "dns";
           surface?:
             | "road"
@@ -574,7 +562,7 @@ export declare const components: {
             | "track"
             | "other";
         },
-        any
+        string
       >;
       createWorkout: FunctionReference<
         "mutation",
@@ -649,7 +637,7 @@ export declare const components: {
             | "other";
           typeNotes?: string;
         },
-        any
+        string
       >;
       createWorkoutTemplate: FunctionReference<
         "mutation",
@@ -699,7 +687,7 @@ export declare const components: {
             | "other";
           typeNotes?: string;
         },
-        any
+        string
       >;
       createZone: FunctionReference<
         "mutation",
@@ -715,99 +703,148 @@ export declare const components: {
           sport: "run";
           threshold: number;
         },
-        any
+        string
       >;
       deleteAthlete: FunctionReference<
         "mutation",
         "internal",
         { athleteId: string },
-        any
+        null
       >;
       deleteBlock: FunctionReference<
         "mutation",
         "internal",
         { blockId: string },
-        any
-      >;
-      deleteEvent: FunctionReference<
-        "mutation",
-        "internal",
-        { eventId: string },
-        any
+        null
       >;
       deleteGoal: FunctionReference<
         "mutation",
         "internal",
         { goalId: string },
-        any
+        null
       >;
       deletePlan: FunctionReference<
         "mutation",
         "internal",
         { planId: string },
-        any
+        null
       >;
       deleteRace: FunctionReference<
         "mutation",
         "internal",
         { raceId: string },
-        any
+        null
       >;
       deleteWorkout: FunctionReference<
         "mutation",
         "internal",
         { workoutId: string },
-        any
+        null
       >;
       deleteWorkoutTemplate: FunctionReference<
         "mutation",
         "internal",
         { templateId: string },
-        any
+        null
       >;
       deleteZone: FunctionReference<
         "mutation",
         "internal",
         { zoneId: string },
-        any
+        null
       >;
       getAthlete: FunctionReference<
         "query",
         "internal",
         { athleteId: string },
-        any
+        {
+          _creationTime: number;
+          _id: string;
+          dateOfBirth?: string;
+          experienceLevel?: string;
+          heightCm?: number;
+          injuryStatus?: string;
+          name?: string;
+          sex?: "male" | "female" | "other";
+          userId: string;
+          weightKg?: number;
+          yearsRunning?: number;
+        } | null
       >;
       getAthleteByUserId: FunctionReference<
         "query",
         "internal",
         { userId: string },
-        any
+        {
+          _creationTime: number;
+          _id: string;
+          dateOfBirth?: string;
+          experienceLevel?: string;
+          heightCm?: number;
+          injuryStatus?: string;
+          name?: string;
+          sex?: "male" | "female" | "other";
+          userId: string;
+          weightKg?: number;
+          yearsRunning?: number;
+        } | null
       >;
       getBlock: FunctionReference<
         "query",
         "internal",
         { blockId: string },
-        any
+        {
+          _creationTime: number;
+          _id: string;
+          endDate: string;
+          focus?: string;
+          name: string;
+          order: number;
+          planId: string;
+          startDate: string;
+          type: "base" | "build" | "peak" | "taper" | "recovery";
+        } | null
       >;
       getBlocksByPlan: FunctionReference<
         "query",
         "internal",
         { planId: string },
-        any
+        Array<{
+          _creationTime: number;
+          _id: string;
+          endDate: string;
+          focus?: string;
+          name: string;
+          order: number;
+          planId: string;
+          startDate: string;
+          type: "base" | "build" | "peak" | "taper" | "recovery";
+        }>
       >;
-      getEvent: FunctionReference<
+      getGoal: FunctionReference<
         "query",
         "internal",
-        { eventId: string },
-        any
+        { goalId: string },
+        {
+          _creationTime: number;
+          _id: string;
+          athleteId: string;
+          description?: string;
+          raceId?: string;
+          rank?: "primary" | "stretch" | "minimum" | "process";
+          status: "active" | "achieved" | "missed" | "abandoned" | "paused";
+          targetDate?: string;
+          targetValue: string;
+          title: string;
+          type:
+            | "performance"
+            | "process"
+            | "volume"
+            | "completion"
+            | "body"
+            | "other";
+        } | null
       >;
-      getEventsByAthlete: FunctionReference<
-        "query",
-        "internal",
-        { athleteId: string },
-        any
-      >;
-      getGoal: FunctionReference<"query", "internal", { goalId: string }, any>;
       getGoalsByAthleteAndStatus: FunctionReference<
         "query",
         "internal",
@@ -815,15 +852,66 @@ export declare const components: {
           athleteId: string;
           status: "active" | "achieved" | "missed" | "abandoned" | "paused";
         },
-        any
+        Array<{
+          _creationTime: number;
+          _id: string;
+          athleteId: string;
+          description?: string;
+          raceId?: string;
+          rank?: "primary" | "stretch" | "minimum" | "process";
+          status: "active" | "achieved" | "missed" | "abandoned" | "paused";
+          targetDate?: string;
+          targetValue: string;
+          title: string;
+          type:
+            | "performance"
+            | "process"
+            | "volume"
+            | "completion"
+            | "body"
+            | "other";
+        }>
       >;
       getGoalsByRace: FunctionReference<
         "query",
         "internal",
         { raceId: string },
-        any
+        Array<{
+          _creationTime: number;
+          _id: string;
+          athleteId: string;
+          description?: string;
+          raceId?: string;
+          rank?: "primary" | "stretch" | "minimum" | "process";
+          status: "active" | "achieved" | "missed" | "abandoned" | "paused";
+          targetDate?: string;
+          targetValue: string;
+          title: string;
+          type:
+            | "performance"
+            | "process"
+            | "volume"
+            | "completion"
+            | "body"
+            | "other";
+        }>
       >;
-      getPlan: FunctionReference<"query", "internal", { planId: string }, any>;
+      getPlan: FunctionReference<
+        "query",
+        "internal",
+        { planId: string },
+        {
+          _creationTime: number;
+          _id: string;
+          athleteId: string;
+          endDate: string;
+          name: string;
+          notes?: string;
+          startDate: string;
+          status: "draft" | "active" | "completed" | "archived";
+          targetRaceId?: string;
+        } | null
+      >;
       getPlansByAthleteAndStatus: FunctionReference<
         "query",
         "internal",
@@ -831,20 +919,240 @@ export declare const components: {
           athleteId: string;
           status: "draft" | "active" | "completed" | "archived";
         },
-        any
+        Array<{
+          _creationTime: number;
+          _id: string;
+          athleteId: string;
+          endDate: string;
+          name: string;
+          notes?: string;
+          startDate: string;
+          status: "draft" | "active" | "completed" | "archived";
+          targetRaceId?: string;
+        }>
       >;
       getPlansByRace: FunctionReference<
         "query",
         "internal",
         { raceId: string },
-        any
+        Array<{
+          _creationTime: number;
+          _id: string;
+          athleteId: string;
+          endDate: string;
+          name: string;
+          notes?: string;
+          startDate: string;
+          status: "draft" | "active" | "completed" | "archived";
+          targetRaceId?: string;
+        }>
       >;
-      getRace: FunctionReference<"query", "internal", { raceId: string }, any>;
+      getRace: FunctionReference<
+        "query",
+        "internal",
+        { raceId: string },
+        {
+          _creationTime: number;
+          _id: string;
+          athleteId: string;
+          bibNumber?: string;
+          courseType?:
+            | "loop"
+            | "point_to_point"
+            | "out_and_back"
+            | "laps"
+            | "stages"
+            | "other";
+          date: string;
+          discipline: "road" | "trail" | "track" | "cross_country" | "ultra";
+          distanceMeters: number;
+          elevationGainMeters?: number;
+          elevationLossMeters?: number;
+          format?:
+            | "5k"
+            | "10k"
+            | "15k"
+            | "10_miles"
+            | "half_marathon"
+            | "marathon"
+            | "50k"
+            | "50_miles"
+            | "100k"
+            | "100_miles"
+            | "backyard_ultra"
+            | "multi_day_stage"
+            | "relay"
+            | "custom";
+          itraCategory?: "XXS" | "XS" | "S" | "M" | "L" | "XL" | "XXL";
+          location?: {
+            city?: string;
+            country?: string;
+            lat?: number;
+            lng?: number;
+            venue?: string;
+          };
+          name: string;
+          notes?: string;
+          priority: "A" | "B" | "C";
+          registrationUrl?: string;
+          result?: {
+            avgPaceSecPerKm?: number;
+            finishTime?: string;
+            finishTimeSec?: number;
+            notes?: string;
+            placement?: number;
+            placementInAgeGroup?: number;
+            placementInGender?: number;
+            totalFinishers?: number;
+          };
+          sport: "run";
+          status: "upcoming" | "completed" | "cancelled" | "dnf" | "dns";
+          surface?:
+            | "road"
+            | "mixed"
+            | "trail"
+            | "technical_trail"
+            | "track"
+            | "other";
+        } | null
+      >;
+      getRacesByAthlete: FunctionReference<
+        "query",
+        "internal",
+        { athleteId: string },
+        Array<{
+          _creationTime: number;
+          _id: string;
+          athleteId: string;
+          bibNumber?: string;
+          courseType?:
+            | "loop"
+            | "point_to_point"
+            | "out_and_back"
+            | "laps"
+            | "stages"
+            | "other";
+          date: string;
+          discipline: "road" | "trail" | "track" | "cross_country" | "ultra";
+          distanceMeters: number;
+          elevationGainMeters?: number;
+          elevationLossMeters?: number;
+          format?:
+            | "5k"
+            | "10k"
+            | "15k"
+            | "10_miles"
+            | "half_marathon"
+            | "marathon"
+            | "50k"
+            | "50_miles"
+            | "100k"
+            | "100_miles"
+            | "backyard_ultra"
+            | "multi_day_stage"
+            | "relay"
+            | "custom";
+          itraCategory?: "XXS" | "XS" | "S" | "M" | "L" | "XL" | "XXL";
+          location?: {
+            city?: string;
+            country?: string;
+            lat?: number;
+            lng?: number;
+            venue?: string;
+          };
+          name: string;
+          notes?: string;
+          priority: "A" | "B" | "C";
+          registrationUrl?: string;
+          result?: {
+            avgPaceSecPerKm?: number;
+            finishTime?: string;
+            finishTimeSec?: number;
+            notes?: string;
+            placement?: number;
+            placementInAgeGroup?: number;
+            placementInGender?: number;
+            totalFinishers?: number;
+          };
+          sport: "run";
+          status: "upcoming" | "completed" | "cancelled" | "dnf" | "dns";
+          surface?:
+            | "road"
+            | "mixed"
+            | "trail"
+            | "technical_trail"
+            | "track"
+            | "other";
+        }>
+      >;
       getRacesByAthleteAndPriority: FunctionReference<
         "query",
         "internal",
         { athleteId: string; priority: "A" | "B" | "C" },
-        any
+        Array<{
+          _creationTime: number;
+          _id: string;
+          athleteId: string;
+          bibNumber?: string;
+          courseType?:
+            | "loop"
+            | "point_to_point"
+            | "out_and_back"
+            | "laps"
+            | "stages"
+            | "other";
+          date: string;
+          discipline: "road" | "trail" | "track" | "cross_country" | "ultra";
+          distanceMeters: number;
+          elevationGainMeters?: number;
+          elevationLossMeters?: number;
+          format?:
+            | "5k"
+            | "10k"
+            | "15k"
+            | "10_miles"
+            | "half_marathon"
+            | "marathon"
+            | "50k"
+            | "50_miles"
+            | "100k"
+            | "100_miles"
+            | "backyard_ultra"
+            | "multi_day_stage"
+            | "relay"
+            | "custom";
+          itraCategory?: "XXS" | "XS" | "S" | "M" | "L" | "XL" | "XXL";
+          location?: {
+            city?: string;
+            country?: string;
+            lat?: number;
+            lng?: number;
+            venue?: string;
+          };
+          name: string;
+          notes?: string;
+          priority: "A" | "B" | "C";
+          registrationUrl?: string;
+          result?: {
+            avgPaceSecPerKm?: number;
+            finishTime?: string;
+            finishTimeSec?: number;
+            notes?: string;
+            placement?: number;
+            placementInAgeGroup?: number;
+            placementInGender?: number;
+            totalFinishers?: number;
+          };
+          sport: "run";
+          status: "upcoming" | "completed" | "cancelled" | "dnf" | "dns";
+          surface?:
+            | "road"
+            | "mixed"
+            | "trail"
+            | "technical_trail"
+            | "track"
+            | "other";
+        }>
       >;
       getRacesByAthleteAndStatus: FunctionReference<
         "query",
@@ -853,25 +1161,224 @@ export declare const components: {
           athleteId: string;
           status: "upcoming" | "completed" | "cancelled" | "dnf" | "dns";
         },
-        any
-      >;
-      getRacesByEvent: FunctionReference<
-        "query",
-        "internal",
-        { eventId: string },
-        any
+        Array<{
+          _creationTime: number;
+          _id: string;
+          athleteId: string;
+          bibNumber?: string;
+          courseType?:
+            | "loop"
+            | "point_to_point"
+            | "out_and_back"
+            | "laps"
+            | "stages"
+            | "other";
+          date: string;
+          discipline: "road" | "trail" | "track" | "cross_country" | "ultra";
+          distanceMeters: number;
+          elevationGainMeters?: number;
+          elevationLossMeters?: number;
+          format?:
+            | "5k"
+            | "10k"
+            | "15k"
+            | "10_miles"
+            | "half_marathon"
+            | "marathon"
+            | "50k"
+            | "50_miles"
+            | "100k"
+            | "100_miles"
+            | "backyard_ultra"
+            | "multi_day_stage"
+            | "relay"
+            | "custom";
+          itraCategory?: "XXS" | "XS" | "S" | "M" | "L" | "XL" | "XXL";
+          location?: {
+            city?: string;
+            country?: string;
+            lat?: number;
+            lng?: number;
+            venue?: string;
+          };
+          name: string;
+          notes?: string;
+          priority: "A" | "B" | "C";
+          registrationUrl?: string;
+          result?: {
+            avgPaceSecPerKm?: number;
+            finishTime?: string;
+            finishTimeSec?: number;
+            notes?: string;
+            placement?: number;
+            placementInAgeGroup?: number;
+            placementInGender?: number;
+            totalFinishers?: number;
+          };
+          sport: "run";
+          status: "upcoming" | "completed" | "cancelled" | "dnf" | "dns";
+          surface?:
+            | "road"
+            | "mixed"
+            | "trail"
+            | "technical_trail"
+            | "track"
+            | "other";
+        }>
       >;
       getWorkout: FunctionReference<
         "query",
         "internal",
         { workoutId: string },
-        any
+        {
+          _creationTime: number;
+          _id: string;
+          actual?: {
+            avgHr?: number;
+            avgPaceMps?: number;
+            distanceMeters?: number;
+            durationSeconds?: number;
+            elevationGainMeters?: number;
+            load?: number;
+            maxHr?: number;
+            notes?: string;
+            rpe?: number;
+            structure?: any;
+          };
+          adherence?: {
+            algorithmVersion: string;
+            distanceMatch?: number;
+            durationMatch?: number;
+            intensityMatch?: number;
+            score: number;
+            structureMatch?: number;
+          };
+          athleteId: string;
+          blockId?: string;
+          description?: string;
+          name: string;
+          planId?: string;
+          planned?: {
+            avgHr?: number;
+            avgPaceMps?: number;
+            distanceMeters?: number;
+            durationSeconds?: number;
+            elevationGainMeters?: number;
+            load?: number;
+            maxHr?: number;
+            notes?: string;
+            rpe?: number;
+            structure?: any;
+          };
+          scheduledDate: string;
+          sport: "run";
+          status: "planned" | "completed" | "missed" | "skipped";
+          subSport?:
+            | "track"
+            | "trail"
+            | "treadmill"
+            | "street"
+            | "indoor"
+            | "virtual";
+          templateId?: string;
+          type:
+            | "easy"
+            | "long"
+            | "tempo"
+            | "threshold"
+            | "intervals"
+            | "vo2max"
+            | "fartlek"
+            | "progression"
+            | "race_pace"
+            | "recovery"
+            | "strides"
+            | "hills"
+            | "race"
+            | "test"
+            | "cross_training"
+            | "strength"
+            | "rest"
+            | "other";
+          typeNotes?: string;
+        } | null
       >;
       getWorkoutsByAthlete: FunctionReference<
         "query",
         "internal",
         { athleteId: string; endDate: string; startDate: string },
-        any
+        Array<{
+          _creationTime: number;
+          _id: string;
+          actual?: {
+            avgHr?: number;
+            avgPaceMps?: number;
+            distanceMeters?: number;
+            durationSeconds?: number;
+            elevationGainMeters?: number;
+            load?: number;
+            maxHr?: number;
+            notes?: string;
+            rpe?: number;
+            structure?: any;
+          };
+          adherence?: {
+            algorithmVersion: string;
+            distanceMatch?: number;
+            durationMatch?: number;
+            intensityMatch?: number;
+            score: number;
+            structureMatch?: number;
+          };
+          athleteId: string;
+          blockId?: string;
+          description?: string;
+          name: string;
+          planId?: string;
+          planned?: {
+            avgHr?: number;
+            avgPaceMps?: number;
+            distanceMeters?: number;
+            durationSeconds?: number;
+            elevationGainMeters?: number;
+            load?: number;
+            maxHr?: number;
+            notes?: string;
+            rpe?: number;
+            structure?: any;
+          };
+          scheduledDate: string;
+          sport: "run";
+          status: "planned" | "completed" | "missed" | "skipped";
+          subSport?:
+            | "track"
+            | "trail"
+            | "treadmill"
+            | "street"
+            | "indoor"
+            | "virtual";
+          templateId?: string;
+          type:
+            | "easy"
+            | "long"
+            | "tempo"
+            | "threshold"
+            | "intervals"
+            | "vo2max"
+            | "fartlek"
+            | "progression"
+            | "race_pace"
+            | "recovery"
+            | "strides"
+            | "hills"
+            | "race"
+            | "test"
+            | "cross_training"
+            | "strength"
+            | "rest"
+            | "other";
+          typeNotes?: string;
+        }>
       >;
       getWorkoutsByAthleteAndStatus: FunctionReference<
         "query",
@@ -880,44 +1387,390 @@ export declare const components: {
           athleteId: string;
           status: "planned" | "completed" | "missed" | "skipped";
         },
-        any
+        Array<{
+          _creationTime: number;
+          _id: string;
+          actual?: {
+            avgHr?: number;
+            avgPaceMps?: number;
+            distanceMeters?: number;
+            durationSeconds?: number;
+            elevationGainMeters?: number;
+            load?: number;
+            maxHr?: number;
+            notes?: string;
+            rpe?: number;
+            structure?: any;
+          };
+          adherence?: {
+            algorithmVersion: string;
+            distanceMatch?: number;
+            durationMatch?: number;
+            intensityMatch?: number;
+            score: number;
+            structureMatch?: number;
+          };
+          athleteId: string;
+          blockId?: string;
+          description?: string;
+          name: string;
+          planId?: string;
+          planned?: {
+            avgHr?: number;
+            avgPaceMps?: number;
+            distanceMeters?: number;
+            durationSeconds?: number;
+            elevationGainMeters?: number;
+            load?: number;
+            maxHr?: number;
+            notes?: string;
+            rpe?: number;
+            structure?: any;
+          };
+          scheduledDate: string;
+          sport: "run";
+          status: "planned" | "completed" | "missed" | "skipped";
+          subSport?:
+            | "track"
+            | "trail"
+            | "treadmill"
+            | "street"
+            | "indoor"
+            | "virtual";
+          templateId?: string;
+          type:
+            | "easy"
+            | "long"
+            | "tempo"
+            | "threshold"
+            | "intervals"
+            | "vo2max"
+            | "fartlek"
+            | "progression"
+            | "race_pace"
+            | "recovery"
+            | "strides"
+            | "hills"
+            | "race"
+            | "test"
+            | "cross_training"
+            | "strength"
+            | "rest"
+            | "other";
+          typeNotes?: string;
+        }>
       >;
       getWorkoutsByBlock: FunctionReference<
         "query",
         "internal",
         { blockId: string },
-        any
+        Array<{
+          _creationTime: number;
+          _id: string;
+          actual?: {
+            avgHr?: number;
+            avgPaceMps?: number;
+            distanceMeters?: number;
+            durationSeconds?: number;
+            elevationGainMeters?: number;
+            load?: number;
+            maxHr?: number;
+            notes?: string;
+            rpe?: number;
+            structure?: any;
+          };
+          adherence?: {
+            algorithmVersion: string;
+            distanceMatch?: number;
+            durationMatch?: number;
+            intensityMatch?: number;
+            score: number;
+            structureMatch?: number;
+          };
+          athleteId: string;
+          blockId?: string;
+          description?: string;
+          name: string;
+          planId?: string;
+          planned?: {
+            avgHr?: number;
+            avgPaceMps?: number;
+            distanceMeters?: number;
+            durationSeconds?: number;
+            elevationGainMeters?: number;
+            load?: number;
+            maxHr?: number;
+            notes?: string;
+            rpe?: number;
+            structure?: any;
+          };
+          scheduledDate: string;
+          sport: "run";
+          status: "planned" | "completed" | "missed" | "skipped";
+          subSport?:
+            | "track"
+            | "trail"
+            | "treadmill"
+            | "street"
+            | "indoor"
+            | "virtual";
+          templateId?: string;
+          type:
+            | "easy"
+            | "long"
+            | "tempo"
+            | "threshold"
+            | "intervals"
+            | "vo2max"
+            | "fartlek"
+            | "progression"
+            | "race_pace"
+            | "recovery"
+            | "strides"
+            | "hills"
+            | "race"
+            | "test"
+            | "cross_training"
+            | "strength"
+            | "rest"
+            | "other";
+          typeNotes?: string;
+        }>
       >;
       getWorkoutsByPlan: FunctionReference<
         "query",
         "internal",
         { planId: string },
-        any
+        Array<{
+          _creationTime: number;
+          _id: string;
+          actual?: {
+            avgHr?: number;
+            avgPaceMps?: number;
+            distanceMeters?: number;
+            durationSeconds?: number;
+            elevationGainMeters?: number;
+            load?: number;
+            maxHr?: number;
+            notes?: string;
+            rpe?: number;
+            structure?: any;
+          };
+          adherence?: {
+            algorithmVersion: string;
+            distanceMatch?: number;
+            durationMatch?: number;
+            intensityMatch?: number;
+            score: number;
+            structureMatch?: number;
+          };
+          athleteId: string;
+          blockId?: string;
+          description?: string;
+          name: string;
+          planId?: string;
+          planned?: {
+            avgHr?: number;
+            avgPaceMps?: number;
+            distanceMeters?: number;
+            durationSeconds?: number;
+            elevationGainMeters?: number;
+            load?: number;
+            maxHr?: number;
+            notes?: string;
+            rpe?: number;
+            structure?: any;
+          };
+          scheduledDate: string;
+          sport: "run";
+          status: "planned" | "completed" | "missed" | "skipped";
+          subSport?:
+            | "track"
+            | "trail"
+            | "treadmill"
+            | "street"
+            | "indoor"
+            | "virtual";
+          templateId?: string;
+          type:
+            | "easy"
+            | "long"
+            | "tempo"
+            | "threshold"
+            | "intervals"
+            | "vo2max"
+            | "fartlek"
+            | "progression"
+            | "race_pace"
+            | "recovery"
+            | "strides"
+            | "hills"
+            | "race"
+            | "test"
+            | "cross_training"
+            | "strength"
+            | "rest"
+            | "other";
+          typeNotes?: string;
+        }>
       >;
       getWorkoutTemplate: FunctionReference<
         "query",
         "internal",
         { templateId: string },
-        any
+        {
+          _creationTime: number;
+          _id: string;
+          athleteId?: string;
+          content: {
+            avgHr?: number;
+            avgPaceMps?: number;
+            distanceMeters?: number;
+            durationSeconds?: number;
+            elevationGainMeters?: number;
+            load?: number;
+            maxHr?: number;
+            notes?: string;
+            rpe?: number;
+            structure?: any;
+          };
+          description?: string;
+          name: string;
+          sport: "run";
+          subSport?:
+            | "track"
+            | "trail"
+            | "treadmill"
+            | "street"
+            | "indoor"
+            | "virtual";
+          type:
+            | "easy"
+            | "long"
+            | "tempo"
+            | "threshold"
+            | "intervals"
+            | "vo2max"
+            | "fartlek"
+            | "progression"
+            | "race_pace"
+            | "recovery"
+            | "strides"
+            | "hills"
+            | "race"
+            | "test"
+            | "cross_training"
+            | "strength"
+            | "rest"
+            | "other";
+          typeNotes?: string;
+        } | null
       >;
       getWorkoutTemplatesByAthlete: FunctionReference<
         "query",
         "internal",
         { athleteId?: string },
-        any
+        Array<{
+          _creationTime: number;
+          _id: string;
+          athleteId?: string;
+          content: {
+            avgHr?: number;
+            avgPaceMps?: number;
+            distanceMeters?: number;
+            durationSeconds?: number;
+            elevationGainMeters?: number;
+            load?: number;
+            maxHr?: number;
+            notes?: string;
+            rpe?: number;
+            structure?: any;
+          };
+          description?: string;
+          name: string;
+          sport: "run";
+          subSport?:
+            | "track"
+            | "trail"
+            | "treadmill"
+            | "street"
+            | "indoor"
+            | "virtual";
+          type:
+            | "easy"
+            | "long"
+            | "tempo"
+            | "threshold"
+            | "intervals"
+            | "vo2max"
+            | "fartlek"
+            | "progression"
+            | "race_pace"
+            | "recovery"
+            | "strides"
+            | "hills"
+            | "race"
+            | "test"
+            | "cross_training"
+            | "strength"
+            | "rest"
+            | "other";
+          typeNotes?: string;
+        }>
       >;
-      getZone: FunctionReference<"query", "internal", { zoneId: string }, any>;
+      getZone: FunctionReference<
+        "query",
+        "internal",
+        { zoneId: string },
+        {
+          _creationTime: number;
+          _id: string;
+          athleteId: string;
+          boundaries: Array<number>;
+          effectiveFrom: string;
+          kind: "hr" | "pace";
+          maxHr?: number;
+          restingHr?: number;
+          source?: string;
+          sport: "run";
+          threshold: number;
+        } | null
+      >;
       getZoneByAthleteEffectiveFrom: FunctionReference<
         "query",
         "internal",
         { athleteId: string; effectiveFrom: string; kind: "hr" | "pace" },
-        any
+        {
+          _creationTime: number;
+          _id: string;
+          athleteId: string;
+          boundaries: Array<number>;
+          effectiveFrom: string;
+          kind: "hr" | "pace";
+          maxHr?: number;
+          restingHr?: number;
+          source?: string;
+          sport: "run";
+          threshold: number;
+        } | null
       >;
       getZoneByAthleteKind: FunctionReference<
         "query",
         "internal",
         { athleteId: string; kind: "hr" | "pace" },
-        any
+        {
+          _creationTime: number;
+          _id: string;
+          athleteId: string;
+          boundaries: Array<number>;
+          effectiveFrom: string;
+          kind: "hr" | "pace";
+          maxHr?: number;
+          restingHr?: number;
+          source?: string;
+          sport: "run";
+          threshold: number;
+        } | null
       >;
       updateAthlete: FunctionReference<
         "mutation",
@@ -934,7 +1787,7 @@ export declare const components: {
           weightKg?: number;
           yearsRunning?: number;
         },
-        any
+        null
       >;
       updateBlock: FunctionReference<
         "mutation",
@@ -949,28 +1802,7 @@ export declare const components: {
           startDate?: string;
           type?: "base" | "build" | "peak" | "taper" | "recovery";
         },
-        any
-      >;
-      updateEvent: FunctionReference<
-        "mutation",
-        "internal",
-        {
-          athleteId?: string;
-          date?: string;
-          eventId: string;
-          location?: {
-            city?: string;
-            country?: string;
-            lat?: number;
-            lng?: number;
-            venue?: string;
-          };
-          name?: string;
-          notes?: string;
-          sport?: "run";
-          type?: "race" | "life_event";
-        },
-        any
+        null
       >;
       updateGoal: FunctionReference<
         "mutation",
@@ -993,7 +1825,7 @@ export declare const components: {
             | "body"
             | "other";
         },
-        any
+        null
       >;
       updatePlan: FunctionReference<
         "mutation",
@@ -1008,7 +1840,7 @@ export declare const components: {
           status?: "draft" | "active" | "completed" | "archived";
           targetRaceId?: string;
         },
-        any
+        null
       >;
       updateRace: FunctionReference<
         "mutation",
@@ -1023,11 +1855,11 @@ export declare const components: {
             | "laps"
             | "stages"
             | "other";
+          date?: string;
           discipline?: "road" | "trail" | "track" | "cross_country" | "ultra";
           distanceMeters?: number;
           elevationGainMeters?: number;
           elevationLossMeters?: number;
-          eventId?: string;
           format?:
             | "5k"
             | "10k"
@@ -1044,6 +1876,15 @@ export declare const components: {
             | "relay"
             | "custom";
           itraCategory?: "XXS" | "XS" | "S" | "M" | "L" | "XL" | "XXL";
+          location?: {
+            city?: string;
+            country?: string;
+            lat?: number;
+            lng?: number;
+            venue?: string;
+          };
+          name?: string;
+          notes?: string;
           priority?: "A" | "B" | "C";
           raceId: string;
           registrationUrl?: string;
@@ -1057,6 +1898,7 @@ export declare const components: {
             placementInGender?: number;
             totalFinishers?: number;
           };
+          sport?: "run";
           status?: "upcoming" | "completed" | "cancelled" | "dnf" | "dns";
           surface?:
             | "road"
@@ -1066,7 +1908,7 @@ export declare const components: {
             | "track"
             | "other";
         },
-        any
+        null
       >;
       updateWorkout: FunctionReference<
         "mutation",
@@ -1142,7 +1984,7 @@ export declare const components: {
           typeNotes?: string;
           workoutId: string;
         },
-        any
+        null
       >;
       updateWorkoutTemplate: FunctionReference<
         "mutation",
@@ -1193,7 +2035,7 @@ export declare const components: {
             | "other";
           typeNotes?: string;
         },
-        any
+        null
       >;
       updateZone: FunctionReference<
         "mutation",
@@ -1210,7 +2052,7 @@ export declare const components: {
           threshold?: number;
           zoneId: string;
         },
-        any
+        null
       >;
     };
   };

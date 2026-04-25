@@ -19,7 +19,7 @@ import React from "react";
 import { Linking, Pressable, ScrollView, View } from "react-native";
 
 type RaceDoc = NonNullable<
-  ReturnType<typeof useQuery<typeof api.plan.events.getMyEvent>>
+  ReturnType<typeof useQuery<typeof api.plan.races.getMyRace>>
 >;
 
 type GoalDoc = {
@@ -137,10 +137,10 @@ function formatLocation(loc?: RaceDoc["location"]): string | null {
 export default function RaceDetailScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const race = useQuery(api.plan.events.getMyEvent, { eventId: id });
+  const race = useQuery(api.plan.races.getMyRace, { raceId: id });
   const goals = useQuery(
     api.plan.goals.listGoalsForRace,
-    race?.raceId ? { raceId: race.raceId } : "skip",
+    race ? { raceId: race._id } : "skip",
   ) as GoalDoc[] | undefined;
 
   const createGoal = useMutation(api.plan.goals.createGoalForRace);
@@ -172,9 +172,9 @@ export default function RaceDetailScreen() {
         rank: values.rank,
         status: values.status,
       });
-    } else if (race?.raceId) {
+    } else if (race) {
       await createGoal({
-        raceId: race.raceId,
+        raceId: race._id,
         type: values.type,
         title: values.title,
         targetValue: values.targetValue,
@@ -322,43 +322,11 @@ export default function RaceDetailScreen() {
             </View>
           </View>
 
-          {!race.raceId && (
-            <Pressable
-              onPress={() =>
-                router.push({
-                  pathname: "/(app)/account/races/[id]/edit",
-                  params: { id },
-                })
-              }
-              className="items-center rounded-2xl border px-4 py-4 active:opacity-80"
-              style={{
-                backgroundColor: LIGHT_THEME.w1,
-                borderColor: LIGHT_THEME.wBrd,
-                borderStyle: "dashed",
-              }}
-            >
-              <Text
-                className="font-coach-semibold text-[13px]"
-                style={{ color: LIGHT_THEME.wText }}
-              >
-                Log race details
-              </Text>
-              <Text
-                className="mt-1 text-center font-coach text-[11px]"
-                style={{ color: LIGHT_THEME.wMute }}
-              >
-                Add distance, status, course & more.
-              </Text>
-            </Pressable>
-          )}
-
-          {race.raceId && (
-            <GoalsSection
-              goals={goals}
-              onAdd={openCreateGoal}
-              onTapGoal={openEditGoal}
-            />
-          )}
+          <GoalsSection
+            goals={goals}
+            onAdd={openCreateGoal}
+            onTapGoal={openEditGoal}
+          />
 
           {(locationText || race.notes) && (
             <DetailSection title="Event">
@@ -449,8 +417,8 @@ function GoalsSection({
   onAdd: () => void;
   onTapGoal: (goal: GoalDoc) => void;
 }) {
-  const isLoading = goals === undefined;
-  const isEmpty = !isLoading && goals.length === 0;
+  const items = goals ?? [];
+  const hasGoals = items.length > 0;
 
   return (
     <View className="gap-2">
@@ -460,60 +428,39 @@ function GoalsSection({
       >
         Goals
       </Text>
-      {isEmpty ? (
+      <View
+        className="rounded-2xl border"
+        style={{
+          backgroundColor: LIGHT_THEME.w1,
+          borderColor: LIGHT_THEME.wBrd,
+        }}
+      >
+        {items.map((goal, idx) => (
+          <GoalRow
+            key={goal._id}
+            goal={goal}
+            onPress={() => onTapGoal(goal)}
+            isLast={idx === items.length - 1}
+          />
+        ))}
         <Pressable
           onPress={onAdd}
-          className="items-center rounded-2xl border px-4 py-4 active:opacity-80"
-          style={{
-            backgroundColor: LIGHT_THEME.w1,
-            borderColor: LIGHT_THEME.wBrd,
-            borderStyle: "dashed",
-          }}
+          className="flex-row items-center gap-2 px-4 py-5 active:opacity-70"
+          style={
+            hasGoals
+              ? { borderTopWidth: 1, borderTopColor: LIGHT_THEME.wBrd }
+              : undefined
+          }
         >
+          <Ionicons name="add" size={16} color={LIGHT_THEME.wSub} />
           <Text
             className="font-coach-semibold text-[13px]"
-            style={{ color: LIGHT_THEME.wText }}
+            style={{ color: LIGHT_THEME.wSub }}
           >
             Add a goal
           </Text>
-          <Text
-            className="mt-1 text-center font-coach text-[11px]"
-            style={{ color: LIGHT_THEME.wMute }}
-          >
-            e.g. sub-3:00:00, top 10, finish strong
-          </Text>
         </Pressable>
-      ) : (
-        <View
-          className="rounded-2xl border"
-          style={{
-            backgroundColor: LIGHT_THEME.w1,
-            borderColor: LIGHT_THEME.wBrd,
-          }}
-        >
-          {(goals ?? []).map((goal, idx) => (
-            <GoalRow
-              key={goal._id}
-              goal={goal}
-              onPress={() => onTapGoal(goal)}
-              isLast={idx === (goals ?? []).length - 1}
-            />
-          ))}
-          <Pressable
-            onPress={onAdd}
-            className="flex-row items-center gap-2 px-4 py-3 active:opacity-70"
-            style={{ borderTopWidth: 1, borderTopColor: LIGHT_THEME.wBrd }}
-          >
-            <Ionicons name="add" size={16} color={LIGHT_THEME.wSub} />
-            <Text
-              className="font-coach-semibold text-[13px]"
-              style={{ color: LIGHT_THEME.wSub }}
-            >
-              Add another goal
-            </Text>
-          </Pressable>
-        </View>
-      )}
+      </View>
     </View>
   );
 }

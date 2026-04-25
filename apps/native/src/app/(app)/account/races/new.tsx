@@ -4,18 +4,18 @@ import { useMutation, useQuery } from "convex/react";
 import React from "react";
 
 export default function NewRaceScreen() {
-  const createRace = useMutation(api.plan.events.createMyEvent);
-  const events = useQuery(api.plan.events.listMyEvents);
+  const createRace = useMutation(api.plan.races.createMyRace);
+  const races = useQuery(api.plan.races.listMyRaces);
 
   const existingUpcomingARace = React.useMemo(() => {
-    if (!events) return null;
-    const match = events.find(
-      (e) => e.priority === "A" && e.status === "upcoming" && e.raceId,
+    if (!races) return null;
+    const match = races.find(
+      (r) => r.priority === "A" && r.status === "upcoming",
     );
     return match
-      ? { raceId: match.raceId as string, name: match.name, date: match.date }
+      ? { raceId: match._id, name: match.name, date: match.date }
       : null;
-  }, [events]);
+  }, [races]);
 
   return (
     <RaceForm

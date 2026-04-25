@@ -15,24 +15,23 @@ import { View } from "react-native";
 
 export default function EditRaceScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const race = useQuery(api.plan.events.getMyEvent, { eventId: id });
-  const events = useQuery(api.plan.events.listMyEvents);
-  const updateRace = useMutation(api.plan.events.updateMyEvent);
-  const deleteRace = useMutation(api.plan.events.deleteMyEvent);
+  const race = useQuery(api.plan.races.getMyRace, { raceId: id });
+  const races = useQuery(api.plan.races.listMyRaces);
+  const updateRace = useMutation(api.plan.races.updateMyRace);
+  const deleteRace = useMutation(api.plan.races.deleteMyRace);
 
   const existingUpcomingARace = React.useMemo(() => {
-    if (!events || !race) return null;
-    const match = events.find(
-      (e) =>
-        e.priority === "A" &&
-        e.status === "upcoming" &&
-        e.raceId &&
-        e.raceId !== race.raceId,
+    if (!races || !race) return null;
+    const match = races.find(
+      (r) =>
+        r.priority === "A" &&
+        r.status === "upcoming" &&
+        r._id !== race._id,
     );
     return match
-      ? { raceId: match.raceId as string, name: match.name, date: match.date }
+      ? { raceId: match._id, name: match.name, date: match.date }
       : null;
-  }, [events, race]);
+  }, [races, race]);
 
   if (race === undefined) {
     return <View className="flex-1" style={{ backgroundColor: LIGHT_THEME.w2 }} />;
@@ -85,7 +84,7 @@ export default function EditRaceScreen() {
       }}
       onSubmit={async (values) => {
         await updateRace({
-          eventId: id,
+          raceId: id,
           name: values.name,
           date: values.date,
           priority: values.priority,
@@ -105,7 +104,7 @@ export default function EditRaceScreen() {
         });
       }}
       onDelete={async () => {
-        await deleteRace({ eventId: id });
+        await deleteRace({ raceId: id });
       }}
     />
   );

@@ -47,15 +47,13 @@ export const listGoalsForRace = query({
     );
     if (!athlete) return [];
     const race = await ctx.runQuery(components.agoge.public.getRace, {
-      // biome-ignore lint/suspicious/noExplicitAny: agoge Id is a branded string
-      raceId: raceId as any,
+      raceId: raceId,
     });
     if (!race || race.athleteId !== athlete._id) return [];
     const goals = (await ctx.runQuery(
       components.agoge.public.getGoalsByRace,
-      // biome-ignore lint/suspicious/noExplicitAny: agoge Id is a branded string
-      { raceId: raceId as any },
-    )) as GoalDoc[];
+      { raceId: raceId },
+    ));
     return goals;
   },
 });
@@ -74,16 +72,14 @@ export const createGoalForRace = mutation({
   handler: async (ctx, args) => {
     const athlete = await requireAthlete(ctx);
     const race = await ctx.runQuery(components.agoge.public.getRace, {
-      // biome-ignore lint/suspicious/noExplicitAny: agoge Id is a branded string
-      raceId: args.raceId as any,
+      raceId: args.raceId,
     });
     if (!race || race.athleteId !== athlete._id) {
       throw new Error("Race not found");
     }
     return await ctx.runMutation(components.agoge.public.createGoal, {
       athleteId: athlete._id,
-      // biome-ignore lint/suspicious/noExplicitAny: agoge Id is a branded string
-      raceId: args.raceId as any,
+      raceId: args.raceId,
       type: args.type,
       title: args.title,
       targetValue: args.targetValue,
@@ -109,15 +105,13 @@ export const updateGoal = mutation({
   handler: async (ctx, { goalId, ...patch }) => {
     const athlete = await requireAthlete(ctx);
     const goal = (await ctx.runQuery(components.agoge.public.getGoal, {
-      // biome-ignore lint/suspicious/noExplicitAny: agoge Id is a branded string
-      goalId: goalId as any,
-    })) as GoalDoc | null;
+      goalId: goalId,
+    }));
     if (!goal || goal.athleteId !== athlete._id) {
       throw new Error("Goal not found");
     }
     await ctx.runMutation(components.agoge.public.updateGoal, {
-      // biome-ignore lint/suspicious/noExplicitAny: agoge Id is a branded string
-      goalId: goalId as any,
+      goalId: goalId,
       ...patch,
     });
     return null;

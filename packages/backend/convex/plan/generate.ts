@@ -71,35 +71,20 @@ export const generatePlan = action({
 
     if (args.goalType !== "base_building") {
       const goalDistance = GOAL_DISTANCE_METERS[args.goalType];
-      type Race = {
-        _id: string;
-        eventId: string;
-        distanceMeters: number;
-      };
-      type EventDoc = { _id: string; date: string };
-      const upcomingRaces = (await ctx.runQuery(
+      const upcomingRaces = await ctx.runQuery(
         components.agoge.public.getRacesByAthleteAndStatus,
         { athleteId: athlete._id, status: "upcoming" as const },
-      )) as Race[];
-      const racesWithEvents = await Promise.all(
-        upcomingRaces.map(async (race: Race) => {
-          const event = (await ctx.runQuery(components.agoge.public.getEvent, {
-            eventId: race.eventId,
-          })) as EventDoc | null;
-          return event ? { race, event } : null;
-        }),
       );
-      const matching = racesWithEvents
+      const matching = upcomingRaces
         .filter(
-          (pair): pair is NonNullable<typeof pair> =>
-            pair !== null &&
-            pair.event.date >= today &&
-            Math.abs(pair.race.distanceMeters - goalDistance) < 500,
+          (r) =>
+            r.date >= today &&
+            Math.abs(r.distanceMeters - goalDistance) < 500,
         )
-        .sort((a, b) => a.event.date.localeCompare(b.event.date))[0];
+        .sort((a, b) => a.date.localeCompare(b.date))[0];
 
-      targetDate = targetDate ?? matching?.event.date;
-      targetRaceId = matching?.race._id;
+      targetDate = targetDate ?? matching?.date;
+      targetRaceId = matching?._id;
 
       if (!targetDate) {
         throw new Error(

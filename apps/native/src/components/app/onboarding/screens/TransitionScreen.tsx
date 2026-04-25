@@ -27,14 +27,14 @@ interface TransitionScreenProps {
 type GoalType = "5k" | "10k" | "half_marathon" | "marathon" | "base_building";
 
 /**
- * Map the athlete's nearest future event distance to a training goal type.
- * Fallback to `base_building` when no event exists (or distance is unset).
+ * Map the athlete's nearest future race distance to a training goal type.
+ * Fallback to `base_building` when no race is scheduled.
  */
 function inferGoalType(
-  events: Array<{ date: string; distanceMeters?: number }> | null | undefined,
+  races: Array<{ date: string; distanceMeters: number }> | null | undefined,
 ): GoalType {
-  if (!events || events.length === 0) return "base_building";
-  const nearest = [...events].sort((a, b) => a.date.localeCompare(b.date))[0];
+  if (!races || races.length === 0) return "base_building";
+  const nearest = [...races].sort((a, b) => a.date.localeCompare(b.date))[0];
   const d = nearest?.distanceMeters;
   if (!d) return "base_building";
   if (Math.abs(d - 5000) < 500) return "5k";
@@ -68,9 +68,9 @@ export function TransitionScreen({ onDone }: TransitionScreenProps) {
   const planGenerationStarted = useRef(false);
 
   const generatePlan = useAction(api.plan.generate.generatePlan);
-  const events = useQuery(api.plan.events.listMyEvents);
+  const races = useQuery(api.plan.races.listMyRaces);
   const today = new Date().toISOString().slice(0, 10);
-  const futureEvents = events?.filter((e) => e.date >= today);
+  const futureRaces = races?.filter((r) => r.date >= today);
 
   const s1 = useStream({
     text: "Okay. I believe I have what I need to draft your game plan.",
@@ -91,16 +91,16 @@ export function TransitionScreen({ onDone }: TransitionScreenProps) {
     }
   }, [s2.done]);
 
-  // Trigger plan generation when spinner appears. Wait until the events
+  // Trigger plan generation when spinner appears. Wait until the races
   // query has resolved so we can pick the right goal type.
   useEffect(() => {
     if (
       showSpinner &&
       !planGenerationStarted.current &&
-      futureEvents !== undefined
+      futureRaces !== undefined
     ) {
       planGenerationStarted.current = true;
-      const goalType = inferGoalType(futureEvents);
+      const goalType = inferGoalType(futureRaces);
       console.log("[TransitionScreen] Starting plan generation:", { goalType });
 
       generatePlan({ goalType })
@@ -114,7 +114,7 @@ export function TransitionScreen({ onDone }: TransitionScreenProps) {
           // User will need to retry or debug
         });
     }
-  }, [showSpinner, generatePlan, futureEvents]);
+  }, [showSpinner, generatePlan, futureRaces]);
 
   // Only advance when spinner is showing AND plan is generated
   useEffect(() => {
