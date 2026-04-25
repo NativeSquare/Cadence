@@ -1,4 +1,4 @@
-const LOGO_URL = "https://cadence.nativesquare.fr/cadence-logo.png";
+const LOGO_URL = "https://cadencerun.fr/cadence-logo.png";
 
 /** Converts Tiptap's semantic HTML into email-safe inline-styled HTML. */
 export function inlineEmailStyles(html: string): string {

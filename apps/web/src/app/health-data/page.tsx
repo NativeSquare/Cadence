@@ -137,10 +137,10 @@ export default function HealthDataPage() {
           <p>
             For data-related requests:{" "}
             <a
-              href="mailto:privacy@cadence.nativesquare.fr"
+              href="mailto:privacy@cadencerun.fr"
               className="text-[#C8FF00] transition-opacity hover:opacity-80"
             >
-              privacy@cadence.nativesquare.fr
+              privacy@cadencerun.fr
             </a>
           </p>
         </LegalSection>
