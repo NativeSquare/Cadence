@@ -14,7 +14,7 @@
  */
 
 import { getAuthUserId } from "@convex-dev/auth/server";
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { components } from "../_generated/api";
 import {
   type MutationCtx,
@@ -67,6 +67,58 @@ async function requireAthlete(ctx: QueryCtx | MutationCtx) {
   );
   if (!athlete) throw new Error("Athlete not found");
   return athlete;
+}
+
+type RaceStatus = "upcoming" | "completed" | "cancelled" | "dnf" | "dns";
+
+function todayDateString(): string {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, "0");
+  const d = String(now.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function assertDateStatusCoherent(date: string, status: RaceStatus) {
+  const today = todayDateString();
+  if (status === "upcoming" && date < today) {
+    throw new ConvexError({
+      message: "An upcoming race cannot have a past date.",
+    });
+  }
+  if (
+    (status === "completed" || status === "dnf" || status === "dns") &&
+    date > today
+  ) {
+    throw new ConvexError({
+      message: "A completed/DNF/DNS race must have a past or today's date.",
+    });
+  }
+}
+
+async function fetchUpcomingARaces(
+  ctx: MutationCtx,
+  athleteId: string,
+): Promise<Array<{ raceId: string; name: string; date: string }>> {
+  const races = (await ctx.runQuery(
+    components.agoge.public.getRacesByAthleteAndPriority,
+    // biome-ignore lint/suspicious/noExplicitAny: agoge Id is a branded string
+    { athleteId: athleteId as any, priority: "A" as const },
+  )) as RaceDoc[];
+  const upcoming = races.filter((r) => r.status === "upcoming");
+  return Promise.all(
+    upcoming.map(async (race) => {
+      const event = (await ctx.runQuery(components.agoge.public.getEvent, {
+        // biome-ignore lint/suspicious/noExplicitAny: agoge Id is a branded string
+        eventId: race.eventId as any,
+      })) as EventDoc | null;
+      return {
+        raceId: race._id,
+        name: event?.name ?? "",
+        date: event?.date ?? "",
+      };
+    }),
+  );
 }
 
 type EventDoc = {
@@ -186,6 +238,7 @@ export const createMyEvent = mutation({
     surface: v.optional(surface),
     bibNumber: v.optional(v.string()),
     registrationUrl: v.optional(v.string()),
+    demoteExistingARaceId: v.optional(v.string()),
   },
   handler: async (
     ctx,
@@ -202,9 +255,51 @@ export const createMyEvent = mutation({
       surface: surfaceArg,
       bibNumber,
       registrationUrl,
+      demoteExistingARaceId,
     },
   ) => {
     const athlete = await requireAthlete(ctx);
+    const effectiveStatus: RaceStatus = status ?? "upcoming";
+
+    if (distanceMeters != null) {
+      assertDateStatusCoherent(date, effectiveStatus);
+    }
+
+    let raceIdToDemote: string | null = null;
+    if (
+      distanceMeters != null &&
+      priority === "A" &&
+      effectiveStatus === "upcoming"
+    ) {
+      const conflicts = await fetchUpcomingARaces(ctx, athlete._id);
+      if (conflicts.length > 0) {
+        if (!demoteExistingARaceId) {
+          throw new ConvexError({
+            code: "A_RACE_CONFLICT",
+            message: "Another upcoming A race already exists.",
+            existing: conflicts,
+          });
+        }
+        const target = conflicts.find(
+          (c) => c.raceId === demoteExistingARaceId,
+        );
+        if (!target) {
+          throw new ConvexError({
+            message: "Race to demote is no longer an upcoming A race.",
+          });
+        }
+        raceIdToDemote = target.raceId;
+      }
+    }
+
+    if (raceIdToDemote) {
+      await ctx.runMutation(components.agoge.public.updateRace, {
+        // biome-ignore lint/suspicious/noExplicitAny: agoge Id is a branded string
+        raceId: raceIdToDemote as any,
+        priority: "B",
+      });
+    }
+
     const eventId = await ctx.runMutation(components.agoge.public.createEvent, {
       athleteId: athlete._id,
       sport: "run" as const,
@@ -221,7 +316,7 @@ export const createMyEvent = mutation({
         eventId: eventId as any,
         priority,
         distanceMeters,
-        status: status ?? "upcoming",
+        status: effectiveStatus,
         elevationGainMeters,
         courseType: courseTypeArg,
         surface: surfaceArg,
@@ -249,6 +344,7 @@ export const updateMyEvent = mutation({
     bibNumber: v.optional(v.string()),
     registrationUrl: v.optional(v.string()),
     result: v.optional(resultArg),
+    demoteExistingARaceId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const {
@@ -262,16 +358,71 @@ export const updateMyEvent = mutation({
       bibNumber,
       registrationUrl,
       result,
+      demoteExistingARaceId,
       ...eventPatch
     } = args;
     const athlete = await requireAthlete(ctx);
-    const event = await ctx.runQuery(components.agoge.public.getEvent, {
+    const event = (await ctx.runQuery(components.agoge.public.getEvent, {
       // biome-ignore lint/suspicious/noExplicitAny: agoge Id is a branded string
       eventId: eventId as any,
-    });
+    })) as EventDoc | null;
     if (!event || event.athleteId !== athlete._id) {
       throw new Error("Event not found");
     }
+
+    const races = (await ctx.runQuery(
+      components.agoge.public.getRacesByEvent,
+      { eventId: event._id },
+    )) as RaceDoc[];
+    const existingRace = races[0];
+
+    const effectiveDate = eventPatch.date ?? event.date;
+    const effectivePriority = priority ?? existingRace?.priority ?? "B";
+    const effectiveStatus: RaceStatus =
+      status ?? existingRace?.status ?? "upcoming";
+
+    if (existingRace || distanceMeters !== undefined) {
+      assertDateStatusCoherent(effectiveDate, effectiveStatus);
+    }
+
+    let raceIdToDemote: string | null = null;
+    if (
+      (existingRace || distanceMeters !== undefined) &&
+      effectivePriority === "A" &&
+      effectiveStatus === "upcoming"
+    ) {
+      const allConflicts = await fetchUpcomingARaces(ctx, athlete._id);
+      const conflicts = allConflicts.filter(
+        (c) => c.raceId !== existingRace?._id,
+      );
+      if (conflicts.length > 0) {
+        if (!demoteExistingARaceId) {
+          throw new ConvexError({
+            code: "A_RACE_CONFLICT",
+            message: "Another upcoming A race already exists.",
+            existing: conflicts,
+          });
+        }
+        const target = conflicts.find(
+          (c) => c.raceId === demoteExistingARaceId,
+        );
+        if (!target) {
+          throw new ConvexError({
+            message: "Race to demote is no longer an upcoming A race.",
+          });
+        }
+        raceIdToDemote = target.raceId;
+      }
+    }
+
+    if (raceIdToDemote) {
+      await ctx.runMutation(components.agoge.public.updateRace, {
+        // biome-ignore lint/suspicious/noExplicitAny: agoge Id is a branded string
+        raceId: raceIdToDemote as any,
+        priority: "B",
+      });
+    }
+
     await ctx.runMutation(components.agoge.public.updateEvent, {
       // biome-ignore lint/suspicious/noExplicitAny: agoge Id is a branded string
       eventId: eventId as any,
@@ -291,11 +442,6 @@ export const updateMyEvent = mutation({
     };
     if (Object.keys(racePatch).length === 0) return null;
 
-    const races = (await ctx.runQuery(
-      components.agoge.public.getRacesByEvent,
-      { eventId: event._id },
-    )) as RaceDoc[];
-    const existingRace = races[0];
     if (existingRace) {
       await ctx.runMutation(components.agoge.public.updateRace, {
         raceId: existingRace._id,

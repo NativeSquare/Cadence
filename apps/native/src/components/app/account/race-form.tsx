@@ -120,7 +120,22 @@ export type RaceFormSubmit = {
     placement?: number;
     notes?: string;
   };
+  demoteExistingARaceId?: string;
 };
+
+export type ExistingARace = { raceId: string; name: string; date: string };
+
+function todayDateString(): string {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, "0");
+  const d = String(now.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function formatDateString(d: string, m: string, y: string): string {
+  return `${y.padStart(4, "0")}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+}
 
 type FormState = {
   name: string;
@@ -238,16 +253,20 @@ function initialToForm(initial: RaceFormInitial): FormState {
 
 export function RaceForm({
   title,
+  mode = "create",
   initial,
   submitLabel,
   onSubmit,
   onDelete,
+  existingUpcomingARace,
 }: {
   title: string;
+  mode?: "create" | "edit";
   initial?: RaceFormInitial;
   submitLabel: string;
   onSubmit: (values: RaceFormSubmit) => Promise<void>;
   onDelete?: () => Promise<void>;
+  existingUpcomingARace?: ExistingARace | null;
 }) {
   const router = useRouter();
   const [form, setForm] = React.useState<FormState>(
@@ -256,14 +275,65 @@ export function RaceForm({
   const [isLoading, setIsLoading] = React.useState(false);
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [pastDateAcknowledged, setPastDateAcknowledged] = React.useState(false);
+  const [aRaceResolution, setARaceResolution] = React.useState<
+    "demote" | null
+  >(null);
   const deleteSheetRef = React.useRef<BottomSheetModal>(null);
 
+  const dateIsValid = isValidDate(form.dateDay, form.dateMonth, form.dateYear);
+  const dateString = dateIsValid
+    ? formatDateString(form.dateDay, form.dateMonth, form.dateYear)
+    : null;
+  const dateIsPast = dateString != null && dateString < todayDateString();
+
+  const showPastDatePrompt =
+    mode === "create" && dateIsPast && !pastDateAcknowledged;
+
+  const showARacePrompt =
+    existingUpcomingARace != null &&
+    form.priority === "A" &&
+    form.status === "upcoming" &&
+    aRaceResolution === null;
+
   const showResultSection = form.status === "completed";
+  const showStatusPill = mode === "edit";
 
   const canSave =
     form.name.trim().length > 0 &&
-    isValidDate(form.dateDay, form.dateMonth, form.dateYear) &&
-    form.distanceKm.trim().length > 0;
+    dateIsValid &&
+    form.distanceKm.trim().length > 0 &&
+    !showPastDatePrompt &&
+    !showARacePrompt;
+
+  React.useEffect(() => {
+    setPastDateAcknowledged(false);
+  }, [form.dateDay, form.dateMonth, form.dateYear]);
+
+  React.useEffect(() => {
+    if (form.priority !== "A") setARaceResolution(null);
+  }, [form.priority]);
+
+  const acknowledgePastDate = () => {
+    selectionFeedback();
+    setPastDateAcknowledged(true);
+    setForm((f) => ({ ...f, status: "completed" }));
+  };
+
+  const clearPastDate = () => {
+    selectionFeedback();
+    setForm((f) => ({ ...f, dateDay: "", dateMonth: "", dateYear: "" }));
+  };
+
+  const acknowledgeDemoteARace = () => {
+    selectionFeedback();
+    setARaceResolution("demote");
+  };
+
+  const keepAsBRace = () => {
+    selectionFeedback();
+    setForm((f) => ({ ...f, priority: "B" }));
+  };
 
   const handleSave = async () => {
     setError(null);
@@ -274,6 +344,23 @@ export function RaceForm({
     }
 
     const date = `${form.dateYear.padStart(4, "0")}-${form.dateMonth.padStart(2, "0")}-${form.dateDay.padStart(2, "0")}`;
+
+    if (mode === "edit") {
+      const today = todayDateString();
+      if (form.status === "upcoming" && date < today) {
+        setError("An upcoming race cannot have a past date.");
+        return;
+      }
+      if (
+        (form.status === "completed" ||
+          form.status === "dnf" ||
+          form.status === "dns") &&
+        date > today
+      ) {
+        setError("A completed/DNF/DNS race must have a past or today's date.");
+        return;
+      }
+    }
 
     const km = Number.parseFloat(form.distanceKm.trim());
     if (!Number.isFinite(km) || km <= 0 || km > 1000) {
@@ -351,6 +438,11 @@ export function RaceForm({
       }
     }
 
+    const demoteExistingARaceId =
+      aRaceResolution === "demote" && existingUpcomingARace
+        ? existingUpcomingARace.raceId
+        : undefined;
+
     setIsLoading(true);
     try {
       await onSubmit({
@@ -367,6 +459,7 @@ export function RaceForm({
         bibNumber: form.bibNumber.trim() || undefined,
         registrationUrl: form.registrationUrl.trim() || undefined,
         result,
+        demoteExistingARaceId,
       });
       router.back();
     } catch (err) {
@@ -464,6 +557,21 @@ export function RaceForm({
               </View>
             </Field>
 
+            {showPastDatePrompt && (
+              <PromptCard
+                title="This date is in the past"
+                description="Is this a completed race you're logging?"
+                primary={{
+                  label: "Yes, log it as completed",
+                  onPress: acknowledgePastDate,
+                }}
+                secondary={{
+                  label: "No, fix the date",
+                  onPress: clearPastDate,
+                }}
+              />
+            )}
+
             <Field label="Location (optional)">
               <View className="flex-row gap-2">
                 <TextInput
@@ -550,6 +658,21 @@ export function RaceForm({
               </View>
             </Field>
 
+            {showARacePrompt && existingUpcomingARace && (
+              <PromptCard
+                title={`${existingUpcomingARace.name || "Another race"} is currently your A race`}
+                description="An A race is your primary goal — only one upcoming A at a time."
+                primary={{
+                  label: `Make this the new A and demote ${existingUpcomingARace.name || "the other"} to B`,
+                  onPress: acknowledgeDemoteARace,
+                }}
+                secondary={{
+                  label: "Keep this as B instead",
+                  onPress: keepAsBRace,
+                }}
+              />
+            )}
+
             <Field label="Distance">
               <View className="flex-row items-center gap-3">
                 <TextInput
@@ -574,14 +697,16 @@ export function RaceForm({
               </View>
             </Field>
 
-            <Field label="Status">
-              <PillSelect
-                options={STATUSES}
-                labels={STATUS_LABELS}
-                value={form.status}
-                onChange={(v) => setForm((f) => ({ ...f, status: v }))}
-              />
-            </Field>
+            {showStatusPill && (
+              <Field label="Status">
+                <PillSelect
+                  options={STATUSES}
+                  labels={STATUS_LABELS}
+                  value={form.status}
+                  onChange={(v) => setForm((f) => ({ ...f, status: v }))}
+                />
+              </Field>
+            )}
 
             <Field label="Course type (optional)">
               <PillSelect
@@ -879,6 +1004,72 @@ function DatePart({
       selectionColor={COLORS.lime}
       cursorColor={COLORS.lime}
     />
+  );
+}
+
+function PromptCard({
+  title,
+  description,
+  primary,
+  secondary,
+}: {
+  title: string;
+  description: string;
+  primary: { label: string; onPress: () => void };
+  secondary: { label: string; onPress: () => void };
+}) {
+  return (
+    <View
+      className="gap-3 rounded-2xl border p-4"
+      style={{
+        backgroundColor: LIGHT_THEME.w1,
+        borderColor: LIGHT_THEME.wBrd,
+      }}
+    >
+      <View className="gap-1">
+        <Text
+          className="font-coach-bold text-[14px]"
+          style={{ color: LIGHT_THEME.wText }}
+        >
+          {title}
+        </Text>
+        <Text
+          className="font-coach text-[12px]"
+          style={{ color: LIGHT_THEME.wMute }}
+        >
+          {description}
+        </Text>
+      </View>
+      <View className="gap-2">
+        <Pressable
+          onPress={primary.onPress}
+          className="items-center rounded-xl py-3 active:opacity-90"
+          style={{ backgroundColor: LIGHT_THEME.wText }}
+        >
+          <Text
+            className="font-coach-bold text-[13px]"
+            style={{ color: "#FFFFFF" }}
+          >
+            {primary.label}
+          </Text>
+        </Pressable>
+        <Pressable
+          onPress={secondary.onPress}
+          className="items-center rounded-xl border py-3 active:opacity-80"
+          style={{
+            backgroundColor: LIGHT_THEME.w1,
+            borderColor: LIGHT_THEME.wBrd,
+          }}
+        >
+          <Text
+            className="font-coach-semibold text-[13px]"
+            style={{ color: LIGHT_THEME.wText }}
+          >
+            {secondary.label}
+          </Text>
+        </Pressable>
+      </View>
+    </View>
   );
 }
 
