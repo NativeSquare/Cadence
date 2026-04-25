@@ -55,7 +55,7 @@ export default function WorkoutTemplatesListScreen() {
   const templates = useQuery(api.plan.workoutTemplates.listMyTemplates);
 
   return (
-    <View className="mt-safe flex-1" style={{ backgroundColor: LIGHT_THEME.w2 }}>
+    <View className="pt-safe flex-1" style={{ backgroundColor: LIGHT_THEME.w2 }}>
       <View
         className="flex-row items-center gap-3 px-4 pb-3 pt-4"
         style={{ borderBottomWidth: 1, borderBottomColor: LIGHT_THEME.wBrd }}

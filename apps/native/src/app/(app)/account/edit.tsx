@@ -234,7 +234,7 @@ export default function EditProfileScreen() {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : undefined}
-      className="mt-safe flex-1"
+      className="pt-safe flex-1"
       style={{ backgroundColor: LIGHT_THEME.w2 }}
     >
       <View

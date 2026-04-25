@@ -1,9 +1,10 @@
 import { Stack } from "expo-router";
-import { View } from "react-native";
+import { StatusBar, View } from "react-native";
 
 export default function AppLayout() {
   return (
     <View className="flex-1 bg-background">
+      <StatusBar barStyle="dark-content" />
       <Stack
         screenOptions={{
           headerShown: false,

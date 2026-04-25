@@ -21,7 +21,7 @@ export default function EditRaceScreen() {
   if (race === null) {
     return (
       <View
-        className="mt-safe flex-1 items-center justify-center px-4"
+        className="pt-safe flex-1 items-center justify-center px-4"
         style={{ backgroundColor: LIGHT_THEME.w2 }}
       >
         <Text

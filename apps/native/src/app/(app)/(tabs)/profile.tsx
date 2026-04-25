@@ -8,11 +8,13 @@ import { useAuthActions } from "@convex-dev/auth/react";
 import { api } from "@packages/backend/convex/_generated/api";
 import { Ionicons } from "@expo/vector-icons";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
+import { useIsFocused } from "@react-navigation/native";
 import { useMutation, useQuery } from "convex/react";
 import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import * as WebBrowser from "expo-web-browser";
 import React, { useCallback, useState } from "react";
+
 import {
   Pressable,
   StatusBar,
@@ -32,15 +34,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 export default function Profile() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const isFocused = useIsFocused();
   const { signOut } = useAuthActions();
   const user = useQuery(api.table.users.currentUser);
-  const runner = useQuery(api.plan.reads.getAthlete);
-  const zones = useQuery(api.plan.zones.listCurrentZones);
-  const events = useQuery(api.plan.events.listMyEvents);
-  const templates = useQuery(api.plan.workoutTemplates.listMyTemplates);
-  const connections = useQuery(api.soma.index.listConnections);
-  const isProviderConnected = (provider: string) =>
-    connections?.some((c) => c.provider === provider && c.active) ?? false;
   const deleteAccount = useMutation(api.table.users.deleteAccount);
 
   const logoutSheetRef = React.useRef<BottomSheetModal>(null);
@@ -53,44 +49,6 @@ export default function Profile() {
     return (fromName || "?").toUpperCase();
   }, [displayName]);
 
-  const profileValue = (() => {
-    if (!runner) return undefined;
-    const parts: string[] = [];
-    if (runner.sex) parts.push(runner.sex === "male" ? "M" : runner.sex === "female" ? "F" : "O");
-    if (runner.weightKg) parts.push(`${runner.weightKg} kg`);
-    if (runner.heightCm) parts.push(`${runner.heightCm} cm`);
-    return parts.length > 0 ? parts.join(" · ") : undefined;
-  })();
-  const zonesValue = (() => {
-    if (!zones) return "Not set";
-    const parts: string[] = [];
-    if (zones.hr) parts.push("HR");
-    if (zones.pace) parts.push("Pace");
-    return parts.length > 0 ? parts.join(" · ") : "Not set";
-  })();
-  const racesValue = (() => {
-    if (!events) return "—";
-    const upcoming = events.filter((e) => e.status === "upcoming").length;
-    if (upcoming === 0) return "No races";
-    return upcoming === 1 ? "1 upcoming" : `${upcoming} upcoming`;
-  })();
-  const templatesValue = (() => {
-    if (!templates) return "—";
-    const count = templates.length;
-    if (count === 0) return "None";
-    return count === 1 ? "1 template" : `${count} templates`;
-  })();
-  const connectionsValue = (() => {
-    if (!connections) return "Not set";
-    const connected: string[] = [];
-    if (isProviderConnected("STRAVA")) connected.push("Strava");
-    if (isProviderConnected("GARMIN")) connected.push("Garmin");
-    if (isProviderConnected("HEALTHKIT")) connected.push("Apple Health");
-    return connected.length > 0 ? connected.join(", ") : "None";
-  })();
-  const coachingVoiceValue = "Not set";
-  const notificationsValue = "On";
-  const unitsValue = "km";
   const planPhase = "No active plan";
 
   // Scroll-driven status bar transition (dark -> light)
@@ -157,10 +115,12 @@ export default function Profile() {
   return (
     <View className="flex-1 bg-w2">
       <View className="absolute top-0 left-0 right-0 h-1/2 bg-black" />
-      <StatusBar
-        animated
-        barStyle={lightStatusBar ? "dark-content" : "light-content"}
-      />
+      {isFocused && (
+        <StatusBar
+          animated
+          barStyle={lightStatusBar ? "dark-content" : "light-content"}
+        />
+      )}
 
       <Animated.ScrollView
         className="flex-1"
@@ -226,19 +186,16 @@ export default function Profile() {
                 {
                   label: "Races",
                   icon: "flag-outline",
-                  value: racesValue,
                   onPress: () => router.push("/account/races"),
                 },
                 {
                   label: "Zones",
                   icon: "pulse-outline",
-                  value: zonesValue,
                   onPress: () => router.push("/account/zones"),
                 },
                 {
                   label: "Workout Templates",
                   icon: "barbell-outline",
-                  value: templatesValue,
                   onPress: () => router.push("/account/workout-templates"),
                 },
               ]}
@@ -251,13 +208,11 @@ export default function Profile() {
                 {
                   label: "Connections",
                   icon: "link-outline",
-                  value: connectionsValue,
                   onPress: () => router.push("/account/connections"),
                 },
                 {
                   label: "Calendars",
                   icon: "calendar-outline",
-                  value: "Coming soon",
                   onPress: () => router.push("/account/calendars"),
                 },
               ]}
@@ -270,14 +225,11 @@ export default function Profile() {
                 {
                   label: "Profile",
                   icon: "person-outline",
-                  value: profileValue,
                   onPress: () => router.push("/account/edit"),
                 },
                 {
                   label: "Subscription",
                   icon: "lock-closed-outline",
-                  value: "Pro",
-                  valueColor: ACTIVITY_COLORS.barHigh,
                   onPress: () => router.push("/account/subscription"),
                 },
               ]}
@@ -290,19 +242,16 @@ export default function Profile() {
                 {
                   label: "Coaching Voice",
                   icon: "chatbubble-ellipses-outline",
-                  value: coachingVoiceValue,
                   onPress: () => router.push("/account/coaching"),
                 },
                 {
                   label: "Notifications",
                   icon: "notifications-outline",
-                  value: notificationsValue,
                   onPress: () => router.push("/account/notifications"),
                 },
                 {
                   label: "Units & Language",
                   icon: "globe-outline",
-                  value: unitsValue,
                   onPress: () => router.push("/account/units"),
                 },
               ]}
