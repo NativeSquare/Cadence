@@ -201,13 +201,13 @@ export default function Profile() {
               ]}
             />
 
-            {/* Data */}
+            {/* Integrations */}
             <SettingsGroup
-              title="Data"
+              title="Integrations"
               items={[
                 {
-                  label: "Connections",
-                  icon: "link-outline",
+                  label: "Apps & Devices",
+                  icon: "apps-outline",
                   onPress: () => router.push("/account/connections"),
                 },
                 {

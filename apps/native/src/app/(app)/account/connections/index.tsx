@@ -180,7 +180,7 @@ export default function ConnectionsScreen() {
           className="flex-1 font-coach-bold text-lg"
           style={{ color: LIGHT_THEME.wText }}
         >
-          Data & Connections
+          Apps & Devices
         </Text>
       </View>
 
