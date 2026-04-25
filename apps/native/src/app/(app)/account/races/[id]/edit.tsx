@@ -1,4 +1,10 @@
-import { RaceForm } from "@/components/app/account/race-form";
+import {
+  DISCIPLINES,
+  FORMATS,
+  type Discipline,
+  type Format,
+  RaceForm,
+} from "@/components/app/account/race-form";
 import { Text } from "@/components/ui/text";
 import { LIGHT_THEME } from "@/lib/design-tokens";
 import { api } from "@packages/backend/convex/_generated/api";
@@ -58,15 +64,23 @@ export default function EditRaceScreen() {
         name: race.name,
         date: race.date,
         priority: race.priority,
+        discipline: (DISCIPLINES as readonly string[]).includes(
+          race.discipline ?? "",
+        )
+          ? (race.discipline as Discipline)
+          : undefined,
+        format: (FORMATS as readonly string[]).includes(race.format ?? "")
+          ? (race.format as Format)
+          : undefined,
         distanceMeters: race.distanceMeters,
         status: race.status,
         location: race.location,
         notes: race.notes,
         elevationGainMeters: race.elevationGainMeters,
+        elevationLossMeters: race.elevationLossMeters,
         courseType: race.courseType,
         surface: race.surface,
-        bibNumber: race.bibNumber,
-        registrationUrl: race.registrationUrl,
+        itraCategory: race.itraCategory,
         result: race.result,
       }}
       onSubmit={async (values) => {
@@ -75,15 +89,17 @@ export default function EditRaceScreen() {
           name: values.name,
           date: values.date,
           priority: values.priority,
+          discipline: values.discipline,
+          format: values.format,
           distanceMeters: values.distanceMeters,
           status: values.status,
           location: values.location,
           notes: values.notes,
           elevationGainMeters: values.elevationGainMeters,
+          elevationLossMeters: values.elevationLossMeters,
           courseType: values.courseType,
           surface: values.surface,
-          bibNumber: values.bibNumber,
-          registrationUrl: values.registrationUrl,
+          itraCategory: values.itraCategory,
           result: values.result,
           demoteExistingARaceId: values.demoteExistingARaceId,
         });

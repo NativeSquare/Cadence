@@ -109,9 +109,3 @@ export interface PlanData {
  * Day labels for the calendar strip
  */
 export const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
-
-/**
- * @deprecated Legacy mock date numbers -- used by SessionBriefSheet/SessionPreview
- * until those components are wired to real session dates.
- */
-export const DATES = [17, 18, 19, 20, 21, 22, 23] as const;

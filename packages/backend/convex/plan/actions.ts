@@ -116,31 +116,6 @@ export const skipWorkout = mutation({
   },
 });
 
-export const completeWorkout = mutation({
-  args: {
-    workoutId: v.string(),
-    durationSeconds: v.number(),
-    distanceMeters: v.optional(v.number()),
-    avgPaceMps: v.optional(v.number()),
-    avgHr: v.optional(v.number()),
-    maxHr: v.optional(v.number()),
-    elevationGainMeters: v.optional(v.number()),
-    load: v.optional(v.number()),
-    rpe: v.optional(v.number()),
-    notes: v.optional(v.string()),
-  },
-  handler: async (ctx, args) => {
-    await assertWorkoutOwnership(ctx, args.workoutId);
-    const { workoutId, ...actual } = args;
-    await ctx.runMutation(components.agoge.public.updateWorkout, {
-      // biome-ignore lint/suspicious/noExplicitAny: agoge Id is a branded string
-      workoutId: workoutId as any,
-      status: "completed" as const,
-      actual,
-    });
-  },
-});
-
 export const submitWorkoutDebrief = mutation({
   args: {
     workoutId: v.string(),

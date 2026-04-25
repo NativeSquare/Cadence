@@ -245,5 +245,3 @@ export function getCoachClosingMessage(insights: ActivityInsights): string {
   return "I already know a lot. Let me ask a few more things to get the full picture.";
 }
 
-// Keep the line-based function for backwards compatibility
-export { selectInsightLines } from "./decision-tree-lines";

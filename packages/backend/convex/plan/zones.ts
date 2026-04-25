@@ -43,47 +43,6 @@ export const listCurrentZones = query({
   },
 });
 
-export const getAthleteThresholds = query({
-  args: {},
-  handler: async (ctx) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) return null;
-    const athlete = await ctx.runQuery(
-      components.agoge.public.getAthleteByUserId,
-      { userId },
-    );
-    if (!athlete) return null;
-    const [hr, pace] = await Promise.all([
-      ctx.runQuery(components.agoge.public.getZoneByAthleteKind, {
-        athleteId: athlete._id,
-        kind: "hr" as const,
-      }),
-      ctx.runQuery(components.agoge.public.getZoneByAthleteKind, {
-        athleteId: athlete._id,
-        kind: "pace" as const,
-      }),
-    ]);
-    return {
-      hr: hr
-        ? {
-            threshold: hr.threshold,
-            maxHr: hr.maxHr,
-            restingHr: hr.restingHr,
-            source: hr.source,
-            effectiveFrom: hr.effectiveFrom,
-          }
-        : null,
-      pace: pace
-        ? {
-            threshold: pace.threshold,
-            source: pace.source,
-            effectiveFrom: pace.effectiveFrom,
-          }
-        : null,
-    };
-  },
-});
-
 export const upsertZones = mutation({
   args: {
     kind: zoneKind,

@@ -15,7 +15,7 @@ export { LogRunSection } from "./QuickActions";
 
 // Types
 export type { SessionData, PlanData, RaceGoalData, SessionIntensity } from "./types";
-export { DAYS, DATES } from "./types";
+export { DAYS } from "./types";
 
 // Utilities
 export { getSessionColor, getGreeting, formatDate, formatShortDate } from "./utils";

@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as agoge from "../agoge.js";
 import type * as ai_http_action from "../ai/http_action.js";
 import type * as ai_messages from "../ai/messages.js";
 import type * as ai_prompts_coach_os from "../ai/prompts/coach_os.js";
@@ -24,7 +25,6 @@ import type * as contacts from "../contacts.js";
 import type * as crons from "../crons.js";
 import type * as emails from "../emails.js";
 import type * as http from "../http.js";
-import type * as integrations_healthkit_sync from "../integrations/healthkit/sync.js";
 import type * as integrations_notifications from "../integrations/notifications.js";
 import type * as intelligence_candidates from "../intelligence/candidates.js";
 import type * as intelligence_context from "../intelligence/context.js";
@@ -90,6 +90,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  agoge: typeof agoge;
   "ai/http_action": typeof ai_http_action;
   "ai/messages": typeof ai_messages;
   "ai/prompts/coach_os": typeof ai_prompts_coach_os;
@@ -106,7 +107,6 @@ declare const fullApi: ApiFromModules<{
   crons: typeof crons;
   emails: typeof emails;
   http: typeof http;
-  "integrations/healthkit/sync": typeof integrations_healthkit_sync;
   "integrations/notifications": typeof integrations_notifications;
   "intelligence/candidates": typeof intelligence_candidates;
   "intelligence/context": typeof intelligence_context;
@@ -528,10 +528,29 @@ export declare const components: {
             | "point_to_point"
             | "out_and_back"
             | "laps"
+            | "stages"
             | "other";
+          discipline: "road" | "trail" | "track" | "cross_country" | "ultra";
           distanceMeters: number;
           elevationGainMeters?: number;
+          elevationLossMeters?: number;
           eventId: string;
+          format?:
+            | "5k"
+            | "10k"
+            | "15k"
+            | "10_miles"
+            | "half_marathon"
+            | "marathon"
+            | "50k"
+            | "50_miles"
+            | "100k"
+            | "100_miles"
+            | "backyard_ultra"
+            | "multi_day_stage"
+            | "relay"
+            | "custom";
+          itraCategory?: "XXS" | "XS" | "S" | "M" | "L" | "XL" | "XXL";
           priority: "A" | "B" | "C";
           registrationUrl?: string;
           result?: {
@@ -546,7 +565,7 @@ export declare const components: {
           };
           status: "upcoming" | "completed" | "cancelled" | "dnf" | "dns";
           surface?:
-            | "pavement"
+            | "road"
             | "mixed"
             | "trail"
             | "technical_trail"
@@ -1000,10 +1019,29 @@ export declare const components: {
             | "point_to_point"
             | "out_and_back"
             | "laps"
+            | "stages"
             | "other";
+          discipline?: "road" | "trail" | "track" | "cross_country" | "ultra";
           distanceMeters?: number;
           elevationGainMeters?: number;
+          elevationLossMeters?: number;
           eventId?: string;
+          format?:
+            | "5k"
+            | "10k"
+            | "15k"
+            | "10_miles"
+            | "half_marathon"
+            | "marathon"
+            | "50k"
+            | "50_miles"
+            | "100k"
+            | "100_miles"
+            | "backyard_ultra"
+            | "multi_day_stage"
+            | "relay"
+            | "custom";
+          itraCategory?: "XXS" | "XS" | "S" | "M" | "L" | "XL" | "XXL";
           priority?: "A" | "B" | "C";
           raceId: string;
           registrationUrl?: string;
@@ -1019,7 +1057,7 @@ export declare const components: {
           };
           status?: "upcoming" | "completed" | "cancelled" | "dnf" | "dns";
           surface?:
-            | "pavement"
+            | "road"
             | "mixed"
             | "trail"
             | "technical_trail"

@@ -121,36 +121,6 @@ export const listUsers = query({
   },
 });
 
-/**
- * Get user statistics for the admin dashboard. Admin only.
- */
-export const getUserStats = query({
-  args: {},
-  returns: v.object({
-    totalUsers: v.number(),
-    verifiedUsers: v.number(),
-    adminUsers: v.number(),
-    recentUsers: v.number(),
-  }),
-  handler: async (ctx) => {
-    await requireAdmin(ctx);
-
-    const allUsers = await ctx.db.query("users").collect();
-
-    const now = Date.now();
-    const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000;
-
-    const stats = {
-      totalUsers: allUsers.length,
-      verifiedUsers: allUsers.filter((u) => u.emailVerificationTime).length,
-      adminUsers: allUsers.filter((u) => u.role === "admin").length,
-      recentUsers: allUsers.filter((u) => u._creationTime > sevenDaysAgo).length,
-    };
-
-    return stats;
-  },
-});
-
 // =============================================================================
 // Admin Invite System
 // =============================================================================

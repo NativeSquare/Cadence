@@ -9,7 +9,6 @@ export {
   getConfidenceLevel,
   getCoachClosingMessage,
 } from "./decision-tree";
-export { selectInsightLines } from "./decision-tree-lines";
 export {
   formatPace,
   formatDistance,
@@ -22,8 +21,6 @@ export {
 export type {
   SomaActivity,
   ActivityInsights,
-  InsightLine,
-  InsightLineType,
   InsightCard,
   AccentColor,
   ConfidenceLevel,

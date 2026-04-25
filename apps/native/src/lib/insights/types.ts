@@ -73,20 +73,6 @@ export interface ActivityInsights {
 }
 
 /**
- * Line types for insight display.
- * Maps to different visual styles (color, weight).
- */
-export type InsightLineType = "sys" | "dat" | "warn" | "pos" | "res" | "sp";
-
-/**
- * Single insight line for display (terminal-style).
- */
-export interface InsightLine {
-  text: string;
-  type: InsightLineType;
-}
-
-/**
  * Accent color type for insight cards.
  */
 export type AccentColor = "lime" | "white" | "orange";

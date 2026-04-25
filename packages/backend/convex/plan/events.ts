@@ -1,11 +1,11 @@
 /**
  * Event/race mutations/queries used by the account flow and the AI coach.
  *
- * In Agoge 1.2.0, an "event" is a calendar occurrence (name + date + location)
- * and a "race" is the runner's entry into that event (distance, priority,
- * status, result). From the user's point of view the two are one thing, so we
- * expose a flattened shape: `{ ...event, raceId, priority, distanceMeters,
- * status, ...raceFields, result }` and write to both tables in lockstep.
+ * In Agoge, an "event" is a calendar occurrence (name + date + location) and a
+ * "race" is the runner's entry into that event (distance, priority, status,
+ * result). From the user's point of view the two are one thing, so we expose a
+ * flattened shape: `{ ...event, raceId, priority, distanceMeters, status,
+ * ...raceFields, result }` and write to both tables in lockstep.
  *
  * The native UI surface for these calls is called "Races"
  * (apps/native/src/app/(app)/account/races/). The Convex function names keep
@@ -14,6 +14,20 @@
  */
 
 import { getAuthUserId } from "@convex-dev/auth/server";
+import {
+  courseType,
+  discipline,
+  type Event,
+  eventLocation,
+  itraCategory,
+  type Race,
+  raceFormat,
+  racePriority,
+  raceResult,
+  type RaceStatus,
+  raceStatus,
+  surface,
+} from "@nativesquare/agoge/schema";
 import { ConvexError, v } from "convex/values";
 import { components } from "../_generated/api";
 import {
@@ -22,41 +36,6 @@ import {
   mutation,
   query,
 } from "../_generated/server";
-
-const racePriority = v.union(v.literal("A"), v.literal("B"), v.literal("C"));
-const raceStatus = v.union(
-  v.literal("upcoming"),
-  v.literal("completed"),
-  v.literal("cancelled"),
-  v.literal("dnf"),
-  v.literal("dns"),
-);
-const courseType = v.union(
-  v.literal("loop"),
-  v.literal("point_to_point"),
-  v.literal("out_and_back"),
-  v.literal("laps"),
-  v.literal("other"),
-);
-const surface = v.union(
-  v.literal("pavement"),
-  v.literal("mixed"),
-  v.literal("trail"),
-  v.literal("technical_trail"),
-  v.literal("track"),
-  v.literal("other"),
-);
-const locationArg = v.object({
-  city: v.optional(v.string()),
-  country: v.optional(v.string()),
-  venue: v.optional(v.string()),
-});
-const resultArg = v.object({
-  finishTime: v.optional(v.string()),
-  finishTimeSec: v.optional(v.number()),
-  placement: v.optional(v.number()),
-  notes: v.optional(v.string()),
-});
 
 async function requireAthlete(ctx: QueryCtx | MutationCtx) {
   const userId = await getAuthUserId(ctx);
@@ -68,8 +47,6 @@ async function requireAthlete(ctx: QueryCtx | MutationCtx) {
   if (!athlete) throw new Error("Athlete not found");
   return athlete;
 }
-
-type RaceStatus = "upcoming" | "completed" | "cancelled" | "dnf" | "dns";
 
 function todayDateString(): string {
   const now = new Date();
@@ -121,55 +98,23 @@ async function fetchUpcomingARaces(
   );
 }
 
-type EventDoc = {
-  _id: string;
-  athleteId: string;
-  name: string;
-  date: string;
-  location?: {
-    city?: string;
-    country?: string;
-    venue?: string;
-    lat?: number;
-    lng?: number;
-  };
-  notes?: string;
-};
-type RaceDoc = {
-  _id: string;
-  eventId: string;
-  priority: "A" | "B" | "C";
-  distanceMeters: number;
-  status: "upcoming" | "completed" | "cancelled" | "dnf" | "dns";
-  elevationGainMeters?: number;
-  courseType?: "loop" | "point_to_point" | "out_and_back" | "laps" | "other";
-  surface?:
-    | "pavement"
-    | "mixed"
-    | "trail"
-    | "technical_trail"
-    | "track"
-    | "other";
-  bibNumber?: string;
-  registrationUrl?: string;
-  result?: {
-    finishTime?: string;
-    finishTimeSec?: number;
-    placement?: number;
-    notes?: string;
-  };
-};
+type EventDoc = Event & { _id: string };
+type RaceDoc = Race & { _id: string };
 
 function flatten(event: EventDoc & Record<string, unknown>, race: RaceDoc | null) {
   return {
     ...event,
     raceId: race?._id ?? null,
     priority: (race?.priority ?? "B") as "A" | "B" | "C",
+    discipline: race?.discipline,
+    format: race?.format,
     distanceMeters: race?.distanceMeters,
     status: (race?.status ?? "upcoming") as RaceDoc["status"],
     elevationGainMeters: race?.elevationGainMeters,
+    elevationLossMeters: race?.elevationLossMeters,
     courseType: race?.courseType,
     surface: race?.surface,
+    itraCategory: race?.itraCategory,
     bibNumber: race?.bibNumber,
     registrationUrl: race?.registrationUrl,
     result: race?.result,
@@ -229,13 +174,17 @@ export const createMyEvent = mutation({
     name: v.string(),
     date: v.string(),
     priority: racePriority,
+    discipline: v.optional(discipline),
+    format: v.optional(raceFormat),
     distanceMeters: v.optional(v.number()),
     status: v.optional(raceStatus),
-    location: v.optional(locationArg),
+    location: v.optional(eventLocation),
     notes: v.optional(v.string()),
     elevationGainMeters: v.optional(v.number()),
+    elevationLossMeters: v.optional(v.number()),
     courseType: v.optional(courseType),
     surface: v.optional(surface),
+    itraCategory: v.optional(itraCategory),
     bibNumber: v.optional(v.string()),
     registrationUrl: v.optional(v.string()),
     demoteExistingARaceId: v.optional(v.string()),
@@ -246,13 +195,17 @@ export const createMyEvent = mutation({
       name,
       date,
       priority,
+      discipline: disciplineArg,
+      format: formatArg,
       distanceMeters,
       status,
       location,
       notes,
       elevationGainMeters,
+      elevationLossMeters,
       courseType: courseTypeArg,
       surface: surfaceArg,
+      itraCategory: itraCategoryArg,
       bibNumber,
       registrationUrl,
       demoteExistingARaceId,
@@ -315,11 +268,15 @@ export const createMyEvent = mutation({
         // biome-ignore lint/suspicious/noExplicitAny: agoge Id is a branded string
         eventId: eventId as any,
         priority,
+        discipline: disciplineArg ?? "road",
+        format: formatArg,
         distanceMeters,
         status: effectiveStatus,
         elevationGainMeters,
+        elevationLossMeters,
         courseType: courseTypeArg,
         surface: surfaceArg,
+        itraCategory: itraCategoryArg,
         bibNumber,
         registrationUrl,
       });
@@ -334,27 +291,35 @@ export const updateMyEvent = mutation({
     name: v.optional(v.string()),
     date: v.optional(v.string()),
     priority: v.optional(racePriority),
+    discipline: v.optional(discipline),
+    format: v.optional(raceFormat),
     distanceMeters: v.optional(v.number()),
-    location: v.optional(locationArg),
+    location: v.optional(eventLocation),
     notes: v.optional(v.string()),
     status: v.optional(raceStatus),
     elevationGainMeters: v.optional(v.number()),
+    elevationLossMeters: v.optional(v.number()),
     courseType: v.optional(courseType),
     surface: v.optional(surface),
+    itraCategory: v.optional(itraCategory),
     bibNumber: v.optional(v.string()),
     registrationUrl: v.optional(v.string()),
-    result: v.optional(resultArg),
+    result: v.optional(raceResult),
     demoteExistingARaceId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const {
       eventId,
       priority,
+      discipline: disciplineArg,
+      format: formatArg,
       distanceMeters,
       status,
       elevationGainMeters,
+      elevationLossMeters,
       courseType: courseTypeArg,
       surface: surfaceArg,
+      itraCategory: itraCategoryArg,
       bibNumber,
       registrationUrl,
       result,
@@ -431,11 +396,17 @@ export const updateMyEvent = mutation({
 
     const racePatch = {
       ...(priority !== undefined ? { priority } : {}),
+      ...(disciplineArg !== undefined ? { discipline: disciplineArg } : {}),
+      ...(formatArg !== undefined ? { format: formatArg } : {}),
       ...(distanceMeters !== undefined ? { distanceMeters } : {}),
       ...(status !== undefined ? { status } : {}),
       ...(elevationGainMeters !== undefined ? { elevationGainMeters } : {}),
+      ...(elevationLossMeters !== undefined ? { elevationLossMeters } : {}),
       ...(courseTypeArg !== undefined ? { courseType: courseTypeArg } : {}),
       ...(surfaceArg !== undefined ? { surface: surfaceArg } : {}),
+      ...(itraCategoryArg !== undefined
+        ? { itraCategory: itraCategoryArg }
+        : {}),
       ...(bibNumber !== undefined ? { bibNumber } : {}),
       ...(registrationUrl !== undefined ? { registrationUrl } : {}),
       ...(result !== undefined ? { result } : {}),
@@ -453,11 +424,15 @@ export const updateMyEvent = mutation({
         // biome-ignore lint/suspicious/noExplicitAny: agoge Id is a branded string
         eventId: eventId as any,
         priority: priority ?? "B",
+        discipline: disciplineArg ?? "road",
+        format: formatArg,
         distanceMeters,
         status: status ?? "upcoming",
         elevationGainMeters,
+        elevationLossMeters,
         courseType: courseTypeArg,
         surface: surfaceArg,
+        itraCategory: itraCategoryArg,
         bibNumber,
         registrationUrl,
       });

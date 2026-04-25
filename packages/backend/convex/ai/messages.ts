@@ -313,37 +313,6 @@ export const getConversationHistory = query({
 });
 
 /**
- * Get last incomplete message (for resuming after disconnect)
- */
-export const getLastIncompleteMessage = query({
-  args: {
-    conversationId: v.id("conversations"),
-  },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (userId === null) {
-      return null;
-    }
-
-    // Verify ownership
-    const conversation = await ctx.db.get(args.conversationId);
-    if (!conversation || conversation.userId !== userId) {
-      return null;
-    }
-
-    // Find the last incomplete message
-    const messages = await ctx.db
-      .query("messages")
-      .withIndex("by_conversation_time", (q) => q.eq("conversationId", args.conversationId))
-      .order("desc")
-      .filter((q) => q.eq(q.field("isComplete"), false))
-      .first();
-
-    return messages;
-  },
-});
-
-/**
  * Internal: fetch recent non-archived messages from a user's active
  * conversation. Used by the Mind specialist (runs in an action, can't call
  * auth-gated queries). Returns an empty array if there is no active

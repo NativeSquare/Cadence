@@ -216,29 +216,6 @@ export const recordJoin = internalMutation({
   },
 });
 
-/** Create a contact from a waitlist/signup entry if one doesn't already exist. */
-export const upsertFromWaitlist = internalMutation({
-  args: {
-    email: v.string(),
-    source: v.union(v.literal("waitlist"), v.literal("signup")),
-  },
-  returns: v.id("contacts"),
-  handler: async (ctx, args) => {
-    const email = args.email.toLowerCase().trim();
-    const existing = await ctx.db
-      .query("contacts")
-      .withIndex("by_email", (q) => q.eq("email", email))
-      .first();
-    if (existing) return existing._id;
-
-    return await ctx.db.insert("contacts", {
-      email,
-      source: args.source,
-      unsubscribed: false,
-    });
-  },
-});
-
 /** Get all contacts belonging to an audience (used by broadcast send). */
 export const listByAudience = internalQuery({
   args: { audienceId: v.id("audiences") },

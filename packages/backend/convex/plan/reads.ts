@@ -40,24 +40,6 @@ export const getActivePlan = query({
   },
 });
 
-export const getWorkoutById = query({
-  args: { workoutId: v.string() },
-  handler: async (ctx, { workoutId }) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) return null;
-    const workout = await ctx.runQuery(components.agoge.public.getWorkout, {
-      // biome-ignore lint/suspicious/noExplicitAny: agoge Id is a branded string
-      workoutId: workoutId as any,
-    });
-    if (!workout) return null;
-    const athlete = await ctx.runQuery(components.agoge.public.getAthlete, {
-      athleteId: workout.athleteId,
-    });
-    if (!athlete || athlete.userId !== userId) return null;
-    return workout;
-  },
-});
-
 export const listWorkoutsInRange = query({
   args: { startDate: v.string(), endDate: v.string() },
   handler: async (ctx, { startDate, endDate }) => {
@@ -76,18 +58,6 @@ export const listWorkoutsInRange = query({
   },
 });
 
-export const listPlanWorkouts = query({
-  args: { planId: v.string() },
-  handler: async (ctx, { planId }) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) return [];
-    return await ctx.runQuery(components.agoge.public.getWorkoutsByPlan, {
-      // biome-ignore lint/suspicious/noExplicitAny: agoge Id is a branded string
-      planId: planId as any,
-    });
-  },
-});
-
 export const listBlocks = query({
   args: { planId: v.string() },
   handler: async (ctx, { planId }) => {
@@ -98,33 +68,3 @@ export const listBlocks = query({
   },
 });
 
-export const listZones = query({
-  args: { kind: v.optional(v.union(v.literal("hr"), v.literal("pace"))) },
-  handler: async (ctx, { kind }) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) return { hr: null, pace: null };
-    const athlete = await ctx.runQuery(
-      components.agoge.public.getAthleteByUserId,
-      { userId },
-    );
-    if (!athlete) return { hr: null, pace: null };
-    if (kind) {
-      const zone = await ctx.runQuery(
-        components.agoge.public.getZoneByAthleteKind,
-        { athleteId: athlete._id, kind },
-      );
-      return kind === "hr" ? { hr: zone, pace: null } : { hr: null, pace: zone };
-    }
-    const [hr, pace] = await Promise.all([
-      ctx.runQuery(components.agoge.public.getZoneByAthleteKind, {
-        athleteId: athlete._id,
-        kind: "hr" as const,
-      }),
-      ctx.runQuery(components.agoge.public.getZoneByAthleteKind, {
-        athleteId: athlete._id,
-        kind: "pace" as const,
-      }),
-    ]);
-    return { hr, pace };
-  },
-});
