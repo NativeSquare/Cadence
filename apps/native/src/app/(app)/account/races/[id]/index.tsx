@@ -1,8 +1,19 @@
+import {
+  GoalForm,
+  type GoalFormInitial,
+  type GoalFormValues,
+} from "@/components/app/account/goal-form";
 import { Text } from "@/components/ui/text";
 import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
 import { api } from "@packages/backend/convex/_generated/api";
 import { Ionicons } from "@expo/vector-icons";
-import { useQuery } from "convex/react";
+import { BottomSheetModal as GorhomBottomSheetModal } from "@gorhom/bottom-sheet";
+import type {
+  GoalRank,
+  GoalStatus,
+  GoalType,
+} from "@nativesquare/agoge/schema";
+import { useMutation, useQuery } from "convex/react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React from "react";
 import { Linking, Pressable, ScrollView, View } from "react-native";
@@ -10,6 +21,17 @@ import { Linking, Pressable, ScrollView, View } from "react-native";
 type RaceDoc = NonNullable<
   ReturnType<typeof useQuery<typeof api.plan.events.getMyEvent>>
 >;
+
+type GoalDoc = {
+  _id: string;
+  type: GoalType;
+  title: string;
+  description?: string;
+  targetValue: string;
+  targetDate?: string;
+  rank?: GoalRank;
+  status: GoalStatus;
+};
 
 const PRIORITY_COLORS: Record<"A" | "B" | "C", string> = {
   A: COLORS.lime,
@@ -51,6 +73,45 @@ const SURFACE_LABELS: Record<string, string> = {
   other: "Other",
 };
 
+const GOAL_TYPE_LABELS: Record<GoalType, string> = {
+  performance: "Performance",
+  completion: "Completion",
+  process: "Process",
+  volume: "Volume",
+  body: "Body",
+  other: "Other",
+};
+
+const GOAL_RANK_COLORS: Record<GoalRank, string> = {
+  primary: COLORS.lime,
+  stretch: COLORS.ora,
+  minimum: LIGHT_THEME.wMute,
+  process: COLORS.blu,
+};
+
+const GOAL_RANK_LABELS: Record<GoalRank, string> = {
+  primary: "Primary",
+  stretch: "Stretch",
+  minimum: "Minimum",
+  process: "Process",
+};
+
+const GOAL_STATUS_LABELS: Record<GoalStatus, string> = {
+  active: "Active",
+  achieved: "Achieved",
+  missed: "Missed",
+  abandoned: "Abandoned",
+  paused: "Paused",
+};
+
+const GOAL_STATUS_COLORS: Record<GoalStatus, string> = {
+  active: LIGHT_THEME.wMute,
+  achieved: COLORS.grn,
+  missed: COLORS.red,
+  abandoned: LIGHT_THEME.wMute,
+  paused: COLORS.ylw,
+};
+
 function formatDate(iso: string): string {
   const [y, m, d] = iso.split("-");
   if (!y || !m || !d) return iso;
@@ -77,6 +138,57 @@ export default function RaceDetailScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const race = useQuery(api.plan.events.getMyEvent, { eventId: id });
+  const goals = useQuery(
+    api.plan.goals.listGoalsForRace,
+    race?.raceId ? { raceId: race.raceId } : "skip",
+  ) as GoalDoc[] | undefined;
+
+  const createGoal = useMutation(api.plan.goals.createGoalForRace);
+  const updateGoal = useMutation(api.plan.goals.updateGoal);
+  const deleteGoal = useMutation(api.plan.goals.deleteGoal);
+
+  const goalSheetRef = React.useRef<GorhomBottomSheetModal>(null);
+  const [editingGoal, setEditingGoal] = React.useState<GoalDoc | null>(null);
+
+  const openCreateGoal = () => {
+    setEditingGoal(null);
+    goalSheetRef.current?.present();
+  };
+
+  const openEditGoal = (goal: GoalDoc) => {
+    setEditingGoal(goal);
+    goalSheetRef.current?.present();
+  };
+
+  const handleSubmitGoal = async (values: GoalFormValues) => {
+    if (editingGoal) {
+      await updateGoal({
+        goalId: editingGoal._id,
+        type: values.type,
+        title: values.title,
+        targetValue: values.targetValue,
+        description: values.description,
+        targetDate: values.targetDate,
+        rank: values.rank,
+        status: values.status,
+      });
+    } else if (race?.raceId) {
+      await createGoal({
+        raceId: race.raceId,
+        type: values.type,
+        title: values.title,
+        targetValue: values.targetValue,
+        description: values.description,
+        targetDate: values.targetDate,
+        rank: values.rank,
+      });
+    }
+  };
+
+  const handleDeleteGoal = async () => {
+    if (!editingGoal) return;
+    await deleteGoal({ goalId: editingGoal._id });
+  };
 
   if (race === undefined) {
     return <View className="flex-1" style={{ backgroundColor: LIGHT_THEME.w2 }} />;
@@ -113,6 +225,18 @@ export default function RaceDetailScreen() {
     (race.result.finishTime ||
       race.result.placement != null ||
       race.result.notes);
+
+  const goalFormInitial: GoalFormInitial | undefined = editingGoal
+    ? {
+        type: editingGoal.type,
+        title: editingGoal.title,
+        targetValue: editingGoal.targetValue,
+        description: editingGoal.description,
+        targetDate: editingGoal.targetDate,
+        rank: editingGoal.rank,
+        status: editingGoal.status,
+      }
+    : undefined;
 
   return (
     <View className="pt-safe flex-1" style={{ backgroundColor: LIGHT_THEME.w2 }}>
@@ -228,6 +352,14 @@ export default function RaceDetailScreen() {
             </Pressable>
           )}
 
+          {race.raceId && (
+            <GoalsSection
+              goals={goals}
+              onAdd={openCreateGoal}
+              onTapGoal={openEditGoal}
+            />
+          )}
+
           {(locationText || race.notes) && (
             <DetailSection title="Event">
               {locationText && (
@@ -295,7 +427,165 @@ export default function RaceDetailScreen() {
           )}
         </View>
       </ScrollView>
+
+      <GoalForm
+        sheetRef={goalSheetRef}
+        mode={editingGoal ? "edit" : "create"}
+        initial={goalFormInitial}
+        onSubmit={handleSubmitGoal}
+        onDelete={editingGoal ? handleDeleteGoal : undefined}
+        onDismiss={() => setEditingGoal(null)}
+      />
     </View>
+  );
+}
+
+function GoalsSection({
+  goals,
+  onAdd,
+  onTapGoal,
+}: {
+  goals: GoalDoc[] | undefined;
+  onAdd: () => void;
+  onTapGoal: (goal: GoalDoc) => void;
+}) {
+  const isLoading = goals === undefined;
+  const isEmpty = !isLoading && goals.length === 0;
+
+  return (
+    <View className="gap-2">
+      <Text
+        className="px-1 font-coach-extrabold text-[11px] uppercase tracking-widest"
+        style={{ color: LIGHT_THEME.wSub }}
+      >
+        Goals
+      </Text>
+      {isEmpty ? (
+        <Pressable
+          onPress={onAdd}
+          className="items-center rounded-2xl border px-4 py-4 active:opacity-80"
+          style={{
+            backgroundColor: LIGHT_THEME.w1,
+            borderColor: LIGHT_THEME.wBrd,
+            borderStyle: "dashed",
+          }}
+        >
+          <Text
+            className="font-coach-semibold text-[13px]"
+            style={{ color: LIGHT_THEME.wText }}
+          >
+            Add a goal
+          </Text>
+          <Text
+            className="mt-1 text-center font-coach text-[11px]"
+            style={{ color: LIGHT_THEME.wMute }}
+          >
+            e.g. sub-3:00:00, top 10, finish strong
+          </Text>
+        </Pressable>
+      ) : (
+        <View
+          className="rounded-2xl border"
+          style={{
+            backgroundColor: LIGHT_THEME.w1,
+            borderColor: LIGHT_THEME.wBrd,
+          }}
+        >
+          {(goals ?? []).map((goal, idx) => (
+            <GoalRow
+              key={goal._id}
+              goal={goal}
+              onPress={() => onTapGoal(goal)}
+              isLast={idx === (goals ?? []).length - 1}
+            />
+          ))}
+          <Pressable
+            onPress={onAdd}
+            className="flex-row items-center gap-2 px-4 py-3 active:opacity-70"
+            style={{ borderTopWidth: 1, borderTopColor: LIGHT_THEME.wBrd }}
+          >
+            <Ionicons name="add" size={16} color={LIGHT_THEME.wSub} />
+            <Text
+              className="font-coach-semibold text-[13px]"
+              style={{ color: LIGHT_THEME.wSub }}
+            >
+              Add another goal
+            </Text>
+          </Pressable>
+        </View>
+      )}
+    </View>
+  );
+}
+
+function GoalRow({
+  goal,
+  onPress,
+  isLast,
+}: {
+  goal: GoalDoc;
+  onPress: () => void;
+  isLast: boolean;
+}) {
+  const rankColor = goal.rank ? GOAL_RANK_COLORS[goal.rank] : LIGHT_THEME.w3;
+  return (
+    <Pressable
+      onPress={onPress}
+      className="flex-row items-start gap-3 px-4 py-3 active:opacity-70"
+      style={
+        isLast
+          ? undefined
+          : { borderBottomWidth: 1, borderBottomColor: LIGHT_THEME.wBrd }
+      }
+    >
+      <View
+        className="mt-1.5 size-2.5 rounded-full"
+        style={{ backgroundColor: rankColor }}
+      />
+      <View className="flex-1 gap-0.5">
+        <Text
+          className="font-coach-semibold text-[10px] uppercase tracking-wider"
+          style={{ color: LIGHT_THEME.wMute }}
+        >
+          {GOAL_TYPE_LABELS[goal.type]}
+          {goal.rank ? ` · ${GOAL_RANK_LABELS[goal.rank]}` : ""}
+        </Text>
+        <Text
+          className="font-coach-bold text-[14px]"
+          style={{ color: LIGHT_THEME.wText }}
+        >
+          {goal.title}
+        </Text>
+        {goal.targetDate && (
+          <Text
+            className="font-coach text-[11px]"
+            style={{ color: LIGHT_THEME.wMute }}
+          >
+            by {formatDate(goal.targetDate)}
+          </Text>
+        )}
+        {goal.status !== "active" && (
+          <View
+            className="mt-1 self-start rounded-full px-2 py-0.5"
+            style={{ backgroundColor: LIGHT_THEME.w3 }}
+          >
+            <Text
+              className="font-coach-semibold text-[10px]"
+              style={{ color: GOAL_STATUS_COLORS[goal.status] }}
+            >
+              {GOAL_STATUS_LABELS[goal.status]}
+            </Text>
+          </View>
+        )}
+      </View>
+      <Text
+        className="max-w-[40%] text-right font-coach-extrabold text-[14px]"
+        style={{ color: LIGHT_THEME.wText }}
+        numberOfLines={2}
+      >
+        {goal.targetValue}
+      </Text>
+    </Pressable>
   );
 }
 

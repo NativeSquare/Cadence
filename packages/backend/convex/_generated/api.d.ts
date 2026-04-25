@@ -45,6 +45,7 @@ import type * as plan_actions from "../plan/actions.js";
 import type * as plan_athlete from "../plan/athlete.js";
 import type * as plan_events from "../plan/events.js";
 import type * as plan_generate from "../plan/generate.js";
+import type * as plan_goals from "../plan/goals.js";
 import type * as plan_index from "../plan/index.js";
 import type * as plan_legacy from "../plan/legacy.js";
 import type * as plan_reads from "../plan/reads.js";
@@ -127,6 +128,7 @@ declare const fullApi: ApiFromModules<{
   "plan/athlete": typeof plan_athlete;
   "plan/events": typeof plan_events;
   "plan/generate": typeof plan_generate;
+  "plan/goals": typeof plan_goals;
   "plan/index": typeof plan_index;
   "plan/legacy": typeof plan_legacy;
   "plan/reads": typeof plan_reads;
