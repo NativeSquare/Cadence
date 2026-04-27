@@ -10,7 +10,7 @@ export function paceMpsToMinPerKm(mps: number): string {
 export function parsePaceInput(raw: string): number | null {
   const trimmed = raw.trim();
   if (trimmed.length === 0) return null;
-  const match = trimmed.match(/^(\d{1,2}):(\d{1,2})$/);
+  const match = trimmed.match(/^(\d{1,2}):(\d{2})$/);
   if (!match) return Number.NaN;
   const minutes = Number.parseInt(match[1], 10);
   const seconds = Number.parseInt(match[2], 10);

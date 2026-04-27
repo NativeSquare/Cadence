@@ -3,12 +3,20 @@ import { Text } from "@/components/ui/text";
 import { getConvexErrorMessage } from "@/utils/getConvexErrorMessage";
 import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
 import { paceMpsToMinPerKm, parsePaceInput } from "@/lib/format-pace";
+import {
+  HrThresholdField,
+  PaceThresholdField,
+  ZONE_FORMAT_MESSAGES,
+  ZONE_ORDERING_MESSAGES,
+  makeZonesFormSchema,
+} from "@/validation/zones";
 import { api } from "@packages/backend/convex/_generated/api";
 import { Ionicons } from "@expo/vector-icons";
 import { computeZoneBoundaries, type ZoneMethod } from "@nativesquare/agoge";
 import { useMutation, useQuery } from "convex/react";
 import { useRouter } from "expo-router";
 import React from "react";
+import { z } from "zod";
 import {
   ActivityIndicator,
   Keyboard,
@@ -18,39 +26,38 @@ import {
   ScrollView,
   View,
 } from "react-native";
+import { ZoneKind } from "@nativesquare/agoge/schema";
 
-type Kind = "hr" | "pace";
-
-const METHOD_FOR: Record<Kind, ZoneMethod> = {
+const METHOD_FOR: Record<ZoneKind, ZoneMethod> = {
   hr: "coggan-hr",
   pace: "coggan-pace",
 };
 
 // Sentinel cap values for Z5's upper bound (mirrors @nativesquare/agoge).
 // These never change with threshold, so we keep them here for the empty draft.
-const ZONE_CAP: Record<Kind, number> = {
+const ZONE_CAP: Record<ZoneKind, number> = {
   hr: 255,
   pace: 1609.34,
 };
 
-function emptyDraft(kind: Kind): string[] {
+function emptyDraft(kind: ZoneKind): string[] {
   // Z1 low is fixed at 0 and Z5 high is the cap; the four middle boundaries
   // are blank for the user to fill in.
   return ["0", "", "", "", "", formatBoundary(kind, ZONE_CAP[kind])];
 }
 
-function draftFromZone(kind: Kind, zone: ZoneDoc | null): string[] {
+function draftFromZone(kind: ZoneKind, zone: ZoneDoc | null): string[] {
   return zone?.boundaries
     ? zone.boundaries.map((b) => formatBoundary(kind, b))
     : emptyDraft(kind);
 }
 
-function formatBoundary(kind: Kind, value: number): string {
+function formatBoundary(kind: ZoneKind, value: number): string {
   if (kind === "hr") return String(Math.round(value));
   return paceMpsToMinPerKm(value);
 }
 
-function parseBoundary(kind: Kind, raw: string): number | null {
+function parseBoundary(kind: ZoneKind, raw: string): number | null {
   if (kind === "hr") {
     const n = Number.parseInt(raw, 10);
     if (!Number.isInteger(n) || n < 0) return null;
@@ -66,11 +73,7 @@ export default function ZonesScreen() {
   const zones = useQuery(api.plan.zones.listCurrentZones);
   const upsertZones = useMutation(api.plan.zones.upsertZones);
   const updateZoneBoundaries = useMutation(api.plan.zones.updateZoneBoundaries);
-  const resyncZonesFromThreshold = useMutation(
-    api.plan.zones.resyncZonesFromThreshold,
-  );
-
-  const [error, setError] = React.useState<string | null>(null);
+  const resyncZones = useMutation(api.plan.zones.resyncZonesFromThreshold);
 
   const loading = zones === undefined;
 
@@ -116,7 +119,6 @@ export default function ZonesScreen() {
                 hrZone={zones?.hr ?? null}
                 paceZone={zones?.pace ?? null}
                 onUpsert={upsertZones}
-                onError={setError}
               />
 
               <ZonesBlock
@@ -124,8 +126,7 @@ export default function ZonesScreen() {
                 title="HR Zones"
                 zone={zones?.hr ?? null}
                 onUpdateBoundaries={updateZoneBoundaries}
-                onResync={resyncZonesFromThreshold}
-                onError={setError}
+                onResync={resyncZones}
               />
 
               <ZonesBlock
@@ -133,19 +134,9 @@ export default function ZonesScreen() {
                 title="Pace Zones"
                 zone={zones?.pace ?? null}
                 onUpdateBoundaries={updateZoneBoundaries}
-                onResync={resyncZonesFromThreshold}
-                onError={setError}
+                onResync={resyncZones}
               />
             </>
-          )}
-
-          {error && (
-            <Text
-              className="text-center font-coach text-sm"
-              style={{ color: COLORS.red }}
-            >
-              {error}
-            </Text>
           )}
         </View>
       </ScrollView>
@@ -194,7 +185,10 @@ type ZoneDoc = {
   effectiveFrom: string;
 };
 
-function thresholdToInput(kind: Kind, threshold: number | undefined): string {
+function thresholdToInput(
+  kind: ZoneKind,
+  threshold: number | undefined,
+): string {
   if (threshold === undefined) return "";
   return kind === "hr"
     ? String(Math.round(threshold))
@@ -205,12 +199,10 @@ function ThresholdsBlock({
   hrZone,
   paceZone,
   onUpsert,
-  onError,
 }: {
   hrZone: ZoneDoc | null;
   paceZone: ZoneDoc | null;
-  onUpsert: (args: { kind: Kind; threshold: number }) => Promise<unknown>;
-  onError: (msg: string | null) => void;
+  onUpsert: (args: { kind: ZoneKind; threshold: number }) => Promise<unknown>;
 }) {
   const [editing, setEditing] = React.useState(false);
   const [hrDraft, setHrDraft] = React.useState<string>(() =>
@@ -220,6 +212,7 @@ function ThresholdsBlock({
     thresholdToInput("pace", paceZone?.threshold),
   );
   const [busy, setBusy] = React.useState(false);
+  const [formError, setFormError] = React.useState<string | null>(null);
 
   // Re-seed drafts when the underlying zones change and we are not editing.
   const hrKey = hrZone?.threshold ?? "";
@@ -232,48 +225,66 @@ function ThresholdsBlock({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hrKey, paceKey, editing]);
 
+  // Live per-field validation: parses each non-empty draft against its schema
+  // and surfaces the field error inline. Empty drafts are treated as "skip"
+  // (the user can save just one threshold).
+  const fieldErrors = React.useMemo<{ hr?: string; pace?: string }>(() => {
+    if (!editing) return {};
+    const errors: { hr?: string; pace?: string } = {};
+    if (hrDraft.trim().length > 0) {
+      const r = HrThresholdField.safeParse(hrDraft);
+      if (!r.success) errors.hr = r.error.issues[0]?.message;
+    }
+    if (paceDraft.trim().length > 0) {
+      const r = PaceThresholdField.safeParse(paceDraft);
+      if (!r.success) errors.pace = r.error.issues[0]?.message;
+    }
+    return errors;
+  }, [editing, hrDraft, paceDraft]);
+
+  const anyFieldInvalid = !!fieldErrors.hr || !!fieldErrors.pace;
+  const canSave = !anyFieldInvalid && !busy;
+
   const beginEdit = () => {
-    onError(null);
+    setFormError(null);
     setHrDraft(thresholdToInput("hr", hrZone?.threshold));
     setPaceDraft(thresholdToInput("pace", paceZone?.threshold));
     setEditing(true);
   };
 
   const cancelEdit = () => {
-    onError(null);
+    setFormError(null);
     setHrDraft(thresholdToInput("hr", hrZone?.threshold));
     setPaceDraft(thresholdToInput("pace", paceZone?.threshold));
     setEditing(false);
   };
 
   const saveEdit = async () => {
-    onError(null);
+    setFormError(null);
     Keyboard.dismiss();
-    const tasks: { kind: Kind; threshold: number }[] = [];
+    if (anyFieldInvalid) return;
+
+    const tasks: { kind: ZoneKind; threshold: number }[] = [];
 
     if (hrDraft.trim().length > 0) {
-      const n = Number.parseInt(hrDraft, 10);
-      if (!Number.isInteger(n) || n <= 60 || n > 250) {
-        onError("Enter a heart rate between 61 and 250 bpm.");
-        return;
-      }
-      const current = hrZone?.threshold;
-      if (current === undefined || Math.round(current) !== n) {
-        tasks.push({ kind: "hr", threshold: n });
+      const r = HrThresholdField.safeParse(hrDraft);
+      if (r.success) {
+        const current = hrZone?.threshold;
+        if (current === undefined || Math.round(current) !== r.data) {
+          tasks.push({ kind: "hr", threshold: r.data });
+        }
       }
     }
 
     if (paceDraft.trim().length > 0) {
-      const p = parsePaceInput(paceDraft);
-      if (p === null || !Number.isFinite(p) || p <= 0) {
-        onError("Enter a pace in min:sec per km (e.g. 3:45).");
-        return;
-      }
-      const current = paceZone?.threshold;
-      const currentDisplay =
-        current !== undefined ? paceMpsToMinPerKm(current) : "";
-      if (paceMpsToMinPerKm(p) !== currentDisplay) {
-        tasks.push({ kind: "pace", threshold: p });
+      const r = PaceThresholdField.safeParse(paceDraft);
+      if (r.success) {
+        const current = paceZone?.threshold;
+        const currentDisplay =
+          current !== undefined ? paceMpsToMinPerKm(current) : "";
+        if (paceMpsToMinPerKm(r.data) !== currentDisplay) {
+          tasks.push({ kind: "pace", threshold: r.data });
+        }
       }
     }
 
@@ -284,7 +295,7 @@ function ThresholdsBlock({
       }
       setEditing(false);
     } catch (err) {
-      onError(getConvexErrorMessage(err));
+      setFormError(getConvexErrorMessage(err));
     } finally {
       setBusy(false);
     }
@@ -297,21 +308,23 @@ function ThresholdsBlock({
         disabled={busy}
         hitSlop={6}
         className="h-9 items-center justify-center rounded-md px-3 active:opacity-70"
-        style={{ backgroundColor: LIGHT_THEME.w3 }}
       >
         <Text
           className="font-coach-medium text-[13px]"
-          style={{ color: LIGHT_THEME.wText }}
+          style={{ color: LIGHT_THEME.wMute }}
         >
           Cancel
         </Text>
       </Pressable>
       <Pressable
         onPress={saveEdit}
-        disabled={busy}
+        disabled={!canSave}
         hitSlop={6}
         className="h-9 items-center justify-center rounded-md px-3 active:opacity-90"
-        style={{ backgroundColor: LIGHT_THEME.wText }}
+        style={{
+          backgroundColor: LIGHT_THEME.wText,
+          opacity: canSave ? 1 : 0.4,
+        }}
       >
         {busy ? (
           <ActivityIndicator size="small" color="#FFFFFF" />
@@ -342,7 +355,7 @@ function ThresholdsBlock({
   );
 
   const rows: {
-    kind: Kind;
+    kind: ZoneKind;
     label: string;
     unit: string;
     draft: string;
@@ -364,44 +377,72 @@ function ThresholdsBlock({
     },
   ];
 
+  const showFormError = formError !== null;
+
   return (
     <Section title="Your Thresholds" headerRight={headerRight}>
-      {rows.map((row, i) => (
-        <View
-          key={row.kind}
-          className="flex-row items-center gap-3 px-4 py-3"
-          style={
-            i === rows.length - 1
-              ? undefined
-              : { borderBottomWidth: 1, borderBottomColor: LIGHT_THEME.wBrd }
-          }
-        >
-          <Text
-            className="flex-1 font-coach-medium text-[15px]"
-            style={{ color: LIGHT_THEME.wText }}
-          >
-            {row.label}
-          </Text>
-          <ZoneNumberInput
-            kind={row.kind}
-            value={row.draft}
-            onChangeText={(v) =>
-              row.setDraft(
-                row.kind === "hr"
-                  ? v.replace(/[^0-9]/g, "")
-                  : v.replace(/[^0-9:]/g, ""),
-              )
+      {rows.map((row, i) => {
+        const fieldError = fieldErrors[row.kind];
+        const isLastRow = i === rows.length - 1;
+        const showBottomBorder = !isLastRow || showFormError;
+        return (
+          <View
+            key={row.kind}
+            className="px-4 py-3"
+            style={
+              showBottomBorder
+                ? { borderBottomWidth: 1, borderBottomColor: LIGHT_THEME.wBrd }
+                : undefined
             }
-            editable={editing}
-          />
+          >
+            <View className="flex-row items-center gap-3">
+              <Text
+                className="flex-1 font-coach-medium text-[15px]"
+                style={{ color: LIGHT_THEME.wText }}
+              >
+                {row.label}
+              </Text>
+              <ZoneNumberInput
+                kind={row.kind}
+                value={row.draft}
+                onChangeText={(v) =>
+                  row.setDraft(
+                    row.kind === "hr"
+                      ? v.replace(/[^0-9]/g, "")
+                      : v.replace(/[^0-9:]/g, ""),
+                  )
+                }
+                editable={editing}
+                invalid={editing && !!fieldError}
+              />
+              <Text
+                className="font-coach text-[12px]"
+                style={{ color: LIGHT_THEME.wMute }}
+              >
+                {row.unit}
+              </Text>
+            </View>
+            {fieldError && (
+              <Text
+                className="mt-2 font-coach text-[12px]"
+                style={{ color: COLORS.red }}
+              >
+                {fieldError}
+              </Text>
+            )}
+          </View>
+        );
+      })}
+      {showFormError && (
+        <View className="px-4 py-2.5">
           <Text
             className="font-coach text-[12px]"
-            style={{ color: LIGHT_THEME.wMute }}
+            style={{ color: COLORS.red }}
           >
-            {row.unit}
+            {formError}
           </Text>
         </View>
-      ))}
+      )}
     </Section>
   );
 }
@@ -412,17 +453,15 @@ function ZonesBlock({
   zone,
   onUpdateBoundaries,
   onResync,
-  onError,
 }: {
-  kind: Kind;
+  kind: ZoneKind;
   title: string;
   zone: ZoneDoc | null;
   onUpdateBoundaries: (args: {
-    kind: Kind;
+    kind: ZoneKind;
     boundaries: number[];
   }) => Promise<unknown>;
-  onResync: (args: { kind: Kind }) => Promise<unknown>;
-  onError: (msg: string | null) => void;
+  onResync: (args: { kind: ZoneKind }) => Promise<unknown>;
 }) {
   const { labels } = computeZoneBoundaries(kind, 100, METHOD_FOR[kind]);
   const isManual = zone?.source === "manual";
@@ -432,7 +471,7 @@ function ZonesBlock({
     draftFromZone(kind, zone),
   );
   const [busy, setBusy] = React.useState(false);
-  const [resyncConfirm, setResyncConfirm] = React.useState(false);
+  const [formError, setFormError] = React.useState<string | null>(null);
 
   // Re-seed the draft whenever the underlying zone changes and we are not editing.
   const baseKey = zone?.boundaries ? zone.boundaries.join(",") : "empty";
@@ -444,54 +483,116 @@ function ZonesBlock({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [baseKey, editing, kind]);
 
-  React.useEffect(() => {
-    setResyncConfirm(false);
-  }, [zone?.source, zone?.effectiveFrom]);
-
   const beginEdit = () => {
-    onError(null);
+    setFormError(null);
     setDraft(draftFromZone(kind, zone));
     setEditing(true);
   };
 
   const cancelEdit = () => {
-    onError(null);
+    setFormError(null);
     setEditing(false);
     setDraft(draftFromZone(kind, zone));
   };
 
-  const saveEdit = async () => {
-    onError(null);
-    Keyboard.dismiss();
-    const parsed: number[] = [];
-    for (let i = 0; i < draft.length; i++) {
-      const n = parseBoundary(kind, draft[i]);
-      if (n === null) {
-        onError(
-          kind === "hr"
-            ? "Enter whole numbers in bpm for every zone."
-            : "Enter paces as min:sec per km (e.g. 3:45) for every zone.",
-        );
-        return;
-      }
-      parsed.push(n);
+  // Only the four middle boundaries are user-editable. Z1 low is fixed at 0
+  // and Z5 high is the cap sentinel — both come from emptyDraft / the loaded
+  // zone and are not exposed as inputs.
+  const editableIndices = [1, 2, 3, 4] as const;
+
+  const parsedMiddle: (number | null)[] = editableIndices.map((k) =>
+    draft[k].trim().length === 0 ? null : parseBoundary(kind, draft[k]),
+  );
+
+  // Format-invalid rows: filled but unparseable (e.g. "3:" for pace).
+  const formatInvalidIndices = React.useMemo(() => {
+    const set = new Set<number>();
+    for (let i = 0; i < editableIndices.length; i++) {
+      const k = editableIndices[i];
+      if (draft[k].trim().length === 0) continue;
+      if (parsedMiddle[i] === null) set.add(k);
     }
-    if (parsed[0] !== 0) {
-      onError("Z1 must start at 0.");
+    return set;
+  }, [parsedMiddle]);
+
+  // Ordering-invalid rows: parseable but not strictly above the previous filled
+  // value. Empty/format-invalid rows reset the comparison so a single blank
+  // doesn't cascade-invalidate later rows.
+  const invalidIndices = React.useMemo(() => {
+    const set = new Set<number>(formatInvalidIndices);
+    let prev: number = 0; // Z1 low edge
+    for (let i = 0; i < editableIndices.length; i++) {
+      const k = editableIndices[i];
+      if (draft[k].trim().length === 0) {
+        prev = Number.NaN;
+        continue;
+      }
+      const v = parsedMiddle[i];
+      if (v === null) {
+        prev = Number.NaN;
+        continue;
+      }
+      if (Number.isFinite(prev) && v <= prev) {
+        set.add(k);
+      }
+      prev = v;
+    }
+    return set;
+  }, [parsedMiddle, formatInvalidIndices]);
+
+  const anyEmpty = editableIndices.some((k) => draft[k].trim().length === 0);
+  const someFilled = editableIndices.some((k) => draft[k].trim().length > 0);
+  const anyFormatInvalid = formatInvalidIndices.size > 0;
+  const anyInvalid = invalidIndices.size > 0;
+  const canSave = !anyEmpty && !anyInvalid && !busy;
+
+  // Helper priority: format errors first (they make the ordering check
+  // meaningless), then ordering, then "fill in all four".
+  // Don't surface the "fill in all four" helper while every field is still
+  // blank — that would scold the user the moment they tap Edit.
+  const helperText = anyFormatInvalid
+    ? `${ZONE_FORMAT_MESSAGES[kind]}.`
+    : anyInvalid
+      ? `${ZONE_ORDERING_MESSAGES[kind]}.`
+      : someFilled && anyEmpty
+        ? "Fill in all four boundaries to save."
+        : null;
+
+  const saveEdit = async () => {
+    setFormError(null);
+    Keyboard.dismiss();
+    const result = makeZonesFormSchema(kind).safeParse({
+      b1: draft[1],
+      b2: draft[2],
+      b3: draft[3],
+      b4: draft[4],
+    });
+    if (!result.success) {
+      const tree = z.treeifyError(result.error);
+      const firstFieldError =
+        tree.properties?.b1?.errors?.[0] ??
+        tree.properties?.b2?.errors?.[0] ??
+        tree.properties?.b3?.errors?.[0] ??
+        tree.properties?.b4?.errors?.[0];
+      setFormError(
+        firstFieldError ?? tree.errors?.[0] ?? "Invalid zone boundaries",
+      );
       return;
     }
-    for (let i = 1; i < parsed.length; i++) {
-      if (parsed[i] <= parsed[i - 1]) {
-        onError("Each zone must be higher than the one below it.");
-        return;
-      }
-    }
+    const parsed = [
+      0,
+      result.data.b1,
+      result.data.b2,
+      result.data.b3,
+      result.data.b4,
+      ZONE_CAP[kind],
+    ];
     setBusy(true);
     try {
       await onUpdateBoundaries({ kind, boundaries: parsed });
       setEditing(false);
     } catch (err) {
-      onError(getConvexErrorMessage(err));
+      setFormError(getConvexErrorMessage(err));
     } finally {
       setBusy(false);
     }
@@ -508,23 +609,6 @@ function ZonesBlock({
     });
   };
 
-  const handleResyncTap = async () => {
-    if (!resyncConfirm) {
-      setResyncConfirm(true);
-      return;
-    }
-    onError(null);
-    setBusy(true);
-    try {
-      await onResync({ kind });
-    } catch (err) {
-      onError(getConvexErrorMessage(err));
-      setResyncConfirm(false);
-    } finally {
-      setBusy(false);
-    }
-  };
-
   const headerRight = editing ? (
     <View className="flex-row items-center gap-1.5">
       <Pressable
@@ -532,21 +616,23 @@ function ZonesBlock({
         disabled={busy}
         hitSlop={6}
         className="h-9 items-center justify-center rounded-md px-3 active:opacity-70"
-        style={{ backgroundColor: LIGHT_THEME.w3 }}
       >
         <Text
           className="font-coach-medium text-[13px]"
-          style={{ color: LIGHT_THEME.wText }}
+          style={{ color: LIGHT_THEME.wMute }}
         >
           Cancel
         </Text>
       </Pressable>
       <Pressable
         onPress={saveEdit}
-        disabled={busy}
+        disabled={!canSave}
         hitSlop={6}
         className="h-9 items-center justify-center rounded-md px-3 active:opacity-90"
-        style={{ backgroundColor: LIGHT_THEME.wText }}
+        style={{
+          backgroundColor: LIGHT_THEME.wText,
+          opacity: canSave ? 1 : 0.4,
+        }}
       >
         {busy ? (
           <ActivityIndicator size="small" color="#FFFFFF" />
@@ -577,54 +663,29 @@ function ZonesBlock({
   );
 
   return (
-    <Section title={title} headerRight={headerRight}>
-      {isManual && (
-        <View
-          className="flex-row items-center gap-3 px-4 py-2.5"
-          style={{
-            backgroundColor: COLORS.ylwDim,
-            borderBottomWidth: 1,
-            borderBottomColor: LIGHT_THEME.wBrd,
-            borderLeftWidth: 3,
-            borderLeftColor: COLORS.ylw,
-          }}
-        >
-          <Text
-            className="flex-1 font-coach text-[12px]"
-            style={{ color: LIGHT_THEME.wText }}
-          >
-            {"Custom zones — won't auto-update from threshold"}
-          </Text>
-          <Pressable
-            onPress={handleResyncTap}
-            disabled={busy || !zone?.threshold}
-            hitSlop={8}
-            className="active:opacity-70"
-          >
-            {busy ? (
-              <ActivityIndicator size="small" color={LIGHT_THEME.wText} />
-            ) : (
-              <Text
-                className="font-coach-semibold text-[12px]"
-                style={{ color: LIGHT_THEME.wText }}
-              >
-                {resyncConfirm ? "Tap to confirm" : "Reset to default"}
-              </Text>
-            )}
-          </Pressable>
-        </View>
-      )}
+    <View className="gap-3">
+      <Section title={title} headerRight={headerRight}>
       {labels.map((label, i) => {
-        const lowFixed = i === 0; // Z1 low is always 0
-        const highFixed = i === labels.length - 1; // Z5 high is the cap sentinel
+        const isLastRow = i === labels.length - 1; // Z5
+        const highIndex = i + 1;
+        const highEditableInput = !isLastRow;
+        const isHighInvalid = invalidIndices.has(highIndex);
+        const lowText =
+          i === 0
+            ? kind === "hr"
+              ? "0"
+              : "∞"
+            : draft[i].trim().length === 0
+              ? ""
+              : draft[i];
         return (
           <View
             key={`${kind}-row-${i}`}
             className="flex-row items-center gap-3 px-4 py-3"
             style={
-              i === labels.length - 1
-                ? undefined
-                : { borderBottomWidth: 1, borderBottomColor: LIGHT_THEME.wBrd }
+              !isLastRow || (editing && !!helperText) || !!formError
+                ? { borderBottomWidth: 1, borderBottomColor: LIGHT_THEME.wBrd }
+                : undefined
             }
           >
             <View
@@ -644,24 +705,38 @@ function ZonesBlock({
             >
               {label}
             </Text>
-            <ZoneNumberInput
-              kind={kind}
-              value={draft[i]}
-              onChangeText={(v) => setRowValue(i, v)}
-              editable={editing && !lowFixed}
-            />
+            <View className="h-9 w-14 items-center justify-center">
+              <Text
+                className={`font-coach-medium ${lowText === "∞" ? "text-[20px]" : "text-[13px]"}`}
+                style={{ color: LIGHT_THEME.wMute }}
+              >
+                {lowText}
+              </Text>
+            </View>
             <Text
               className="font-coach text-[13px]"
               style={{ color: LIGHT_THEME.wMute }}
             >
               –
             </Text>
-            <ZoneNumberInput
-              kind={kind}
-              value={draft[i + 1]}
-              onChangeText={(v) => setRowValue(i + 1, v)}
-              editable={editing && !highFixed}
-            />
+            {highEditableInput ? (
+              <ZoneNumberInput
+                kind={kind}
+                value={draft[highIndex]}
+                onChangeText={(v) => setRowValue(highIndex, v)}
+                editable={editing}
+                invalid={editing && isHighInvalid}
+              />
+            ) : (
+              <View className="h-9 w-14 items-center justify-center">
+                <Text
+                  className={`font-coach-medium ${kind === "hr" ? "text-[20px]" : "text-[13px]"}`}
+                  style={{ color: LIGHT_THEME.wMute }}
+                >
+                  {kind === "hr" ? "∞" : formatBoundary(kind, ZONE_CAP[kind])}
+                </Text>
+              </View>
+            )}
             <Text
               className="font-coach text-[12px]"
               style={{ color: LIGHT_THEME.wMute }}
@@ -671,7 +746,155 @@ function ZonesBlock({
           </View>
         );
       })}
-    </Section>
+      {editing && helperText && (
+        <View
+          className="px-4 py-2.5"
+          style={
+            formError
+              ? { borderBottomWidth: 1, borderBottomColor: LIGHT_THEME.wBrd }
+              : undefined
+          }
+        >
+          <Text
+            className="font-coach text-[12px]"
+            style={{ color: anyInvalid ? COLORS.red : LIGHT_THEME.wMute }}
+          >
+            {helperText}
+          </Text>
+        </View>
+      )}
+      {formError && (
+        <View className="px-4 py-2.5">
+          <Text
+            className="font-coach text-[12px]"
+            style={{ color: COLORS.red }}
+          >
+            {formError}
+          </Text>
+        </View>
+      )}
+      </Section>
+      {isManual && !editing && (
+        <ResyncAlert
+          kind={kind}
+          canResync={!!zone?.threshold}
+          onResync={onResync}
+        />
+      )}
+    </View>
+  );
+}
+
+function ResyncAlert({
+  kind,
+  canResync,
+  onResync,
+}: {
+  kind: ZoneKind;
+  canResync: boolean;
+  onResync: (args: { kind: ZoneKind }) => Promise<unknown>;
+}) {
+  const [confirming, setConfirming] = React.useState(false);
+  const [busy, setBusy] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+
+  const handleConfirm = async () => {
+    setError(null);
+    setBusy(true);
+    try {
+      await onResync({ kind });
+      // On success the zone's source flips to "system" and this alert unmounts.
+    } catch (err) {
+      setError(getConvexErrorMessage(err));
+      setBusy(false);
+    }
+  };
+
+  return (
+    <View
+      className="gap-3 rounded-[14px] px-4 py-3"
+      style={{
+        backgroundColor: COLORS.ylwDim,
+        borderLeftWidth: 3,
+        borderLeftColor: COLORS.ylw,
+      }}
+    >
+      <Text
+        className="font-coach text-[14px] leading-5"
+        style={{ color: LIGHT_THEME.wText }}
+      >
+        These zones use custom boundaries — they won't recompute when your threshold changes. Re-sync to recalculate them from your current threshold.
+      </Text>
+      {error && (
+        <Text
+          className="font-coach text-[12px]"
+          style={{ color: COLORS.red }}
+        >
+          {error}
+        </Text>
+      )}
+      <View className="flex-row items-center justify-end gap-1.5">
+        {confirming ? (
+          <>
+            <Pressable
+              onPress={() => {
+                setError(null);
+                setConfirming(false);
+              }}
+              disabled={busy}
+              hitSlop={6}
+              className="h-9 items-center justify-center rounded-md px-3 active:opacity-70"
+            >
+              <Text
+                className="font-coach-medium text-[13px]"
+                style={{ color: LIGHT_THEME.wMute }}
+              >
+                Cancel
+              </Text>
+            </Pressable>
+            <Pressable
+              onPress={handleConfirm}
+              disabled={busy}
+              hitSlop={6}
+              className="h-9 items-center justify-center rounded-md px-3 active:opacity-90"
+              style={{
+                backgroundColor: LIGHT_THEME.wText,
+                opacity: busy ? 0.4 : 1,
+              }}
+            >
+              {busy ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <Text
+                  className="font-coach-bold text-[13px]"
+                  style={{ color: "#FFFFFF" }}
+                >
+                  Confirm
+                </Text>
+              )}
+            </Pressable>
+          </>
+        ) : (
+          <Pressable
+            onPress={() => setConfirming(true)}
+            disabled={!canResync}
+            hitSlop={6}
+            className="h-9 items-center justify-center rounded-md px-3 active:opacity-90"
+            style={{
+              backgroundColor: LIGHT_THEME.wText,
+              opacity: !canResync ? 0.4 : 1,
+            }}
+          >
+            <Text
+              className="font-coach-bold text-[13px]"
+              style={{ color: "#FFFFFF" }}
+            >
+              Re-sync from threshold
+            </Text>
+          </Pressable>
+        )}
+      </View>
+    </View>
   );
 }
 
@@ -680,15 +903,18 @@ function ZoneNumberInput({
   value,
   onChangeText,
   editable,
+  invalid,
 }: {
-  kind: Kind;
+  kind: ZoneKind;
   value: string;
   onChangeText: (v: string) => void;
   editable: boolean;
+  invalid?: boolean;
 }) {
   return (
     <Input
       className={"h-9 w-14 text-center font-coach-medium text-[13px]"}
+      style={invalid ? { borderColor: COLORS.red, borderWidth: 1 } : undefined}
       value={value}
       onChangeText={onChangeText}
       editable={editable}
