@@ -701,7 +701,7 @@ export declare const components: {
           restingHr?: number;
           source?: string;
           sport: "run";
-          threshold: number;
+          threshold?: number;
         },
         string
       >;
@@ -1733,7 +1733,7 @@ export declare const components: {
           restingHr?: number;
           source?: string;
           sport: "run";
-          threshold: number;
+          threshold?: number;
         } | null
       >;
       getZoneByAthleteEffectiveFrom: FunctionReference<
@@ -1751,7 +1751,7 @@ export declare const components: {
           restingHr?: number;
           source?: string;
           sport: "run";
-          threshold: number;
+          threshold?: number;
         } | null
       >;
       getZoneByAthleteKind: FunctionReference<
@@ -1769,7 +1769,7 @@ export declare const components: {
           restingHr?: number;
           source?: string;
           sport: "run";
-          threshold: number;
+          threshold?: number;
         } | null
       >;
       updateAthlete: FunctionReference<

@@ -1,6 +1,7 @@
 import { Text } from "@/components/ui/text";
 import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
 import { api } from "@packages/backend/convex/_generated/api";
+import type { Workout } from "@nativesquare/agoge";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "convex/react";
 import { useRouter } from "expo-router";
@@ -12,20 +13,21 @@ type TemplateDoc = NonNullable<
 >[number];
 
 function countSteps(structure: unknown): number {
-  if (!Array.isArray(structure)) return 0;
+  if (
+    structure == null ||
+    typeof structure !== "object" ||
+    !Array.isArray((structure as Workout).blocks)
+  ) {
+    return 0;
+  }
   let total = 0;
-  const walk = (nodes: unknown[]) => {
-    for (const raw of nodes) {
-      if (raw == null || typeof raw !== "object") continue;
-      const node = raw as { kind?: string; count?: number; children?: unknown };
-      if (node.kind === "step") total += 1;
-      else if (node.kind === "repeat" && Array.isArray(node.children)) {
-        const times = typeof node.count === "number" ? node.count : 1;
-        for (let i = 0; i < times; i++) walk(node.children);
-      }
+  for (const block of (structure as Workout).blocks) {
+    if (block.kind === "step") {
+      total += 1;
+    } else {
+      total += block.children.length * block.count;
     }
-  };
-  walk(structure);
+  }
   return total;
 }
 
@@ -73,6 +75,13 @@ export default function WorkoutTemplatesListScreen() {
         >
           Workout Templates
         </Text>
+        <Pressable
+          onPress={() => router.push("/account/workout-templates/new")}
+          className="size-9 items-center justify-center rounded-full active:opacity-70"
+          style={{ backgroundColor: LIGHT_THEME.wText }}
+        >
+          <Ionicons name="add" size={20} color="#FFFFFF" />
+        </Pressable>
       </View>
 
       <ScrollView
@@ -80,7 +89,7 @@ export default function WorkoutTemplatesListScreen() {
         contentContainerClassName="px-4 py-6"
       >
         {templates === undefined ? null : templates.length === 0 ? (
-          <View className="w-full max-w-md items-center gap-2 self-center pt-20">
+          <View className="w-full max-w-md items-center gap-3 self-center pt-20">
             <Text
               className="font-coach-medium text-[15px]"
               style={{ color: LIGHT_THEME.wText }}
@@ -91,8 +100,22 @@ export default function WorkoutTemplatesListScreen() {
               className="px-6 text-center font-coach text-[13px]"
               style={{ color: LIGHT_THEME.wMute }}
             >
-              Ask your Coach to save a workout as a template.
+              Save the workouts you want to repeat — easy runs, intervals, your
+              long-run plan.
             </Text>
+            <Pressable
+              onPress={() => router.push("/account/workout-templates/new")}
+              className="mt-3 flex-row items-center gap-2 rounded-2xl px-5 py-3 active:opacity-90"
+              style={{ backgroundColor: LIGHT_THEME.wText }}
+            >
+              <Ionicons name="add" size={16} color="#FFFFFF" />
+              <Text
+                className="font-coach-bold text-[13px]"
+                style={{ color: "#FFFFFF" }}
+              >
+                Create your first template
+              </Text>
+            </Pressable>
           </View>
         ) : (
           <View className="w-full max-w-md gap-3 self-center">
@@ -153,7 +176,10 @@ function TemplateRow({
           className="mt-0.5 font-coach text-[12px]"
           style={{ color: LIGHT_THEME.wSub }}
         >
-          {typeLabel} · {stepCount} {stepCount === 1 ? "step" : "steps"}
+          {typeLabel}
+          {stepCount > 0
+            ? ` · ${stepCount} ${stepCount === 1 ? "step" : "steps"}`
+            : ""}
         </Text>
       </View>
       <Ionicons name="chevron-forward" size={16} color={LIGHT_THEME.wMute} />

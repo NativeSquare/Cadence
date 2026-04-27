@@ -208,8 +208,8 @@ importers:
         specifier: ^13.1.4
         version: 13.4.0(react-native-nitro-modules@0.35.3(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
       '@nativesquare/agoge':
-        specifier: 1.6.0
-        version: 1.6.0(convex@1.34.1(react@19.1.0))(react@19.1.0)
+        specifier: 1.6.1
+        version: 1.6.1(convex@1.34.1(react@19.1.0))(react@19.1.0)
       '@nativesquare/soma':
         specifier: ^0.16.7
         version: 0.16.7(convex@1.34.1(react@19.1.0))(react@19.1.0)
@@ -648,8 +648,8 @@ importers:
         specifier: ^0.2.3
         version: 0.2.3(@react-email/render@2.0.5(react-dom@19.2.3(react@18.2.0))(react@18.2.0))(convex-helpers@0.1.114(@standard-schema/spec@1.1.0)(convex@1.34.1(react@18.2.0))(react@18.2.0)(typescript@5.9.3)(zod@4.3.6))(convex@1.34.1(react@18.2.0))(react@18.2.0)
       '@nativesquare/agoge':
-        specifier: 1.6.0
-        version: 1.6.0(convex@1.34.1(react@18.2.0))(react@18.2.0)
+        specifier: 1.6.1
+        version: 1.6.1(convex@1.34.1(react@18.2.0))(react@18.2.0)
       '@nativesquare/seshat':
         specifier: ^1.0.0
         version: 1.0.0(@ai-sdk/openai@3.0.50(zod@4.3.6))(ai@6.0.146(zod@4.3.6))(convex@1.34.1(react@18.2.0))(zod@4.3.6)
@@ -2314,8 +2314,8 @@ packages:
       '@emnapi/core': ^1.7.1
       '@emnapi/runtime': ^1.7.1
 
-  '@nativesquare/agoge@1.6.0':
-    resolution: {integrity: sha512-xZcY2AkYxxoadrSOhGy1buQREkpmi1RpVdZ4pbrXp9NhNDUAoAtu40RuGmBkEK8xhSYswpmm26DxuDoWH/TJuQ==}
+  '@nativesquare/agoge@1.6.1':
+    resolution: {integrity: sha512-HJ+eRV8GBBvtpUyP+z19Xd8/A+GEHACBtZM1aMi0yi58jWIiJRWQkI98XRc8xogYB6ul4DtCFti5XmlxAZnk8Q==}
     peerDependencies:
       convex: ^1.31.7
       react: ^18.3.1 || ^19.0.0
@@ -11076,12 +11076,12 @@ snapshots:
       '@tybys/wasm-util': 0.10.1
     optional: true
 
-  '@nativesquare/agoge@1.6.0(convex@1.34.1(react@18.2.0))(react@18.2.0)':
+  '@nativesquare/agoge@1.6.1(convex@1.34.1(react@18.2.0))(react@18.2.0)':
     dependencies:
       convex: 1.34.1(react@18.2.0)
       react: 18.2.0
 
-  '@nativesquare/agoge@1.6.0(convex@1.34.1(react@19.1.0))(react@19.1.0)':
+  '@nativesquare/agoge@1.6.1(convex@1.34.1(react@19.1.0))(react@19.1.0)':
     dependencies:
       convex: 1.34.1(react@19.1.0)
       react: 19.1.0

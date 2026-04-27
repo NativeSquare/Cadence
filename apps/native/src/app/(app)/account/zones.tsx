@@ -1,13 +1,11 @@
+import { Input } from "@/components/ui/input";
 import { Text } from "@/components/ui/text";
 import { getConvexErrorMessage } from "@/utils/getConvexErrorMessage";
 import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
 import { paceMpsToMinPerKm, parsePaceInput } from "@/lib/format-pace";
 import { api } from "@packages/backend/convex/_generated/api";
 import { Ionicons } from "@expo/vector-icons";
-import {
-  computeZoneBoundaries,
-  type ZoneMethod,
-} from "@nativesquare/agoge";
+import { computeZoneBoundaries, type ZoneMethod } from "@nativesquare/agoge";
 import { useMutation, useQuery } from "convex/react";
 import { useRouter } from "expo-router";
 import React from "react";
@@ -18,7 +16,6 @@ import {
   Platform,
   Pressable,
   ScrollView,
-  TextInput,
   View,
 } from "react-native";
 
@@ -29,148 +26,51 @@ const METHOD_FOR: Record<Kind, ZoneMethod> = {
   pace: "coggan-pace",
 };
 
-function formatIsoDate(iso: string): string {
-  const [y, m, d] = iso.split("-").map((s) => Number.parseInt(s, 10));
-  const date = new Date(y ?? 1970, (m ?? 1) - 1, d ?? 1);
-  return date.toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
-}
-
-function formatSource(raw: string | undefined): string | null {
-  if (!raw) return null;
-  if (raw === "manual") return "Manual entry";
-  return raw;
-}
-
-function formatThresholdValue(kind: Kind, threshold: number): string {
-  return kind === "hr"
-    ? `${Math.round(threshold)} bpm`
-    : `${paceMpsToMinPerKm(threshold)} /km`;
-}
-
-type ZoneRow = { label: string; range: string };
-
-// Lower-bound percentages for the 5-zone schemes — mirrored from @nativesquare/agoge
-// so we can render the zones table before the athlete has set a threshold.
-const DEFAULT_PERCENTS: Record<Kind, readonly number[]> = {
-  hr: [0, 0.68, 0.83, 0.94, 1.05],
-  pace: [0, 0.775, 0.885, 0.952, 1.031],
+// Sentinel cap values for Z5's upper bound (mirrors @nativesquare/agoge).
+// These never change with threshold, so we keep them here for the empty draft.
+const ZONE_CAP: Record<Kind, number> = {
+  hr: 255,
+  pace: 1609.34,
 };
 
-function formatPercent(fraction: number): string {
-  const pct = fraction * 100;
-  return Number.isInteger(pct) ? `${pct}%` : `${pct.toFixed(1)}%`;
+function emptyDraft(kind: Kind): string[] {
+  // Z1 low is fixed at 0 and Z5 high is the cap; the four middle boundaries
+  // are blank for the user to fill in.
+  return ["0", "", "", "", "", formatBoundary(kind, ZONE_CAP[kind])];
 }
 
-function defaultZoneRows(kind: Kind, labels: readonly string[]): ZoneRow[] {
-  const percents = DEFAULT_PERCENTS[kind];
-  const unit = kind === "hr" ? "LTHR" : "pace threshold";
-  const rows: ZoneRow[] = [];
-  for (let i = 0; i < labels.length; i++) {
-    const lower = percents[i];
-    const upper = percents[i + 1];
-    let range: string;
-    if (kind === "hr") {
-      if (i === 0) range = `< ${formatPercent(upper)} ${unit}`;
-      else if (i === labels.length - 1) range = `> ${formatPercent(lower)} ${unit}`;
-      else range = `${formatPercent(lower)}–${formatPercent(upper)} ${unit}`;
-    } else {
-      if (i === 0) range = `slower than ${formatPercent(upper)} ${unit}`;
-      else if (i === labels.length - 1)
-        range = `faster than ${formatPercent(lower)} ${unit}`;
-      else range = `${formatPercent(lower)}–${formatPercent(upper)} ${unit}`;
-    }
-    rows.push({ label: labels[i], range });
-  }
-  return rows;
+function draftFromZone(kind: Kind, zone: ZoneDoc | null): string[] {
+  return zone?.boundaries
+    ? zone.boundaries.map((b) => formatBoundary(kind, b))
+    : emptyDraft(kind);
 }
 
-function hrZoneRows(boundaries: readonly number[], labels: readonly string[]): ZoneRow[] {
-  const rows: ZoneRow[] = [];
-  for (let i = 0; i < labels.length; i++) {
-    const lower = boundaries[i];
-    const upper = boundaries[i + 1];
-    let range: string;
-    if (i === 0) range = `< ${upper} bpm`;
-    else if (i === labels.length - 1) range = `${lower}+ bpm`;
-    else range = `${lower}–${upper - 1} bpm`;
-    rows.push({ label: labels[i], range });
-  }
-  return rows;
+function formatBoundary(kind: Kind, value: number): string {
+  if (kind === "hr") return String(Math.round(value));
+  return paceMpsToMinPerKm(value);
 }
 
-function paceZoneRows(boundaries: readonly number[], labels: readonly string[]): ZoneRow[] {
-  // boundaries (m/s, ascending) → display slowest → fastest.
-  const rows: ZoneRow[] = [];
-  for (let i = 0; i < labels.length; i++) {
-    const lowerMps = boundaries[i];
-    const upperMps = boundaries[i + 1];
-    let range: string;
-    if (i === 0) range = `slower than ${paceMpsToMinPerKm(upperMps)}/km`;
-    else if (i === labels.length - 1)
-      range = `faster than ${paceMpsToMinPerKm(lowerMps)}/km`;
-    else
-      range = `${paceMpsToMinPerKm(upperMps)}–${paceMpsToMinPerKm(lowerMps)}/km`;
-    rows.push({ label: labels[i], range });
+function parseBoundary(kind: Kind, raw: string): number | null {
+  if (kind === "hr") {
+    const n = Number.parseInt(raw, 10);
+    if (!Number.isInteger(n) || n < 0) return null;
+    return n;
   }
-  return rows;
+  const p = parsePaceInput(raw);
+  if (p === null || !Number.isFinite(p) || p <= 0) return null;
+  return p;
 }
 
 export default function ZonesScreen() {
   const router = useRouter();
   const zones = useQuery(api.plan.zones.listCurrentZones);
   const upsertZones = useMutation(api.plan.zones.upsertZones);
+  const updateZoneBoundaries = useMutation(api.plan.zones.updateZoneBoundaries);
+  const resyncZonesFromThreshold = useMutation(
+    api.plan.zones.resyncZonesFromThreshold,
+  );
 
-  const [editingThreshold, setEditingThreshold] = React.useState<Kind | null>(null);
-  const [thresholdForm, setThresholdForm] = React.useState<string>("");
-  const [busyKind, setBusyKind] = React.useState<Kind | null>(null);
   const [error, setError] = React.useState<string | null>(null);
-
-  const handleThresholdEdit = (kind: Kind) => {
-    setError(null);
-    const current = zones?.[kind]?.threshold;
-    setThresholdForm(
-      current === undefined
-        ? ""
-        : kind === "hr"
-          ? String(Math.round(current))
-          : paceMpsToMinPerKm(current),
-    );
-    setEditingThreshold(kind);
-  };
-
-  const handleThresholdSave = async (kind: Kind) => {
-    setError(null);
-    Keyboard.dismiss();
-    let threshold: number;
-    if (kind === "hr") {
-      const n = Number.parseInt(thresholdForm, 10);
-      if (!Number.isInteger(n) || n <= 60 || n > 250) {
-        setError("Enter a heart rate between 61 and 250 bpm.");
-        return;
-      }
-      threshold = n;
-    } else {
-      const p = parsePaceInput(thresholdForm);
-      if (p === null || !Number.isFinite(p)) {
-        setError("Enter a pace in min:sec per km (e.g. 3:45).");
-        return;
-      }
-      threshold = p;
-    }
-    setBusyKind(kind);
-    try {
-      await upsertZones({ kind, threshold });
-      setEditingThreshold(null);
-    } catch (err) {
-      setError(getConvexErrorMessage(err));
-    } finally {
-      setBusyKind(null);
-    }
-  };
 
   const loading = zones === undefined;
 
@@ -212,44 +112,29 @@ export default function ZonesScreen() {
             </View>
           ) : (
             <>
-              <Section title="Your Thresholds">
-                <ThresholdCard
-                  kind="hr"
-                  label="Heart Rate Threshold (LTHR)"
-                  zone={zones?.hr ?? null}
-                  editing={editingThreshold === "hr"}
-                  form={thresholdForm}
-                  onFormChange={setThresholdForm}
-                  onEdit={() => handleThresholdEdit("hr")}
-                  onSave={() => handleThresholdSave("hr")}
-                  onCancel={() => setEditingThreshold(null)}
-                  busy={busyKind === "hr"}
-                />
-                <Divider />
-                <ThresholdCard
-                  kind="pace"
-                  label="Pace Threshold"
-                  zone={zones?.pace ?? null}
-                  editing={editingThreshold === "pace"}
-                  form={thresholdForm}
-                  onFormChange={setThresholdForm}
-                  onEdit={() => handleThresholdEdit("pace")}
-                  onSave={() => handleThresholdSave("pace")}
-                  onCancel={() => setEditingThreshold(null)}
-                  busy={busyKind === "pace"}
-                />
-              </Section>
+              <ThresholdsBlock
+                hrZone={zones?.hr ?? null}
+                paceZone={zones?.pace ?? null}
+                onUpsert={upsertZones}
+                onError={setError}
+              />
 
               <ZonesBlock
                 kind="hr"
                 title="HR Zones"
                 zone={zones?.hr ?? null}
+                onUpdateBoundaries={updateZoneBoundaries}
+                onResync={resyncZonesFromThreshold}
+                onError={setError}
               />
 
               <ZonesBlock
                 kind="pace"
                 title="Pace Zones"
                 zone={zones?.pace ?? null}
+                onUpdateBoundaries={updateZoneBoundaries}
+                onResync={resyncZonesFromThreshold}
+                onError={setError}
               />
             </>
           )}
@@ -270,19 +155,24 @@ export default function ZonesScreen() {
 
 function Section({
   title,
+  headerRight,
   children,
 }: {
   title: string;
+  headerRight?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
     <View className="gap-2">
-      <Text
-        className="px-1 font-coach-semibold text-[11px] uppercase tracking-wider"
-        style={{ color: LIGHT_THEME.wMute }}
-      >
-        {title}
-      </Text>
+      <View className="flex-row items-center justify-between px-1">
+        <Text
+          className="font-coach-semibold text-[13px] uppercase tracking-wider"
+          style={{ color: LIGHT_THEME.wMute }}
+        >
+          {title}
+        </Text>
+        {headerRight}
+      </View>
       <View
         className="overflow-hidden rounded-[18px]"
         style={{
@@ -297,186 +187,188 @@ function Section({
   );
 }
 
-function Divider() {
-  return (
-    <View
-      style={{ height: 1, backgroundColor: LIGHT_THEME.wBrd }}
-    />
-  );
-}
-
 type ZoneDoc = {
-  threshold: number;
+  threshold?: number;
   boundaries: number[];
   source?: string;
   effectiveFrom: string;
 };
 
-function ThresholdCard({
-  kind,
-  label,
-  zone,
-  editing,
-  form,
-  onFormChange,
-  onEdit,
-  onSave,
-  onCancel,
-  busy,
-}: {
-  kind: Kind;
-  label: string;
-  zone: ZoneDoc | null;
-  editing: boolean;
-  form: string;
-  onFormChange: (v: string) => void;
-  onEdit: () => void;
-  onSave: () => void;
-  onCancel: () => void;
-  busy: boolean;
-}) {
-  const sourceLine = formatSource(zone?.source);
-  return (
-    <View className="gap-2 px-4 py-4">
-      <Text
-        className="font-coach-medium text-[13px]"
-        style={{ color: LIGHT_THEME.wMute }}
-      >
-        {label}
-      </Text>
-      {editing ? (
-        <View className="flex-row items-center gap-2">
-          <TextInput
-            className="h-10 flex-1 rounded-lg border px-3 font-coach-medium text-[16px]"
-            style={{
-              backgroundColor: LIGHT_THEME.w2,
-              borderColor: LIGHT_THEME.wBrd,
-              color: LIGHT_THEME.wText,
-            }}
-            value={form}
-            onChangeText={(v) =>
-              onFormChange(
-                kind === "hr"
-                  ? v.replace(/[^0-9]/g, "")
-                  : v.replace(/[^0-9:]/g, ""),
-              )
-            }
-            placeholder={kind === "hr" ? "172" : "3:45"}
-            placeholderTextColor={LIGHT_THEME.wMute}
-            keyboardType={kind === "hr" ? "number-pad" : "numbers-and-punctuation"}
-            maxLength={kind === "hr" ? 3 : 5}
-            autoFocus
-            selectionColor={COLORS.lime}
-            cursorColor={COLORS.lime}
-          />
-          <Pressable
-            onPress={onCancel}
-            disabled={busy}
-            className="h-10 items-center justify-center rounded-lg px-3 active:opacity-70"
-            style={{ backgroundColor: LIGHT_THEME.w3 }}
-          >
-            <Text
-              className="font-coach-medium text-[13px]"
-              style={{ color: LIGHT_THEME.wText }}
-            >
-              Cancel
-            </Text>
-          </Pressable>
-          <Pressable
-            onPress={onSave}
-            disabled={busy}
-            className="h-10 items-center justify-center rounded-lg px-3 active:opacity-90"
-            style={{ backgroundColor: LIGHT_THEME.wText }}
-          >
-            {busy ? (
-              <ActivityIndicator color="#FFFFFF" />
-            ) : (
-              <Text
-                className="font-coach-bold text-[13px]"
-                style={{ color: "#FFFFFF" }}
-              >
-                Save
-              </Text>
-            )}
-          </Pressable>
-        </View>
-      ) : (
-        <View className="flex-row items-center justify-between">
-          <Text
-            className="font-coach-bold text-[22px]"
-            style={{ color: zone ? LIGHT_THEME.wText : LIGHT_THEME.wMute }}
-          >
-            {zone ? formatThresholdValue(kind, zone.threshold) : "Not set"}
-          </Text>
-          <Pressable
-            onPress={onEdit}
-            className="h-8 items-center justify-center rounded-lg px-3 active:opacity-70"
-            style={{ backgroundColor: LIGHT_THEME.w3 }}
-          >
-            <Text
-              className="font-coach-medium text-[12px]"
-              style={{ color: LIGHT_THEME.wText }}
-            >
-              {zone ? "Edit" : "Set"}
-            </Text>
-          </Pressable>
-        </View>
-      )}
-      {zone && !editing && (
-        <View className="gap-0.5">
-          <Text
-            className="font-coach text-[11px]"
-            style={{ color: LIGHT_THEME.wMute }}
-          >
-            Last updated: {formatIsoDate(zone.effectiveFrom)}
-          </Text>
-          {sourceLine && (
-            <Text
-              className="font-coach text-[11px]"
-              style={{ color: LIGHT_THEME.wMute }}
-            >
-              Source: {sourceLine}
-            </Text>
-          )}
-        </View>
-      )}
-    </View>
-  );
+function thresholdToInput(kind: Kind, threshold: number | undefined): string {
+  if (threshold === undefined) return "";
+  return kind === "hr"
+    ? String(Math.round(threshold))
+    : paceMpsToMinPerKm(threshold);
 }
 
-function ZonesBlock({
-  kind,
-  title,
-  zone,
+function ThresholdsBlock({
+  hrZone,
+  paceZone,
+  onUpsert,
+  onError,
 }: {
-  kind: Kind;
-  title: string;
-  zone: ZoneDoc | null;
+  hrZone: ZoneDoc | null;
+  paceZone: ZoneDoc | null;
+  onUpsert: (args: { kind: Kind; threshold: number }) => Promise<unknown>;
+  onError: (msg: string | null) => void;
 }) {
-  // Labels are fixed by the 5-zone scheme; call with a placeholder threshold
-  // just to read them back so the default view doesn't duplicate the list.
-  const { labels } = computeZoneBoundaries(kind, 100, METHOD_FOR[kind]);
+  const [editing, setEditing] = React.useState(false);
+  const [hrDraft, setHrDraft] = React.useState<string>(() =>
+    thresholdToInput("hr", hrZone?.threshold),
+  );
+  const [paceDraft, setPaceDraft] = React.useState<string>(() =>
+    thresholdToInput("pace", paceZone?.threshold),
+  );
+  const [busy, setBusy] = React.useState(false);
 
-  let rows: ZoneRow[];
-  if (zone) {
-    const computed = computeZoneBoundaries(
-      kind,
-      zone.threshold,
-      METHOD_FOR[kind],
-    );
-    rows =
-      kind === "hr"
-        ? hrZoneRows(computed.boundaries, computed.labels)
-        : paceZoneRows(computed.boundaries, computed.labels);
-  } else {
-    rows = defaultZoneRows(kind, labels);
-  }
+  // Re-seed drafts when the underlying zones change and we are not editing.
+  const hrKey = hrZone?.threshold ?? "";
+  const paceKey = paceZone?.threshold ?? "";
+  React.useEffect(() => {
+    if (!editing) {
+      setHrDraft(thresholdToInput("hr", hrZone?.threshold));
+      setPaceDraft(thresholdToInput("pace", paceZone?.threshold));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hrKey, paceKey, editing]);
+
+  const beginEdit = () => {
+    onError(null);
+    setHrDraft(thresholdToInput("hr", hrZone?.threshold));
+    setPaceDraft(thresholdToInput("pace", paceZone?.threshold));
+    setEditing(true);
+  };
+
+  const cancelEdit = () => {
+    onError(null);
+    setHrDraft(thresholdToInput("hr", hrZone?.threshold));
+    setPaceDraft(thresholdToInput("pace", paceZone?.threshold));
+    setEditing(false);
+  };
+
+  const saveEdit = async () => {
+    onError(null);
+    Keyboard.dismiss();
+    const tasks: { kind: Kind; threshold: number }[] = [];
+
+    if (hrDraft.trim().length > 0) {
+      const n = Number.parseInt(hrDraft, 10);
+      if (!Number.isInteger(n) || n <= 60 || n > 250) {
+        onError("Enter a heart rate between 61 and 250 bpm.");
+        return;
+      }
+      const current = hrZone?.threshold;
+      if (current === undefined || Math.round(current) !== n) {
+        tasks.push({ kind: "hr", threshold: n });
+      }
+    }
+
+    if (paceDraft.trim().length > 0) {
+      const p = parsePaceInput(paceDraft);
+      if (p === null || !Number.isFinite(p) || p <= 0) {
+        onError("Enter a pace in min:sec per km (e.g. 3:45).");
+        return;
+      }
+      const current = paceZone?.threshold;
+      const currentDisplay =
+        current !== undefined ? paceMpsToMinPerKm(current) : "";
+      if (paceMpsToMinPerKm(p) !== currentDisplay) {
+        tasks.push({ kind: "pace", threshold: p });
+      }
+    }
+
+    setBusy(true);
+    try {
+      for (const t of tasks) {
+        await onUpsert(t);
+      }
+      setEditing(false);
+    } catch (err) {
+      onError(getConvexErrorMessage(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const headerRight = editing ? (
+    <View className="flex-row items-center gap-1.5">
+      <Pressable
+        onPress={cancelEdit}
+        disabled={busy}
+        hitSlop={6}
+        className="h-9 items-center justify-center rounded-md px-3 active:opacity-70"
+        style={{ backgroundColor: LIGHT_THEME.w3 }}
+      >
+        <Text
+          className="font-coach-medium text-[13px]"
+          style={{ color: LIGHT_THEME.wText }}
+        >
+          Cancel
+        </Text>
+      </Pressable>
+      <Pressable
+        onPress={saveEdit}
+        disabled={busy}
+        hitSlop={6}
+        className="h-9 items-center justify-center rounded-md px-3 active:opacity-90"
+        style={{ backgroundColor: LIGHT_THEME.wText }}
+      >
+        {busy ? (
+          <ActivityIndicator size="small" color="#FFFFFF" />
+        ) : (
+          <Text
+            className="font-coach-bold text-[13px]"
+            style={{ color: "#FFFFFF" }}
+          >
+            Save
+          </Text>
+        )}
+      </Pressable>
+    </View>
+  ) : (
+    <Pressable
+      onPress={beginEdit}
+      hitSlop={6}
+      className="h-9 items-center justify-center rounded-md px-3 active:opacity-70"
+      style={{ backgroundColor: LIGHT_THEME.w3 }}
+    >
+      <Text
+        className="font-coach-medium text-[13px]"
+        style={{ color: LIGHT_THEME.wText }}
+      >
+        Edit
+      </Text>
+    </Pressable>
+  );
+
+  const rows: {
+    kind: Kind;
+    label: string;
+    unit: string;
+    draft: string;
+    setDraft: (v: string) => void;
+  }[] = [
+    {
+      kind: "hr",
+      label: "Heart Rate Threshold (LTHR)",
+      unit: "bpm",
+      draft: hrDraft,
+      setDraft: setHrDraft,
+    },
+    {
+      kind: "pace",
+      label: "Pace Threshold",
+      unit: "/km",
+      draft: paceDraft,
+      setDraft: setPaceDraft,
+    },
+  ];
 
   return (
-    <Section title={title}>
+    <Section title="Your Thresholds" headerRight={headerRight}>
       {rows.map((row, i) => (
         <View
-          key={`${kind}-row-${i}`}
+          key={row.kind}
           className="flex-row items-center gap-3 px-4 py-3"
           style={
             i === rows.length - 1
@@ -484,31 +376,324 @@ function ZonesBlock({
               : { borderBottomWidth: 1, borderBottomColor: LIGHT_THEME.wBrd }
           }
         >
-          <View
-            className="size-7 items-center justify-center rounded-md"
-            style={{ backgroundColor: LIGHT_THEME.w3 }}
-          >
-            <Text
-              className="font-coach-bold text-[11px]"
-              style={{ color: LIGHT_THEME.wText }}
-            >
-              Z{i + 1}
-            </Text>
-          </View>
           <Text
-            className="flex-1 font-coach-medium text-[14px]"
+            className="flex-1 font-coach-medium text-[15px]"
             style={{ color: LIGHT_THEME.wText }}
           >
             {row.label}
           </Text>
+          <ZoneNumberInput
+            kind={row.kind}
+            value={row.draft}
+            onChangeText={(v) =>
+              row.setDraft(
+                row.kind === "hr"
+                  ? v.replace(/[^0-9]/g, "")
+                  : v.replace(/[^0-9:]/g, ""),
+              )
+            }
+            editable={editing}
+          />
           <Text
-            className="font-coach-medium text-[13px]"
+            className="font-coach text-[12px]"
             style={{ color: LIGHT_THEME.wMute }}
           >
-            {row.range}
+            {row.unit}
           </Text>
         </View>
       ))}
     </Section>
+  );
+}
+
+function ZonesBlock({
+  kind,
+  title,
+  zone,
+  onUpdateBoundaries,
+  onResync,
+  onError,
+}: {
+  kind: Kind;
+  title: string;
+  zone: ZoneDoc | null;
+  onUpdateBoundaries: (args: {
+    kind: Kind;
+    boundaries: number[];
+  }) => Promise<unknown>;
+  onResync: (args: { kind: Kind }) => Promise<unknown>;
+  onError: (msg: string | null) => void;
+}) {
+  const { labels } = computeZoneBoundaries(kind, 100, METHOD_FOR[kind]);
+  const isManual = zone?.source === "manual";
+
+  const [editing, setEditing] = React.useState(false);
+  const [draft, setDraft] = React.useState<string[]>(() =>
+    draftFromZone(kind, zone),
+  );
+  const [busy, setBusy] = React.useState(false);
+  const [resyncConfirm, setResyncConfirm] = React.useState(false);
+
+  // Re-seed the draft whenever the underlying zone changes and we are not editing.
+  const baseKey = zone?.boundaries ? zone.boundaries.join(",") : "empty";
+  React.useEffect(() => {
+    if (!editing) {
+      setDraft(draftFromZone(kind, zone));
+    }
+    // zone is captured via baseKey
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [baseKey, editing, kind]);
+
+  React.useEffect(() => {
+    setResyncConfirm(false);
+  }, [zone?.source, zone?.effectiveFrom]);
+
+  const beginEdit = () => {
+    onError(null);
+    setDraft(draftFromZone(kind, zone));
+    setEditing(true);
+  };
+
+  const cancelEdit = () => {
+    onError(null);
+    setEditing(false);
+    setDraft(draftFromZone(kind, zone));
+  };
+
+  const saveEdit = async () => {
+    onError(null);
+    Keyboard.dismiss();
+    const parsed: number[] = [];
+    for (let i = 0; i < draft.length; i++) {
+      const n = parseBoundary(kind, draft[i]);
+      if (n === null) {
+        onError(
+          kind === "hr"
+            ? "Enter whole numbers in bpm for every zone."
+            : "Enter paces as min:sec per km (e.g. 3:45) for every zone.",
+        );
+        return;
+      }
+      parsed.push(n);
+    }
+    if (parsed[0] !== 0) {
+      onError("Z1 must start at 0.");
+      return;
+    }
+    for (let i = 1; i < parsed.length; i++) {
+      if (parsed[i] <= parsed[i - 1]) {
+        onError("Each zone must be higher than the one below it.");
+        return;
+      }
+    }
+    setBusy(true);
+    try {
+      await onUpdateBoundaries({ kind, boundaries: parsed });
+      setEditing(false);
+    } catch (err) {
+      onError(getConvexErrorMessage(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const setRowValue = (index: number, value: string) => {
+    setDraft((prev) => {
+      const next = [...prev];
+      next[index] =
+        kind === "hr"
+          ? value.replace(/[^0-9]/g, "")
+          : value.replace(/[^0-9:]/g, "");
+      return next;
+    });
+  };
+
+  const handleResyncTap = async () => {
+    if (!resyncConfirm) {
+      setResyncConfirm(true);
+      return;
+    }
+    onError(null);
+    setBusy(true);
+    try {
+      await onResync({ kind });
+    } catch (err) {
+      onError(getConvexErrorMessage(err));
+      setResyncConfirm(false);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const headerRight = editing ? (
+    <View className="flex-row items-center gap-1.5">
+      <Pressable
+        onPress={cancelEdit}
+        disabled={busy}
+        hitSlop={6}
+        className="h-9 items-center justify-center rounded-md px-3 active:opacity-70"
+        style={{ backgroundColor: LIGHT_THEME.w3 }}
+      >
+        <Text
+          className="font-coach-medium text-[13px]"
+          style={{ color: LIGHT_THEME.wText }}
+        >
+          Cancel
+        </Text>
+      </Pressable>
+      <Pressable
+        onPress={saveEdit}
+        disabled={busy}
+        hitSlop={6}
+        className="h-9 items-center justify-center rounded-md px-3 active:opacity-90"
+        style={{ backgroundColor: LIGHT_THEME.wText }}
+      >
+        {busy ? (
+          <ActivityIndicator size="small" color="#FFFFFF" />
+        ) : (
+          <Text
+            className="font-coach-bold text-[13px]"
+            style={{ color: "#FFFFFF" }}
+          >
+            Save
+          </Text>
+        )}
+      </Pressable>
+    </View>
+  ) : (
+    <Pressable
+      onPress={beginEdit}
+      hitSlop={6}
+      className="h-9 items-center justify-center rounded-md px-3 active:opacity-70"
+      style={{ backgroundColor: LIGHT_THEME.w3 }}
+    >
+      <Text
+        className="font-coach-medium text-[13px]"
+        style={{ color: LIGHT_THEME.wText }}
+      >
+        Edit
+      </Text>
+    </Pressable>
+  );
+
+  return (
+    <Section title={title} headerRight={headerRight}>
+      {isManual && (
+        <View
+          className="flex-row items-center gap-3 px-4 py-2.5"
+          style={{
+            backgroundColor: COLORS.ylwDim,
+            borderBottomWidth: 1,
+            borderBottomColor: LIGHT_THEME.wBrd,
+            borderLeftWidth: 3,
+            borderLeftColor: COLORS.ylw,
+          }}
+        >
+          <Text
+            className="flex-1 font-coach text-[12px]"
+            style={{ color: LIGHT_THEME.wText }}
+          >
+            {"Custom zones — won't auto-update from threshold"}
+          </Text>
+          <Pressable
+            onPress={handleResyncTap}
+            disabled={busy || !zone?.threshold}
+            hitSlop={8}
+            className="active:opacity-70"
+          >
+            {busy ? (
+              <ActivityIndicator size="small" color={LIGHT_THEME.wText} />
+            ) : (
+              <Text
+                className="font-coach-semibold text-[12px]"
+                style={{ color: LIGHT_THEME.wText }}
+              >
+                {resyncConfirm ? "Tap to confirm" : "Reset to default"}
+              </Text>
+            )}
+          </Pressable>
+        </View>
+      )}
+      {labels.map((label, i) => {
+        const lowFixed = i === 0; // Z1 low is always 0
+        const highFixed = i === labels.length - 1; // Z5 high is the cap sentinel
+        return (
+          <View
+            key={`${kind}-row-${i}`}
+            className="flex-row items-center gap-3 px-4 py-3"
+            style={
+              i === labels.length - 1
+                ? undefined
+                : { borderBottomWidth: 1, borderBottomColor: LIGHT_THEME.wBrd }
+            }
+          >
+            <View
+              className="size-8 items-center justify-center rounded-md"
+              style={{ backgroundColor: LIGHT_THEME.w3 }}
+            >
+              <Text
+                className="font-coach-bold text-[12px]"
+                style={{ color: LIGHT_THEME.wText }}
+              >
+                Z{i + 1}
+              </Text>
+            </View>
+            <Text
+              className="flex-1 font-coach-medium text-[15px]"
+              style={{ color: LIGHT_THEME.wText }}
+            >
+              {label}
+            </Text>
+            <ZoneNumberInput
+              kind={kind}
+              value={draft[i]}
+              onChangeText={(v) => setRowValue(i, v)}
+              editable={editing && !lowFixed}
+            />
+            <Text
+              className="font-coach text-[13px]"
+              style={{ color: LIGHT_THEME.wMute }}
+            >
+              –
+            </Text>
+            <ZoneNumberInput
+              kind={kind}
+              value={draft[i + 1]}
+              onChangeText={(v) => setRowValue(i + 1, v)}
+              editable={editing && !highFixed}
+            />
+            <Text
+              className="font-coach text-[12px]"
+              style={{ color: LIGHT_THEME.wMute }}
+            >
+              {kind === "hr" ? "bpm" : "/km"}
+            </Text>
+          </View>
+        );
+      })}
+    </Section>
+  );
+}
+
+function ZoneNumberInput({
+  kind,
+  value,
+  onChangeText,
+  editable,
+}: {
+  kind: Kind;
+  value: string;
+  onChangeText: (v: string) => void;
+  editable: boolean;
+}) {
+  return (
+    <Input
+      className={"h-9 w-14 text-center font-coach-medium text-[13px]"}
+      value={value}
+      onChangeText={onChangeText}
+      editable={editable}
+      keyboardType={kind === "hr" ? "number-pad" : "numbers-and-punctuation"}
+      maxLength={kind === "hr" ? 3 : 5}
+    />
   );
 }
