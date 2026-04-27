@@ -16,7 +16,9 @@ import {
   TARGET_LABELS,
 } from "@/components/app/workout-templates/workout-helpers";
 import type { Step } from "@nativesquare/agoge";
+import { api } from "@packages/backend/convex/_generated/api";
 import { BottomSheetModal as GorhomBottomSheetModal } from "@gorhom/bottom-sheet";
+import { useQuery } from "convex/react";
 import React from "react";
 import { Pressable, TextInput, View } from "react-native";
 
@@ -83,6 +85,11 @@ function StepEditorBody({
     },
   );
 
+  // Drives whether the user can pick "HR zone" as a target. Until zones are
+  // configured, a zone-based target wouldn't resolve to anything for them.
+  const zones = useQuery(api.plan.zones.listCurrentZones);
+  const hasHrZones = !!zones?.hr;
+
   const handleSave = () => {
     onSave(step);
   };
@@ -132,6 +139,7 @@ function StepEditorBody({
 
       <TargetField
         value={step.target ?? { type: "none" }}
+        hasHrZones={hasHrZones}
         onChange={(t) =>
           setStep((s) => ({ ...s, target: t.type === "none" ? undefined : t }))
         }
@@ -393,9 +401,11 @@ function DurationInputs({
 
 function TargetField({
   value,
+  hasHrZones,
   onChange,
 }: {
   value: NonNullable<Step["target"]>;
+  hasHrZones: boolean;
   onChange: (t: NonNullable<Step["target"]>) => void;
 }) {
   return (
@@ -404,9 +414,11 @@ function TargetField({
         <View className="flex-row flex-wrap gap-2">
           {ALLOWED_TARGETS_FOR_RUN.map((kind) => {
             const selected = value.type === kind;
+            const disabled = kind === "hr_zone" && !hasHrZones;
             return (
               <Pressable
                 key={kind}
+                disabled={disabled}
                 onPress={() => {
                   selectionFeedback();
                   if (value.type !== kind) onChange(emptyTargetOf(kind));
@@ -415,6 +427,7 @@ function TargetField({
                 style={{
                   backgroundColor: selected ? LIGHT_THEME.wText : LIGHT_THEME.w1,
                   borderColor: selected ? LIGHT_THEME.wText : LIGHT_THEME.wBrd,
+                  opacity: disabled ? 0.4 : 1,
                 }}
               >
                 <Text
@@ -427,6 +440,14 @@ function TargetField({
             );
           })}
         </View>
+        {!hasHrZones && (
+          <Text
+            className="font-coach text-[12px]"
+            style={{ color: LIGHT_THEME.wMute }}
+          >
+            Set up HR zones in Account → Zones to use HR zone targets.
+          </Text>
+        )}
         <TargetInputs value={value} onChange={onChange} />
       </View>
     </FormField>
@@ -514,9 +535,11 @@ function TargetInputs({
     );
   }
   if (value.type === "hr_zone") {
+    // Cadence defines 5 zones (Z1–Z5) even though the agoge schema accepts 1–7
+    // for Garmin/COROS interop. Keep the picker aligned with the Zones screen.
     return (
       <View className="flex-row gap-2">
-        {[1, 2, 3, 4, 5, 6, 7].map((z) => {
+        {[1, 2, 3, 4, 5].map((z) => {
           const selected = value.zone === z;
           return (
             <Pressable
@@ -525,7 +548,7 @@ function TargetInputs({
                 selectionFeedback();
                 onChange({ type: "hr_zone", zone: z });
               }}
-              className="size-10 items-center justify-center rounded-xl border active:opacity-80"
+              className="h-10 min-w-[44px] items-center justify-center rounded-xl border px-2 active:opacity-80"
               style={{
                 backgroundColor: selected ? LIGHT_THEME.wText : LIGHT_THEME.w1,
                 borderColor: selected ? LIGHT_THEME.wText : LIGHT_THEME.wBrd,
@@ -535,7 +558,7 @@ function TargetInputs({
                 className="font-coach-bold text-[14px]"
                 style={{ color: selected ? "#FFFFFF" : LIGHT_THEME.wText }}
               >
-                {z}
+                Z{z}
               </Text>
             </Pressable>
           );

@@ -23,26 +23,10 @@ import {
   View,
 } from "react-native";
 
-const WORKOUT_TYPES = [
-  "easy",
-  "long",
-  "tempo",
-  "threshold",
-  "intervals",
-  "vo2max",
-  "fartlek",
-  "progression",
-  "race_pace",
-  "recovery",
-  "strides",
-  "hills",
-  "race",
-  "test",
-  "cross_training",
-  "strength",
-  "rest",
-  "other",
-] as const satisfies readonly WorkoutType[];
+// Cadence currently exposes only this subset of WorkoutType to the user.
+// The agoge schema accepts more values (intervals, vo2max, threshold, …) for
+// interop with imported workouts, but the form intentionally hides them.
+const WORKOUT_TYPES = ["easy", "tempo", "long", "race"] as const satisfies readonly WorkoutType[];
 
 const WORKOUT_TYPE_LABELS: Record<WorkoutType, string> = {
   easy: "Easy",

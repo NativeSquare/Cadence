@@ -367,22 +367,7 @@ function RepeatCard({
           >
             Repeat ×
           </Text>
-          <TextInput
-            className="h-9 w-14 rounded-lg border px-2 text-center font-coach-medium text-[14px]"
-            style={{
-              backgroundColor: LIGHT_THEME.w1,
-              borderColor: LIGHT_THEME.wBrd,
-              color: LIGHT_THEME.wText,
-            }}
-            keyboardType="number-pad"
-            value={String(repeat.count)}
-            onChangeText={(t) => {
-              const n = Number.parseInt(t.replace(/[^0-9]/g, "") || "0", 10);
-              onCountChange(n || 1);
-            }}
-            selectionColor={COLORS.lime}
-            cursorColor={COLORS.lime}
-          />
+          <RepeatCountInput count={repeat.count} onChange={onCountChange} />
         </View>
         <View className="flex-1" />
         <ReorderControls onMoveUp={onMoveUp} onMoveDown={onMoveDown} />
@@ -425,6 +410,51 @@ function RepeatCard({
         </Pressable>
       </View>
     </View>
+  );
+}
+
+// Local-draft input so the user can clear the field to retype a number.
+// The previous controlled-only version snapped empty/zero back to "1" on every
+// keystroke, making it impossible to type any single digit other than 1.
+function RepeatCountInput({
+  count,
+  onChange,
+}: {
+  count: number;
+  onChange: (count: number) => void;
+}) {
+  const [draft, setDraft] = React.useState(String(count));
+
+  React.useEffect(() => {
+    setDraft(String(count));
+  }, [count]);
+
+  return (
+    <TextInput
+      className="h-9 w-14 rounded-lg border px-2 text-center font-coach-medium text-[14px]"
+      style={{
+        backgroundColor: LIGHT_THEME.w1,
+        borderColor: LIGHT_THEME.wBrd,
+        color: LIGHT_THEME.wText,
+      }}
+      keyboardType="number-pad"
+      value={draft}
+      onChangeText={(t) => {
+        const cleaned = t.replace(/[^0-9]/g, "");
+        setDraft(cleaned);
+        if (cleaned.length === 0) return;
+        const n = Number.parseInt(cleaned, 10);
+        if (Number.isFinite(n) && n > 0) onChange(n);
+      }}
+      onBlur={() => {
+        if (draft.length === 0) {
+          onChange(1);
+          setDraft("1");
+        }
+      }}
+      selectionColor={COLORS.lime}
+      cursorColor={COLORS.lime}
+    />
   );
 }
 
