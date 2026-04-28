@@ -15,10 +15,10 @@ import { View } from "react-native";
 
 export default function EditRaceScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const race = useQuery(api.plan.races.getMyRace, { raceId: id });
-  const races = useQuery(api.plan.races.listMyRaces);
-  const updateRace = useMutation(api.plan.races.updateMyRace);
-  const deleteRace = useMutation(api.plan.races.deleteMyRace);
+  const race = useQuery(api.agoge.races.getMyRace, { raceId: id });
+  const races = useQuery(api.agoge.races.listMyRaces);
+  const updateRace = useMutation(api.agoge.races.updateMyRace);
+  const deleteRace = useMutation(api.agoge.races.deleteMyRace);
 
   const existingUpcomingARace = React.useMemo(() => {
     if (!races || !race) return null;

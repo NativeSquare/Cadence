@@ -5,8 +5,8 @@ import { Password } from "@convex-dev/auth/providers/Password";
 import { convexAuth } from "@convex-dev/auth/server";
 import { ConvexError } from "convex/values";
 import { APP_SLUG } from "@packages/shared";
-import { ResendOTP } from "./lib/auth/ResendOTP";
-import { ResendOTPPasswordReset } from "./lib/auth/ResendOTPPasswordReset";
+import { ResendOTP } from "./auth/ResendOTP";
+import { ResendOTPPasswordReset } from "./auth/ResendOTPPasswordReset";
 
 export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
   providers: [

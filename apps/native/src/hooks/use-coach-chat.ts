@@ -6,10 +6,8 @@ import { api } from "@packages/backend/convex/_generated/api";
  * Coach Chat Conversation Resolver
  *
  * Ensures an active conversation exists for the current agoge athlete and
- * exposes its id. Message persistence is owned by the Router pipeline
- * (`intelligence.events.ingestChat` + `intelligence.delivery.deliverCandidate`)
- * and surfaces reactively through `useAIChat`, so this hook no longer
- * handles persist callbacks.
+ * exposes its id. Message persistence is owned by `chat.send` and surfaces
+ * reactively through `useAIChat`.
  */
 
 export type CoachChatPhase = "loading" | "ready" | "error";
@@ -20,10 +18,10 @@ export interface UseCoachChatReturn {
 }
 
 export function useCoachChat(): UseCoachChatReturn {
-  const athlete = useQuery(api.plan.reads.getAthlete);
-  const activeConversation = useQuery(api.ai.messages.getActiveConversation);
+  const athlete = useQuery(api.agoge.athletes.getAthlete);
+  const activeConversation = useQuery(api.cadence.messages.getActiveConversation);
   const createConversation = useMutation(
-    api.ai.messages.getOrCreateConversation,
+    api.cadence.messages.getOrCreateConversation,
   );
 
   const [conversationId, setConversationId] = useState<string>();

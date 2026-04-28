@@ -1,5 +1,5 @@
 /**
- * OnboardingFlow - Sequential 13-screen onboarding orchestrator.
+ * OnboardingFlow - Sequential onboarding orchestrator.
  *
  * Renders all screens in sequence with progress bar and screen transitions.
  */
@@ -21,9 +21,6 @@ import {
   StyleScreen,
   OpenQuestionScreen,
   TransitionScreen,
-  RadarScreen,
-  ProgressionScreen,
-  CalendarScreen,
   VerdictScreen,
   PaywallScreen,
 } from "./screens";
@@ -38,9 +35,6 @@ type ScreenName =
   | "style"
   | "openQuestion"
   | "transition"
-  | "radar"
-  | "progression"
-  | "calendar"
   | "verdict"
   | "paywall";
 
@@ -59,9 +53,6 @@ const SCREENS: ScreenConfig[] = [
   { name: "style", label: "Style" },
   { name: "openQuestion", label: "OpenQ" },
   { name: "transition", label: "Transition" },
-  { name: "radar", label: "Radar" },
-  { name: "progression", label: "Progress" },
-  { name: "calendar", label: "Calendar" },
   { name: "verdict", label: "Verdict" },
   { name: "paywall", label: "Paywall" },
 ];
@@ -107,15 +98,6 @@ export function OnboardingFlow() {
       case "transition":
         return <TransitionScreen onDone={goToNext} />;
 
-      case "radar":
-        return <RadarScreen onComplete={goToNext} />;
-
-      case "progression":
-        return <ProgressionScreen onComplete={goToNext} />;
-
-      case "calendar":
-        return <CalendarScreen onComplete={goToNext} />;
-
       case "verdict":
         return <VerdictScreen onComplete={goToNext} />;
 
@@ -130,9 +112,7 @@ export function OnboardingFlow() {
   // Progress bar visible from wearable through transition (screens 1-7)
   // const showProgressBar =
   //   currentScreen.name !== "welcome" &&
-  //   !["radar", "progression", "calendar", "verdict", "paywall"].includes(
-  //     currentScreen.name,
-  //   );
+  //   !["verdict", "paywall"].includes(currentScreen.name);
 
   return (
     <View style={styles.container}>

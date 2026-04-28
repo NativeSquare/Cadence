@@ -1,6 +1,7 @@
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { defineTable } from "convex/server";
 import { ConvexError, v } from "convex/values";
+import { internal } from "../_generated/api";
 import {
   internalMutation,
   internalQuery,
@@ -345,35 +346,65 @@ export const listRecentForUser = internalQuery({
 });
 
 // =============================================================================
-// Message Archival (Seshat Compaction)
+// Chat Send (stub while the new brain is being built)
 // =============================================================================
 
-/**
- * Archive old messages after compaction, keeping only the most recent N.
- * Called internally by the agent loop when Seshat triggers compaction.
- */
-export const archiveMessages = internalMutation({
+const STUB_REPLY = "AI is offline — the new brain is being built.";
+const REPLY_DELAY_MS = 500;
+
+export const send = mutation({
   args: {
     conversationId: v.id("conversations"),
-    keepCount: v.number(),
+    text: v.string(),
   },
-  returns: v.number(),
-  handler: async (ctx, args) => {
-    const allMessages = await ctx.db
-      .query("messages")
-      .withIndex("by_conversation_time", (q) =>
-        q.eq("conversationId", args.conversationId),
-      )
-      .order("asc")
-      .collect();
-
-    const activeMessages = allMessages.filter((m) => !m.archived);
-    const archiveCount = Math.max(0, activeMessages.length - args.keepCount);
-
-    for (let i = 0; i < archiveCount; i++) {
-      await ctx.db.patch(activeMessages[i]._id, { archived: true });
+  handler: async (ctx, { conversationId, text }) => {
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) {
+      throw new ConvexError({
+        code: "UNAUTHORIZED",
+        message: "Not authenticated",
+      });
     }
 
-    return archiveCount;
+    const conversation = await ctx.db.get(conversationId);
+    if (!conversation || conversation.userId !== userId) {
+      throw new ConvexError({
+        code: "NOT_FOUND",
+        message: "Conversation not found",
+      });
+    }
+
+    const now = Date.now();
+    const messageId = await ctx.db.insert("messages", {
+      conversationId,
+      role: "user",
+      content: text,
+      createdAt: now,
+      isComplete: true,
+    });
+    await ctx.db.patch(conversationId, { updatedAt: now });
+
+    await ctx.scheduler.runAfter(
+      REPLY_DELAY_MS,
+      internal.cadence.messages.writeReply,
+      { conversationId },
+    );
+
+    return messageId;
+  },
+});
+
+export const writeReply = internalMutation({
+  args: { conversationId: v.id("conversations") },
+  handler: async (ctx, { conversationId }) => {
+    const now = Date.now();
+    await ctx.db.insert("messages", {
+      conversationId,
+      role: "assistant",
+      content: STUB_REPLY,
+      createdAt: now,
+      isComplete: true,
+    });
+    await ctx.db.patch(conversationId, { updatedAt: now });
   },
 });

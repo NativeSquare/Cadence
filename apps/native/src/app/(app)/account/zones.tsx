@@ -70,10 +70,10 @@ function parseBoundary(kind: ZoneKind, raw: string): number | null {
 
 export default function ZonesScreen() {
   const router = useRouter();
-  const zones = useQuery(api.plan.zones.listCurrentZones);
-  const upsertZones = useMutation(api.plan.zones.upsertZones);
-  const updateZoneBoundaries = useMutation(api.plan.zones.updateZoneBoundaries);
-  const resyncZones = useMutation(api.plan.zones.resyncZonesFromThreshold);
+  const zones = useQuery(api.agoge.zones.listCurrentZones);
+  const upsertZones = useMutation(api.agoge.zones.upsertZones);
+  const updateZoneBoundaries = useMutation(api.agoge.zones.updateZoneBoundaries);
+  const resyncZones = useMutation(api.agoge.zones.resyncZonesFromThreshold);
 
   const loading = zones === undefined;
 

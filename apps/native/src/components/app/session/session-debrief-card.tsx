@@ -1,6 +1,5 @@
 /**
  * Session debrief card — stubbed during agoge migration.
- * Will be rebuilt to submit debrief via api.plan.actions.submitWorkoutDebrief.
  */
 
 import { View } from "react-native";

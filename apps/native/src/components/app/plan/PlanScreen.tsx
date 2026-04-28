@@ -73,7 +73,7 @@ export function PlanScreen() {
   const scrollY = useSharedValue(0);
   const headerHeight = useSharedValue(0);
 
-  const athlete = useQuery(api.plan.reads.getAthlete);
+  const athlete = useQuery(api.agoge.athletes.getAthlete);
   const userName = athlete?.name || "there";
 
   const today = useMemo(() => new Date(), []);
@@ -89,8 +89,8 @@ export function PlanScreen() {
     };
   }, [today]);
 
-  const workouts = useQuery(api.plan.reads.listWorkoutsInRange, workoutRange);
-  const activePlan = useQuery(api.plan.reads.getAthletePlan);
+  const workouts = useQuery(api.agoge.workouts.listWorkoutsInRange, workoutRange);
+  const activePlan = useQuery(api.agoge.plans.getAthletePlan);
 
   const sessionsByDate = useMemo(
     () => (workouts ? buildSessionsByDate(workouts, today) : {}),

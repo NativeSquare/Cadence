@@ -1,10 +1,9 @@
 /**
- * CoachChatView - Chat UI wired to the Router pipeline.
+ * CoachChatView - Chat UI.
  *
  * Messages are derived reactively from the `messages` table via useAIChat.
- * User sends go through intelligence.events.ingestChat; tool cards render
- * from `parts: [{ type: "tool-call", ... }]` and post tool decisions back
- * through the same ingest path when the user accepts/declines.
+ * User sends go through `chat.send`. Tool-card rendering remains in place but
+ * is dormant until the new chat brain emits tool-call parts again.
  */
 
 import { useState, useRef, useCallback, useEffect } from "react";
@@ -66,10 +65,10 @@ export function CoachChatView({
   } = useAIChat({ conversationId });
 
   // Convex mutations for action tools (executed on Accept)
-  const rescheduleSession = useMutation(api.plan.actions.rescheduleWorkout);
-  const modifySession = useMutation(api.plan.actions.modifyWorkout);
-  const swapSessions = useMutation(api.plan.actions.swapWorkouts);
-  const skipSession = useMutation(api.plan.actions.skipWorkout);
+  const rescheduleSession = useMutation(api.agoge.workouts.rescheduleWorkout);
+  const modifySession = useMutation(api.agoge.workouts.modifyWorkout);
+  const swapSessions = useMutation(api.agoge.workouts.swapWorkouts);
+  const skipSession = useMutation(api.agoge.workouts.skipWorkout);
 
   // Voice recording state
   const [inputValue, setInputValue] = useState(initialPrompt ?? "");

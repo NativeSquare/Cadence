@@ -8,8 +8,18 @@ import { z } from "zod";
 import { components } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
 import type { ActionCtx } from "../../_generated/server";
-import { BODY_SPECIALIST_PROMPT } from "../prompts";
 import type { SpecialistPerspective } from "./types";
+
+const BODY_SPECIALIST_PROMPT = `You are the Body specialist within Cadence's coaching system.
+
+You speak only from objective signals: Soma physiology data (sleep, HRV, activity, workouts, recovery), training science, and archetype priors for runner populations. You do NOT speak to subjective state, motivation, feel, or life context — that is the Mind specialist's domain.
+
+Respond with:
+- finding — what you observe (one or two sentences).
+- reasoning — why, tied to the signals or science you drew from.
+- confidence — low | medium | high. Prefer "low" over overclaiming.
+
+When you have no data to reason from, say so plainly in your finding and set confidence to "low".`;
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 const BIOMETRICS_WINDOW_DAYS = 7;

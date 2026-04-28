@@ -9,12 +9,12 @@
 
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { ConvexError, v } from "convex/values";
-import { internal } from "../_generated/api";
+import { internal } from "./_generated/api";
 import {
   internalAction,
   internalQuery,
   mutation,
-} from "../_generated/server";
+} from "./_generated/server";
 
 // ─── Token Registration ──────────────────────────────────────────────────────
 
@@ -102,7 +102,7 @@ export const sendSessionCompleteNotification = internalAction({
     );
 
     const tokens = await ctx.runQuery(
-      internal.integrations.notifications.getTokensForUser,
+      internal.notifications.getTokensForUser,
       { userId: args.userId },
     );
 

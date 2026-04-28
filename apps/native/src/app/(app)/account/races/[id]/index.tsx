@@ -19,7 +19,7 @@ import React from "react";
 import { Linking, Pressable, ScrollView, View } from "react-native";
 
 type RaceDoc = NonNullable<
-  ReturnType<typeof useQuery<typeof api.plan.races.getMyRace>>
+  ReturnType<typeof useQuery<typeof api.agoge.races.getMyRace>>
 >;
 
 type GoalDoc = {
@@ -137,15 +137,15 @@ function formatLocation(loc?: RaceDoc["location"]): string | null {
 export default function RaceDetailScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const race = useQuery(api.plan.races.getMyRace, { raceId: id });
+  const race = useQuery(api.agoge.races.getMyRace, { raceId: id });
   const goals = useQuery(
-    api.plan.goals.listGoalsForRace,
+    api.agoge.goals.listGoalsForRace,
     race ? { raceId: race._id } : "skip",
   ) as GoalDoc[] | undefined;
 
-  const createGoal = useMutation(api.plan.goals.createGoalForRace);
-  const updateGoal = useMutation(api.plan.goals.updateGoal);
-  const deleteGoal = useMutation(api.plan.goals.deleteGoal);
+  const createGoal = useMutation(api.agoge.goals.createGoalForRace);
+  const updateGoal = useMutation(api.agoge.goals.updateGoal);
+  const deleteGoal = useMutation(api.agoge.goals.deleteGoal);
 
   const goalSheetRef = React.useRef<GorhomBottomSheetModal>(null);
   const [editingGoal, setEditingGoal] = React.useState<GoalDoc | null>(null);

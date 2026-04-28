@@ -37,8 +37,8 @@ import {
   type ReflectionPlan,
   type ReflectionRace,
   type ReflectionWorkout,
-} from "../ai/prompts/reflect_on_plan";
-import { ensureAthletePlan } from "../plan/athlete";
+} from "./prompts/reflect_on_plan";
+import { ensureAthletePlan } from "../agoge/plans";
 import { consultBody } from "./specialists/body";
 import { consultMind } from "./specialists/mind";
 import {
@@ -280,7 +280,7 @@ export const reflectOnPlan = action({
       throw new Error("Forbidden");
     }
 
-    const gathered = await ctx.runQuery(internal.intelligence.reflect.gatherContext, {
+    const gathered = await ctx.runQuery(internal.cadence.reflect.gatherContext, {
       athleteId,
     });
     if (!gathered) throw new Error("Athlete not found");

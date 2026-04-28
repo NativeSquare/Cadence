@@ -29,9 +29,7 @@ Notifications.setNotificationHandler({
 
 export function usePushNotifications(enabled = true) {
   const router = useRouter();
-  const registerToken = useMutation(
-    api.integrations.notifications.registerPushToken,
-  );
+  const registerToken = useMutation(api.notifications.registerPushToken);
   const registeredRef = useRef(false);
 
   // Register push token when enabled (authenticated + onboarded)

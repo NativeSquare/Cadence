@@ -216,7 +216,7 @@ export const matchActivityToWorkout = internalAction({
 
     await ctx.scheduler.runAfter(
       0,
-      internal.integrations.notifications.sendSessionCompleteNotification,
+      internal.notifications.sendSessionCompleteNotification,
       {
         userId: args.cadenceUserId as unknown as import("../_generated/dataModel").Id<"users">,
         workoutId: matched._id,

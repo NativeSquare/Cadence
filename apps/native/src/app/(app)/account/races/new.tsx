@@ -4,8 +4,8 @@ import { useMutation, useQuery } from "convex/react";
 import React from "react";
 
 export default function NewRaceScreen() {
-  const createRace = useMutation(api.plan.races.createMyRace);
-  const races = useQuery(api.plan.races.listMyRaces);
+  const createRace = useMutation(api.agoge.races.createMyRace);
+  const races = useQuery(api.agoge.races.listMyRaces);
 
   const existingUpcomingARace = React.useMemo(() => {
     if (!races) return null;

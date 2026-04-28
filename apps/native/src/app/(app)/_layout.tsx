@@ -6,9 +6,9 @@ import { api } from "@packages/backend/convex/_generated/api";
 import { LIGHT_THEME } from "@/lib/design-tokens";
 
 export default function AppLayout() {
-  const athlete = useQuery(api.plan.reads.getAthlete);
-  const plan = useQuery(api.plan.reads.getAthletePlan);
-  const ensurePlan = useMutation(api.plan.athlete.ensurePlan);
+  const athlete = useQuery(api.agoge.athletes.getAthlete);
+  const plan = useQuery(api.agoge.plans.getAthletePlan);
+  const ensurePlan = useMutation(api.agoge.plans.ensurePlan);
   const ensureAttempted = useRef(false);
 
   useEffect(() => {

@@ -153,10 +153,10 @@ export function CalendarScreen() {
     };
   }, [currentYear, currentMonth]);
 
-  const workouts = useQuery(api.plan.reads.listWorkoutsInRange, monthRange);
-  const activePlan = useQuery(api.plan.reads.getAthletePlan);
+  const workouts = useQuery(api.agoge.workouts.listWorkoutsInRange, monthRange);
+  const activePlan = useQuery(api.agoge.plans.getAthletePlan);
   const blocks = useQuery(
-    api.plan.reads.listBlocks,
+    api.agoge.blocks.listBlocks,
     activePlan ? { planId: activePlan._id } : "skip",
   );
 

@@ -22,12 +22,6 @@ http.route({
   }),
 });
 
-// NOTE: The legacy /api/ai/stream SSE endpoint (ai/http_action.ts) is no longer
-// registered. Chat now routes through intelligence.events.ingestChat → Router →
-// intelligence.delivery.deliverCandidate and surfaces reactively via
-// ai.messages.getConversationHistory. The old handler file is kept temporarily
-// for reference and can be removed once no rollback is needed.
-
 // Soma webhook endpoints
 registerRoutes(http, components.soma, {
   strava: {

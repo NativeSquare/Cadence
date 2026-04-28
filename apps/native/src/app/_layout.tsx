@@ -101,10 +101,10 @@ function RootStack() {
     isAuthenticated ? {} : "skip",
   );
   const athlete = useQuery(
-    api.plan.reads.getAthlete,
+    api.agoge.athletes.getAthlete,
     isAuthenticated ? {} : "skip",
   );
-  const upsertAthlete = useMutation(api.plan.athlete.upsertAthlete);
+  const upsertAthlete = useMutation(api.agoge.athletes.upsertAthlete);
   // TEMP: onboarding flow disabled — route straight to (app) after sign-up.
   const ONBOARDING_ENABLED = false;
   const hasCompletedOnboarding =

@@ -3,7 +3,7 @@
  *
  * Reads the current athlete, shows only the fields still missing
  * ({ sex, dateOfBirth, weightKg, heightCm }), and writes them back through
- * `api.plan.athlete.upsertAthlete`. Silently skips if all four are already set.
+ * `api.agoge.athletes.upsertAthlete`. Silently skips if all four are already set.
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -58,8 +58,8 @@ function isValidDate(d: string, m: string, y: string): boolean {
 }
 
 export function AthleteScreen({ onNext }: AthleteScreenProps) {
-  const athlete = useQuery(api.plan.reads.getAthlete);
-  const upsertAthlete = useMutation(api.plan.athlete.upsertAthlete);
+  const athlete = useQuery(api.agoge.athletes.getAthlete);
+  const upsertAthlete = useMutation(api.agoge.athletes.upsertAthlete);
 
   const hasSex = !!athlete?.sex;
   const hasDob = !!athlete?.dateOfBirth;

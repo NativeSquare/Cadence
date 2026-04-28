@@ -9,7 +9,25 @@
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { v } from "convex/values";
 import { components } from "../_generated/api";
-import { type MutationCtx, mutation } from "../_generated/server";
+import { type MutationCtx, mutation, query } from "../_generated/server";
+
+export const listWorkoutsInRange = query({
+  args: { startDate: v.string(), endDate: v.string() },
+  handler: async (ctx, { startDate, endDate }) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return [];
+    const athlete = await ctx.runQuery(
+      components.agoge.public.getAthleteByUserId,
+      { userId },
+    );
+    if (!athlete) return [];
+    return await ctx.runQuery(components.agoge.public.getWorkoutsByAthlete, {
+      athleteId: athlete._id,
+      startDate,
+      endDate,
+    });
+  },
+});
 
 async function assertWorkoutOwnership(
   ctx: MutationCtx,
@@ -116,32 +134,3 @@ export const skipWorkout = mutation({
   },
 });
 
-export const submitWorkoutDebrief = mutation({
-  args: {
-    workoutId: v.string(),
-    rpe: v.optional(v.number()),
-    feelNotes: v.optional(v.string()),
-    tags: v.optional(v.array(v.string())),
-  },
-  handler: async (ctx, { workoutId, rpe, feelNotes, tags }) => {
-    await assertWorkoutOwnership(ctx, workoutId);
-    const workout = await ctx.runQuery(components.agoge.public.getWorkout, {
-      // biome-ignore lint/suspicious/noExplicitAny: agoge Id is a branded string
-      workoutId: workoutId as any,
-    });
-    if (!workout?.actual) throw new Error("Workout not completed yet");
-    const tagSuffix = tags?.length ? ` ${tags.map((t) => `#${t}`).join(" ")}` : "";
-    const composedNotes = feelNotes
-      ? `${feelNotes}${tagSuffix}`
-      : tagSuffix.trim() || undefined;
-    await ctx.runMutation(components.agoge.public.updateWorkout, {
-      // biome-ignore lint/suspicious/noExplicitAny: agoge Id is a branded string
-      workoutId: workoutId as any,
-      actual: {
-        ...workout.actual,
-        rpe: rpe ?? workout.actual.rpe,
-        notes: composedNotes ?? workout.actual.notes,
-      },
-    });
-  },
-});

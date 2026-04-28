@@ -31,7 +31,7 @@ function partitionAndSort(races: RaceDoc[]) {
 
 export default function RacesListScreen() {
   const router = useRouter();
-  const races = useQuery(api.plan.races.listMyRaces);
+  const races = useQuery(api.agoge.races.listMyRaces);
 
   const { upcoming, past } = React.useMemo(
     () => (races ? partitionAndSort(races) : { upcoming: [], past: [] }),

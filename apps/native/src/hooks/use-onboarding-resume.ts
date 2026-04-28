@@ -65,7 +65,7 @@ function phaseToScene(phase: OnboardingPhase): OnboardingScene {
  * Reads current_phase from Runner Object and maps to appropriate scene.
  */
 export function useOnboardingResume(): ResumeState {
-  const runner = useQuery(api.plan.reads.getAthlete);
+  const runner = useQuery(api.agoge.athletes.getAthlete);
 
   // Loading state
   if (runner === undefined) {

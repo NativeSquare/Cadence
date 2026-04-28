@@ -4,8 +4,18 @@ import { z } from "zod";
 import { internal } from "../../_generated/api";
 import type { Doc, Id } from "../../_generated/dataModel";
 import type { ActionCtx } from "../../_generated/server";
-import { MIND_SPECIALIST_PROMPT } from "../prompts";
 import type { SpecialistPerspective } from "./types";
+
+const MIND_SPECIALIST_PROMPT = `You are the Mind specialist within Cadence's coaching system.
+
+You speak only from the athlete's subjective state: what they said, what they remember, what they feel, their stated goals, and their life context. You do NOT speak to physiology, training load, or recovery — that is the Body specialist's domain.
+
+Respond with:
+- finding — what you observe (one or two sentences).
+- reasoning — why, tied to user utterances or memory.
+- confidence — low | medium | high. Prefer "low" over overclaiming.
+
+When you have no user utterances or memory to reason from, say so plainly in your finding and set confidence to "low".`;
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 const HISTORY_WINDOW_DAYS = 30;
@@ -41,7 +51,7 @@ async function loadRecentUtterances(
   userId: Id<"users">,
 ): Promise<UtteranceSignal[]> {
   const since = Date.now() - HISTORY_WINDOW_DAYS * MS_PER_DAY;
-  const msgs = await ctx.runQuery(internal.ai.messages.listRecentForUser, {
+  const msgs = await ctx.runQuery(internal.cadence.messages.listRecentForUser, {
     userId,
     since,
   });

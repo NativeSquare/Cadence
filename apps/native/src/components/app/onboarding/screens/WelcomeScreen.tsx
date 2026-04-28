@@ -125,9 +125,9 @@ function renderWithCadenceBold(text: string) {
 }
 
 export function WelcomeScreen({ onNext }: WelcomeScreenProps) {
-  const athlete = useQuery(api.plan.reads.getAthlete);
+  const athlete = useQuery(api.agoge.athletes.getAthlete);
   const user = useQuery(api.table.users.currentUser);
-  const upsertAthlete = useMutation(api.plan.athlete.upsertAthlete);
+  const upsertAthlete = useMutation(api.agoge.athletes.upsertAthlete);
 
   const queriesReady = athlete !== undefined && user !== undefined;
 

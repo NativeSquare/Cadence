@@ -6,15 +6,11 @@ import type { MessagePart } from "@/lib/ai-stream";
 import { useNetworkOptional } from "@/contexts/network-context";
 
 /**
- * AI Chat Hook (Router-backed)
+ * AI Chat Hook
  *
  * Derives messages reactively from the `messages` table and posts user input
- * through `intelligence.events.ingestChat`, which creates the user row,
- * records a chat event, and schedules the Router. The Router's `delivery`
- * mutation writes the assistant message back — this hook simply observes it.
- *
- * Replaces the prior SSE streaming path. No local placeholder messages:
- * everything the user sees is what's persisted.
+ * through `chat.send`, which writes the user message and schedules a stub
+ * assistant reply while the new chat brain is being built.
  */
 
 // =============================================================================
@@ -42,7 +38,7 @@ export interface UseAIChatOptions {
   /** Kept for signature compatibility; no longer used. */
   initialMessages?: ChatMessage[];
   maxRetries?: number;
-  /** Not called under the Router flow — delivery persists assistant messages. */
+  /** Not called — assistant messages are persisted server-side. */
   onComplete?: (message: ChatMessage) => void;
   onError?: (error: Error) => void;
 }
@@ -64,7 +60,7 @@ export interface UseAIChatReturn {
   retry: () => Promise<void>;
   resetRetryCount: () => void;
   saveProgress: () => Promise<string | null>;
-  /** Post a typed tool decision back through the Router. */
+  /** No-op while the new chat brain is being built. */
   sendToolDecision: (args: {
     toolName: string;
     toolArgs: unknown;
@@ -84,12 +80,12 @@ export function useAIChat(options: UseAIChatOptions = {}): UseAIChatReturn {
   } = options;
 
   const history = useQuery(
-    api.ai.messages.getConversationHistory,
+    api.cadence.messages.getConversationHistory,
     conversationId
       ? { conversationId: conversationId as Id<"conversations"> }
       : "skip",
   );
-  const ingestChat = useMutation(api.intelligence.events.ingestChat);
+  const sendChatMessage = useMutation(api.cadence.messages.send);
 
   const [error, setError] = useState<Error | null>(null);
   const [retryCount, setRetryCount] = useState(0);
@@ -137,10 +133,9 @@ export function useAIChat(options: UseAIChatOptions = {}): UseAIChatReturn {
       setError(null);
 
       try {
-        await ingestChat({
+        await sendChatMessage({
           conversationId: conversationId as Id<"conversations">,
-          type: "user_message",
-          payload: { text: content, imageUrls: imageUrls ?? [] },
+          text: content,
         });
         setRetryCount(0);
       } catch (err) {
@@ -151,37 +146,20 @@ export function useAIChat(options: UseAIChatOptions = {}): UseAIChatReturn {
         setSending(false);
       }
     },
-    [conversationId, ingestChat, isOffline, sending, onError],
+    [conversationId, sendChatMessage, isOffline, sending, onError],
   );
 
   const sendToolDecision = useCallback(
-    async ({
-      toolName,
-      toolArgs,
-      decision,
-    }: {
+    async (_args: {
       toolName: string;
       toolArgs: unknown;
       decision: "accepted" | "declined";
     }) => {
-      if (!conversationId) return;
-      setSending(true);
-      setError(null);
-      try {
-        await ingestChat({
-          conversationId: conversationId as Id<"conversations">,
-          type: "tool_decision",
-          payload: { toolName, args: toolArgs, decision },
-        });
-      } catch (err) {
-        const e = err instanceof Error ? err : new Error(String(err));
-        setError(e);
-        onError?.(e);
-      } finally {
-        setSending(false);
-      }
+      // Router pipeline removed — tool decisions have no consumer until the new
+      // chat brain lands. The Accept/Decline UI still runs its own mutation
+      // directly; this is just the optional follow-up notification.
     },
-    [conversationId, ingestChat, onError],
+    [],
   );
 
   const retry = useCallback(async () => {

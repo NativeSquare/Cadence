@@ -7,7 +7,7 @@ import React from "react";
 import { Pressable, View } from "react-native";
 
 export type RaceDoc = FunctionReturnType<
-  typeof api.plan.races.listMyRaces
+  typeof api.agoge.races.listMyRaces
 >[number];
 
 const PRIORITY_COLORS: Record<"A" | "B" | "C", string> = {

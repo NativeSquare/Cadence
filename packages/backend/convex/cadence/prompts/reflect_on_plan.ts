@@ -10,7 +10,7 @@
  * prompt sets up the role, the rules of the game, and the output format.
  */
 
-import type { SpecialistPerspective } from "../../intelligence/specialists/types";
+import type { SpecialistPerspective } from "../specialists/types";
 
 const HORIZON_DAYS = 14;
 

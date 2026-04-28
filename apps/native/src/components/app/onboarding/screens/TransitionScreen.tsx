@@ -47,9 +47,9 @@ export function TransitionScreen({ onDone }: TransitionScreenProps) {
   const [planGenerated, setPlanGenerated] = useState(false);
   const planGenerationStarted = useRef(false);
 
-  const reflectOnPlan = useAction(api.intelligence.reflect.reflectOnPlan);
-  const applyProposal = useMutation(api.intelligence.reflect.applyProposal);
-  const athlete = useQuery(api.plan.reads.getAthlete);
+  const reflectOnPlan = useAction(api.cadence.reflect.reflectOnPlan);
+  const applyProposal = useMutation(api.cadence.reflect.applyProposal);
+  const athlete = useQuery(api.agoge.athletes.getAthlete);
 
   const s1 = useStream({
     text: "Okay. I believe I have what I need to draft your game plan.",
