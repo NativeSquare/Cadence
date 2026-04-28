@@ -7,9 +7,24 @@
  */
 
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { subSport, workoutType } from "@nativesquare/agoge/schema";
 import { v } from "convex/values";
 import { components } from "../_generated/api";
 import { type MutationCtx, mutation, query } from "../_generated/server";
+import { ensureAthletePlan } from "./plans";
+
+const workoutFaceArgs = v.object({
+  structure: v.optional(v.any()),
+  durationSeconds: v.optional(v.number()),
+  distanceMeters: v.optional(v.number()),
+  load: v.optional(v.number()),
+  avgPaceMps: v.optional(v.number()),
+  avgHr: v.optional(v.number()),
+  maxHr: v.optional(v.number()),
+  elevationGainMeters: v.optional(v.number()),
+  rpe: v.optional(v.number()),
+  notes: v.optional(v.string()),
+});
 
 export const listWorkoutsInRange = query({
   args: { startDate: v.string(), endDate: v.string() },
@@ -26,6 +41,24 @@ export const listWorkoutsInRange = query({
       startDate,
       endDate,
     });
+  },
+});
+
+export const getWorkout = query({
+  args: { workoutId: v.string() },
+  handler: async (ctx, { workoutId }) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return null;
+    const workout = await ctx.runQuery(components.agoge.public.getWorkout, {
+      // biome-ignore lint/suspicious/noExplicitAny: agoge Id is a branded string
+      workoutId: workoutId as any,
+    });
+    if (!workout) return null;
+    const athlete = await ctx.runQuery(components.agoge.public.getAthlete, {
+      athleteId: workout.athleteId,
+    });
+    if (!athlete || athlete.userId !== userId) return null;
+    return workout;
   },
 });
 
@@ -48,6 +81,65 @@ async function assertWorkoutOwnership(
   }
 }
 
+export const createWorkout = mutation({
+  args: {
+    scheduledDate: v.string(),
+    name: v.string(),
+    type: workoutType,
+    status: v.union(v.literal("planned"), v.literal("completed")),
+    subSport: v.optional(subSport),
+    description: v.optional(v.string()),
+    planned: v.optional(workoutFaceArgs),
+    actual: v.optional(workoutFaceArgs),
+    templateId: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+    const athlete = await ctx.runQuery(
+      components.agoge.public.getAthleteByUserId,
+      { userId },
+    );
+    if (!athlete) throw new Error("Athlete not found");
+
+    if (args.status === "completed" && !args.actual) {
+      throw new Error("A completed workout must include an `actual` face");
+    }
+
+    let templateId: string | undefined;
+    if (args.templateId) {
+      const template = await ctx.runQuery(
+        components.agoge.public.getWorkoutTemplate,
+        // biome-ignore lint/suspicious/noExplicitAny: agoge Id is a branded string
+        { templateId: args.templateId as any },
+      );
+      if (!template || template.athleteId !== athlete._id) {
+        throw new Error("Template not found");
+      }
+      templateId = args.templateId;
+    }
+
+    const plan = await ensureAthletePlan(ctx, athlete._id);
+
+    return await ctx.runMutation(components.agoge.public.createWorkout, {
+      athleteId: athlete._id,
+      // biome-ignore lint/suspicious/noExplicitAny: agoge Id is a branded string
+      planId: plan._id as any,
+      // biome-ignore lint/suspicious/noExplicitAny: agoge Id is a branded string
+      templateId: templateId as any,
+      scheduledDate: args.scheduledDate,
+      name: args.name,
+      description: args.description,
+      type: args.type,
+      sport: "run" as const,
+      subSport: args.subSport,
+      status: args.status,
+      planned: args.planned,
+      actual: args.actual,
+    });
+  },
+});
+
 export const rescheduleWorkout = mutation({
   args: { workoutId: v.string(), scheduledDate: v.string() },
   handler: async (ctx, { workoutId, scheduledDate }) => {
@@ -65,20 +157,14 @@ export const modifyWorkout = mutation({
     workoutId: v.string(),
     name: v.optional(v.string()),
     description: v.optional(v.string()),
-    planned: v.optional(
-      v.object({
-        structure: v.optional(v.any()),
-        durationSeconds: v.optional(v.number()),
-        distanceMeters: v.optional(v.number()),
-        load: v.optional(v.number()),
-        avgPaceMps: v.optional(v.number()),
-        avgHr: v.optional(v.number()),
-        maxHr: v.optional(v.number()),
-        elevationGainMeters: v.optional(v.number()),
-        rpe: v.optional(v.number()),
-        notes: v.optional(v.string()),
-      }),
+    scheduledDate: v.optional(v.string()),
+    type: v.optional(workoutType),
+    subSport: v.optional(subSport),
+    status: v.optional(
+      v.union(v.literal("planned"), v.literal("completed")),
     ),
+    planned: v.optional(workoutFaceArgs),
+    actual: v.optional(workoutFaceArgs),
   },
   handler: async (ctx, args) => {
     await assertWorkoutOwnership(ctx, args.workoutId);
@@ -134,3 +220,13 @@ export const skipWorkout = mutation({
   },
 });
 
+export const deleteWorkout = mutation({
+  args: { workoutId: v.string() },
+  handler: async (ctx, { workoutId }) => {
+    await assertWorkoutOwnership(ctx, workoutId);
+    await ctx.runMutation(components.agoge.public.deleteWorkout, {
+      // biome-ignore lint/suspicious/noExplicitAny: agoge Id is a branded string
+      workoutId: workoutId as any,
+    });
+  },
+});

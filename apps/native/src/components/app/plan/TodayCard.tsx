@@ -38,6 +38,8 @@ interface TodayCardProps {
   onStartPress?: () => void;
   onExportPress?: () => void;
   onCardPress?: () => void;
+  /** Pass to show a "+ Add a workout" button on rest days (today / future). */
+  onAddPress?: () => void;
 }
 
 // ─── Shared animation components ────────────────────────────────────────────
@@ -471,9 +473,11 @@ function ExportToWatchCTA({ onPress }: { onPress?: () => void }) {
 function RestDayCard({
   dateLabel,
   onCardPress,
+  onAddPress,
 }: {
   dateLabel: string;
   onCardPress?: () => void;
+  onAddPress?: () => void;
 }) {
   return (
     <View>
@@ -520,20 +524,41 @@ function RestDayCard({
           >
             No session scheduled
           </Text>
+
+          {onAddPress && (
+            <Pressable
+              onPress={onAddPress}
+              className="mt-4 flex-row items-center gap-2 self-start rounded-full px-4 py-2.5 active:opacity-85"
+              style={{
+                backgroundColor: LIGHT_THEME.wText,
+              }}
+            >
+              <Text
+                className="font-coach-bold text-[13px]"
+                style={{ color: "#FFFFFF" }}
+              >
+                + Add a workout
+              </Text>
+            </Pressable>
+          )}
         </View>
       </Pressable>
     </View>
   );
 }
 
-export function TodayCard({ session, coachMessage, selectedDate, isToday = true, onStartPress, onExportPress, onCardPress }: TodayCardProps) {
+export function TodayCard({ session, coachMessage, selectedDate, isToday = true, onStartPress, onExportPress, onCardPress, onAddPress }: TodayCardProps) {
   const dateLabel = isToday ? "Today" : formatShortDate(selectedDate ?? new Date());
   const isRest = session.intensity === "rest";
   const isCompleted = session.done;
 
   if (isRest) {
     return (
-      <RestDayCard dateLabel={dateLabel} onCardPress={onCardPress} />
+      <RestDayCard
+        dateLabel={dateLabel}
+        onCardPress={onCardPress}
+        onAddPress={onAddPress}
+      />
     );
   }
 

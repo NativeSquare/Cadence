@@ -144,6 +144,16 @@ export function PlanScreen() {
     }
   }, [router, baseSelectedSession.sessionId]);
 
+  const selectedDateIso = toIsoDate(selectedDate);
+  const todayIso = toIsoDate(today);
+  const canAddOnSelectedDate = selectedDateIso >= todayIso;
+  const handleAddOnSelectedDate = useCallback(() => {
+    router.push({
+      pathname: "/(app)/workouts/new",
+      params: { date: selectedDateIso },
+    });
+  }, [router, selectedDateIso]);
+
   const handleOpenExportSheet = useCallback(() => {
     exportSheetRef.current?.present();
   }, []);
@@ -279,6 +289,7 @@ export function PlanScreen() {
               onStartPress={handleOpenSessionDetail}
               onExportPress={handleOpenExportSheet}
               onCardPress={handleOpenSessionDetail}
+              onAddPress={canAddOnSelectedDate ? handleAddOnSelectedDate : undefined}
             />
           </View>
 
@@ -306,10 +317,13 @@ export function PlanScreen() {
           <View className="px-4 mt-5">
             <LogRunSection
               onSelectType={(category) => {
-                const sid = baseSelectedSession.sessionId;
-                if (sid) {
-                  router.push({ pathname: "/(app)/session/[id]", params: { id: sid } });
-                }
+                router.push({
+                  pathname: "/(app)/workouts/new",
+                  params: {
+                    type: category,
+                    date: toIsoDate(selectedDate),
+                  },
+                });
               }}
             />
           </View>
