@@ -90,7 +90,7 @@ export function PlanScreen() {
   }, [today]);
 
   const workouts = useQuery(api.plan.reads.listWorkoutsInRange, workoutRange);
-  const activePlan = useQuery(api.plan.reads.getActivePlan);
+  const activePlan = useQuery(api.plan.reads.getAthletePlan);
 
   const sessionsByDate = useMemo(
     () => (workouts ? buildSessionsByDate(workouts, today) : {}),

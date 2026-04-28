@@ -34,7 +34,7 @@ type RouterPlan = {
     _id: string;
     name: string;
     startDate: string;
-    endDate: string;
+    endDate?: string;
     status: "draft" | "active" | "completed" | "archived";
     notes?: string;
   };

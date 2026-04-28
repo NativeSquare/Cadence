@@ -13,7 +13,7 @@ import Animated, {
   withTiming,
   Easing,
 } from "react-native-reanimated";
-import { useAction, useQuery } from "convex/react";
+import { useAction, useMutation, useQuery } from "convex/react";
 import { api } from "@packages/backend/convex/_generated/api";
 import { Text } from "@/components/ui/text";
 import { useStream } from "@/hooks/use-stream";
@@ -22,26 +22,6 @@ import { COLORS, GRAYS } from "@/lib/design-tokens";
 
 interface TransitionScreenProps {
   onDone: () => void;
-}
-
-type GoalType = "5k" | "10k" | "half_marathon" | "marathon" | "base_building";
-
-/**
- * Map the athlete's nearest future race distance to a training goal type.
- * Fallback to `base_building` when no race is scheduled.
- */
-function inferGoalType(
-  races: Array<{ date: string; distanceMeters: number }> | null | undefined,
-): GoalType {
-  if (!races || races.length === 0) return "base_building";
-  const nearest = [...races].sort((a, b) => a.date.localeCompare(b.date))[0];
-  const d = nearest?.distanceMeters;
-  if (!d) return "base_building";
-  if (Math.abs(d - 5000) < 500) return "5k";
-  if (Math.abs(d - 10000) < 500) return "10k";
-  if (Math.abs(d - 21097) < 1000) return "half_marathon";
-  if (Math.abs(d - 42195) < 1500) return "marathon";
-  return "base_building";
 }
 
 function Spinner() {
@@ -67,10 +47,9 @@ export function TransitionScreen({ onDone }: TransitionScreenProps) {
   const [planGenerated, setPlanGenerated] = useState(false);
   const planGenerationStarted = useRef(false);
 
-  const generatePlan = useAction(api.plan.generate.generatePlan);
-  const races = useQuery(api.plan.races.listMyRaces);
-  const today = new Date().toISOString().slice(0, 10);
-  const futureRaces = races?.filter((r) => r.date >= today);
+  const reflectOnPlan = useAction(api.intelligence.reflect.reflectOnPlan);
+  const applyProposal = useMutation(api.intelligence.reflect.applyProposal);
+  const athlete = useQuery(api.plan.reads.getAthlete);
 
   const s1 = useStream({
     text: "Okay. I believe I have what I need to draft your game plan.",
@@ -91,30 +70,34 @@ export function TransitionScreen({ onDone }: TransitionScreenProps) {
     }
   }, [s2.done]);
 
-  // Trigger plan generation when spinner appears. Wait until the races
-  // query has resolved so we can pick the right goal type.
+  // Trigger reflection when spinner appears. Wait until the athlete
+  // query has resolved so we have an athleteId to pass.
   useEffect(() => {
     if (
       showSpinner &&
       !planGenerationStarted.current &&
-      futureRaces !== undefined
+      athlete
     ) {
       planGenerationStarted.current = true;
-      const goalType = inferGoalType(futureRaces);
-      console.log("[TransitionScreen] Starting plan generation:", { goalType });
+      console.log("[TransitionScreen] Starting reflectOnPlan");
 
-      generatePlan({ goalType })
-        .then((result) => {
-          console.log("[TransitionScreen] Plan generated successfully:", result);
+      reflectOnPlan({ athleteId: athlete._id })
+        .then(async (result) => {
+          console.log("[TransitionScreen] Reflection complete:", result);
+          const summary = await applyProposal({
+            athleteId: result.athleteId,
+            proposal: result.proposal,
+          });
+          console.log("[TransitionScreen] Proposal applied:", summary);
           setPlanGenerated(true);
         })
         .catch((error) => {
-          console.error("[TransitionScreen] Plan generation failed:", error);
+          console.error("[TransitionScreen] Reflect+apply failed:", error);
           // Do NOT advance on error - keep spinner showing
           // User will need to retry or debug
         });
     }
-  }, [showSpinner, generatePlan, futureRaces]);
+  }, [showSpinner, reflectOnPlan, applyProposal, athlete]);
 
   // Only advance when spinner is showing AND plan is generated
   useEffect(() => {

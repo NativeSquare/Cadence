@@ -154,7 +154,7 @@ export function CalendarScreen() {
   }, [currentYear, currentMonth]);
 
   const workouts = useQuery(api.plan.reads.listWorkoutsInRange, monthRange);
-  const activePlan = useQuery(api.plan.reads.getActivePlan);
+  const activePlan = useQuery(api.plan.reads.getAthletePlan);
   const blocks = useQuery(
     api.plan.reads.listBlocks,
     activePlan ? { planId: activePlan._id } : "skip",

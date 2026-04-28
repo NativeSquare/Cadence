@@ -22,7 +22,7 @@ export const getAthlete = query({
   },
 });
 
-export const getActivePlan = query({
+export const getAthletePlan = query({
   args: {},
   handler: async (ctx) => {
     const userId = await getAuthUserId(ctx);

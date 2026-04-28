@@ -400,7 +400,7 @@ export const streamChat = httpAction(async (ctx, request) => {
       description: readActivePlan.description ?? "Read the athlete's active plan.",
       inputSchema: z.object({}),
       execute: async () => {
-        const plan = await ctx.runQuery(api.plan.reads.getActivePlan, {});
+        const plan = await ctx.runQuery(api.plan.reads.getAthletePlan, {});
         return plan ? { plan } : { plan: null };
       },
     });

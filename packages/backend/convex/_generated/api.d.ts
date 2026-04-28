@@ -12,7 +12,7 @@ import type * as ai_http_action from "../ai/http_action.js";
 import type * as ai_messages from "../ai/messages.js";
 import type * as ai_prompts_coach_os from "../ai/prompts/coach_os.js";
 import type * as ai_prompts_onboarding_coach from "../ai/prompts/onboarding_coach.js";
-import type * as ai_prompts_plan_generator from "../ai/prompts/plan_generator.js";
+import type * as ai_prompts_reflect_on_plan from "../ai/prompts/reflect_on_plan.js";
 import type * as ai_tools_actions from "../ai/tools/actions.js";
 import type * as ai_tools_index from "../ai/tools/index.js";
 import type * as ai_tools_reads from "../ai/tools/reads.js";
@@ -30,6 +30,9 @@ import type * as intelligence_context from "../intelligence/context.js";
 import type * as intelligence_delivery from "../intelligence/delivery.js";
 import type * as intelligence_events from "../intelligence/events.js";
 import type * as intelligence_prompts from "../intelligence/prompts.js";
+import type * as intelligence_reflect from "../intelligence/reflect.js";
+import type * as intelligence_reflection_proposal from "../intelligence/reflection/proposal.js";
+import type * as intelligence_reflection_theory_bible from "../intelligence/reflection/theory_bible.js";
 import type * as intelligence_router from "../intelligence/router.js";
 import type * as intelligence_specialists_body from "../intelligence/specialists/body.js";
 import type * as intelligence_specialists_mind from "../intelligence/specialists/mind.js";
@@ -42,14 +45,12 @@ import type * as lib_provenanceHelpers from "../lib/provenanceHelpers.js";
 import type * as migrations from "../migrations.js";
 import type * as plan_actions from "../plan/actions.js";
 import type * as plan_athlete from "../plan/athlete.js";
-import type * as plan_generate from "../plan/generate.js";
 import type * as plan_goals from "../plan/goals.js";
 import type * as plan_index from "../plan/index.js";
 import type * as plan_legacy from "../plan/legacy.js";
 import type * as plan_races from "../plan/races.js";
 import type * as plan_reads from "../plan/reads.js";
 import type * as plan_state from "../plan/state.js";
-import type * as plan_tools from "../plan/tools.js";
 import type * as plan_transcript from "../plan/transcript.js";
 import type * as plan_workoutTemplates from "../plan/workoutTemplates.js";
 import type * as plan_zones from "../plan/zones.js";
@@ -94,7 +95,7 @@ declare const fullApi: ApiFromModules<{
   "ai/messages": typeof ai_messages;
   "ai/prompts/coach_os": typeof ai_prompts_coach_os;
   "ai/prompts/onboarding_coach": typeof ai_prompts_onboarding_coach;
-  "ai/prompts/plan_generator": typeof ai_prompts_plan_generator;
+  "ai/prompts/reflect_on_plan": typeof ai_prompts_reflect_on_plan;
   "ai/tools/actions": typeof ai_tools_actions;
   "ai/tools/index": typeof ai_tools_index;
   "ai/tools/reads": typeof ai_tools_reads;
@@ -112,6 +113,9 @@ declare const fullApi: ApiFromModules<{
   "intelligence/delivery": typeof intelligence_delivery;
   "intelligence/events": typeof intelligence_events;
   "intelligence/prompts": typeof intelligence_prompts;
+  "intelligence/reflect": typeof intelligence_reflect;
+  "intelligence/reflection/proposal": typeof intelligence_reflection_proposal;
+  "intelligence/reflection/theory_bible": typeof intelligence_reflection_theory_bible;
   "intelligence/router": typeof intelligence_router;
   "intelligence/specialists/body": typeof intelligence_specialists_body;
   "intelligence/specialists/mind": typeof intelligence_specialists_mind;
@@ -124,14 +128,12 @@ declare const fullApi: ApiFromModules<{
   migrations: typeof migrations;
   "plan/actions": typeof plan_actions;
   "plan/athlete": typeof plan_athlete;
-  "plan/generate": typeof plan_generate;
   "plan/goals": typeof plan_goals;
   "plan/index": typeof plan_index;
   "plan/legacy": typeof plan_legacy;
   "plan/races": typeof plan_races;
   "plan/reads": typeof plan_reads;
   "plan/state": typeof plan_state;
-  "plan/tools": typeof plan_tools;
   "plan/transcript": typeof plan_transcript;
   "plan/workoutTemplates": typeof plan_workoutTemplates;
   "plan/zones": typeof plan_zones;
@@ -457,7 +459,14 @@ export declare const components: {
           order: number;
           planId: string;
           startDate: string;
-          type: "base" | "build" | "peak" | "taper" | "recovery";
+          type:
+            | "base"
+            | "build"
+            | "peak"
+            | "taper"
+            | "recovery"
+            | "maintenance"
+            | "transition";
         },
         string
       >;
@@ -488,7 +497,7 @@ export declare const components: {
         "internal",
         {
           athleteId: string;
-          endDate: string;
+          endDate?: string;
           name: string;
           notes?: string;
           startDate: string;
@@ -802,7 +811,14 @@ export declare const components: {
           order: number;
           planId: string;
           startDate: string;
-          type: "base" | "build" | "peak" | "taper" | "recovery";
+          type:
+            | "base"
+            | "build"
+            | "peak"
+            | "taper"
+            | "recovery"
+            | "maintenance"
+            | "transition";
         } | null
       >;
       getBlocksByPlan: FunctionReference<
@@ -818,7 +834,14 @@ export declare const components: {
           order: number;
           planId: string;
           startDate: string;
-          type: "base" | "build" | "peak" | "taper" | "recovery";
+          type:
+            | "base"
+            | "build"
+            | "peak"
+            | "taper"
+            | "recovery"
+            | "maintenance"
+            | "transition";
         }>
       >;
       getGoal: FunctionReference<
@@ -904,7 +927,7 @@ export declare const components: {
           _creationTime: number;
           _id: string;
           athleteId: string;
-          endDate: string;
+          endDate?: string;
           name: string;
           notes?: string;
           startDate: string;
@@ -923,7 +946,7 @@ export declare const components: {
           _creationTime: number;
           _id: string;
           athleteId: string;
-          endDate: string;
+          endDate?: string;
           name: string;
           notes?: string;
           startDate: string;
@@ -939,7 +962,7 @@ export declare const components: {
           _creationTime: number;
           _id: string;
           athleteId: string;
-          endDate: string;
+          endDate?: string;
           name: string;
           notes?: string;
           startDate: string;
@@ -1800,7 +1823,14 @@ export declare const components: {
           order?: number;
           planId?: string;
           startDate?: string;
-          type?: "base" | "build" | "peak" | "taper" | "recovery";
+          type?:
+            | "base"
+            | "build"
+            | "peak"
+            | "taper"
+            | "recovery"
+            | "maintenance"
+            | "transition";
         },
         null
       >;
