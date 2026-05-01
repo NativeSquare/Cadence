@@ -154,11 +154,11 @@ export const matchActivityToWorkout = internalAction({
     type AgogeWorkout = {
       _id: string;
       name: string;
-      scheduledDate: string;
+      planned?: { date: string };
       status: "planned" | "completed" | "missed" | "skipped";
     };
     const candidates = (await ctx.runQuery(
-      components.agoge.public.getWorkoutsByAthlete,
+      components.agoge.public.getPlannedWorkoutsByAthlete,
       {
         athleteId: athlete._id,
         startDate: toIsoDate(windowStartMs),
@@ -166,7 +166,9 @@ export const matchActivityToWorkout = internalAction({
       },
     )) as AgogeWorkout[];
 
-    const eligible = candidates.filter((w) => w.status === "planned");
+    const eligible = candidates.filter(
+      (w) => w.status === "planned" && !!w.planned?.date,
+    );
 
     console.log(
       `${TAG} Found ${candidates.length} workouts in window, ${eligible.length} eligible (status=planned)`,
@@ -177,15 +179,15 @@ export const matchActivityToWorkout = internalAction({
       return null;
     }
 
-    // ── Match: closest by scheduled date ────────────────────────────────────
+    // ── Match: closest by planned date ──────────────────────────────────────
     const matched = findClosestByDate(eligible, activityStartMs);
-    if (!matched) {
+    if (!matched || !matched.planned?.date) {
       console.log(`${TAG} ✗ No match.`);
       return null;
     }
 
     const deltaH = (
-      Math.abs(activityStartMs - Date.parse(matched.scheduledDate)) /
+      Math.abs(activityStartMs - Date.parse(matched.planned.date)) /
       (1000 * 60 * 60)
     ).toFixed(1);
     console.log(
@@ -197,6 +199,7 @@ export const matchActivityToWorkout = internalAction({
       workoutId: matched._id,
       status: "completed" as const,
       actual: {
+        date: toIsoDate(activityStartMs),
         durationSeconds: inferenceActivity.durationSeconds,
         distanceMeters: inferenceActivity.distanceMeters,
         avgPaceMps:
@@ -232,15 +235,18 @@ export const matchActivityToWorkout = internalAction({
 
 // ─── Matching Helpers ─────────────────────────────────────────────────────────
 
-function findClosestByDate<T extends { scheduledDate: string }>(
+function findClosestByDate<T extends { planned?: { date: string } }>(
   workouts: readonly T[],
   targetMs: number,
 ): T | null {
   if (workouts.length === 0) return null;
   let best = workouts[0];
-  let bestDiff = Math.abs(targetMs - Date.parse(best.scheduledDate));
+  let bestDiff = best.planned?.date
+    ? Math.abs(targetMs - Date.parse(best.planned.date))
+    : Number.POSITIVE_INFINITY;
   for (const w of workouts.slice(1)) {
-    const diff = Math.abs(targetMs - Date.parse(w.scheduledDate));
+    if (!w.planned?.date) continue;
+    const diff = Math.abs(targetMs - Date.parse(w.planned.date));
     if (diff < bestDiff) {
       best = w;
       bestDiff = diff;

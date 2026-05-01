@@ -11,8 +11,10 @@
 import type * as agoge_athletes from "../agoge/athletes.js";
 import type * as agoge_blocks from "../agoge/blocks.js";
 import type * as agoge_goals from "../agoge/goals.js";
+import type * as agoge_helpers from "../agoge/helpers.js";
 import type * as agoge_plans from "../agoge/plans.js";
 import type * as agoge_races from "../agoge/races.js";
+import type * as agoge_sync from "../agoge/sync.js";
 import type * as agoge_workoutTemplates from "../agoge/workoutTemplates.js";
 import type * as agoge_workouts from "../agoge/workouts.js";
 import type * as agoge_zones from "../agoge/zones.js";
@@ -70,8 +72,10 @@ declare const fullApi: ApiFromModules<{
   "agoge/athletes": typeof agoge_athletes;
   "agoge/blocks": typeof agoge_blocks;
   "agoge/goals": typeof agoge_goals;
+  "agoge/helpers": typeof agoge_helpers;
   "agoge/plans": typeof agoge_plans;
   "agoge/races": typeof agoge_races;
+  "agoge/sync": typeof agoge_sync;
   "agoge/workoutTemplates": typeof agoge_workoutTemplates;
   "agoge/workouts": typeof agoge_workouts;
   "agoge/zones": typeof agoge_zones;
@@ -384,6 +388,53 @@ export declare const components: {
     };
   };
   agoge: {
+    garmin: {
+      public: {
+        createSchedule: FunctionReference<
+          "action",
+          "internal",
+          {
+            accessToken: string;
+            schedule: { date: string; workoutId: number };
+          },
+          { scheduleId: number }
+        >;
+        createWorkout: FunctionReference<
+          "action",
+          "internal",
+          { accessToken: string; workout: any },
+          { workoutId: number }
+        >;
+        deleteSchedule: FunctionReference<
+          "action",
+          "internal",
+          { accessToken: string; scheduleId: number },
+          null
+        >;
+        deleteWorkout: FunctionReference<
+          "action",
+          "internal",
+          { accessToken: string; workoutId: number },
+          null
+        >;
+        updateSchedule: FunctionReference<
+          "action",
+          "internal",
+          {
+            accessToken: string;
+            schedule: { date: string; workoutId: number };
+            scheduleId: number;
+          },
+          null
+        >;
+        updateWorkout: FunctionReference<
+          "action",
+          "internal",
+          { accessToken: string; workout: any; workoutId: number },
+          null
+        >;
+      };
+    };
     public: {
       createAthlete: FunctionReference<
         "mutation",
@@ -532,6 +583,7 @@ export declare const components: {
           actual?: {
             avgHr?: number;
             avgPaceMps?: number;
+            date: string;
             distanceMeters?: number;
             durationSeconds?: number;
             elevationGainMeters?: number;
@@ -557,6 +609,7 @@ export declare const components: {
           planned?: {
             avgHr?: number;
             avgPaceMps?: number;
+            date: string;
             distanceMeters?: number;
             durationSeconds?: number;
             elevationGainMeters?: number;
@@ -566,7 +619,6 @@ export declare const components: {
             rpe?: number;
             structure?: any;
           };
-          scheduledDate: string;
           sport: "run";
           status: "planned" | "completed" | "missed" | "skipped";
           subSport?:
@@ -608,6 +660,7 @@ export declare const components: {
           content: {
             avgHr?: number;
             avgPaceMps?: number;
+            date: string;
             distanceMeters?: number;
             durationSeconds?: number;
             elevationGainMeters?: number;
@@ -700,6 +753,12 @@ export declare const components: {
         "mutation",
         "internal",
         { workoutId: string },
+        null
+      >;
+      deleteWorkoutProviderRef: FunctionReference<
+        "mutation",
+        "internal",
+        { provider: "garmin"; workoutId: string },
         null
       >;
       deleteWorkoutTemplate: FunctionReference<
@@ -796,6 +855,84 @@ export declare const components: {
             | "transition";
         }>
       >;
+      getCompletedWorkoutsByAthlete: FunctionReference<
+        "query",
+        "internal",
+        { athleteId: string; endDate?: string; startDate?: string },
+        Array<{
+          _creationTime: number;
+          _id: string;
+          actual?: {
+            avgHr?: number;
+            avgPaceMps?: number;
+            date: string;
+            distanceMeters?: number;
+            durationSeconds?: number;
+            elevationGainMeters?: number;
+            load?: number;
+            maxHr?: number;
+            notes?: string;
+            rpe?: number;
+            structure?: any;
+          };
+          adherence?: {
+            algorithmVersion: string;
+            distanceMatch?: number;
+            durationMatch?: number;
+            intensityMatch?: number;
+            score: number;
+            structureMatch?: number;
+          };
+          athleteId: string;
+          blockId?: string;
+          description?: string;
+          name: string;
+          planId?: string;
+          planned?: {
+            avgHr?: number;
+            avgPaceMps?: number;
+            date: string;
+            distanceMeters?: number;
+            durationSeconds?: number;
+            elevationGainMeters?: number;
+            load?: number;
+            maxHr?: number;
+            notes?: string;
+            rpe?: number;
+            structure?: any;
+          };
+          sport: "run";
+          status: "planned" | "completed" | "missed" | "skipped";
+          subSport?:
+            | "track"
+            | "trail"
+            | "treadmill"
+            | "street"
+            | "indoor"
+            | "virtual";
+          templateId?: string;
+          type:
+            | "easy"
+            | "long"
+            | "tempo"
+            | "threshold"
+            | "intervals"
+            | "vo2max"
+            | "fartlek"
+            | "progression"
+            | "race_pace"
+            | "recovery"
+            | "strides"
+            | "hills"
+            | "race"
+            | "test"
+            | "cross_training"
+            | "strength"
+            | "rest"
+            | "other";
+          typeNotes?: string;
+        }>
+      >;
       getGoal: FunctionReference<
         "query",
         "internal",
@@ -886,6 +1023,84 @@ export declare const components: {
           status: "draft" | "active" | "completed" | "archived";
           targetRaceId?: string;
         } | null
+      >;
+      getPlannedWorkoutsByAthlete: FunctionReference<
+        "query",
+        "internal",
+        { athleteId: string; endDate?: string; startDate?: string },
+        Array<{
+          _creationTime: number;
+          _id: string;
+          actual?: {
+            avgHr?: number;
+            avgPaceMps?: number;
+            date: string;
+            distanceMeters?: number;
+            durationSeconds?: number;
+            elevationGainMeters?: number;
+            load?: number;
+            maxHr?: number;
+            notes?: string;
+            rpe?: number;
+            structure?: any;
+          };
+          adherence?: {
+            algorithmVersion: string;
+            distanceMatch?: number;
+            durationMatch?: number;
+            intensityMatch?: number;
+            score: number;
+            structureMatch?: number;
+          };
+          athleteId: string;
+          blockId?: string;
+          description?: string;
+          name: string;
+          planId?: string;
+          planned?: {
+            avgHr?: number;
+            avgPaceMps?: number;
+            date: string;
+            distanceMeters?: number;
+            durationSeconds?: number;
+            elevationGainMeters?: number;
+            load?: number;
+            maxHr?: number;
+            notes?: string;
+            rpe?: number;
+            structure?: any;
+          };
+          sport: "run";
+          status: "planned" | "completed" | "missed" | "skipped";
+          subSport?:
+            | "track"
+            | "trail"
+            | "treadmill"
+            | "street"
+            | "indoor"
+            | "virtual";
+          templateId?: string;
+          type:
+            | "easy"
+            | "long"
+            | "tempo"
+            | "threshold"
+            | "intervals"
+            | "vo2max"
+            | "fartlek"
+            | "progression"
+            | "race_pace"
+            | "recovery"
+            | "strides"
+            | "hills"
+            | "race"
+            | "test"
+            | "cross_training"
+            | "strength"
+            | "rest"
+            | "other";
+          typeNotes?: string;
+        }>
       >;
       getPlansByAthleteAndStatus: FunctionReference<
         "query",
@@ -1211,6 +1426,7 @@ export declare const components: {
           actual?: {
             avgHr?: number;
             avgPaceMps?: number;
+            date: string;
             distanceMeters?: number;
             durationSeconds?: number;
             elevationGainMeters?: number;
@@ -1236,6 +1452,7 @@ export declare const components: {
           planned?: {
             avgHr?: number;
             avgPaceMps?: number;
+            date: string;
             distanceMeters?: number;
             durationSeconds?: number;
             elevationGainMeters?: number;
@@ -1245,7 +1462,6 @@ export declare const components: {
             rpe?: number;
             structure?: any;
           };
-          scheduledDate: string;
           sport: "run";
           status: "planned" | "completed" | "missed" | "skipped";
           subSport?:
@@ -1278,81 +1494,46 @@ export declare const components: {
           typeNotes?: string;
         } | null
       >;
-      getWorkoutsByAthlete: FunctionReference<
+      getWorkoutProviderRef: FunctionReference<
         "query",
         "internal",
-        { athleteId: string; endDate: string; startDate: string },
+        { provider: "garmin"; workoutId: string },
+        {
+          _creationTime: number;
+          _id: string;
+          externalScheduleId?: string;
+          externalWorkoutId: string;
+          provider: "garmin";
+          syncedAt: number;
+          workoutId: string;
+        } | null
+      >;
+      getWorkoutProviderRefByExternalId: FunctionReference<
+        "query",
+        "internal",
+        { externalWorkoutId: string; provider: "garmin" },
+        {
+          _creationTime: number;
+          _id: string;
+          externalScheduleId?: string;
+          externalWorkoutId: string;
+          provider: "garmin";
+          syncedAt: number;
+          workoutId: string;
+        } | null
+      >;
+      getWorkoutProviderRefsByWorkout: FunctionReference<
+        "query",
+        "internal",
+        { workoutId: string },
         Array<{
           _creationTime: number;
           _id: string;
-          actual?: {
-            avgHr?: number;
-            avgPaceMps?: number;
-            distanceMeters?: number;
-            durationSeconds?: number;
-            elevationGainMeters?: number;
-            load?: number;
-            maxHr?: number;
-            notes?: string;
-            rpe?: number;
-            structure?: any;
-          };
-          adherence?: {
-            algorithmVersion: string;
-            distanceMatch?: number;
-            durationMatch?: number;
-            intensityMatch?: number;
-            score: number;
-            structureMatch?: number;
-          };
-          athleteId: string;
-          blockId?: string;
-          description?: string;
-          name: string;
-          planId?: string;
-          planned?: {
-            avgHr?: number;
-            avgPaceMps?: number;
-            distanceMeters?: number;
-            durationSeconds?: number;
-            elevationGainMeters?: number;
-            load?: number;
-            maxHr?: number;
-            notes?: string;
-            rpe?: number;
-            structure?: any;
-          };
-          scheduledDate: string;
-          sport: "run";
-          status: "planned" | "completed" | "missed" | "skipped";
-          subSport?:
-            | "track"
-            | "trail"
-            | "treadmill"
-            | "street"
-            | "indoor"
-            | "virtual";
-          templateId?: string;
-          type:
-            | "easy"
-            | "long"
-            | "tempo"
-            | "threshold"
-            | "intervals"
-            | "vo2max"
-            | "fartlek"
-            | "progression"
-            | "race_pace"
-            | "recovery"
-            | "strides"
-            | "hills"
-            | "race"
-            | "test"
-            | "cross_training"
-            | "strength"
-            | "rest"
-            | "other";
-          typeNotes?: string;
+          externalScheduleId?: string;
+          externalWorkoutId: string;
+          provider: "garmin";
+          syncedAt: number;
+          workoutId: string;
         }>
       >;
       getWorkoutsByAthleteAndStatus: FunctionReference<
@@ -1368,6 +1549,7 @@ export declare const components: {
           actual?: {
             avgHr?: number;
             avgPaceMps?: number;
+            date: string;
             distanceMeters?: number;
             durationSeconds?: number;
             elevationGainMeters?: number;
@@ -1393,6 +1575,7 @@ export declare const components: {
           planned?: {
             avgHr?: number;
             avgPaceMps?: number;
+            date: string;
             distanceMeters?: number;
             durationSeconds?: number;
             elevationGainMeters?: number;
@@ -1402,7 +1585,6 @@ export declare const components: {
             rpe?: number;
             structure?: any;
           };
-          scheduledDate: string;
           sport: "run";
           status: "planned" | "completed" | "missed" | "skipped";
           subSport?:
@@ -1445,6 +1627,7 @@ export declare const components: {
           actual?: {
             avgHr?: number;
             avgPaceMps?: number;
+            date: string;
             distanceMeters?: number;
             durationSeconds?: number;
             elevationGainMeters?: number;
@@ -1470,6 +1653,7 @@ export declare const components: {
           planned?: {
             avgHr?: number;
             avgPaceMps?: number;
+            date: string;
             distanceMeters?: number;
             durationSeconds?: number;
             elevationGainMeters?: number;
@@ -1479,7 +1663,6 @@ export declare const components: {
             rpe?: number;
             structure?: any;
           };
-          scheduledDate: string;
           sport: "run";
           status: "planned" | "completed" | "missed" | "skipped";
           subSport?:
@@ -1522,6 +1705,7 @@ export declare const components: {
           actual?: {
             avgHr?: number;
             avgPaceMps?: number;
+            date: string;
             distanceMeters?: number;
             durationSeconds?: number;
             elevationGainMeters?: number;
@@ -1547,6 +1731,7 @@ export declare const components: {
           planned?: {
             avgHr?: number;
             avgPaceMps?: number;
+            date: string;
             distanceMeters?: number;
             durationSeconds?: number;
             elevationGainMeters?: number;
@@ -1556,7 +1741,6 @@ export declare const components: {
             rpe?: number;
             structure?: any;
           };
-          scheduledDate: string;
           sport: "run";
           status: "planned" | "completed" | "missed" | "skipped";
           subSport?:
@@ -1600,6 +1784,7 @@ export declare const components: {
           content: {
             avgHr?: number;
             avgPaceMps?: number;
+            date: string;
             distanceMeters?: number;
             durationSeconds?: number;
             elevationGainMeters?: number;
@@ -1652,6 +1837,7 @@ export declare const components: {
           content: {
             avgHr?: number;
             avgPaceMps?: number;
+            date: string;
             distanceMeters?: number;
             durationSeconds?: number;
             elevationGainMeters?: number;
@@ -1899,6 +2085,7 @@ export declare const components: {
           actual?: {
             avgHr?: number;
             avgPaceMps?: number;
+            date: string;
             distanceMeters?: number;
             durationSeconds?: number;
             elevationGainMeters?: number;
@@ -1924,6 +2111,7 @@ export declare const components: {
           planned?: {
             avgHr?: number;
             avgPaceMps?: number;
+            date: string;
             distanceMeters?: number;
             durationSeconds?: number;
             elevationGainMeters?: number;
@@ -1933,7 +2121,6 @@ export declare const components: {
             rpe?: number;
             structure?: any;
           };
-          scheduledDate?: string;
           sport?: "run";
           status?: "planned" | "completed" | "missed" | "skipped";
           subSport?:
@@ -1976,6 +2163,7 @@ export declare const components: {
           content?: {
             avgHr?: number;
             avgPaceMps?: number;
+            date: string;
             distanceMeters?: number;
             durationSeconds?: number;
             elevationGainMeters?: number;
@@ -2035,6 +2223,18 @@ export declare const components: {
           zoneId: string;
         },
         null
+      >;
+      upsertWorkoutProviderRef: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          externalScheduleId?: string;
+          externalWorkoutId: string;
+          provider: "garmin";
+          syncedAt: number;
+          workoutId: string;
+        },
+        string
       >;
     };
   };
@@ -2222,6 +2422,12 @@ export declare const components: {
           "internal",
           { userId: string },
           any
+        >;
+        getAccessToken: FunctionReference<
+          "action",
+          "internal",
+          { clientId: string; clientSecret: string; userId: string },
+          { accessToken: string; expiresAt?: number; providerUserId?: string }
         >;
         getGarminAuthUrl: FunctionReference<
           "action",
@@ -4365,6 +4571,12 @@ export declare const components: {
           "internal",
           { clientId: string; clientSecret: string; userId: string },
           null
+        >;
+        getAccessToken: FunctionReference<
+          "action",
+          "internal",
+          { clientId: string; clientSecret: string; userId: string },
+          { accessToken: string; expiresAt?: number; providerUserId?: string }
         >;
         getStravaAuthUrl: FunctionReference<
           "action",

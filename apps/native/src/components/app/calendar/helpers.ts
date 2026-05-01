@@ -212,8 +212,9 @@ export function buildCalendarSessions(
   const result: Record<string, CalSession[]> = {};
   for (const w of workouts) {
     if (w.status === "skipped") continue;
-    // scheduledDate is already YYYY-MM-DD, which matches formatDateKey output.
-    const key = w.scheduledDate;
+    // Both faces store date as YYYY-MM-DD, which matches formatDateKey output.
+    const key = w.actual?.date ?? w.planned?.date;
+    if (!key) continue;
     const km =
       w.actual?.distanceMeters != null
         ? (w.actual.distanceMeters / 1000).toFixed(1)

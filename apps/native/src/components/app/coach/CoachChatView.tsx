@@ -31,7 +31,7 @@ import { UploadMediaBottomSheetModal } from "@/components/shared/upload-media-bo
 import { useAIChat } from "@/hooks/use-ai-chat";
 import { useUploadImage } from "@/hooks/use-upload-image";
 import type { PendingAttachment } from "./types";
-import type { RescheduleProposal, SwapProposal, SkipProposal } from "./actions";
+import type { RescheduleProposal, SwapProposal } from "./actions";
 
 export interface CoachChatViewProps {
   conversationId: string;
@@ -68,7 +68,6 @@ export function CoachChatView({
   const rescheduleSession = useMutation(api.agoge.workouts.rescheduleWorkout);
   const modifySession = useMutation(api.agoge.workouts.modifyWorkout);
   const swapSessions = useMutation(api.agoge.workouts.swapWorkouts);
-  const skipSession = useMutation(api.agoge.workouts.skipWorkout);
 
   // Voice recording state
   const [inputValue, setInputValue] = useState(initialPrompt ?? "");
@@ -147,7 +146,7 @@ export function CoachChatView({
             const p = args as RescheduleProposal;
             await rescheduleSession({
               workoutId: p.sessionId,
-              scheduledDate: new Date(p.proposedDate).toISOString().slice(0, 10),
+              date: new Date(p.proposedDate).toISOString().slice(0, 10),
             });
             return { success: true };
           }
@@ -198,11 +197,6 @@ export function CoachChatView({
             });
             return { success: true };
           }
-          case "proposeSkipSession": {
-            const p = args as SkipProposal;
-            await skipSession({ workoutId: p.sessionId });
-            return { success: true };
-          }
           default:
             return { success: false, error: `Unknown action: ${toolName}` };
         }
@@ -213,7 +207,7 @@ export function CoachChatView({
         };
       }
     },
-    [rescheduleSession, modifySession, swapSessions, skipSession],
+    [rescheduleSession, modifySession, swapSessions],
   );
 
   /** Post typed decision event to Router so it can follow up in Craftsperson voice. */

@@ -227,10 +227,7 @@ export type RaceFormSubmit = {
     placement?: number;
     notes?: string;
   };
-  demoteExistingARaceId?: string;
 };
-
-export type ExistingARace = { raceId: string; name: string; date: string };
 
 function todayDateString(): string {
   const now = new Date();
@@ -341,7 +338,6 @@ export function RaceForm({
   submitLabel,
   onSubmit,
   onDelete,
-  existingUpcomingARace,
 }: {
   title: string;
   mode?: "create" | "edit";
@@ -349,7 +345,6 @@ export function RaceForm({
   submitLabel: string;
   onSubmit: (values: RaceFormSubmit) => Promise<void>;
   onDelete?: () => Promise<void>;
-  existingUpcomingARace?: ExistingARace | null;
 }) {
   const router = useRouter();
   const [form, setForm] = React.useState<FormState>(
@@ -359,9 +354,6 @@ export function RaceForm({
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [pastDateAcknowledged, setPastDateAcknowledged] = React.useState(false);
-  const [aRaceResolution, setARaceResolution] = React.useState<"demote" | null>(
-    null,
-  );
   const deleteSheetRef = React.useRef<BottomSheetModal>(null);
 
   const dateIsValid = form.date.length === 10;
@@ -371,12 +363,6 @@ export function RaceForm({
   const showPastDatePrompt =
     mode === "create" && dateIsPast && !pastDateAcknowledged;
 
-  const showARacePrompt =
-    existingUpcomingARace != null &&
-    form.priority === "A" &&
-    form.status === "upcoming" &&
-    aRaceResolution === null;
-
   const showResultSection = form.status === "completed";
   const showStatusPill = mode === "edit";
 
@@ -385,16 +371,11 @@ export function RaceForm({
     dateIsValid &&
     form.format !== "" &&
     (form.format !== "custom" || form.distanceKm.trim().length > 0) &&
-    !showPastDatePrompt &&
-    !showARacePrompt;
+    !showPastDatePrompt;
 
   React.useEffect(() => {
     setPastDateAcknowledged(false);
   }, [form.date]);
-
-  React.useEffect(() => {
-    if (form.priority !== "A") setARaceResolution(null);
-  }, [form.priority]);
 
   const acknowledgePastDate = () => {
     selectionFeedback();
@@ -405,16 +386,6 @@ export function RaceForm({
   const clearPastDate = () => {
     selectionFeedback();
     setForm((f) => ({ ...f, date: "" }));
-  };
-
-  const acknowledgeDemoteARace = () => {
-    selectionFeedback();
-    setARaceResolution("demote");
-  };
-
-  const keepAsBRace = () => {
-    selectionFeedback();
-    setForm((f) => ({ ...f, priority: "B" }));
   };
 
   const handleSave = async () => {
@@ -544,11 +515,6 @@ export function RaceForm({
       }
     }
 
-    const demoteExistingARaceId =
-      aRaceResolution === "demote" && existingUpcomingARace
-        ? existingUpcomingARace.raceId
-        : undefined;
-
     setIsLoading(true);
     try {
       await onSubmit({
@@ -567,7 +533,6 @@ export function RaceForm({
         surface: form.surface || undefined,
         itraCategory: form.itraCategory || undefined,
         result,
-        demoteExistingARaceId,
       });
       router.back();
     } catch (err) {
@@ -758,21 +723,6 @@ export function RaceForm({
                 })}
               </View>
             </FormField>
-
-            {showARacePrompt && existingUpcomingARace && (
-              <PromptCard
-                title={`${existingUpcomingARace.name || "Another race"} is currently your A race`}
-                description="An A race is your primary goal — only one upcoming A at a time."
-                primary={{
-                  label: `Make this the new A and demote ${existingUpcomingARace.name || "the other"} to B`,
-                  onPress: acknowledgeDemoteARace,
-                }}
-                secondary={{
-                  label: "Keep this as B instead",
-                  onPress: keepAsBRace,
-                }}
-              />
-            )}
 
             <FormField label="Format">
               <PillSelect

@@ -89,7 +89,7 @@ export function PlanScreen() {
     };
   }, [today]);
 
-  const workouts = useQuery(api.agoge.workouts.listWorkoutsInRange, workoutRange);
+  const workouts = useQuery(api.agoge.workouts.listWorkouts, workoutRange);
   const activePlan = useQuery(api.agoge.plans.getAthletePlan);
 
   const sessionsByDate = useMemo(

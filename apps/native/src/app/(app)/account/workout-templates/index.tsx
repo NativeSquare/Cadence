@@ -9,7 +9,7 @@ import React from "react";
 import { Pressable, ScrollView, View } from "react-native";
 
 type TemplateDoc = NonNullable<
-  ReturnType<typeof useQuery<typeof api.agoge.workoutTemplates.listMyTemplates>>
+  ReturnType<typeof useQuery<typeof api.agoge.workoutTemplates.listMyWorkoutTemplates>>
 >[number];
 
 function countSteps(structure: unknown): number {
@@ -54,7 +54,7 @@ const WORKOUT_TYPE_LABELS: Record<string, string> = {
 
 export default function WorkoutTemplatesListScreen() {
   const router = useRouter();
-  const templates = useQuery(api.agoge.workoutTemplates.listMyTemplates);
+  const templates = useQuery(api.agoge.workoutTemplates.listMyWorkoutTemplates);
 
   return (
     <View className="pt-safe flex-1" style={{ backgroundColor: LIGHT_THEME.w2 }}>

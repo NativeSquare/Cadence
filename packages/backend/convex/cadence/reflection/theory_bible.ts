@@ -33,7 +33,7 @@ export type ExistingBlock = {
 
 export type ExistingWorkout = {
   _id: string;
-  scheduledDate: string;
+  date: string;
   type: string;
   blockId?: string;
 };
@@ -163,15 +163,15 @@ const workoutsLieWithinTheirBlock: Rule = {
         violations.push({
           rule: "workouts_lie_within_their_block",
           severity: "block",
-          message: `Workout '${op.name}' on ${op.scheduledDate} references unknown block ${key}.`,
+          message: `Workout '${op.name}' on ${op.date} references unknown block ${key}.`,
         });
         continue;
       }
-      if (op.scheduledDate < block.startDate || op.scheduledDate > block.endDate) {
+      if (op.date < block.startDate || op.date > block.endDate) {
         violations.push({
           rule: "workouts_lie_within_their_block",
           severity: "block",
-          message: `Workout '${op.name}' on ${op.scheduledDate} is outside its block range ${block.startDate}..${block.endDate}.`,
+          message: `Workout '${op.name}' on ${op.date} is outside its block range ${block.startDate}..${block.endDate}.`,
         });
       }
     }
@@ -190,7 +190,7 @@ const noBackToBackQualitySessions: Rule = {
         op.op === "create",
       )
       .filter((op) => QUALITY_TYPES.has(op.type))
-      .map((op) => ({ date: op.scheduledDate, type: op.type, name: op.name }));
+      .map((op) => ({ date: op.date, type: op.type, name: op.name }));
 
     const kept = new Set(
       ctx.proposal.workouts
@@ -199,8 +199,8 @@ const noBackToBackQualitySessions: Rule = {
     );
     const updatedDates = new Map<string, string>();
     for (const op of ctx.proposal.workouts) {
-      if (op.op === "update" && op.scheduledDate) {
-        updatedDates.set(op.workoutId, op.scheduledDate);
+      if (op.op === "update" && op.date) {
+        updatedDates.set(op.workoutId, op.date);
       }
     }
     const deleted = new Set(
@@ -214,7 +214,7 @@ const noBackToBackQualitySessions: Rule = {
       .filter((w) => kept.has(w._id) || updatedDates.has(w._id))
       .filter((w) => QUALITY_TYPES.has(w.type))
       .map((w) => ({
-        date: updatedDates.get(w._id) ?? w.scheduledDate,
+        date: updatedDates.get(w._id) ?? w.date,
         type: w.type,
         name: w._id,
       }));

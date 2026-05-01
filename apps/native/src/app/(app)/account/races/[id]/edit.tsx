@@ -10,28 +10,13 @@ import { LIGHT_THEME } from "@/lib/design-tokens";
 import { api } from "@packages/backend/convex/_generated/api";
 import { useMutation, useQuery } from "convex/react";
 import { useLocalSearchParams } from "expo-router";
-import React from "react";
 import { View } from "react-native";
 
 export default function EditRaceScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const race = useQuery(api.agoge.races.getMyRace, { raceId: id });
-  const races = useQuery(api.agoge.races.listMyRaces);
   const updateRace = useMutation(api.agoge.races.updateMyRace);
   const deleteRace = useMutation(api.agoge.races.deleteMyRace);
-
-  const existingUpcomingARace = React.useMemo(() => {
-    if (!races || !race) return null;
-    const match = races.find(
-      (r) =>
-        r.priority === "A" &&
-        r.status === "upcoming" &&
-        r._id !== race._id,
-    );
-    return match
-      ? { raceId: match._id, name: match.name, date: match.date }
-      : null;
-  }, [races, race]);
 
   if (race === undefined) {
     return <View className="flex-1" style={{ backgroundColor: LIGHT_THEME.w2 }} />;
@@ -58,7 +43,6 @@ export default function EditRaceScreen() {
       title="Edit race"
       mode="edit"
       submitLabel="Save"
-      existingUpcomingARace={existingUpcomingARace}
       initial={{
         name: race.name,
         date: race.date,
@@ -100,7 +84,6 @@ export default function EditRaceScreen() {
           surface: values.surface,
           itraCategory: values.itraCategory,
           result: values.result,
-          demoteExistingARaceId: values.demoteExistingARaceId,
         });
       }}
       onDelete={async () => {

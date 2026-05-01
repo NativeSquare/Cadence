@@ -35,7 +35,7 @@ export default function NewWorkoutScreen() {
   const initialDate = parseDate(params.date);
 
   const createWorkout = useMutation(api.agoge.workouts.createWorkout);
-  const templates = useQuery(api.agoge.workoutTemplates.listMyTemplates);
+  const templates = useQuery(api.agoge.workoutTemplates.listMyWorkoutTemplates);
 
   const templateOptions: TemplateOption[] = React.useMemo(() => {
     if (!templates) return [];
@@ -73,7 +73,7 @@ export default function NewWorkoutScreen() {
         }
         const status = values.workoutMode === "done" ? "completed" : "planned";
         await createWorkout({
-          scheduledDate: values.scheduledDate,
+          date: values.date,
           name: values.name,
           type: values.type,
           status,

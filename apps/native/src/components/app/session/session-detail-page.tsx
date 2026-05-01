@@ -125,6 +125,7 @@ export function SessionDetailPage({ sessionId }: SessionDetailPageProps) {
 
   const face =
     workout.status === "completed" ? workout.actual : workout.planned;
+  const date = workout.planned?.date ?? workout.actual?.date;
   const distance = formatDistance(face?.distanceMeters);
   const duration = formatDuration(face?.durationSeconds);
   const notes = face?.notes ?? workout.description;
@@ -202,12 +203,14 @@ export function SessionDetailPage({ sessionId }: SessionDetailPageProps) {
             >
               {workout.name}
             </Text>
-            <Text
-              className="font-coach text-sm"
-              style={{ color: LIGHT_THEME.wMute }}
-            >
-              {formatDate(workout.scheduledDate)}
-            </Text>
+            {date && (
+              <Text
+                className="font-coach text-sm"
+                style={{ color: LIGHT_THEME.wMute }}
+              >
+                {formatDate(date)}
+              </Text>
+            )}
           </View>
 
           <View

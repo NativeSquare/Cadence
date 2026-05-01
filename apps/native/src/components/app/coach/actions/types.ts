@@ -70,23 +70,10 @@ export interface SwapProposal {
   reason: string;
 }
 
-export interface SkipProposal {
-  type: "skip";
-  sessionId: string;
-  sessionName: string;
-  sessionType: string;
-  date: string;
-  dayOfWeek: string;
-  duration: string;
-  reason: string;
-  alternative?: string;
-}
-
 export type ActionProposal =
   | RescheduleProposal
   | ModifyProposal
-  | SwapProposal
-  | SkipProposal;
+  | SwapProposal;
 
 // =============================================================================
 // Action Card Props

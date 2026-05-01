@@ -143,7 +143,7 @@ export default function RaceDetailScreen() {
     race ? { raceId: race._id } : "skip",
   ) as GoalDoc[] | undefined;
 
-  const createGoal = useMutation(api.agoge.goals.createGoalForRace);
+  const createGoal = useMutation(api.agoge.goals.createGoal);
   const updateGoal = useMutation(api.agoge.goals.updateGoal);
   const deleteGoal = useMutation(api.agoge.goals.deleteGoal);
 
@@ -181,6 +181,7 @@ export default function RaceDetailScreen() {
         description: values.description,
         targetDate: values.targetDate,
         rank: values.rank,
+        status: values.status ?? "active",
       });
     }
   };

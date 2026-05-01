@@ -8,7 +8,7 @@ import React from "react";
 
 export default function NewTemplateScreen() {
   const createTemplate = useMutation(
-    api.agoge.workoutTemplates.createMyTemplate,
+    api.agoge.workoutTemplates.createWorkoutTemplate,
   );
 
   const handleSubmit = async (values: TemplateFormValues) => {

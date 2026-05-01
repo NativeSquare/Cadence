@@ -4,36 +4,18 @@
  */
 
 import { getAuthUserId } from "@convex-dev/auth/server";
-import { v } from "convex/values";
+import { athleteValidator } from "@nativesquare/agoge/schema";
 import { components } from "../_generated/api";
 import { mutation, query } from "../_generated/server";
-
-const athleteProfileFields = {
-  name: v.optional(v.string()),
-  sex: v.optional(
-    v.union(v.literal("male"), v.literal("female"), v.literal("other")),
-  ),
-  dateOfBirth: v.optional(v.string()),
-  weightKg: v.optional(v.number()),
-  heightCm: v.optional(v.number()),
-  experienceLevel: v.optional(v.string()),
-  yearsRunning: v.optional(v.number()),
-  injuryStatus: v.optional(v.string()),
-};
+import { loadAthlete } from "./helpers";
 
 export const getAthlete = query({
   args: {},
-  handler: async (ctx) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) return null;
-    return await ctx.runQuery(components.agoge.public.getAthleteByUserId, {
-      userId,
-    });
-  },
+  handler: async (ctx) => (await loadAthlete(ctx))?.athlete ?? null,
 });
 
 export const upsertAthlete = mutation({
-  args: athleteProfileFields,
+  args: athleteValidator.omit("userId"),
   handler: async (ctx, patch): Promise<string> => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Not authenticated");

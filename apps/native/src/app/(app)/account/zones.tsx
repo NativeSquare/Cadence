@@ -68,12 +68,123 @@ function parseBoundary(kind: ZoneKind, raw: string): number | null {
   return p;
 }
 
+function todayDateString(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function findZone<T extends { kind: ZoneKind }>(
+  list: readonly T[] | undefined,
+  kind: ZoneKind,
+): T | null {
+  return list?.find((z) => z.kind === kind) ?? null;
+}
+
 export default function ZonesScreen() {
   const router = useRouter();
-  const zones = useQuery(api.agoge.zones.listCurrentZones);
-  const upsertZones = useMutation(api.agoge.zones.upsertZones);
-  const updateZoneBoundaries = useMutation(api.agoge.zones.updateZoneBoundaries);
-  const resyncZones = useMutation(api.agoge.zones.resyncZonesFromThreshold);
+  const zones = useQuery(api.agoge.zones.listAthleteZones);
+  const createZone = useMutation(api.agoge.zones.createZone);
+  const updateZone = useMutation(api.agoge.zones.updateZone);
+
+  // The backend stores zones as an append-only history. We patch today's
+  // record in place if one exists; otherwise we create a new history row
+  // dated today.
+  const saveZone = React.useCallback(
+    async (
+      existing: { _id: string; effectiveFrom: string } | null,
+      next: {
+        kind: ZoneKind;
+        boundaries: number[];
+        threshold?: number;
+        maxHr?: number;
+        restingHr?: number;
+        source: "manual" | "system";
+      },
+    ) => {
+      const today = todayDateString();
+      if (existing && existing.effectiveFrom === today) {
+        await updateZone({
+          zoneId: existing._id,
+          boundaries: next.boundaries,
+          threshold: next.threshold,
+          maxHr: next.maxHr,
+          restingHr: next.restingHr,
+          source: next.source,
+        });
+        return;
+      }
+      await createZone({
+        kind: next.kind,
+        boundaries: next.boundaries,
+        threshold: next.threshold,
+        maxHr: next.maxHr,
+        restingHr: next.restingHr,
+        source: next.source,
+        effectiveFrom: today,
+      });
+    },
+    [createZone, updateZone],
+  );
+
+  // Threshold edits: if the previous zone was manually overridden, keep its
+  // boundaries (the user owns them — the threshold change is metadata only).
+  // Otherwise recompute from the new threshold.
+  const handleUpsertThreshold = React.useCallback(
+    async ({ kind, threshold }: { kind: ZoneKind; threshold: number }) => {
+      const existing = findZone(zones, kind);
+      const isManual = existing?.source === "manual";
+      const boundaries =
+        isManual && existing
+          ? existing.boundaries
+          : computeZoneBoundaries(kind, threshold, METHOD_FOR[kind]).boundaries;
+      await saveZone(existing, {
+        kind,
+        boundaries,
+        threshold,
+        maxHr: existing?.maxHr,
+        restingHr: existing?.restingHr,
+        source: isManual ? "manual" : "system",
+      });
+    },
+    [zones, saveZone],
+  );
+
+  const handleUpdateBoundaries = React.useCallback(
+    async ({ kind, boundaries }: { kind: ZoneKind; boundaries: number[] }) => {
+      const existing = findZone(zones, kind);
+      await saveZone(existing, {
+        kind,
+        boundaries,
+        threshold: existing?.threshold,
+        maxHr: existing?.maxHr,
+        restingHr: existing?.restingHr,
+        source: "manual",
+      });
+    },
+    [zones, saveZone],
+  );
+
+  const handleResync = React.useCallback(
+    async ({ kind }: { kind: ZoneKind }) => {
+      const existing = findZone(zones, kind);
+      if (!existing?.threshold) {
+        throw new Error("Set a threshold before re-syncing zones.");
+      }
+      const boundaries = computeZoneBoundaries(
+        kind,
+        existing.threshold,
+        METHOD_FOR[kind],
+      ).boundaries;
+      await saveZone(existing, {
+        kind,
+        boundaries,
+        threshold: existing.threshold,
+        maxHr: existing.maxHr,
+        restingHr: existing.restingHr,
+        source: "system",
+      });
+    },
+    [zones, saveZone],
+  );
 
   const loading = zones === undefined;
 
@@ -116,25 +227,25 @@ export default function ZonesScreen() {
           ) : (
             <>
               <ThresholdsBlock
-                hrZone={zones?.hr ?? null}
-                paceZone={zones?.pace ?? null}
-                onUpsert={upsertZones}
+                hrZone={findZone(zones, "hr")}
+                paceZone={findZone(zones, "pace")}
+                onUpsert={handleUpsertThreshold}
               />
 
               <ZonesBlock
                 kind="hr"
                 title="HR Zones"
-                zone={zones?.hr ?? null}
-                onUpdateBoundaries={updateZoneBoundaries}
-                onResync={resyncZones}
+                zone={findZone(zones, "hr")}
+                onUpdateBoundaries={handleUpdateBoundaries}
+                onResync={handleResync}
               />
 
               <ZonesBlock
                 kind="pace"
                 title="Pace Zones"
-                zone={zones?.pace ?? null}
-                onUpdateBoundaries={updateZoneBoundaries}
-                onResync={resyncZones}
+                zone={findZone(zones, "pace")}
+                onUpdateBoundaries={handleUpdateBoundaries}
+                onResync={handleResync}
               />
             </>
           )}

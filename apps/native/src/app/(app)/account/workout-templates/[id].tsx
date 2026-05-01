@@ -15,14 +15,14 @@ import { View } from "react-native";
 
 export default function TemplateDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const template = useQuery(api.agoge.workoutTemplates.getMyTemplate, {
+  const template = useQuery(api.agoge.workoutTemplates.getMyWorkoutTemplate, {
     templateId: id,
   });
   const updateTemplate = useMutation(
-    api.agoge.workoutTemplates.updateMyTemplate,
+    api.agoge.workoutTemplates.updateWorkoutTemplate,
   );
   const deleteTemplate = useMutation(
-    api.agoge.workoutTemplates.deleteMyTemplate,
+    api.agoge.workoutTemplates.deleteWorkoutTemplate,
   );
 
   if (template === undefined) {

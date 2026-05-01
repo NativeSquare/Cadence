@@ -185,7 +185,7 @@ const blockRefZ = z.discriminatedUnion("kind", [
 const workoutCreate = z.object({
   op: z.literal("create"),
   block: blockRefZ,
-  scheduledDate: isoDate,
+  date: isoDate,
   name: z.string().min(2).max(80),
   description: z.string().max(1000).optional(),
   type: workoutTypeZ,
@@ -197,7 +197,7 @@ const workoutCreate = z.object({
 const workoutUpdate = z.object({
   op: z.literal("update"),
   workoutId: z.string(),
-  scheduledDate: isoDate.optional(),
+  date: isoDate.optional(),
   name: z.string().min(2).max(80).optional(),
   description: z.string().max(1000).optional(),
   type: workoutTypeZ.optional(),

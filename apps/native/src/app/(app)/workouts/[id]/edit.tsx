@@ -68,8 +68,25 @@ function EditWorkoutContent() {
     );
   }
 
+  const date = workout.planned?.date ?? workout.actual?.date;
+  if (!date) {
+    return (
+      <View
+        className="flex-1 items-center justify-center px-6"
+        style={{ backgroundColor: LIGHT_THEME.w2 }}
+      >
+        <Text
+          className="text-center font-coach text-sm"
+          style={{ color: LIGHT_THEME.wMute }}
+        >
+          Workout has no date
+        </Text>
+      </View>
+    );
+  }
+
   const initial: WorkoutFormInitial = {
-    scheduledDate: workout.scheduledDate,
+    date,
     name: workout.name,
     type: workout.type,
     subSport: workout.subSport,
@@ -99,7 +116,7 @@ function EditWorkoutContent() {
         await modifyWorkout({
           workoutId: workout._id,
           name: values.name,
-          scheduledDate: values.scheduledDate,
+          date: values.date,
           type: values.type,
           subSport: values.subSport,
           status: isDone ? "completed" : "planned",

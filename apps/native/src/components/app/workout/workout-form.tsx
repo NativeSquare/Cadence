@@ -109,7 +109,7 @@ export type WorkoutFormMode = "create" | "edit";
 export type WorkoutMode = "done" | "scheduled";
 
 export type WorkoutFormInitial = {
-  scheduledDate: string;
+  date: string;
   name: string;
   type: WorkoutType;
   subSport?: SubSport;
@@ -129,7 +129,7 @@ export type WorkoutFormInitial = {
 };
 
 export type WorkoutFormSubmit = {
-  scheduledDate: string;
+  date: string;
   name: string;
   type: WorkoutType;
   subSport?: SubSport;
@@ -221,7 +221,7 @@ function initialToForm(initial: WorkoutFormInitial): FormState {
     durS = String(seconds).padStart(2, "0");
   }
   return {
-    date: initial.scheduledDate,
+    date: initial.date,
     workoutMode: initial.status === "completed" ? "done" : "scheduled",
     type: initial.type,
     subSport: initial.subSport ?? "",
@@ -369,7 +369,7 @@ export function WorkoutForm({
     setIsLoading(true);
     try {
       await onSubmit({
-        scheduledDate: form.date,
+        date: form.date,
         name: form.name.trim(),
         type: form.type,
         subSport: form.subSport || undefined,

@@ -10,8 +10,7 @@ export const listBlocks = query({
   args: { planId: v.string() },
   handler: async (ctx, { planId }) => {
     return await ctx.runQuery(components.agoge.public.getBlocksByPlan, {
-      // biome-ignore lint/suspicious/noExplicitAny: agoge Id is a branded string
-      planId: planId as any,
+      planId: planId,
     });
   },
 });

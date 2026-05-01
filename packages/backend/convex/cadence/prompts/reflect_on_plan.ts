@@ -51,7 +51,7 @@ export type ReflectionBlock = {
 export type ReflectionWorkout = {
   _id: string;
   blockId?: string;
-  scheduledDate: string;
+  date: string;
   name: string;
   type: string;
   status: string;
@@ -127,7 +127,7 @@ When a new workout belongs to a newly-proposed block, reference the block by ind
 # Theory Bible — rules your output must satisfy
 
 1. **Blocks contiguous and non-overlapping**: ordered by startDate, no overlap, no gap inside the plan window.
-2. **Workouts within their block**: each \`create\` workout's \`scheduledDate\` ∈ [block.startDate, block.endDate].
+2. **Workouts within their block**: each \`create\` workout's \`date\` ∈ [block.startDate, block.endDate].
 3. **No back-to-back quality sessions**: at least 48h between sessions of type \`tempo\`, \`threshold\`, \`intervals\`, \`vo2max\`, or \`race\`.
 
 If you violate a rule, you will be re-prompted with the violation list and asked to fix it. You have a small number of attempts — try to satisfy every rule on the first pass.

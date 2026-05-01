@@ -87,8 +87,8 @@ function StepEditorBody({
 
   // Drives whether the user can pick "HR zone" as a target. Until zones are
   // configured, a zone-based target wouldn't resolve to anything for them.
-  const zones = useQuery(api.agoge.zones.listCurrentZones);
-  const hasHrZones = !!zones?.hr;
+  const zones = useQuery(api.agoge.zones.listAthleteZones);
+  const hasHrZones = !!zones?.find((z) => z.kind === "hr");
 
   const handleSave = () => {
     onSave(step);

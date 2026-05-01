@@ -7,111 +7,55 @@
  * in the UI yet.
  */
 
-import { getAuthUserId } from "@convex-dev/auth/server";
-import {
-  type Goal,
-  goalRank,
-  goalStatus,
-  goalType,
-} from "@nativesquare/agoge/schema";
+import { goalsValidator } from "@nativesquare/agoge/schema";
 import { v } from "convex/values";
 import { components } from "../_generated/api";
+import { mutation, query } from "../_generated/server";
 import {
-  type MutationCtx,
-  type QueryCtx,
-  mutation,
-  query,
-} from "../_generated/server";
-
-async function requireAthlete(ctx: QueryCtx | MutationCtx) {
-  const userId = await getAuthUserId(ctx);
-  if (!userId) throw new Error("Not authenticated");
-  const athlete = await ctx.runQuery(
-    components.agoge.public.getAthleteByUserId,
-    { userId },
-  );
-  if (!athlete) throw new Error("Athlete not found");
-  return athlete;
-}
-
-type GoalDoc = Goal & { _id: string };
+  assertAthlete,
+  assertGoalOwnership,
+  assertRaceOwnership,
+  loadOwnedRace,
+} from "./helpers";
 
 export const listGoalsForRace = query({
   args: { raceId: v.string() },
   handler: async (ctx, { raceId }) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) return [];
-    const athlete = await ctx.runQuery(
-      components.agoge.public.getAthleteByUserId,
-      { userId },
-    );
-    if (!athlete) return [];
-    const race = await ctx.runQuery(components.agoge.public.getRace, {
-      raceId: raceId,
+    const result = await loadOwnedRace(ctx, raceId);
+    if (!result) return [];
+    return await ctx.runQuery(components.agoge.public.getGoalsByRace, {
+      raceId,
     });
-    if (!race || race.athleteId !== athlete._id) return [];
-    const goals = (await ctx.runQuery(
-      components.agoge.public.getGoalsByRace,
-      { raceId: raceId },
-    ));
-    return goals;
   },
 });
 
-export const createGoalForRace = mutation({
-  args: {
-    raceId: v.string(),
-    type: goalType,
-    title: v.string(),
-    targetValue: v.string(),
-    description: v.optional(v.string()),
-    targetDate: v.optional(v.string()),
-    rank: v.optional(goalRank),
-    status: v.optional(goalStatus),
-  },
+export const createGoal = mutation({
+  args: goalsValidator
+    .omit("athleteId", "raceId")
+    .extend({ raceId: v.optional(v.string()) }),
   handler: async (ctx, args) => {
-    const athlete = await requireAthlete(ctx);
-    const race = await ctx.runQuery(components.agoge.public.getRace, {
-      raceId: args.raceId,
-    });
-    if (!race || race.athleteId !== athlete._id) {
-      throw new Error("Race not found");
+    const { athlete } = await assertAthlete(ctx);
+    if (args.raceId) {
+      await assertRaceOwnership(ctx, args.raceId, athlete._id);
     }
     return await ctx.runMutation(components.agoge.public.createGoal, {
+      ...args,
       athleteId: athlete._id,
-      raceId: args.raceId,
-      type: args.type,
-      title: args.title,
-      targetValue: args.targetValue,
-      description: args.description,
-      targetDate: args.targetDate,
-      rank: args.rank,
-      status: args.status ?? "active",
     });
   },
 });
 
 export const updateGoal = mutation({
-  args: {
-    goalId: v.string(),
-    type: v.optional(goalType),
-    title: v.optional(v.string()),
-    targetValue: v.optional(v.string()),
-    description: v.optional(v.string()),
-    targetDate: v.optional(v.string()),
-    rank: v.optional(goalRank),
-    status: v.optional(goalStatus),
-  },
-  handler: async (ctx, { goalId, ...patch }) => {
-    const athlete = await requireAthlete(ctx);
-    const goal = (await ctx.runQuery(components.agoge.public.getGoal, {
-      goalId: goalId,
-    }));
-    if (!goal || goal.athleteId !== athlete._id) {
-      throw new Error("Goal not found");
-    }
+  args: goalsValidator
+    .omit("athleteId", "raceId")
+    .partial()
+    .extend({ goalId: v.string() }),
+  handler: async (ctx, args) => {
+    const { goalId, ...patch } = args;
+    const { athlete } = await assertAthlete(ctx);
+    await assertGoalOwnership(ctx, goalId, athlete._id);
     await ctx.runMutation(components.agoge.public.updateGoal, {
-      goalId: goalId,
+      goalId,
       ...patch,
     });
     return null;
@@ -121,18 +65,9 @@ export const updateGoal = mutation({
 export const deleteGoal = mutation({
   args: { goalId: v.string() },
   handler: async (ctx, { goalId }) => {
-    const athlete = await requireAthlete(ctx);
-    const goal = (await ctx.runQuery(components.agoge.public.getGoal, {
-      // biome-ignore lint/suspicious/noExplicitAny: agoge Id is a branded string
-      goalId: goalId as any,
-    })) as GoalDoc | null;
-    if (!goal || goal.athleteId !== athlete._id) {
-      throw new Error("Goal not found");
-    }
-    await ctx.runMutation(components.agoge.public.deleteGoal, {
-      // biome-ignore lint/suspicious/noExplicitAny: agoge Id is a branded string
-      goalId: goalId as any,
-    });
+    const { athlete } = await assertAthlete(ctx);
+    await assertGoalOwnership(ctx, goalId, athlete._id);
+    await ctx.runMutation(components.agoge.public.deleteGoal, { goalId });
     return null;
   },
 });

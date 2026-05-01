@@ -8,18 +8,22 @@ import { LIGHT_THEME } from "@/lib/design-tokens";
 export default function AppLayout() {
   const athlete = useQuery(api.agoge.athletes.getAthlete);
   const plan = useQuery(api.agoge.plans.getAthletePlan);
-  const ensurePlan = useMutation(api.agoge.plans.ensurePlan);
-  const ensureAttempted = useRef(false);
+  const createPlan = useMutation(api.agoge.plans.createPlan);
+  const createAttempted = useRef(false);
 
   useEffect(() => {
-    if (athlete && plan === null && !ensureAttempted.current) {
-      ensureAttempted.current = true;
-      ensurePlan({}).catch((err) => {
-        console.error("[AppLayout] ensurePlan failed:", err);
-        ensureAttempted.current = false;
+    if (athlete && plan === null && !createAttempted.current) {
+      createAttempted.current = true;
+      createPlan({
+        name: "Cadence",
+        startDate: new Date().toISOString().slice(0, 10),
+        status: "active",
+      }).catch((err) => {
+        console.error("[AppLayout] createPlan failed:", err);
+        createAttempted.current = false;
       });
     }
-  }, [athlete, plan, ensurePlan]);
+  }, [athlete, plan, createPlan]);
 
   if (athlete === undefined || plan === undefined || plan === null) {
     return (

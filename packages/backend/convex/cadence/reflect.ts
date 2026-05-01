@@ -38,7 +38,7 @@ import {
   type ReflectionRace,
   type ReflectionWorkout,
 } from "./prompts/reflect_on_plan";
-import { ensureAthletePlan } from "../agoge/plans";
+import { assertAthletePlan } from "../agoge/helpers";
 import { consultBody } from "./specialists/body";
 import { consultMind } from "./specialists/mind";
 import {
@@ -155,29 +155,42 @@ export const gatherContext = internalQuery({
     }));
 
     const futureWorkoutDocs = await ctx.runQuery(
-      components.agoge.public.getWorkoutsByAthlete,
+      components.agoge.public.getPlannedWorkoutsByAthlete,
       {
         athleteId: athleteId,
         startDate: today,
         endDate: horizonEnd,
       },
     );
-    const futureWorkouts: ReflectionWorkout[] = futureWorkoutDocs.map((w) => ({
-      _id: w._id,
-      blockId: w.blockId,
-      scheduledDate: w.scheduledDate,
-      name: w.name,
-      type: w.type,
-      status: w.status,
-      plannedDurationSeconds: w.planned?.durationSeconds,
-      plannedDistanceMeters: w.planned?.distanceMeters,
-    }));
-    const existingWorkoutsRaw: ExistingWorkout[] = futureWorkoutDocs.map((w) => ({
-      _id: w._id,
-      scheduledDate: w.scheduledDate,
-      type: w.type,
-      blockId: w.blockId,
-    }));
+    const futureWorkouts: ReflectionWorkout[] = futureWorkoutDocs.flatMap((w) =>
+      w.planned?.date
+        ? [
+            {
+              _id: w._id,
+              blockId: w.blockId,
+              date: w.planned.date,
+              name: w.name,
+              type: w.type,
+              status: w.status,
+              plannedDurationSeconds: w.planned?.durationSeconds,
+              plannedDistanceMeters: w.planned?.distanceMeters,
+            },
+          ]
+        : [],
+    );
+    const existingWorkoutsRaw: ExistingWorkout[] = futureWorkoutDocs.flatMap(
+      (w) =>
+        w.planned?.date
+          ? [
+              {
+                _id: w._id,
+                date: w.planned.date,
+                type: w.type,
+                blockId: w.blockId,
+              },
+            ]
+          : [],
+    );
 
     const raceDocs = await ctx.runQuery(
       components.agoge.public.getRacesByAthleteAndStatus,
@@ -396,7 +409,7 @@ export const applyProposal = mutation({
     const proposal = proposalSchema.parse(args.proposal);
     const athleteId = args.athleteId;
 
-    const plan = await ensureAthletePlan(ctx, athleteId);
+    const plan = await assertAthletePlan(ctx, athleteId);
 
     let blocksCreated = 0;
     let blocksUpdated = 0;
@@ -457,26 +470,40 @@ export const applyProposal = mutation({
           athleteId: athleteId,
           planId: plan._id,
           blockId: blockId,
-          scheduledDate: op.scheduledDate,
           name: op.name,
           description: op.description,
           type: op.type,
           sport: op.sport,
           subSport: op.subSport,
           status: "planned",
-          planned: op.planned,
+          planned: { ...(op.planned ?? {}), date: op.date },
         });
         workoutsCreated++;
       } else if (op.op === "update") {
         await ensureWorkoutBelongsToAthlete(ctx, op.workoutId, athleteId);
+        const existing = await ctx.runQuery(
+          components.agoge.public.getWorkout,
+          { workoutId: op.workoutId },
+        );
+        if (!existing) throw new Error("Workout not found");
+        const nextPlanned =
+          op.planned !== undefined || op.date !== undefined
+            ? {
+                ...(existing.planned ?? {}),
+                ...(op.planned ?? {}),
+                date: op.date ?? existing.planned?.date ?? "",
+              }
+            : undefined;
+        if (nextPlanned && !nextPlanned.date) {
+          throw new Error("planned face requires a date");
+        }
         await ctx.runMutation(components.agoge.public.updateWorkout, {
           workoutId: op.workoutId,
-          scheduledDate: op.scheduledDate,
           name: op.name,
           description: op.description,
           type: op.type,
           subSport: op.subSport,
-          planned: op.planned,
+          ...(nextPlanned !== undefined ? { planned: nextPlanned } : {}),
         });
         workoutsUpdated++;
       } else if (op.op === "delete") {

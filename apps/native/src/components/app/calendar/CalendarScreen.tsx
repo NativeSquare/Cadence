@@ -153,7 +153,7 @@ export function CalendarScreen() {
     };
   }, [currentYear, currentMonth]);
 
-  const workouts = useQuery(api.agoge.workouts.listWorkoutsInRange, monthRange);
+  const workouts = useQuery(api.agoge.workouts.listWorkouts, monthRange);
   const activePlan = useQuery(api.agoge.plans.getAthletePlan);
   const blocks = useQuery(
     api.agoge.blocks.listBlocks,

@@ -14,13 +14,11 @@ import {
   RescheduleSessionCard,
   ModifySessionCard,
   SwapSessionsCard,
-  SkipSessionCard,
 } from "./actions";
 import type {
   RescheduleProposal,
   ModifyProposal,
   SwapProposal,
-  SkipProposal,
 } from "./actions";
 
 // =============================================================================
@@ -96,17 +94,6 @@ export function CoachToolRenderer({
         <SwapSessionsCard
           toolCallId={toolCallId}
           proposal={args as SwapProposal}
-          executeMutation={() => executeMutation(toolName, args)}
-          onAccepted={() => onAccepted(toolName, args)}
-          onRejected={() => onRejected(toolName, args)}
-        />
-      );
-
-    case "proposeSkipSession":
-      return (
-        <SkipSessionCard
-          toolCallId={toolCallId}
-          proposal={args as SkipProposal}
           executeMutation={() => executeMutation(toolName, args)}
           onAccepted={() => onAccepted(toolName, args)}
           onRejected={() => onRejected(toolName, args)}
