@@ -26,7 +26,7 @@ function EditWorkoutContent() {
     api.agoge.workouts.getWorkout,
     id ? { workoutId: id } : "skip",
   );
-  const modifyWorkout = useMutation(api.agoge.workouts.modifyWorkout);
+  const updateWorkout = useMutation(api.agoge.workouts.updateWorkout);
   const deleteWorkout = useMutation(api.agoge.workouts.deleteWorkout);
 
   if (workout === undefined) {
@@ -68,7 +68,11 @@ function EditWorkoutContent() {
     );
   }
 
-  const date = workout.planned?.date ?? workout.actual?.date;
+  const isDoneInitial = workout.status === "completed";
+  const face = isDoneInitial
+    ? workout.actual ?? workout.planned
+    : workout.planned ?? workout.actual;
+  const date = face?.date?.slice(0, 10);
   if (!date) {
     return (
       <View
@@ -88,12 +92,12 @@ function EditWorkoutContent() {
   const initial: WorkoutFormInitial = {
     date,
     name: workout.name,
-    type: workout.type,
-    subSport: workout.subSport,
     description: workout.description,
-    status: workout.status,
-    planned: workout.planned,
-    actual: workout.actual,
+    type: workout.type,
+    typeNotes: workout.typeNotes,
+    subSport: workout.subSport,
+    workoutMode: isDoneInitial ? "done" : "scheduled",
+    structure: face?.structure,
   };
 
   return (
@@ -103,24 +107,20 @@ function EditWorkoutContent() {
       submitLabel="Save changes"
       initial={initial}
       onSubmit={async (values) => {
-        const face: {
-          durationSeconds?: number;
-          distanceMeters?: number;
-          notes?: string;
-        } = {
-          durationSeconds: values.metrics.durationSeconds,
-          distanceMeters: values.metrics.distanceMeters,
-          notes: values.metrics.notes,
-        };
         const isDone = values.workoutMode === "done";
-        await modifyWorkout({
+        const nextFace = {
+          date: `${values.date}T00:00:00.000Z`,
+          structure: values.structure,
+        };
+        await updateWorkout({
           workoutId: workout._id,
           name: values.name,
-          date: values.date,
+          description: values.description,
           type: values.type,
+          typeNotes: values.typeNotes,
           subSport: values.subSport,
           status: isDone ? "completed" : "planned",
-          ...(isDone ? { actual: face } : { planned: face }),
+          ...(isDone ? { actual: nextFace } : { planned: nextFace }),
         });
       }}
       onDelete={async () => {

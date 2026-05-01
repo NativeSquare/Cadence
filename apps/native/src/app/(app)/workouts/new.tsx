@@ -15,7 +15,9 @@ const VALID_CATEGORIES: readonly SessionCategory[] = [
   "race",
 ];
 
-function parseCategory(raw: string | string[] | undefined): SessionCategory | undefined {
+function parseCategory(
+  raw: string | string[] | undefined,
+): SessionCategory | undefined {
   const value = Array.isArray(raw) ? raw[0] : raw;
   if (value && (VALID_CATEGORIES as readonly string[]).includes(value)) {
     return value as SessionCategory;
@@ -44,6 +46,7 @@ export default function NewWorkoutScreen() {
       name: t.name,
       description: t.description,
       type: t.type,
+      typeNotes: t.typeNotes,
       subSport: t.subSport,
       content: t.content,
     }));
@@ -58,29 +61,21 @@ export default function NewWorkoutScreen() {
       initialDate={initialDate}
       templates={templateOptions}
       onSubmit={async (values) => {
-        const face: {
-          durationSeconds?: number;
-          distanceMeters?: number;
-          notes?: string;
-          structure?: unknown;
-        } = {
-          durationSeconds: values.metrics.durationSeconds,
-          distanceMeters: values.metrics.distanceMeters,
-          notes: values.metrics.notes,
+        const isDone = values.workoutMode === "done";
+        const face = {
+          date: `${values.date}T00:00:00.000Z`,
+          structure: values.structure,
         };
-        if (values.workoutMode === "scheduled" && values.plannedStructure !== undefined) {
-          face.structure = values.plannedStructure;
-        }
-        const status = values.workoutMode === "done" ? "completed" : "planned";
         await createWorkout({
-          date: values.date,
           name: values.name,
+          description: values.description,
           type: values.type,
-          status,
+          typeNotes: values.typeNotes,
+          sport: "run",
           subSport: values.subSport,
-          templateId: values.templateId,
-          planned: status === "planned" ? face : undefined,
-          actual: status === "completed" ? face : undefined,
+          status: isDone ? "completed" : "planned",
+          planned: isDone ? undefined : face,
+          actual: isDone ? face : undefined,
         });
       }}
     />
