@@ -23,6 +23,11 @@ import type {
 /**
  * Subset of the agoge workout doc the Plan UI consumes.
  * Mirrors `components.agoge.public.getPlannedWorkoutsByAthlete` return shape.
+ *
+ * `planned.date` and `actual.date` are canonical UTC ISO 8601 timestamps
+ * (e.g. "2026-05-01T00:00:00.000Z"). Workouts authored from the native form
+ * are stored as `${YYYY-MM-DD}T00:00:00.000Z`, so the date prefix is the
+ * local-day the user picked — bucket by that prefix to avoid timezone drift.
  */
 export interface AgogeWorkout {
   _id: string;
@@ -46,6 +51,12 @@ export interface AgogeWorkout {
 
 function workoutDate(w: AgogeWorkout): string | undefined {
   return w.actual?.date ?? w.planned?.date;
+}
+
+/** Parse the YYYY-MM-DD prefix of a UTC ISO timestamp into a local Date. */
+function localDateFromIso(iso: string): Date {
+  const [y, m, d] = iso.slice(0, 10).split("-").map((n) => parseInt(n, 10));
+  return new Date(y, m - 1, d);
 }
 
 /** Key format used by CalendarStrip (y-m-d, 0-indexed month, unpadded). */
@@ -88,7 +99,7 @@ export function workoutToSessionData(
   today: Date,
 ): SessionData {
   const dateIso = workoutDate(workout);
-  const date = dateIso ? new Date(`${dateIso}T00:00:00`) : new Date(NaN);
+  const date = dateIso ? localDateFromIso(dateIso) : new Date(NaN);
   const isToday =
     date.getFullYear() === today.getFullYear() &&
     date.getMonth() === today.getMonth() &&
@@ -128,8 +139,10 @@ export function buildSessionsByDate(
   for (const w of workouts) {
     const dateIso = workoutDate(w);
     if (!dateIso) continue;
-    const d = new Date(`${dateIso}T00:00:00`);
-    result[planDateKey(d)] = workoutToSessionData(w, today);
+    result[planDateKey(localDateFromIso(dateIso))] = workoutToSessionData(
+      w,
+      today,
+    );
   }
   return result;
 }
@@ -169,7 +182,7 @@ export function computeWeekInsights(
   for (const w of workouts) {
     const dateIso = workoutDate(w);
     if (!dateIso) continue;
-    const d = new Date(`${dateIso}T00:00:00`);
+    const d = localDateFromIso(dateIso);
     if (d < weekStart || d > weekEnd) continue;
     currentWeekSessions.push(workoutToSessionData(w, today));
 

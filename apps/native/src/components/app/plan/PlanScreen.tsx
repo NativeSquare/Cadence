@@ -57,6 +57,14 @@ function toIsoDate(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
+function toUtcRangeStart(d: Date): string {
+  return `${toIsoDate(d)}T00:00:00.000Z`;
+}
+
+function toUtcRangeEnd(d: Date): string {
+  return `${toIsoDate(d)}T23:59:59.999Z`;
+}
+
 function computeWeekNumber(planStartDate: string, today: Date): number {
   const start = new Date(`${planStartDate}T00:00:00`);
   const diffDays = Math.floor(
@@ -84,8 +92,8 @@ export function PlanScreen() {
     const end = new Date(today);
     end.setDate(end.getDate() + 84);
     return {
-      startDate: toIsoDate(start),
-      endDate: toIsoDate(end),
+      startDate: toUtcRangeStart(start),
+      endDate: toUtcRangeEnd(end),
     };
   }, [today]);
 

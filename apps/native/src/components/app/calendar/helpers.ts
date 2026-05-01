@@ -212,9 +212,11 @@ export function buildCalendarSessions(
   const result: Record<string, CalSession[]> = {};
   for (const w of workouts) {
     if (w.status === "skipped") continue;
-    // Both faces store date as YYYY-MM-DD, which matches formatDateKey output.
-    const key = w.actual?.date ?? w.planned?.date;
-    if (!key) continue;
+    // Faces store date as a UTC ISO timestamp; the YYYY-MM-DD prefix is the
+    // local-day the user authored (workouts are written as `${YYYY-MM-DD}T00:00:00.000Z`).
+    const dateIso = w.actual?.date ?? w.planned?.date;
+    if (!dateIso) continue;
+    const key = dateIso.slice(0, 10);
     const km =
       w.actual?.distanceMeters != null
         ? (w.actual.distanceMeters / 1000).toFixed(1)

@@ -66,6 +66,14 @@ function toIsoDate(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
+function toUtcRangeStart(d: Date): string {
+  return `${toIsoDate(d)}T00:00:00.000Z`;
+}
+
+function toUtcRangeEnd(d: Date): string {
+  return `${toIsoDate(d)}T23:59:59.999Z`;
+}
+
 function ViewToggle({
   value,
   onChange,
@@ -148,8 +156,8 @@ export function CalendarScreen() {
     const start = new Date(currentYear, currentMonth, 1);
     const end = new Date(currentYear, currentMonth + 1, 0);
     return {
-      startDate: toIsoDate(start),
-      endDate: toIsoDate(end),
+      startDate: toUtcRangeStart(start),
+      endDate: toUtcRangeEnd(end),
     };
   }, [currentYear, currentMonth]);
 
