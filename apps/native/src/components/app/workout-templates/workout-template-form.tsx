@@ -1,17 +1,26 @@
 import { FormField, FormSection } from "@/components/app/form";
 import { ConfirmationSheet } from "@/components/shared/confirmation-sheet";
 import { WorkoutStructureEditor } from "@/components/app/workout-templates/workout-structure-editor";
-import { emptyWorkout } from "@/components/app/workout-templates/workout-helpers";
 import { Text } from "@/components/ui/text";
-import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
+import {
+  COLORS,
+  LIGHT_THEME,
+  SESSION_TYPE_COLORS,
+} from "@/lib/design-tokens";
 import { selectionFeedback } from "@/lib/haptics";
 import { getConvexErrorMessage } from "@/utils/getConvexErrorMessage";
 import { safeParseWorkout, type Workout } from "@nativesquare/agoge";
-import type { SubSport, WorkoutType } from "@nativesquare/agoge/schema";
+import type {
+  SubSport,
+  WorkoutTemplate,
+  WorkoutType,
+} from "@nativesquare/agoge/schema";
 import { Ionicons } from "@expo/vector-icons";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "expo-router";
 import React from "react";
+import { Controller, useForm, useWatch } from "react-hook-form";
 import {
   ActivityIndicator,
   Keyboard,
@@ -22,34 +31,28 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { z } from "zod";
 
-// Cadence currently exposes only this subset of WorkoutType to the user.
-// The agoge schema accepts more values (intervals, vo2max, threshold, …) for
-// interop with imported workouts, but the form intentionally hides them.
-const WORKOUT_TYPES = ["easy", "tempo", "long", "race"] as const satisfies readonly WorkoutType[];
+export const WORKOUT_TYPES = [
+  "easy",
+  "tempo",
+  "long",
+] as const satisfies readonly WorkoutType[];
+export type WorkoutTypeOption = (typeof WORKOUT_TYPES)[number];
 
-const WORKOUT_TYPE_LABELS: Record<WorkoutType, string> = {
+export const WORKOUT_TYPE_LABELS: Record<WorkoutTypeOption, string> = {
   easy: "Easy",
-  long: "Long",
   tempo: "Tempo",
-  threshold: "Threshold",
-  intervals: "Intervals",
-  vo2max: "VO2max",
-  fartlek: "Fartlek",
-  progression: "Progression",
-  race_pace: "Race pace",
-  recovery: "Recovery",
-  strides: "Strides",
-  hills: "Hills",
-  race: "Race",
-  test: "Test",
-  cross_training: "Cross-training",
-  strength: "Strength",
-  rest: "Rest",
-  other: "Other",
+  long: "Long",
 };
 
-const SUB_SPORTS = [
+const WORKOUT_TYPE_COLORS: Record<WorkoutTypeOption, string> = {
+  easy: SESSION_TYPE_COLORS.easy,
+  tempo: SESSION_TYPE_COLORS.specific,
+  long: SESSION_TYPE_COLORS.long,
+};
+
+export const SUB_SPORTS = [
   "track",
   "trail",
   "treadmill",
@@ -57,8 +60,9 @@ const SUB_SPORTS = [
   "indoor",
   "virtual",
 ] as const satisfies readonly SubSport[];
+export type SubSportOption = (typeof SUB_SPORTS)[number];
 
-const SUB_SPORT_LABELS: Record<SubSport, string> = {
+export const SUB_SPORT_LABELS: Record<SubSportOption, string> = {
   track: "Track",
   trail: "Trail",
   treadmill: "Treadmill",
@@ -67,32 +71,19 @@ const SUB_SPORT_LABELS: Record<SubSport, string> = {
   virtual: "Virtual",
 };
 
-export type TemplateFormValues = {
-  name: string;
-  description?: string;
-  type: WorkoutType;
-  typeNotes?: string;
-  subSport?: SubSport;
-  structure: Workout | undefined;
-};
+const formSchema = z.object({
+  name: z.string().trim().min(1, "Name is required"),
+  description: z.string().optional(),
+  type: z.custom<WorkoutType>(),
+  typeNotes: z.string().optional(),
+  subSport: z.custom<SubSport>().optional(),
+  structure: z.custom<Workout>(),
+});
 
-export type TemplateFormInitial = {
-  name: string;
-  description?: string;
-  type: WorkoutType;
-  typeNotes?: string;
-  subSport?: SubSport;
-  structure?: Workout;
-};
-
-const EMPTY_INITIAL: TemplateFormInitial = {
-  name: "",
-  type: "easy",
-};
+export type FormValues = z.infer<typeof formSchema>;
 
 export function WorkoutTemplateForm({
   title,
-  mode,
   initial,
   submitLabel,
   onSubmit,
@@ -102,39 +93,47 @@ export function WorkoutTemplateForm({
 }: {
   title: string;
   mode: "create" | "edit";
-  initial?: TemplateFormInitial;
+  initial?: WorkoutTemplate;
   submitLabel: string;
-  onSubmit: (values: TemplateFormValues) => Promise<void>;
+  onSubmit: (values: FormValues) => Promise<void>;
   onDelete?: () => Promise<void>;
   readOnly?: boolean;
   readOnlyReason?: string;
 }) {
   const router = useRouter();
-  const seed = initial ?? EMPTY_INITIAL;
-  const [name, setName] = React.useState(seed.name);
-  const [description, setDescription] = React.useState(seed.description ?? "");
-  const [type, setType] = React.useState<WorkoutType>(seed.type);
-  const [typeNotes, setTypeNotes] = React.useState(seed.typeNotes ?? "");
-  const [subSport, setSubSport] = React.useState<SubSport | undefined>(
-    seed.subSport,
-  );
-  const [structure, setStructure] = React.useState<Workout>(
-    seed.structure ?? emptyWorkout(),
-  );
-  const [isLoading, setIsLoading] = React.useState(false);
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+    mode: "onSubmit",
+    reValidateMode: "onChange",
+    defaultValues: {
+      name: initial?.name ?? "",
+      description: initial?.description ?? "",
+      type: initial?.type ?? "easy",
+      typeNotes: initial?.typeNotes ?? "",
+      subSport: initial?.subSport,
+      structure: initial?.content?.structure ?? {
+        schema_version: 1,
+        discipline: "endurance",
+        sport: "run",
+        blocks: [],
+      },
+    },
+  });
+
   const [isDeleting, setIsDeleting] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
+  const [submitError, setSubmitError] = React.useState<string | null>(null);
   const deleteSheetRef = React.useRef<BottomSheetModal>(null);
 
+  const structure = useWatch({ control: form.control, name: "structure" });
+  const name = useWatch({ control: form.control, name: "name" });
+
   const errorByPath = React.useMemo(() => {
-    if (structure.blocks.length === 0) return {};
+    if (!structure || structure.blocks.length === 0) return {};
     const result = safeParseWorkout(structure);
     if (result.success) return {};
     const map: Record<string, string> = {};
     for (const issue of result.error.issues) {
       const path = issue.path.join(".");
-      // Only surface block-level errors to per-block highlighting; root-level
-      // sport/discipline errors fall into the general error banner below.
       if (path.startsWith("blocks.") && map[path] == null) {
         map[path] = issue.message;
       }
@@ -143,7 +142,7 @@ export function WorkoutTemplateForm({
   }, [structure]);
 
   const structureError = React.useMemo(() => {
-    if (structure.blocks.length === 0) return null;
+    if (!structure || structure.blocks.length === 0) return null;
     const result = safeParseWorkout(structure);
     if (result.success) return null;
     const first = result.error.issues[0];
@@ -151,33 +150,33 @@ export function WorkoutTemplateForm({
     return `${first.path.join(".") || "structure"}: ${first.message}`;
   }, [structure]);
 
+  const isSubmitting = form.formState.isSubmitting;
   const canSave =
     !readOnly &&
-    name.trim().length > 0 &&
     structureError == null &&
-    !isLoading;
+    !isSubmitting &&
+    name.trim().length > 0 &&
+    structure.blocks.length > 0;
 
-  const handleSave = async () => {
-    if (!canSave) return;
-    setError(null);
+  const handleSave = form.handleSubmit(async (data) => {
+    if (structureError != null) return;
+    setSubmitError(null);
     Keyboard.dismiss();
-    setIsLoading(true);
     try {
       await onSubmit({
-        name: name.trim(),
-        description: description.trim() || undefined,
-        type,
-        typeNotes: typeNotes.trim() || undefined,
-        subSport,
-        structure: structure.blocks.length > 0 ? structure : undefined,
+        name: data.name,
+        description: data.description?.trim() || undefined,
+        type: data.type,
+        typeNotes: data.typeNotes?.trim() || undefined,
+        subSport: data.subSport,
+        structure:
+          data.structure.blocks.length > 0 ? data.structure : undefined,
       });
       router.back();
     } catch (err) {
-      setError(getConvexErrorMessage(err));
-    } finally {
-      setIsLoading(false);
+      setSubmitError(getConvexErrorMessage(err));
     }
-  };
+  });
 
   const handleDelete = async () => {
     if (!onDelete) return;
@@ -187,7 +186,7 @@ export function WorkoutTemplateForm({
       deleteSheetRef.current?.dismiss();
       router.back();
     } catch (err) {
-      setError(getConvexErrorMessage(err));
+      setSubmitError(getConvexErrorMessage(err));
       setIsDeleting(false);
     }
   };
@@ -225,78 +224,129 @@ export function WorkoutTemplateForm({
       >
         <View className="w-full max-w-md gap-8 self-center">
           <FormSection title="Template">
-            <FormField label="Name">
-              <TextInput
-                className="h-12 rounded-xl border px-4 font-coach-medium text-[15px]"
-                style={inputStyle}
-                placeholder="e.g. Tuesday Tempo"
-                placeholderTextColor={LIGHT_THEME.wMute}
-                value={name}
-                onChangeText={setName}
-                editable={!readOnly}
-                autoCapitalize="words"
-                selectionColor={COLORS.lime}
-                cursorColor={COLORS.lime}
-              />
-            </FormField>
+            <Controller
+              control={form.control}
+              name="name"
+              render={({ field, fieldState }) => (
+                <FormField label="Name" error={fieldState.error?.message}>
+                  <TextInput
+                    className="h-12 rounded-xl border px-4 font-coach-medium text-[15px]"
+                    style={inputStyle}
+                    placeholder="e.g. Tuesday Tempo"
+                    placeholderTextColor={LIGHT_THEME.wMute}
+                    value={field.value}
+                    onChangeText={field.onChange}
+                    onBlur={field.onBlur}
+                    editable={!readOnly}
+                    autoCapitalize="words"
+                    selectionColor={COLORS.lime}
+                    cursorColor={COLORS.lime}
+                  />
+                </FormField>
+              )}
+            />
 
-            <FormField label="Description (optional)">
-              <TextInput
-                className="min-h-[80px] rounded-xl border px-4 py-3 font-coach-medium text-[15px]"
-                style={inputStyle}
-                placeholder="What this workout is for"
-                placeholderTextColor={LIGHT_THEME.wMute}
-                value={description}
-                onChangeText={setDescription}
-                editable={!readOnly}
-                multiline
-                textAlignVertical="top"
-                selectionColor={COLORS.lime}
-                cursorColor={COLORS.lime}
-              />
-            </FormField>
+            <Controller
+              control={form.control}
+              name="description"
+              render={({ field, fieldState }) => (
+                <FormField
+                  label="Description (optional)"
+                  error={fieldState.error?.message}
+                >
+                  <TextInput
+                    className="min-h-[80px] rounded-xl border px-4 py-3 font-coach-medium text-[15px]"
+                    style={inputStyle}
+                    placeholder="What this workout is for"
+                    placeholderTextColor={LIGHT_THEME.wMute}
+                    value={field.value ?? ""}
+                    onChangeText={field.onChange}
+                    onBlur={field.onBlur}
+                    editable={!readOnly}
+                    multiline
+                    textAlignVertical="top"
+                    selectionColor={COLORS.lime}
+                    cursorColor={COLORS.lime}
+                  />
+                </FormField>
+              )}
+            />
 
-            <FormField label="Type">
-              <PillSelect
-                options={WORKOUT_TYPES}
-                labels={WORKOUT_TYPE_LABELS}
-                value={type}
-                onChange={setType}
-                disabled={readOnly}
-              />
-            </FormField>
+            <Controller
+              control={form.control}
+              name="type"
+              render={({ field, fieldState }) => (
+                <FormField label="Type" error={fieldState.error?.message}>
+                  <PillSelect
+                    options={WORKOUT_TYPES}
+                    labels={WORKOUT_TYPE_LABELS}
+                    value={field.value}
+                    onChange={field.onChange}
+                    disabled={readOnly}
+                    colorByValue={WORKOUT_TYPE_COLORS}
+                  />
+                </FormField>
+              )}
+            />
 
-            <FormField label="Type notes (optional)">
-              <TextInput
-                className="h-12 rounded-xl border px-4 font-coach-medium text-[15px]"
-                style={inputStyle}
-                placeholder="Any extra context on the type"
-                placeholderTextColor={LIGHT_THEME.wMute}
-                value={typeNotes}
-                onChangeText={setTypeNotes}
-                editable={!readOnly}
-                selectionColor={COLORS.lime}
-                cursorColor={COLORS.lime}
-              />
-            </FormField>
+            <Controller
+              control={form.control}
+              name="typeNotes"
+              render={({ field, fieldState }) => (
+                <FormField
+                  label="Type notes (optional)"
+                  error={fieldState.error?.message}
+                >
+                  <TextInput
+                    className="h-12 rounded-xl border px-4 font-coach-medium text-[15px]"
+                    style={inputStyle}
+                    placeholder="Any extra context on the type"
+                    placeholderTextColor={LIGHT_THEME.wMute}
+                    value={field.value ?? ""}
+                    onChangeText={field.onChange}
+                    onBlur={field.onBlur}
+                    editable={!readOnly}
+                    selectionColor={COLORS.lime}
+                    cursorColor={COLORS.lime}
+                  />
+                </FormField>
+              )}
+            />
 
-            <FormField label="Sub-sport (optional)">
-              <PillSelect
-                options={SUB_SPORTS}
-                labels={SUB_SPORT_LABELS}
-                value={subSport ?? ""}
-                onChange={(v) => setSubSport(subSport === v ? undefined : v)}
-                disabled={readOnly}
-                allowClear
-              />
-            </FormField>
+            <Controller
+              control={form.control}
+              name="subSport"
+              render={({ field, fieldState }) => (
+                <FormField
+                  label="Sub-sport (optional)"
+                  error={fieldState.error?.message}
+                >
+                  <PillSelect
+                    options={SUB_SPORTS}
+                    labels={SUB_SPORT_LABELS}
+                    value={field.value ?? ""}
+                    onChange={(v) =>
+                      field.onChange(field.value === v ? undefined : v)
+                    }
+                    disabled={readOnly}
+                    allowClear
+                  />
+                </FormField>
+              )}
+            />
           </FormSection>
 
           <FormSection title="Structure">
-            <WorkoutStructureEditor
-              value={structure}
-              onChange={setStructure}
-              errorByPath={errorByPath}
+            <Controller
+              control={form.control}
+              name="structure"
+              render={({ field }) => (
+                <WorkoutStructureEditor
+                  value={field.value}
+                  onChange={field.onChange}
+                  errorByPath={errorByPath}
+                />
+              )}
             />
             {structureError && (
               <Text
@@ -335,23 +385,23 @@ export function WorkoutTemplateForm({
 
       {!readOnly && (
         <View className="mb-safe w-full max-w-md gap-2 self-center px-4 pb-4">
-          {error && (
+          {submitError && (
             <Text
               className="text-center font-coach text-sm"
               style={{ color: COLORS.red }}
             >
-              {error}
+              {submitError}
             </Text>
           )}
           <Pressable
-            onPress={handleSave}
+            onPress={() => handleSave()}
             disabled={!canSave}
             className="items-center rounded-2xl py-3.5 active:opacity-90"
             style={{
               backgroundColor: !canSave ? LIGHT_THEME.w3 : LIGHT_THEME.wText,
             }}
           >
-            {isLoading ? (
+            {isSubmitting ? (
               <ActivityIndicator color="#FFFFFF" />
             ) : (
               <Text
@@ -381,6 +431,10 @@ export function WorkoutTemplateForm({
   );
 }
 
+// `value` is intentionally widened beyond T: persisted templates may carry
+// a type/subSport outside the form's visible options, in which case no pill
+// is highlighted but the original value still round-trips on save (as long
+// as the user doesn't pick a new pill).
 function PillSelect<T extends string>({
   options,
   labels,
@@ -388,18 +442,22 @@ function PillSelect<T extends string>({
   onChange,
   disabled = false,
   allowClear = false,
+  colorByValue,
 }: {
   options: readonly T[];
   labels: Record<T, string>;
-  value: T | "";
+  value: string | undefined;
   onChange: (v: T) => void;
   disabled?: boolean;
   allowClear?: boolean;
+  colorByValue?: Partial<Record<T, string>>;
 }) {
   return (
     <View className="flex-row flex-wrap gap-2">
       {options.map((opt) => {
         const selected = value === opt;
+        const accent = colorByValue?.[opt];
+        const selectedBg = accent ?? LIGHT_THEME.wText;
         return (
           <Pressable
             key={opt}
@@ -410,8 +468,8 @@ function PillSelect<T extends string>({
             }}
             className="rounded-full border px-[14px] py-2 active:opacity-80"
             style={{
-              backgroundColor: selected ? LIGHT_THEME.wText : LIGHT_THEME.w1,
-              borderColor: selected ? LIGHT_THEME.wText : LIGHT_THEME.wBrd,
+              backgroundColor: selected ? selectedBg : LIGHT_THEME.w1,
+              borderColor: selected ? selectedBg : LIGHT_THEME.wBrd,
               opacity: disabled ? 0.6 : 1,
             }}
           >
@@ -424,7 +482,7 @@ function PillSelect<T extends string>({
           </Pressable>
         );
       })}
-      {allowClear && value !== "" && (
+      {allowClear && value != null && value !== "" && (
         <Text
           className="px-2 py-2 font-coach text-[11px]"
           style={{ color: LIGHT_THEME.wMute }}

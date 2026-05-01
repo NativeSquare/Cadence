@@ -660,7 +660,6 @@ export declare const components: {
           content: {
             avgHr?: number;
             avgPaceMps?: number;
-            date: string;
             distanceMeters?: number;
             durationSeconds?: number;
             elevationGainMeters?: number;
@@ -668,7 +667,7 @@ export declare const components: {
             maxHr?: number;
             notes?: string;
             rpe?: number;
-            structure?: any;
+            structure: any;
           };
           description?: string;
           name: string;
@@ -1784,7 +1783,6 @@ export declare const components: {
           content: {
             avgHr?: number;
             avgPaceMps?: number;
-            date: string;
             distanceMeters?: number;
             durationSeconds?: number;
             elevationGainMeters?: number;
@@ -1792,7 +1790,7 @@ export declare const components: {
             maxHr?: number;
             notes?: string;
             rpe?: number;
-            structure?: any;
+            structure: any;
           };
           description?: string;
           name: string;
@@ -1837,7 +1835,6 @@ export declare const components: {
           content: {
             avgHr?: number;
             avgPaceMps?: number;
-            date: string;
             distanceMeters?: number;
             durationSeconds?: number;
             elevationGainMeters?: number;
@@ -1845,7 +1842,7 @@ export declare const components: {
             maxHr?: number;
             notes?: string;
             rpe?: number;
-            structure?: any;
+            structure: any;
           };
           description?: string;
           name: string;
@@ -2163,7 +2160,6 @@ export declare const components: {
           content?: {
             avgHr?: number;
             avgPaceMps?: number;
-            date: string;
             distanceMeters?: number;
             durationSeconds?: number;
             elevationGainMeters?: number;
@@ -2171,7 +2167,7 @@ export declare const components: {
             maxHr?: number;
             notes?: string;
             rpe?: number;
-            structure?: any;
+            structure: any;
           };
           description?: string;
           name?: string;

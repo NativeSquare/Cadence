@@ -1,6 +1,6 @@
 import {
   WorkoutTemplateForm,
-  type TemplateFormValues,
+  type FormValues,
 } from "@/components/app/workout-templates/workout-template-form";
 import { api } from "@packages/backend/convex/_generated/api";
 import { useMutation } from "convex/react";
@@ -11,7 +11,7 @@ export default function NewTemplateScreen() {
     api.agoge.workoutTemplates.createWorkoutTemplate,
   );
 
-  const handleSubmit = async (values: TemplateFormValues) => {
+  const handleSubmit = async (values: FormValues) => {
     await createTemplate({
       name: values.name,
       description: values.description,

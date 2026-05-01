@@ -1,13 +1,15 @@
 import { Text } from "@/components/ui/text";
-import { LIGHT_THEME } from "@/lib/design-tokens";
+import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
 import React from "react";
 import { View } from "react-native";
 
 export function FormField({
   label,
+  error,
   children,
 }: {
   label: string;
+  error?: string;
   children: React.ReactNode;
 }) {
   return (
@@ -19,6 +21,14 @@ export function FormField({
         {label}
       </Text>
       {children}
+      {error && (
+        <Text
+          className="px-1 font-coach text-[12px]"
+          style={{ color: COLORS.red }}
+        >
+          {error}
+        </Text>
+      )}
     </View>
   );
 }

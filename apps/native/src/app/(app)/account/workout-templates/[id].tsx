@@ -1,13 +1,11 @@
 import {
   WorkoutTemplateForm,
-  type TemplateFormInitial,
-  type TemplateFormValues,
+  type FormValues,
 } from "@/components/app/workout-templates/workout-template-form";
 import { Text } from "@/components/ui/text";
 import { LIGHT_THEME } from "@/lib/design-tokens";
 import { api } from "@packages/backend/convex/_generated/api";
-import type { Workout } from "@nativesquare/agoge";
-import type { SubSport, WorkoutType } from "@nativesquare/agoge/schema";
+import type { WorkoutTemplate } from "@nativesquare/agoge/schema";
 import { useMutation, useQuery } from "convex/react";
 import { useLocalSearchParams } from "expo-router";
 import React from "react";
@@ -52,16 +50,7 @@ export default function TemplateDetailScreen() {
 
   const isGlobal = template.athleteId == null;
 
-  const initial: TemplateFormInitial = {
-    name: template.name,
-    description: template.description,
-    type: template.type as WorkoutType,
-    typeNotes: template.typeNotes,
-    subSport: template.subSport as SubSport | undefined,
-    structure: template.content?.structure as Workout | undefined,
-  };
-
-  const handleSubmit = async (values: TemplateFormValues) => {
+  const handleSubmit = async (values: FormValues) => {
     await updateTemplate({
       templateId: id,
       name: values.name,
@@ -81,7 +70,7 @@ export default function TemplateDetailScreen() {
     <WorkoutTemplateForm
       title="Template"
       mode="edit"
-      initial={initial}
+      initial={template as unknown as WorkoutTemplate}
       submitLabel="Save"
       onSubmit={handleSubmit}
       onDelete={isGlobal ? undefined : handleDelete}

@@ -1,35 +1,17 @@
 import { Text } from "@/components/ui/text";
-import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
+import {
+  LIGHT_THEME,
+  SESSION_TYPE_COLORS,
+  SESSION_TYPE_COLORS_DIM,
+  getSessionCategory,
+} from "@/lib/design-tokens";
 import { api } from "@packages/backend/convex/_generated/api";
-import type { Workout } from "@nativesquare/agoge";
+import type { WorkoutTemplateDoc } from "@nativesquare/agoge/schema";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "convex/react";
 import { useRouter } from "expo-router";
 import React from "react";
 import { Pressable, ScrollView, View } from "react-native";
-
-type TemplateDoc = NonNullable<
-  ReturnType<typeof useQuery<typeof api.agoge.workoutTemplates.listMyWorkoutTemplates>>
->[number];
-
-function countSteps(structure: unknown): number {
-  if (
-    structure == null ||
-    typeof structure !== "object" ||
-    !Array.isArray((structure as Workout).blocks)
-  ) {
-    return 0;
-  }
-  let total = 0;
-  for (const block of (structure as Workout).blocks) {
-    if (block.kind === "step") {
-      total += 1;
-    } else {
-      total += block.children.length * block.count;
-    }
-  }
-  return total;
-}
 
 const WORKOUT_TYPE_LABELS: Record<string, string> = {
   easy: "Easy",
@@ -57,7 +39,10 @@ export default function WorkoutTemplatesListScreen() {
   const templates = useQuery(api.agoge.workoutTemplates.listMyWorkoutTemplates);
 
   return (
-    <View className="pt-safe flex-1" style={{ backgroundColor: LIGHT_THEME.w2 }}>
+    <View
+      className="pt-safe flex-1"
+      style={{ backgroundColor: LIGHT_THEME.w2 }}
+    >
       <View
         className="flex-row items-center gap-3 px-4 pb-3 pt-4"
         style={{ borderBottomWidth: 1, borderBottomColor: LIGHT_THEME.wBrd }}
@@ -119,7 +104,7 @@ export default function WorkoutTemplatesListScreen() {
           </View>
         ) : (
           <View className="w-full max-w-md gap-3 self-center">
-            {templates.map((template: TemplateDoc) => (
+            {templates.map((template) => (
               <TemplateRow
                 key={template._id}
                 template={template}
@@ -142,11 +127,13 @@ function TemplateRow({
   template,
   onPress,
 }: {
-  template: TemplateDoc;
+  template: Pick<WorkoutTemplateDoc, "name" | "type">;
   onPress: () => void;
 }) {
-  const stepCount = countSteps(template.content?.structure);
   const typeLabel = WORKOUT_TYPE_LABELS[template.type] ?? template.type;
+  const category = getSessionCategory(template.type);
+  const typeColor = SESSION_TYPE_COLORS[category];
+  const typeColorDim = SESSION_TYPE_COLORS_DIM[category];
 
   return (
     <Pressable
@@ -159,9 +146,9 @@ function TemplateRow({
     >
       <View
         className="size-10 items-center justify-center rounded-xl"
-        style={{ backgroundColor: "rgba(168,217,0,0.12)" }}
+        style={{ backgroundColor: typeColorDim }}
       >
-        <Ionicons name="barbell-outline" size={18} color={COLORS.lime} />
+        <Ionicons name="barbell-outline" size={18} color={typeColor} />
       </View>
       <View className="flex-1">
         <Text
@@ -177,9 +164,6 @@ function TemplateRow({
           style={{ color: LIGHT_THEME.wSub }}
         >
           {typeLabel}
-          {stepCount > 0
-            ? ` · ${stepCount} ${stepCount === 1 ? "step" : "steps"}`
-            : ""}
         </Text>
       </View>
       <Ionicons name="chevron-forward" size={16} color={LIGHT_THEME.wMute} />

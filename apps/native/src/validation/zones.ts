@@ -34,6 +34,12 @@ const PaceBoundaryField = PaceMpsString;
 
 export type ZoneKind = "hr" | "pace";
 
+// Sentinel cap values for Z5's upper bound (mirrors @nativesquare/agoge).
+export const ZONE_CAP: Record<ZoneKind, number> = {
+  hr: 255,
+  pace: 1609.34,
+};
+
 export const ZONE_ORDERING_MESSAGES: Record<ZoneKind, string> = {
   hr: "Each zone must be higher than the one below",
   pace: "Each zone must be faster than the one below",
@@ -44,9 +50,16 @@ export const ZONE_FORMAT_MESSAGES: Record<ZoneKind, string> = {
   pace: "Use min:sec per km (e.g. 3:45)",
 };
 
+export const ZONE_CAP_MESSAGES: Record<ZoneKind, string> = {
+  hr: `Must be below ${ZONE_CAP.hr} bpm`,
+  pace: "Pace is implausibly fast",
+};
+
 export function makeZonesFormSchema(kind: ZoneKind) {
   const field = kind === "hr" ? HrBoundaryField : PaceBoundaryField;
   const orderingMessage = ZONE_ORDERING_MESSAGES[kind];
+  const capMessage = ZONE_CAP_MESSAGES[kind];
+  const cap = ZONE_CAP[kind];
   return z
     .object({ b1: field, b2: field, b3: field, b4: field })
     .superRefine((data, ctx) => {
@@ -59,6 +72,12 @@ export function makeZonesFormSchema(kind: ZoneKind) {
             code: "custom",
             path: [keys[i]],
             message: orderingMessage,
+          });
+        } else if (values[i] >= cap) {
+          ctx.addIssue({
+            code: "custom",
+            path: [keys[i]],
+            message: capMessage,
           });
         }
         prev = values[i];
