@@ -2,14 +2,10 @@ import { FormField, FormSection } from "@/components/app/form";
 import { ConfirmationSheet } from "@/components/shared/confirmation-sheet";
 import { WorkoutStructureEditor } from "@/components/app/workout-templates/workout-structure-editor";
 import { Text } from "@/components/ui/text";
-import {
-  COLORS,
-  LIGHT_THEME,
-  SESSION_TYPE_COLORS,
-} from "@/lib/design-tokens";
+import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
 import { selectionFeedback } from "@/lib/haptics";
 import { getConvexErrorMessage } from "@/utils/getConvexErrorMessage";
-import { safeParseWorkout, type Workout } from "@nativesquare/agoge";
+import { safeParseWorkout, workoutSchemaValidated } from "@nativesquare/agoge";
 import type {
   SubSport,
   WorkoutTemplate,
@@ -32,44 +28,13 @@ import {
   View,
 } from "react-native";
 import { z } from "zod";
-
-export const WORKOUT_TYPES = [
-  "easy",
-  "tempo",
-  "long",
-] as const satisfies readonly WorkoutType[];
-export type WorkoutTypeOption = (typeof WORKOUT_TYPES)[number];
-
-export const WORKOUT_TYPE_LABELS: Record<WorkoutTypeOption, string> = {
-  easy: "Easy",
-  tempo: "Tempo",
-  long: "Long",
-};
-
-const WORKOUT_TYPE_COLORS: Record<WorkoutTypeOption, string> = {
-  easy: SESSION_TYPE_COLORS.easy,
-  tempo: SESSION_TYPE_COLORS.specific,
-  long: SESSION_TYPE_COLORS.long,
-};
-
-export const SUB_SPORTS = [
-  "track",
-  "trail",
-  "treadmill",
-  "street",
-  "indoor",
-  "virtual",
-] as const satisfies readonly SubSport[];
-export type SubSportOption = (typeof SUB_SPORTS)[number];
-
-export const SUB_SPORT_LABELS: Record<SubSportOption, string> = {
-  track: "Track",
-  trail: "Trail",
-  treadmill: "Treadmill",
-  street: "Street",
-  indoor: "Indoor",
-  virtual: "Virtual",
-};
+import {
+  SUB_SPORT_LABELS,
+  SUB_SPORTS,
+  WORKOUT_TYPE_COLORS,
+  WORKOUT_TYPE_LABELS,
+  WORKOUT_TYPES,
+} from "../workout/workout-helpers";
 
 const formSchema = z.object({
   name: z.string().trim().min(1, "Name is required"),
@@ -77,9 +42,8 @@ const formSchema = z.object({
   type: z.custom<WorkoutType>(),
   typeNotes: z.string().optional(),
   subSport: z.custom<SubSport>().optional(),
-  structure: z.custom<Workout>(),
+  structure: workoutSchemaValidated,
 });
-
 export type FormValues = z.infer<typeof formSchema>;
 
 export function WorkoutTemplateForm({
@@ -92,7 +56,6 @@ export function WorkoutTemplateForm({
   readOnlyReason,
 }: {
   title: string;
-  mode: "create" | "edit";
   initial?: WorkoutTemplate;
   submitLabel: string;
   onSubmit: (values: FormValues) => Promise<void>;
@@ -169,8 +132,7 @@ export function WorkoutTemplateForm({
         type: data.type,
         typeNotes: data.typeNotes?.trim() || undefined,
         subSport: data.subSport,
-        structure:
-          data.structure.blocks.length > 0 ? data.structure : undefined,
+        structure: data.structure,
       });
       router.back();
     } catch (err) {

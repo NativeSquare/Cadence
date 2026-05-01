@@ -17,9 +17,10 @@ import {
 } from "@/lib/design-tokens";
 import { selectionFeedback } from "@/lib/haptics";
 import { getConvexErrorMessage } from "@/utils/getConvexErrorMessage";
-import { safeParseWorkout, type Workout } from "@nativesquare/agoge";
+import { safeParseWorkout, workoutSchemaValidated } from "@nativesquare/agoge";
 import type {
   SubSport,
+  Workout,
   WorkoutType,
 } from "@nativesquare/agoge/schema";
 import { Ionicons } from "@expo/vector-icons";
@@ -41,26 +42,6 @@ import {
 } from "react-native";
 import { z } from "zod";
 
-const WORKOUT_TYPE_COLORS: Partial<Record<WorkoutType, string>> = {
-  easy: SESSION_TYPE_COLORS.easy,
-  tempo: SESSION_TYPE_COLORS.specific,
-  long: SESSION_TYPE_COLORS.long,
-};
-
-const CATEGORY_TO_TYPE: Record<SessionCategory, WorkoutType> = {
-  easy: "easy",
-  specific: "tempo",
-  long: "long",
-  race: "race",
-};
-
-const EMPTY_STRUCTURE: Workout = {
-  schema_version: 1,
-  discipline: "endurance",
-  sport: "run",
-  blocks: [],
-};
-
 function todayDateString(): string {
   const now = new Date();
   const y = now.getFullYear();
@@ -70,16 +51,14 @@ function todayDateString(): string {
 }
 
 const formSchema = z.object({
-  date: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, "Date is required"),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date is required"),
   workoutMode: z.enum(["done", "scheduled"]),
   name: z.string().trim().min(1, "Name is required"),
   description: z.string().optional(),
   type: z.custom<WorkoutType>(),
   typeNotes: z.string().optional(),
   subSport: z.custom<SubSport>().optional(),
-  structure: z.custom<Workout>(),
+  structure: workoutSchemaValidated,
 });
 
 export type FormValues = z.infer<typeof formSchema>;
@@ -131,7 +110,7 @@ export function WorkoutForm({
 }: {
   title: string;
   mode?: WorkoutFormMode;
-  initial?: WorkoutFormInitial;
+  initial?: Workout;
   category?: SessionCategory;
   initialDate?: string;
   templates?: TemplateOption[];
@@ -147,8 +126,8 @@ export function WorkoutForm({
       ? CATEGORY_TO_TYPE[category]
       : "easy";
 
-  const initialStructure = (initial?.structure as Workout | undefined)
-    ?? EMPTY_STRUCTURE;
+  const initialStructure =
+    (initial?.structure as Workout | undefined) ?? EMPTY_STRUCTURE;
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -159,10 +138,15 @@ export function WorkoutForm({
       workoutMode: initial?.workoutMode ?? "done",
       name: initial?.name ?? "",
       description: initial?.description ?? "",
-      type: defaultType,
+      type: initial?.type ?? "easy",
       typeNotes: initial?.typeNotes ?? "",
       subSport: initial?.subSport,
-      structure: initialStructure,
+      structure: initial?.content?.structure ?? {
+        schema_version: 1,
+        discipline: "endurance",
+        sport: "run",
+        blocks: [],
+      },
     },
   });
 
@@ -361,12 +345,10 @@ export function WorkoutForm({
               render={({ field }) => (
                 <FormField label="Status">
                   <View className="flex-row gap-2">
-                    {(
-                      [
-                        { mode: "done" as const, label: "Just did it" },
-                        { mode: "scheduled" as const, label: "Scheduling it" },
-                      ]
-                    ).map(({ mode: m, label }) => {
+                    {[
+                      { mode: "done" as const, label: "Just did it" },
+                      { mode: "scheduled" as const, label: "Scheduling it" },
+                    ].map(({ mode: m, label }) => {
                       const selected = field.value === m;
                       return (
                         <Pressable
