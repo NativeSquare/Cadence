@@ -11,7 +11,11 @@ import type { SomaActivity } from "@nativesquare/soma/validators";
 import { v } from "convex/values";
 import { components, internal } from "../_generated/api";
 import { internalAction } from "../_generated/server";
-import { fromSoma } from "./adapter";
+
+// Terra activity-type ids we treat as running.
+// 8 = running, 97/98 = racing variants, 0 = unstructured/unknown.
+// https://docs.tryterra.co/reference/enums#activity-types
+const RUNNING_TERRA_TYPES = new Set([0, 8, 97, 98]);
 
 // ─── Formatting helpers ──────────────────────────────────────────────────────
 
@@ -117,35 +121,33 @@ export const matchActivityToWorkout = internalAction({
     }
 
     const latestActivity = recentActivities[0];
-    const inferenceActivity = fromSoma.activity(latestActivity);
+
+    const startTimeMs = new Date(latestActivity.metadata.start_time).getTime();
+    const endTimeMs = new Date(latestActivity.metadata.end_time).getTime();
+    const computedDuration = Math.round((endTimeMs - startTimeMs) / 1000);
+    const durationSeconds = computedDuration > 0 ? computedDuration : undefined;
+    const distanceMeters = latestActivity.distance_data?.summary?.distance_meters;
+    const avgHeartRate = latestActivity.heart_rate_data?.summary?.avg_hr_bpm;
+    const maxHeartRate = latestActivity.heart_rate_data?.summary?.max_hr_bpm;
+    const trainingLoad = latestActivity.TSS_data?.TSS_samples?.[0]?.actual;
+    const terraType = latestActivity.metadata.type;
 
     console.log(
       `${TAG} ✓ Latest activity:\n` +
         `    Soma ID: ${latestActivity._id}\n` +
-        `    Type: ${inferenceActivity.workoutType}  |  Started: ${new Date(inferenceActivity.startTime).toLocaleString()}\n` +
-        `    Duration: ${fmtDuration(inferenceActivity.durationSeconds)}  |  Distance: ${fmtKm(inferenceActivity.distanceMeters)}  |  Pace: ${fmtPace(inferenceActivity.durationSeconds, inferenceActivity.distanceMeters)}\n` +
-        `    HR: avg ${inferenceActivity.avgHeartRate ?? "—"} bpm  |  max ${inferenceActivity.maxHeartRate ?? "—"} bpm`,
+        `    Terra type: ${terraType ?? "—"}  |  Started: ${new Date(startTimeMs).toLocaleString()}\n` +
+        `    Duration: ${fmtDuration(durationSeconds)}  |  Distance: ${fmtKm(distanceMeters)}  |  Pace: ${fmtPace(durationSeconds, distanceMeters)}\n` +
+        `    HR: avg ${avgHeartRate ?? "—"} bpm  |  max ${maxHeartRate ?? "—"} bpm`,
     );
 
-    const runningTypes = [
-      "easy",
-      "tempo",
-      "intervals",
-      "long_run",
-      "race",
-      "unstructured",
-    ];
-    if (
-      inferenceActivity.workoutType &&
-      !runningTypes.includes(inferenceActivity.workoutType)
-    ) {
+    if (terraType !== undefined && !RUNNING_TERRA_TYPES.has(terraType)) {
       console.log(
-        `${TAG} ✗ Activity type "${inferenceActivity.workoutType}" is not running. Skipping.`,
+        `${TAG} ✗ Activity Terra type ${terraType} is not running. Skipping.`,
       );
       return null;
     }
 
-    const activityStartMs = inferenceActivity.startTime;
+    const activityStartMs = startTimeMs;
 
     // ── Step 3: Find eligible planned workouts ──────────────────────────────
     const windowStartMs = now - 24 * 60 * 60 * 1000;
@@ -200,15 +202,15 @@ export const matchActivityToWorkout = internalAction({
       status: "completed" as const,
       actual: {
         date: toIsoDate(activityStartMs),
-        durationSeconds: inferenceActivity.durationSeconds,
-        distanceMeters: inferenceActivity.distanceMeters,
+        durationSeconds,
+        distanceMeters,
         avgPaceMps:
-          inferenceActivity.distanceMeters && inferenceActivity.durationSeconds
-            ? inferenceActivity.distanceMeters / inferenceActivity.durationSeconds
+          distanceMeters && durationSeconds
+            ? distanceMeters / durationSeconds
             : undefined,
-        avgHr: inferenceActivity.avgHeartRate,
-        maxHr: inferenceActivity.maxHeartRate,
-        load: inferenceActivity.trainingLoad,
+        avgHr: avgHeartRate,
+        maxHr: maxHeartRate,
+        load: trainingLoad,
         notes: `externalRef:${latestActivity._id}`,
       },
     });
