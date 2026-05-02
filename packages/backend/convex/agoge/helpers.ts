@@ -111,6 +111,61 @@ export function assertWorkoutStructure(raw: unknown): Workout {
   return result.data;
 }
 
+export function assertStructureSportMatchesWorkout(
+  structure: Workout,
+  workoutSport: string,
+) {
+  if (structure.sport !== workoutSport) {
+    throw new ConvexError({
+      code: "SPORT_MISMATCH",
+      message: `Workout sport is "${workoutSport}" but structure sport is "${structure.sport}".`,
+    });
+  }
+}
+
+function collectZoneTargetTypes(structure: Workout): Set<string> {
+  const types = new Set<string>();
+  const visit = (step: { target?: { type: string } }) => {
+    const t = step.target?.type;
+    if (t === "hr_zone" || t === "power_zone") types.add(t);
+  };
+  for (const block of structure.blocks) {
+    if (block.kind === "step") visit(block);
+    else for (const child of block.children) visit(child);
+  }
+  return types;
+}
+
+export async function assertZonesAvailableForStructure(
+  ctx: QueryCtx | MutationCtx,
+  athleteId: string,
+  structure: Workout,
+) {
+  const targetTypes = collectZoneTargetTypes(structure);
+  if (targetTypes.size === 0) return;
+
+  if (targetTypes.has("power_zone")) {
+    throw new ConvexError({
+      code: "MISSING_ZONE",
+      message:
+        "This workout uses power zones, but power zones are not configured.",
+    });
+  }
+  if (targetTypes.has("hr_zone")) {
+    const hrZone = await ctx.runQuery(
+      components.agoge.public.getZoneByAthleteKind,
+      { athleteId, kind: "hr" },
+    );
+    if (!hrZone) {
+      throw new ConvexError({
+        code: "MISSING_ZONE",
+        message:
+          "This workout uses HR zones, but you have no HR zone configured.",
+      });
+    }
+  }
+}
+
 export async function assertAthletePlan(
   ctx: QueryCtx | MutationCtx,
   athleteId: string,

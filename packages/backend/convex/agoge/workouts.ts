@@ -10,10 +10,12 @@ import {
   assertFaceDatesAreUtc,
   assertPlannedDateNotAfterActual,
   assertPlannedFace,
+  assertStructureSportMatchesWorkout,
   assertUtcDate,
   assertWorkoutOwnership,
   assertWorkoutStructure,
   assertWorkoutTemplateOwnership,
+  assertZonesAvailableForStructure,
   loadAthlete,
   loadOwnedWorkout,
 } from "./helpers";
@@ -64,10 +66,14 @@ export const createWorkout = mutation({
     assertActualDateNotInFuture(args.actual);
 
     if (args.planned?.structure !== undefined) {
-      assertWorkoutStructure(args.planned.structure);
+      const parsed = assertWorkoutStructure(args.planned.structure);
+      assertStructureSportMatchesWorkout(parsed, args.sport);
+      await assertZonesAvailableForStructure(ctx, athlete._id, parsed);
     }
     if (args.actual?.structure !== undefined) {
-      assertWorkoutStructure(args.actual.structure);
+      const parsed = assertWorkoutStructure(args.actual.structure);
+      assertStructureSportMatchesWorkout(parsed, args.sport);
+      await assertZonesAvailableForStructure(ctx, athlete._id, parsed);
     }
 
     if (args.templateId) {
@@ -131,11 +137,25 @@ export const updateWorkout = mutation({
 
     assertFaceDatesAreUtc(rest.planned, rest.actual);
 
+    const nextSport = rest.sport ?? existing.sport;
+
     if (rest.planned?.structure !== undefined) {
-      assertWorkoutStructure(rest.planned.structure);
+      const parsed = assertWorkoutStructure(rest.planned.structure);
+      assertStructureSportMatchesWorkout(parsed, nextSport);
+      await assertZonesAvailableForStructure(
+        ctx,
+        existing.athleteId,
+        parsed,
+      );
     }
     if (rest.actual?.structure !== undefined) {
-      assertWorkoutStructure(rest.actual.structure);
+      const parsed = assertWorkoutStructure(rest.actual.structure);
+      assertStructureSportMatchesWorkout(parsed, nextSport);
+      await assertZonesAvailableForStructure(
+        ctx,
+        existing.athleteId,
+        parsed,
+      );
     }
 
     if (rest.templateId) {
