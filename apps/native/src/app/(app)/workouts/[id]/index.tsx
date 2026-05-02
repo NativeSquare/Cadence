@@ -1,15 +1,15 @@
 import { useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
-import { SessionDetailPage } from "@/components/app/session/session-detail-page";
+import { WorkoutDetailPage } from "@/components/app/workout/workout-detail-page";
 
-export default function SessionRoute() {
+export default function WorkoutRoute() {
   const { id } = useLocalSearchParams<{ id: string }>();
 
   return (
     <BottomSheetModalProvider>
       <View className="flex-1 bg-black">
-        <SessionDetailPage sessionId={id} />
+        <WorkoutDetailPage workoutId={id} />
       </View>
     </BottomSheetModalProvider>
   );

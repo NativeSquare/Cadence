@@ -227,7 +227,7 @@ export function buildCalendarSessions(
       w.actual?.durationSeconds ?? w.planned?.durationSeconds,
     );
     const calSession: CalSession = {
-      sessionId: w._id,
+      workoutId: w._id,
       type: getSessionCategory(w.name) as CalSessionType,
       label: w.name,
       km,

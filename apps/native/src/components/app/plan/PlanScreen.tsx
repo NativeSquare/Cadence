@@ -37,9 +37,9 @@ import {
   buildRaceGoal,
   computeWeekInsights,
 } from "./utils";
-import type { SessionData, SyncStatus } from "./types";
+import type { WorkoutData, SyncStatus } from "./types";
 
-const REST_FALLBACK: SessionData = {
+const REST_FALLBACK: WorkoutData = {
   type: "Rest",
   km: "-",
   dur: "-",
@@ -112,7 +112,7 @@ export function PlanScreen() {
 
   const selectedDateKey = `${selectedDate.getFullYear()}-${selectedDate.getMonth()}-${selectedDate.getDate()}`;
 
-  const baseSelectedSession: SessionData =
+  const baseSelectedSession: WorkoutData =
     sessionsByDate[selectedDateKey] ?? REST_FALLBACK;
 
   const weekInsights = useMemo(
@@ -134,11 +134,11 @@ export function PlanScreen() {
     Record<string, { syncStatus: SyncStatus; syncSource: string }>
   >({});
 
-  const sessionExport = baseSelectedSession.sessionId
-    ? exportedSessions[baseSelectedSession.sessionId]
+  const sessionExport = baseSelectedSession.workoutId
+    ? exportedSessions[baseSelectedSession.workoutId]
     : undefined;
 
-  const selectedSession_: SessionData = {
+  const selectedSession_: WorkoutData = {
     ...baseSelectedSession,
     ...(sessionExport
       ? { syncStatus: sessionExport.syncStatus, syncSource: sessionExport.syncSource }
@@ -146,11 +146,11 @@ export function PlanScreen() {
   };
 
   const handleOpenSessionDetail = useCallback(() => {
-    const sid = baseSelectedSession.sessionId;
+    const sid = baseSelectedSession.workoutId;
     if (sid) {
-      router.push({ pathname: "/(app)/session/[id]", params: { id: sid } });
+      router.push(`/(app)/workouts/${sid}`);
     }
-  }, [router, baseSelectedSession.sessionId]);
+  }, [router, baseSelectedSession.workoutId]);
 
   const selectedDateIso = toIsoDate(selectedDate);
   const todayIso = toIsoDate(today);
@@ -167,13 +167,13 @@ export function PlanScreen() {
   }, []);
 
   const handleExportComplete = useCallback((provider: WatchProvider) => {
-    const sid = baseSelectedSession.sessionId;
+    const sid = baseSelectedSession.workoutId;
     if (!sid) return;
     setExportedSessions((prev) => ({
       ...prev,
       [sid]: { syncStatus: "exported" as SyncStatus, syncSource: provider },
     }));
-  }, [baseSelectedSession.sessionId]);
+  }, [baseSelectedSession.workoutId]);
 
   const handleScroll = useAnimatedScrollHandler({
     onScroll: (event) => {
@@ -377,7 +377,7 @@ export function PlanScreen() {
       <ExportToWatchSheet
         sheetRef={exportSheetRef}
         sessionType={selectedSession_.type}
-        sessionId={selectedSession_.sessionId}
+        workoutId={selectedSession_.workoutId}
         onExportComplete={handleExportComplete}
       />
     </View>

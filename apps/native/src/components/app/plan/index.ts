@@ -14,7 +14,7 @@ export { WeekInsights } from "./WeekInsights";
 export { LogRunSection } from "./QuickActions";
 
 // Types
-export type { SessionData, PlanData, RaceGoalData, SessionIntensity } from "./types";
+export type { WorkoutData, PlanData, RaceGoalData, SessionIntensity } from "./types";
 export { DAYS } from "./types";
 
 // Utilities

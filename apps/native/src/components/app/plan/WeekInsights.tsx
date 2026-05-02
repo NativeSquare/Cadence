@@ -20,7 +20,7 @@ import Animated, {
 import { Gauge, Check } from "lucide-react-native";
 import { Text } from "@/components/ui/text";
 import { COLORS } from "@/lib/design-tokens";
-import type { SessionData } from "./types";
+import type { WorkoutData } from "./types";
 
 const CARD_SHADOW = {
   borderWidth: 1,
@@ -113,7 +113,7 @@ function SessionCheckDot({ done }: { done: boolean }) {
   );
 }
 
-function SessionsInsight({ sessions }: { sessions: SessionData[] }) {
+function SessionsInsight({ sessions }: { sessions: WorkoutData[] }) {
   const trainingSessions = sessions.filter((s) => s.intensity !== "rest");
   const completed = trainingSessions.filter((s) => s.done).length;
 
@@ -211,7 +211,7 @@ interface WeekInsightsProps {
   volumePlanned: number;
   timeCompleted: string;
   avgPace: string;
-  sessions: SessionData[];
+  sessions: WorkoutData[];
 }
 
 export function WeekInsights({

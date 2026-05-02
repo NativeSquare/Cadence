@@ -26,9 +26,9 @@ export interface SyncedData {
 /**
  * Individual training session data
  */
-export interface SessionData {
+export interface WorkoutData {
   /** Agoge workout ID (present when loaded from DB) */
-  sessionId?: string;
+  workoutId?: string;
   /** Session type (e.g., "Tempo", "Easy Run", "Intervals", "Rest", "Long Run") */
   type: string;
   /** Distance in kilometers (or "-" for rest days) */
@@ -90,7 +90,7 @@ export interface PlanData {
   /** Current training phase (e.g., "Build", "Peak", "Taper") */
   phase: string;
   /** Array of 7 sessions for the week (Mon-Sun) */
-  sessions: SessionData[];
+  sessions: WorkoutData[];
   /** Kilometers completed this week */
   volumeCompleted: number;
   /** Total planned kilometers for the week */

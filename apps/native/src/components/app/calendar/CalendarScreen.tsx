@@ -254,7 +254,7 @@ export function CalendarScreen() {
     const sessions = calSessions[dateKey];
     if (sessions && sessions.length > 0) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      router.push({ pathname: "/(app)/session/[id]", params: { id: sessions[0].sessionId } });
+      router.push(`/(app)/workouts/${sessions[0].workoutId}`);
     }
   }, [calSessions, router]);
 

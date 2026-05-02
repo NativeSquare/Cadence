@@ -2,10 +2,6 @@
  * Session Detail components
  */
 
-// Unified Session Detail Page (replaces old SessionDetailScreen, SessionBriefSheet, CalendarSessionSheet)
-export { SessionDetailPage } from "./session-detail-page";
-export type { SessionDetailPageProps } from "./session-detail-page";
-
 export { SessionHeader } from "./session-header";
 export type { SessionHeaderProps } from "./session-header";
 

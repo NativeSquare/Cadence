@@ -31,7 +31,7 @@ export type WatchProvider = "garmin" | "coros";
 export interface ExportToWatchSheetProps {
   sheetRef: React.RefObject<GorhomBottomSheetModal | null>;
   sessionType: string;
-  sessionId?: string;
+  workoutId?: string;
   onExportComplete: (provider: WatchProvider) => void;
 }
 
@@ -369,7 +369,7 @@ function ErrorStep({
 export function ExportToWatchSheet({
   sheetRef,
   sessionType,
-  sessionId,
+  workoutId,
   onExportComplete,
 }: ExportToWatchSheetProps) {
   const [step, setStep] = useState<ExportStep>("select");
@@ -405,9 +405,9 @@ export function ExportToWatchSheet({
       setStep("exporting");
       setErrorMessage("");
 
-      if (provider === "garmin" && sessionId) {
+      if (provider === "garmin" && workoutId) {
         try {
-          await exportToGarmin({ workoutId: sessionId });
+          await exportToGarmin({ workoutId: workoutId });
           setStep("success");
           onExportComplete(provider);
 
@@ -426,7 +426,7 @@ export function ExportToWatchSheet({
         setStep("error");
       }
     },
-    [exportToGarmin, sessionId, onExportComplete, sheetRef, resetState],
+    [exportToGarmin, workoutId, onExportComplete, sheetRef, resetState],
   );
 
   return (

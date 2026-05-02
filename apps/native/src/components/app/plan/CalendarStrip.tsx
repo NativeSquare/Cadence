@@ -8,7 +8,7 @@ import {
   type LayoutChangeEvent,
 } from "react-native";
 import { Text } from "@/components/ui/text";
-import type { SessionData } from "./types";
+import type { WorkoutData } from "./types";
 import { getSessionColor } from "./utils";
 import { LIGHT_THEME } from "@/lib/design-tokens";
 
@@ -32,7 +32,7 @@ const WEEKS_BUFFER = 12;
 const INITIAL_INDEX = WEEKS_BUFFER;
 
 interface CalendarStripProps {
-  sessionsByDate: Record<string, SessionData>;
+  sessionsByDate: Record<string, WorkoutData>;
   selectedDate: Date;
   onDateSelect: (date: Date) => void;
 }
@@ -51,7 +51,7 @@ interface DayInfo {
 interface DayButtonProps {
   dayLabel: string;
   dateNum: number;
-  session: SessionData | undefined;
+  session: WorkoutData | undefined;
   isToday: boolean;
   isSelected: boolean;
   onPress: () => void;

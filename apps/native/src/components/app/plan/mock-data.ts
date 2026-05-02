@@ -5,9 +5,9 @@
  * This mock data will be replaced by Convex queries in production.
  */
 
-import type { PlanData, RaceGoalData, SessionData } from "./types";
+import type { PlanData, RaceGoalData, WorkoutData } from "./types";
 
-const REST_DAY: SessionData = {
+const REST_DAY: WorkoutData = {
   type: "Rest",
   km: "-",
   dur: "-",
@@ -17,13 +17,13 @@ const REST_DAY: SessionData = {
   zone: "-",
 };
 
-const REST_DONE: SessionData = { ...REST_DAY, done: true };
+const REST_DONE: WorkoutData = { ...REST_DAY, done: true };
 
 /**
  * Mock 7-day training plan for the current week.
  * 4 running sessions + 3 rest days. TODAY_INDEX (3) points to Easy Run.
  */
-export const MOCK_SESSIONS: SessionData[] = [
+export const MOCK_SESSIONS: WorkoutData[] = [
   {
     type: "Tempo",
     km: "8.5",
@@ -89,7 +89,7 @@ function toDateKey(d: Date): string {
   return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
 }
 
-const WEEK_MINUS_2: SessionData[] = [
+const WEEK_MINUS_2: WorkoutData[] = [
   { type: "Tempo", km: "7.5", dur: "43min", done: true, intensity: "high", desc: "3x2km @ 5:00 with 90s recovery", zone: "Z4" },
   REST_DONE,
   { type: "Easy Run", km: "6.0", dur: "36min", done: true, intensity: "low", desc: "Recovery pace, conversational", zone: "Z2" },
@@ -99,7 +99,7 @@ const WEEK_MINUS_2: SessionData[] = [
   { type: "Long Run", km: "14.0", dur: "1h20", done: true, intensity: "key", desc: "Aerobic base, even splits", zone: "Z2-3" },
 ];
 
-const WEEK_MINUS_1: SessionData[] = [
+const WEEK_MINUS_1: WorkoutData[] = [
   { type: "Easy Run", km: "6.5", dur: "38min", done: true, intensity: "low", desc: "Shake-out jog, stay relaxed", zone: "Z2" },
   REST_DONE,
   { type: "Tempo", km: "9.0", dur: "50min", done: true, intensity: "high", desc: "5x1.5km @ 4:50 with 60s recovery", zone: "Z4" },
@@ -109,7 +109,7 @@ const WEEK_MINUS_1: SessionData[] = [
   { type: "Long Run", km: "15.0", dur: "1h28", done: true, intensity: "key", desc: "Negative split, pick up last 5km", zone: "Z2-3" },
 ];
 
-const WEEK_PLUS_1: SessionData[] = [
+const WEEK_PLUS_1: WorkoutData[] = [
   { type: "Easy Run", km: "6.0", dur: "35min", done: false, intensity: "low", desc: "Relaxed effort, flat terrain", zone: "Z2" },
   REST_DAY,
   { type: "Tempo", km: "9.5", dur: "52min", done: false, intensity: "high", desc: "4x2km @ 4:45 with 90s recovery", zone: "Z4" },
@@ -119,7 +119,7 @@ const WEEK_PLUS_1: SessionData[] = [
   { type: "Long Run", km: "17.0", dur: "1h40", done: false, intensity: "key", desc: "Last 5km at marathon pace", zone: "Z2-3" },
 ];
 
-const WEEK_PLUS_2: SessionData[] = [
+const WEEK_PLUS_2: WorkoutData[] = [
   { type: "Progressive", km: "8.0", dur: "44min", done: false, intensity: "high", desc: "Build from easy to tempo over 8km", zone: "Z3-4" },
   REST_DAY,
   { type: "Easy Run", km: "6.5", dur: "38min", done: false, intensity: "low", desc: "Recovery pace, stay comfortable", zone: "Z2" },
@@ -129,12 +129,12 @@ const WEEK_PLUS_2: SessionData[] = [
   { type: "Long Run", km: "18.0", dur: "1h48", done: false, intensity: "key", desc: "Steady state, final long effort", zone: "Z2-3" },
 ];
 
-function buildCalendarSessions(): Record<string, SessionData> {
+function buildCalendarSessions(): Record<string, WorkoutData> {
   const today = new Date();
   const currentMonday = getMonday(today);
-  const result: Record<string, SessionData> = {};
+  const result: Record<string, WorkoutData> = {};
 
-  const allWeeks: SessionData[][] = [
+  const allWeeks: WorkoutData[][] = [
     WEEK_MINUS_2,
     WEEK_MINUS_1,
     MOCK_SESSIONS,

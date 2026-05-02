@@ -2,7 +2,7 @@
  * Plan display helpers (formatting, colors, status labels, agoge → UI transforms).
  *
  * Agoge workout docs are the source of truth. Transforms here shape them into
- * `SessionData` for the Plan/Today UI. Plan-level metadata (race goal, weekly
+ * `WorkoutData` for the Plan/Today UI. Plan-level metadata (race goal, weekly
  * totals) remains optional until the plan generator writes richer `plan.notes`.
  */
 
@@ -14,7 +14,7 @@ import {
 } from "@/lib/design-tokens";
 import type {
   RaceGoalData,
-  SessionData,
+  WorkoutData,
   SessionIntensity,
   SyncStatus,
   SyncedData,
@@ -94,10 +94,10 @@ function intensityFromName(name: string): SessionIntensity {
   return "high";
 }
 
-export function workoutToSessionData(
+export function workoutToWorkoutData(
   workout: AgogeWorkout,
   today: Date,
-): SessionData {
+): WorkoutData {
   const dateIso = workoutDate(workout);
   const date = dateIso ? localDateFromIso(dateIso) : new Date(NaN);
   const isToday =
@@ -106,7 +106,7 @@ export function workoutToSessionData(
     date.getDate() === today.getDate();
 
   return {
-    sessionId: workout._id,
+    workoutId: workout._id,
     type: workout.name,
     km: formatDistance(
       workout.actual?.distanceMeters ?? workout.planned?.distanceMeters,
@@ -134,12 +134,12 @@ export function workoutToSessionData(
 export function buildSessionsByDate(
   workouts: AgogeWorkout[],
   today: Date,
-): Record<string, SessionData> {
-  const result: Record<string, SessionData> = {};
+): Record<string, WorkoutData> {
+  const result: Record<string, WorkoutData> = {};
   for (const w of workouts) {
     const dateIso = workoutDate(w);
     if (!dateIso) continue;
-    result[planDateKey(localDateFromIso(dateIso))] = workoutToSessionData(
+    result[planDateKey(localDateFromIso(dateIso))] = workoutToWorkoutData(
       w,
       today,
     );
@@ -168,7 +168,7 @@ export function computeWeekInsights(
   volumePlanned: number;
   timeCompleted: string;
   avgPace: string;
-  currentWeekSessions: SessionData[];
+  currentWeekSessions: WorkoutData[];
 } {
   const weekStart = isoWeekStart(today);
   const weekEnd = new Date(weekStart);
@@ -177,14 +177,14 @@ export function computeWeekInsights(
   let volumeCompletedMeters = 0;
   let volumePlannedMeters = 0;
   let timeCompletedSeconds = 0;
-  const currentWeekSessions: SessionData[] = [];
+  const currentWeekSessions: WorkoutData[] = [];
 
   for (const w of workouts) {
     const dateIso = workoutDate(w);
     if (!dateIso) continue;
     const d = localDateFromIso(dateIso);
     if (d < weekStart || d > weekEnd) continue;
-    currentWeekSessions.push(workoutToSessionData(w, today));
+    currentWeekSessions.push(workoutToWorkoutData(w, today));
 
     volumePlannedMeters += w.planned?.distanceMeters ?? 0;
     if (w.status === "completed" && w.actual) {
@@ -216,7 +216,7 @@ function formatPace(secondsPerMeter: number): string {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-export function getSessionColor(session: SessionData): string {
+export function getSessionColor(session: WorkoutData): string {
   const category = getSessionCategory(session.type);
   return SESSION_TYPE_COLORS[category];
 }

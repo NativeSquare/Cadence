@@ -26,12 +26,12 @@ import Animated, {
 import { useEffect } from "react";
 import Svg, { Path, Circle } from "react-native-svg";
 import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
-import { type SessionData, type SyncStatus } from "./types";
+import { type WorkoutData, type SyncStatus } from "./types";
 import { getSessionColor, getSyncStatusLabel, getSyncStatusColor, formatShortDate } from "./utils";
 import { useStream } from "./use-stream";
 
 interface TodayCardProps {
-  session: SessionData;
+  session: WorkoutData;
   coachMessage: string;
   selectedDate?: Date;
   isToday?: boolean;
@@ -231,7 +231,7 @@ function NotSyncedIcon() {
  * Full-width sync banner — sits at the top of the card.
  * Shows "Not synced with watch" when no export, or the sync status after export.
  */
-function SyncBanner({ session }: { session: SessionData }) {
+function SyncBanner({ session }: { session: WorkoutData }) {
   const { syncStatus, syncSource, syncedData } = session;
   const isRest = session.intensity === "rest";
 
@@ -330,7 +330,7 @@ function ChevronRight() {
   );
 }
 
-function CompletedBanner({ session }: { session: SessionData }) {
+function CompletedBanner({ session }: { session: WorkoutData }) {
   const actualPace = computeActualPace(session);
 
   return (
@@ -400,7 +400,7 @@ function CompletedBanner({ session }: { session: SessionData }) {
   );
 }
 
-function computeActualPace(session: SessionData): string | null {
+function computeActualPace(session: WorkoutData): string | null {
   if (!session.actualDur || !session.actualKm) return null;
   // Parse actualKm to number
   const km = parseFloat(session.actualKm);
@@ -418,7 +418,7 @@ function computeActualPace(session: SessionData): string | null {
   return `${pMin}:${pSec.toString().padStart(2, "0")}/km`;
 }
 
-function SessionInfo({ session }: { session: SessionData }) {
+function SessionInfo({ session }: { session: WorkoutData }) {
   const accentColor = getSessionColor(session);
   const isRest = session.intensity === "rest";
 

@@ -1,5 +1,5 @@
 /**
- * Session detail page.
+ * Workout detail page.
  *
  * Loads the agoge workout doc and renders a compact readout. Adds Edit/Delete
  * affordances when the workout is still upcoming (`status === "planned"`).
@@ -27,8 +27,8 @@ import {
   View,
 } from "react-native";
 
-export interface SessionDetailPageProps {
-  sessionId: string;
+export interface WorkoutDetailPageProps {
+  workoutId: string;
 }
 
 const STATUS_LABEL: Record<string, string> = {
@@ -74,10 +74,10 @@ function formatType(type: string): string {
   return type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-export function SessionDetailPage({ sessionId }: SessionDetailPageProps) {
+export function WorkoutDetailPage({ workoutId }: WorkoutDetailPageProps) {
   const router = useRouter();
   const workout = useQuery(api.agoge.workouts.getWorkout, {
-    workoutId: sessionId,
+    workoutId,
   });
   const deleteWorkout = useMutation(api.agoge.workouts.deleteWorkout);
   const deleteSheetRef = React.useRef<BottomSheetModal>(null);
@@ -325,4 +325,4 @@ function SummaryRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-export default SessionDetailPage;
+export default WorkoutDetailPage;

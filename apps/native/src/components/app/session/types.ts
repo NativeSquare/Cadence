@@ -26,7 +26,7 @@ export interface SessionSegment {
 
 /**
  * Extended session data with segments and coach note
- * Extends SessionData from plan/types
+ * Extends WorkoutData from plan/types
  */
 export interface SessionDetailData {
   /** Session type (e.g., "Tempo", "Easy Run", "Intervals") */
