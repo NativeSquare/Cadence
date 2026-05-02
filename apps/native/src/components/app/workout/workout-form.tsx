@@ -9,7 +9,6 @@ import { getConvexErrorMessage } from "@/utils/getConvexErrorMessage";
 import {
   safeParseWorkout,
   type Workout as WorkoutStructure,
-  workoutSchemaValidated,
 } from "@nativesquare/agoge";
 import type {
   SubSport,
@@ -56,7 +55,10 @@ function todayDateString(): string {
 
 const workoutFaceSchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date is required"),
-  structure: workoutSchemaValidated,
+  // Structure is validated separately via firstStructureError/buildErrorByPath
+  // and gated by canSave. Using workoutSchemaValidated here would reject the
+  // default empty structure on the non-required face and silently block submit.
+  structure: z.custom<WorkoutStructure>(),
   durationSeconds: z.number().optional(),
   distanceMeters: z.number().optional(),
   load: z.number().optional(),
@@ -264,16 +266,24 @@ export function WorkoutForm({
     setTemplateName(null);
   };
 
-  const handleSave = form.handleSubmit(async (data) => {
-    setSubmitError(null);
-    Keyboard.dismiss();
-    try {
-      await onSubmit(data);
-      router.back();
-    } catch (err) {
-      setSubmitError(getConvexErrorMessage(err));
-    }
-  });
+  const handleSave = form.handleSubmit(
+    async (data) => {
+      setSubmitError(null);
+      Keyboard.dismiss();
+      try {
+        await onSubmit(data);
+        router.back();
+      } catch (err) {
+        setSubmitError(getConvexErrorMessage(err));
+      }
+    },
+    (errors) => {
+      const first = Object.values(errors).find(
+        (e): e is { message?: string } => e != null && typeof e === "object",
+      );
+      setSubmitError(first?.message ?? "Please fix the highlighted fields.");
+    },
+  );
 
   const handleDelete = async () => {
     if (!onDelete) return;
