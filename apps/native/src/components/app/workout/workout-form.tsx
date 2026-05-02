@@ -42,16 +42,32 @@ import {
   WORKOUT_TYPES,
 } from "./workout-helpers";
 
-function todayDateString(): string {
-  const now = new Date();
-  const y = now.getFullYear();
-  const m = String(now.getMonth() + 1).padStart(2, "0");
-  const d = String(now.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
+function nowIso(): string {
+  return new Date().toISOString();
+}
+
+function ymdToIso(ymd: string): string {
+  const [y, m, d] = ymd.split("-").map((p) => Number.parseInt(p, 10));
+  return new Date(y, m - 1, d, 12, 0, 0, 0).toISOString();
+}
+
+function isFutureYmd(ymd: string): boolean {
+  const [y, m, d] = ymd.split("-").map((p) => Number.parseInt(p, 10));
+  const target = new Date(y, m - 1, d);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return target > today;
+}
+
+function isValidIso(s: string): boolean {
+  if (!s) return false;
+  const parsed = Date.parse(s);
+  if (Number.isNaN(parsed)) return false;
+  return new Date(parsed).toISOString() === s;
 }
 
 const workoutFaceSchema = z.object({
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date is required"),
+  date: z.string().refine(isValidIso, "Date is required"),
   // Structure is validated separately via firstStructureError/buildErrorByPath
   // and gated by canSave. Using workoutSchemaValidated here would reject the
   // default empty structure on the non-required face and silently block submit.
@@ -128,10 +144,10 @@ export function WorkoutForm({
 }) {
   const router = useRouter();
 
-  const fallbackDate = initialDate ?? todayDateString();
+  const fallbackDate = initialDate ? ymdToIso(initialDate) : nowIso();
 
   const initialPlannedFace: WorkoutFaceValues = {
-    date: initial?.planned?.date?.slice(0, 10) ?? fallbackDate,
+    date: initial?.planned?.date ?? fallbackDate,
     structure:
       (initial?.planned?.structure as WorkoutStructure | undefined) ??
       EMPTY_STRUCTURE,
@@ -147,7 +163,7 @@ export function WorkoutForm({
   };
 
   const initialActualFace: WorkoutFaceValues = {
-    date: initial?.actual?.date?.slice(0, 10) ?? fallbackDate,
+    date: initial?.actual?.date ?? fallbackDate,
     structure:
       (initial?.actual?.structure as WorkoutStructure | undefined) ??
       EMPTY_STRUCTURE,
@@ -162,12 +178,20 @@ export function WorkoutForm({
     rpe: initial?.actual?.rpe,
   };
 
+  const defaultWorkoutMode: "done" | "scheduled" = initial
+    ? initial.status === "planned"
+      ? "scheduled"
+      : "done"
+    : initialDate && isFutureYmd(initialDate)
+      ? "scheduled"
+      : "done";
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     mode: "onSubmit",
     reValidateMode: "onChange",
     defaultValues: {
-      workoutMode: initial?.status === "planned" ? "scheduled" : "done",
+      workoutMode: defaultWorkoutMode,
       name: initial?.name ?? "",
       description: initial?.description ?? "",
       type: initial?.type ?? "easy",
@@ -207,13 +231,15 @@ export function WorkoutForm({
 
   const isSubmitting = form.formState.isSubmitting;
   const isDoneMode = workoutMode === "done";
+  // Computed at render time so the bound stays in sync as the wheel is opened.
+  const nowBoundary = nowIso();
 
   const canSave = (() => {
     if (isSubmitting) return false;
     if (name.trim().length === 0) return false;
     if (isDoneMode) {
       // Actual is required; Planned is optional but must be valid if present.
-      if (actual.date.length !== 10) return false;
+      if (!isValidIso(actual.date)) return false;
       if (actual.structure.blocks.length === 0) return false;
       if (actualError != null) return false;
       if (planned.structure.blocks.length > 0 && plannedError != null) {
@@ -221,7 +247,7 @@ export function WorkoutForm({
       }
     } else {
       // Scheduling: Planned is required.
-      if (planned.date.length !== 10) return false;
+      if (!isValidIso(planned.date)) return false;
       if (planned.structure.blocks.length === 0) return false;
       if (plannedError != null) return false;
     }
@@ -493,9 +519,11 @@ export function WorkoutForm({
                 name="actual.date"
                 render={({ field }) => (
                   <DateField
-                    label="Date"
+                    label="Date & start time"
+                    mode="datetime"
                     value={field.value || undefined}
                     onChange={field.onChange}
+                    maxDate={nowBoundary}
                   />
                 )}
               />
@@ -527,9 +555,12 @@ export function WorkoutForm({
               name="planned.date"
               render={({ field }) => (
                 <DateField
-                  label="Date"
+                  label="Date & start time"
+                  mode="datetime"
                   value={field.value || undefined}
                   onChange={field.onChange}
+                  maxDate={isDoneMode ? nowBoundary : undefined}
+                  minDate={isDoneMode ? undefined : nowBoundary}
                 />
               )}
             />

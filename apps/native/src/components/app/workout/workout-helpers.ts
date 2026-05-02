@@ -21,25 +21,10 @@ export const WORKOUT_TYPES = [
 ] as const satisfies readonly WorkoutType[];
 export type WorkoutTypeOption = (typeof WORKOUT_TYPES)[number];
 
-export const WORKOUT_TYPE_LABELS: Record<WorkoutType, string> = {
+export const WORKOUT_TYPE_LABELS: Record<WorkoutTypeOption, string> = {
   easy: "Easy",
-  long: "Long",
   tempo: "Tempo",
-  threshold: "Threshold",
-  intervals: "Intervals",
-  vo2max: "VO2max",
-  fartlek: "Fartlek",
-  progression: "Progression",
-  race_pace: "Race pace",
-  recovery: "Recovery",
-  strides: "Strides",
-  hills: "Hills",
-  race: "Race",
-  test: "Test",
-  cross_training: "Cross-training",
-  strength: "Strength",
-  rest: "Rest",
-  other: "Other",
+  long: "Long",
 };
 
 export const WORKOUT_TYPE_COLORS: Record<WorkoutTypeOption, string> = {
@@ -59,8 +44,9 @@ export const INTENTS = [
   "rest",
   "active",
 ] as const satisfies readonly IntentKind[];
+export type IntentKindOption = (typeof INTENTS)[number];
 
-export const INTENT_LABELS: Record<IntentKind, string> = {
+export const INTENT_LABELS: Record<IntentKindOption, string> = {
   warmup: "Warmup",
   work: "Work",
   recovery: "Recovery",
@@ -69,7 +55,7 @@ export const INTENT_LABELS: Record<IntentKind, string> = {
   active: "Active",
 };
 
-export const INTENT_COLORS: Record<IntentKind, string> = {
+export const INTENT_COLORS: Record<IntentKindOption, string> = {
   warmup: "#5B9EFF",
   work: "#FF9500",
   recovery: "#4ADE80",
@@ -78,32 +64,60 @@ export const INTENT_COLORS: Record<IntentKind, string> = {
   active: "#C8FF00",
 };
 
+// https://forums.garmin.com/developer/fit-sdk/f/discussion/244073
+export const INTENT_DESCRIPTIONS: Record<IntentKindOption, string> = {
+  warmup: "Easy start. Watch labels this as warm-up.",
+  work: "Main prescribed effort. Watch enforces your target.",
+  recovery: "Active recovery between work efforts.",
+  cooldown: "Easy finish. Watch labels this as cool-down.",
+  rest: "Stop and stand still. Watch may pause tracking.",
+  active: "Generic effort. Use when nothing else fits.",
+};
+
 // ── Step duration ───────────────────────────────────────────────────────────
 
 export type DurationKind = Duration["type"];
-export const DURATION_LABELS: Record<DurationKind, string> = {
+
+export const ALLOWED_DURATIONS_FOR_RUN = [
+  "time",
+  "distance",
+  "open",
+  "hr_gate",
+] as const satisfies readonly DurationKind[];
+export type DurationKindOption = (typeof ALLOWED_DURATIONS_FOR_RUN)[number];
+
+export const DURATION_LABELS: Record<DurationKindOption, string> = {
   time: "Time",
   distance: "Distance",
-  calories: "Calories",
   open: "Open",
   hr_gate: "HR gate",
-  power_gate: "Power gate",
 };
 
-export function emptyDurationOf(kind: DurationKind): Duration {
+// Live helper text for the picker. The hr_gate copy doubles as a hint about
+// when to use "above" vs "below" so we can keep those toggle labels terse.
+export const DURATION_DESCRIPTIONS: Record<DurationKindOption, string> = {
+  time: "Step ends after a fixed duration.",
+  distance: "Step ends after a fixed distance.",
+  open: "Step ends when you press the lap button on your watch.",
+  hr_gate:
+    "Step ends when HR crosses the threshold. Use 'above' for warmups, 'below' for recoveries.",
+};
+
+// Returns a "blank" duration of the given kind. Time/distance use 0 as the
+// "user hasn't filled this in yet" sentinel — the schema requires positive
+// values, so the Step editor disables Save until the user enters a real
+// number. hr_gate keeps a sensible bpm default since the comparator chip
+// is meaningful even before the value is set.
+export function emptyDurationOf(kind: DurationKindOption): Duration {
   switch (kind) {
     case "time":
-      return { type: "time", seconds: 60 };
+      return { type: "time", seconds: 0 };
     case "distance":
-      return { type: "distance", meters: 1000 };
-    case "calories":
-      return { type: "calories", kcal: 100 };
+      return { type: "distance", meters: 0 };
     case "open":
       return { type: "open" };
     case "hr_gate":
       return { type: "hr_gate", bpm: 120, comparator: "below" };
-    case "power_gate":
-      return { type: "power_gate", watts: 200, comparator: "below" };
   }
 }
 
@@ -133,7 +147,6 @@ export function formatDuration(d: Duration): string {
 
 // ── Step target ─────────────────────────────────────────────────────────────
 
-// Run-only for now — workoutTemplates.sport is fixed to "run".
 export type TargetKind = Target["type"];
 export const ALLOWED_TARGETS_FOR_RUN = [
   "none",
@@ -143,19 +156,30 @@ export const ALLOWED_TARGETS_FOR_RUN = [
   "cadence_range",
   "rpe",
 ] as const satisfies readonly TargetKind[];
+export type TargetKindOption = (typeof ALLOWED_TARGETS_FOR_RUN)[number];
 
-export const TARGET_LABELS: Record<TargetKind, string> = {
+export const TARGET_LABELS: Record<TargetKindOption, string> = {
   none: "None",
   pace_range: "Pace",
   hr_range: "HR range",
   hr_zone: "HR zone",
   cadence_range: "Cadence",
   rpe: "RPE",
-  power_range: "Power range",
-  power_zone: "Power zone",
 };
 
-export function emptyTargetOf(kind: TargetKind): Target {
+// Live helper text for the picker. Tells the athlete what each target does
+// during the step (intensity guidance, NOT the end condition — that's the
+// duration's job).
+export const TARGET_DESCRIPTIONS: Record<TargetKindOption, string> = {
+  none: "No target — just run the duration.",
+  pace_range: "Hold a pace inside this window.",
+  hr_range: "Keep heart rate in this range.",
+  hr_zone: "Hit an HR zone, computed from your threshold.",
+  cadence_range: "Step rate window — useful for form drills.",
+  rpe: "Subjective effort. 1 = easy, 10 = max.",
+};
+
+export function emptyTargetOf(kind: TargetKindOption): Target {
   switch (kind) {
     case "none":
       return { type: "none" };
@@ -170,10 +194,6 @@ export function emptyTargetOf(kind: TargetKind): Target {
       return { type: "hr_range", min_bpm: 140, max_bpm: 160 };
     case "hr_zone":
       return { type: "hr_zone", zone: 3 };
-    case "power_range":
-      return { type: "power_range", min_w: 200, max_w: 250 };
-    case "power_zone":
-      return { type: "power_zone", zone: 3 };
     case "cadence_range":
       return { type: "cadence_range", min_spm: 170, max_spm: 180 };
     case "rpe":

@@ -73,10 +73,6 @@ function EditWorkoutContent() {
       initial={workout as unknown as WorkoutDoc}
       onSubmit={async (values) => {
         const isDone = values.workoutMode === "done";
-        const toFace = (face: typeof values.planned) => ({
-          ...face,
-          date: `${face.date}T00:00:00.000Z`,
-        });
         await updateWorkout({
           workoutId: workout._id,
           name: values.name,
@@ -85,11 +81,11 @@ function EditWorkoutContent() {
           status: isDone ? "completed" : "planned",
           planned:
             values.planned.structure.blocks.length > 0
-              ? toFace(values.planned)
+              ? values.planned
               : undefined,
           actual:
             isDone && values.actual.structure.blocks.length > 0
-              ? toFace(values.actual)
+              ? values.actual
               : undefined,
         });
       }}
