@@ -421,6 +421,10 @@ function computeActualPace(workout: WorkoutData): string | null {
 function WorkoutInfo({ workout }: { workout: WorkoutData }) {
   const accentColor = getWorkoutColor(workout);
   const isRest = workout.intensity === "rest";
+  const headline =
+    workout.intent ?? (workout.dur !== "-" || workout.km !== "-"
+      ? `${workout.dur} · ${workout.km} km`
+      : "");
 
   return (
     <View className="px-5 pt-5 pb-3">
@@ -432,7 +436,7 @@ function WorkoutInfo({ workout }: { workout: WorkoutData }) {
           }}
         />
         <Text className="text-xs font-coach-medium text-g3 uppercase" style={{ letterSpacing: 0.05 * 12 }}>
-          {isRest ? "Rest Day" : `${workout.dur} · ${workout.km} km · ${workout.zone}`}
+          {isRest ? "Rest Day" : headline}
         </Text>
       </View>
       <View className="flex-row items-center justify-between">

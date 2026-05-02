@@ -44,6 +44,10 @@ export interface WorkoutData {
   zone: string;
   /** Whether this is today's workout */
   today?: boolean;
+  /** Structure-derived headline (e.g. "8 × 400 m @ Z4 HR"). Empty when the
+   * workout has no structured intervals or pace targets — caller falls back
+   * to volume (km/dur). */
+  intent?: string;
   /** Actual duration recorded after completion (seconds) */
   actualDur?: string;
   /** Actual distance recorded after completion (e.g. "8.2") */

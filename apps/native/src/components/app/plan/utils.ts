@@ -12,6 +12,8 @@ import {
   WORKOUT_CATEGORY_COLORS,
   getWorkoutCategory,
 } from "@/lib/design-tokens";
+import { summarizeWorkout } from "@/components/app/workout/workout-summary";
+import type { WorkoutType } from "@nativesquare/agoge/schema";
 import type {
   RaceGoalData,
   WorkoutData,
@@ -32,17 +34,20 @@ import type {
 export interface AgogeWorkout {
   _id: string;
   name: string;
+  type: WorkoutType;
   description?: string;
   status: "planned" | "completed" | "missed" | "skipped";
   planned?: {
     date: string;
     durationSeconds?: number;
     distanceMeters?: number;
+    structure?: unknown;
   };
   actual?: {
     date: string;
     durationSeconds?: number;
     distanceMeters?: number;
+    structure?: unknown;
   };
   adherence?: {
     score: number;
@@ -105,20 +110,24 @@ export function workoutToWorkoutData(
     date.getMonth() === today.getMonth() &&
     date.getDate() === today.getDate();
 
+  const face = workout.actual ?? workout.planned;
+  const summary = summarizeWorkout(face, workout.type);
+  const distanceMeters =
+    face?.distanceMeters ?? summary.totalDistanceMeters ?? undefined;
+  const durationSeconds =
+    face?.durationSeconds ?? summary.totalDurationSeconds ?? undefined;
+
   return {
     workoutId: workout._id,
     type: workout.name,
-    km: formatDistance(
-      workout.actual?.distanceMeters ?? workout.planned?.distanceMeters,
-    ),
-    dur: formatDurationShort(
-      workout.actual?.durationSeconds ?? workout.planned?.durationSeconds,
-    ),
+    km: formatDistance(distanceMeters),
+    dur: formatDurationShort(durationSeconds),
     done: workout.status === "completed",
     intensity: intensityFromName(workout.name),
     desc: workout.description ?? "",
     zone: "-",
     today: isToday,
+    intent: summary.intent ?? undefined,
     actualDur:
       workout.actual?.durationSeconds != null
         ? formatDurationShort(workout.actual.durationSeconds)
@@ -186,11 +195,19 @@ export function computeWeekInsights(
     if (d < weekStart || d > weekEnd) continue;
     currentWeekWorkouts.push(workoutToWorkoutData(w, today));
 
-    volumePlannedMeters += w.planned?.distanceMeters ?? 0;
+    const plannedSummary = summarizeWorkout(w.planned, w.type);
+    volumePlannedMeters +=
+      w.planned?.distanceMeters ?? plannedSummary.totalDistanceMeters ?? 0;
     if (w.status === "completed" && w.actual) {
+      const actualSummary = summarizeWorkout(w.actual, w.type);
       volumeCompletedMeters +=
-        w.actual.distanceMeters ?? w.planned?.distanceMeters ?? 0;
-      timeCompletedSeconds += w.actual.durationSeconds ?? 0;
+        w.actual.distanceMeters ??
+        actualSummary.totalDistanceMeters ??
+        w.planned?.distanceMeters ??
+        plannedSummary.totalDistanceMeters ??
+        0;
+      timeCompletedSeconds +=
+        w.actual.durationSeconds ?? actualSummary.totalDurationSeconds ?? 0;
     }
   }
 
