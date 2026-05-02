@@ -14,6 +14,7 @@ import {
 import type {
   SubSport,
   Workout,
+  WorkoutDoc,
   WorkoutTemplate,
   WorkoutTemplateDoc,
   WorkoutType,
@@ -80,8 +81,6 @@ const formSchema = z.object({
 });
 export type FormValues = z.infer<typeof formSchema>;
 
-export type WorkoutFormMode = "create" | "edit";
-
 function buildErrorByPath(
   structure: WorkoutStructure | undefined,
 ): Record<string, string> {
@@ -121,8 +120,8 @@ export function WorkoutForm({
   canDelete = true,
 }: {
   title: string;
-  mode?: WorkoutFormMode;
-  initial?: Workout;
+  mode?: "create" | "edit";
+  initial?: WorkoutDoc;
   initialDate?: string;
   templates?: WorkoutTemplateDoc[];
   submitLabel: string;

@@ -9,6 +9,7 @@ import { safeParseWorkout, workoutSchemaValidated } from "@nativesquare/agoge";
 import type {
   SubSport,
   WorkoutTemplate,
+  WorkoutTemplateDoc,
   WorkoutType,
 } from "@nativesquare/agoge/schema";
 import { Ionicons } from "@expo/vector-icons";
@@ -60,8 +61,6 @@ const formSchema = z.object({
 });
 export type FormValues = z.infer<typeof formSchema>;
 
-export type WorkoutTemplateFormMode = "create" | "edit";
-
 export function WorkoutTemplateForm({
   title,
   mode = "create",
@@ -73,8 +72,8 @@ export function WorkoutTemplateForm({
   readOnlyReason,
 }: {
   title: string;
-  mode?: WorkoutTemplateFormMode;
-  initial?: WorkoutTemplate;
+  mode?: "create" | "edit";
+  initial?: WorkoutTemplateDoc;
   submitLabel: string;
   onSubmit: (values: FormValues) => Promise<void>;
   onDelete?: () => Promise<void>;
