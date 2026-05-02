@@ -19,14 +19,14 @@ export default function EditWorkoutScreen() {
 function EditWorkoutContent() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const workout = useQuery(
+  const result = useQuery(
     api.agoge.workouts.getWorkout,
     id ? { workoutId: id } : "skip",
   );
   const updateWorkout = useMutation(api.agoge.workouts.updateWorkout);
   const deleteWorkout = useMutation(api.agoge.workouts.deleteWorkout);
 
-  if (workout === undefined) {
+  if (result === undefined) {
     return (
       <View
         className="flex-1 items-center justify-center"
@@ -37,7 +37,7 @@ function EditWorkoutContent() {
     );
   }
 
-  if (workout === null) {
+  if (result === null) {
     return (
       <View
         className="flex-1 items-center justify-center px-6"
@@ -64,6 +64,8 @@ function EditWorkoutContent() {
       </View>
     );
   }
+
+  const workout = result.workout;
 
   return (
     <WorkoutForm

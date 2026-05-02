@@ -49,7 +49,21 @@ export const getWorkout = query({
   args: { workoutId: v.string() },
   handler: async (ctx, { workoutId }) => {
     const result = await loadOwnedWorkout(ctx, workoutId);
-    return result?.workout ?? null;
+    if (!result) return null;
+    const { workout } = result;
+    const [block, plan] = await Promise.all([
+      workout.blockId
+        ? ctx.runQuery(components.agoge.public.getBlock, {
+            blockId: workout.blockId,
+          })
+        : null,
+      workout.planId
+        ? ctx.runQuery(components.agoge.public.getPlan, {
+            planId: workout.planId,
+          })
+        : null,
+    ]);
+    return { workout, block, plan };
   },
 });
 
