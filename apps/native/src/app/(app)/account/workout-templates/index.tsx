@@ -1,38 +1,12 @@
+import { WorkoutTemplateRow } from "@/components/app/workout-templates/workout-template-row";
 import { Text } from "@/components/ui/text";
-import {
-  LIGHT_THEME,
-  SESSION_TYPE_COLORS,
-  SESSION_TYPE_COLORS_DIM,
-  getSessionCategory,
-} from "@/lib/design-tokens";
+import { LIGHT_THEME } from "@/lib/design-tokens";
 import { api } from "@packages/backend/convex/_generated/api";
-import type { WorkoutTemplateDoc } from "@nativesquare/agoge/schema";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "convex/react";
 import { useRouter } from "expo-router";
 import React from "react";
 import { Pressable, ScrollView, View } from "react-native";
-
-const WORKOUT_TYPE_LABELS: Record<string, string> = {
-  easy: "Easy",
-  long: "Long",
-  tempo: "Tempo",
-  threshold: "Threshold",
-  intervals: "Intervals",
-  vo2max: "VO2max",
-  fartlek: "Fartlek",
-  progression: "Progression",
-  race_pace: "Race pace",
-  recovery: "Recovery",
-  strides: "Strides",
-  hills: "Hills",
-  race: "Race",
-  test: "Test",
-  cross_training: "Cross-training",
-  strength: "Strength",
-  rest: "Rest",
-  other: "Other",
-};
 
 export default function WorkoutTemplatesListScreen() {
   const router = useRouter();
@@ -105,7 +79,7 @@ export default function WorkoutTemplatesListScreen() {
         ) : (
           <View className="w-full max-w-md gap-3 self-center">
             {templates.map((template) => (
-              <TemplateRow
+              <WorkoutTemplateRow
                 key={template._id}
                 template={template}
                 onPress={() =>
@@ -120,53 +94,5 @@ export default function WorkoutTemplatesListScreen() {
         )}
       </ScrollView>
     </View>
-  );
-}
-
-function TemplateRow({
-  template,
-  onPress,
-}: {
-  template: Pick<WorkoutTemplateDoc, "name" | "type">;
-  onPress: () => void;
-}) {
-  const typeLabel = WORKOUT_TYPE_LABELS[template.type] ?? template.type;
-  const category = getSessionCategory(template.type);
-  const typeColor = SESSION_TYPE_COLORS[category];
-  const typeColorDim = SESSION_TYPE_COLORS_DIM[category];
-
-  return (
-    <Pressable
-      onPress={onPress}
-      className="flex-row items-center gap-3 rounded-2xl border px-4 py-3.5 active:opacity-80"
-      style={{
-        backgroundColor: LIGHT_THEME.w1,
-        borderColor: LIGHT_THEME.wBrd,
-      }}
-    >
-      <View
-        className="size-10 items-center justify-center rounded-xl"
-        style={{ backgroundColor: typeColorDim }}
-      >
-        <Ionicons name="barbell-outline" size={18} color={typeColor} />
-      </View>
-      <View className="flex-1">
-        <Text
-          numberOfLines={1}
-          className="font-coach-semibold text-[15px]"
-          style={{ color: LIGHT_THEME.wText }}
-        >
-          {template.name}
-        </Text>
-        <Text
-          numberOfLines={1}
-          className="mt-0.5 font-coach text-[12px]"
-          style={{ color: LIGHT_THEME.wSub }}
-        >
-          {typeLabel}
-        </Text>
-      </View>
-      <Ionicons name="chevron-forward" size={16} color={LIGHT_THEME.wMute} />
-    </Pressable>
   );
 }

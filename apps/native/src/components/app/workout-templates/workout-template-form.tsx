@@ -1,6 +1,6 @@
 import { FormField, FormSection } from "@/components/app/form";
 import { ConfirmationSheet } from "@/components/shared/confirmation-sheet";
-import { WorkoutStructureEditor } from "@/components/app/workout-templates/workout-structure-editor";
+import { WorkoutStructureEditor } from "@/components/app/workout/workout-structure-editor";
 import { Text } from "@/components/ui/text";
 import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
 import { selectionFeedback } from "@/lib/haptics";
@@ -29,6 +29,7 @@ import {
 } from "react-native";
 import { z } from "zod";
 import {
+  EMPTY_STRUCTURE,
   SUB_SPORT_LABELS,
   SUB_SPORTS,
   WORKOUT_TYPE_COLORS,
@@ -36,18 +37,34 @@ import {
   WORKOUT_TYPES,
 } from "../workout/workout-helpers";
 
+const templateWorkoutFaceSchema = z.object({
+  structure: workoutSchemaValidated,
+  durationSeconds: z.number().optional(),
+  distanceMeters: z.number().optional(),
+  load: z.number().optional(),
+  avgPaceMps: z.number().optional(),
+  avgHr: z.number().optional(),
+  maxHr: z.number().optional(),
+  elevationGainMeters: z.number().optional(),
+  rpe: z.number().optional(),
+  notes: z.string().optional(),
+});
+
 const formSchema = z.object({
   name: z.string().trim().min(1, "Name is required"),
   description: z.string().optional(),
   type: z.custom<WorkoutType>(),
   typeNotes: z.string().optional(),
   subSport: z.custom<SubSport>().optional(),
-  structure: workoutSchemaValidated,
+  content: templateWorkoutFaceSchema,
 });
 export type FormValues = z.infer<typeof formSchema>;
 
+export type WorkoutTemplateFormMode = "create" | "edit";
+
 export function WorkoutTemplateForm({
   title,
+  mode = "create",
   initial,
   submitLabel,
   onSubmit,
@@ -56,6 +73,7 @@ export function WorkoutTemplateForm({
   readOnlyReason,
 }: {
   title: string;
+  mode?: WorkoutTemplateFormMode;
   initial?: WorkoutTemplate;
   submitLabel: string;
   onSubmit: (values: FormValues) => Promise<void>;
@@ -74,11 +92,17 @@ export function WorkoutTemplateForm({
       type: initial?.type ?? "easy",
       typeNotes: initial?.typeNotes ?? "",
       subSport: initial?.subSport,
-      structure: initial?.content?.structure ?? {
-        schema_version: 1,
-        discipline: "endurance",
-        sport: "run",
-        blocks: [],
+      content: {
+        structure: initial?.content?.structure ?? EMPTY_STRUCTURE,
+        notes: initial?.content?.notes,
+        durationSeconds: initial?.content?.durationSeconds,
+        distanceMeters: initial?.content?.distanceMeters,
+        load: initial?.content?.load,
+        avgPaceMps: initial?.content?.avgPaceMps,
+        avgHr: initial?.content?.avgHr,
+        maxHr: initial?.content?.maxHr,
+        elevationGainMeters: initial?.content?.elevationGainMeters,
+        rpe: initial?.content?.rpe,
       },
     },
   });
@@ -87,12 +111,12 @@ export function WorkoutTemplateForm({
   const [submitError, setSubmitError] = React.useState<string | null>(null);
   const deleteSheetRef = React.useRef<BottomSheetModal>(null);
 
-  const structure = useWatch({ control: form.control, name: "structure" });
+  const content = useWatch({ control: form.control, name: "content" });
   const name = useWatch({ control: form.control, name: "name" });
 
   const errorByPath = React.useMemo(() => {
-    if (!structure || structure.blocks.length === 0) return {};
-    const result = safeParseWorkout(structure);
+    if (!content.structure || content.structure.blocks.length === 0) return {};
+    const result = safeParseWorkout(content.structure);
     if (result.success) return {};
     const map: Record<string, string> = {};
     for (const issue of result.error.issues) {
@@ -102,16 +126,18 @@ export function WorkoutTemplateForm({
       }
     }
     return map;
-  }, [structure]);
+  }, [content.structure]);
 
   const structureError = React.useMemo(() => {
-    if (!structure || structure.blocks.length === 0) return null;
-    const result = safeParseWorkout(structure);
+    if (!content.structure || content.structure.blocks.length === 0) {
+      return null;
+    }
+    const result = safeParseWorkout(content.structure);
     if (result.success) return null;
     const first = result.error.issues[0];
     if (!first) return null;
     return `${first.path.join(".") || "structure"}: ${first.message}`;
-  }, [structure]);
+  }, [content.structure]);
 
   const isSubmitting = form.formState.isSubmitting;
   const canSave =
@@ -119,7 +145,7 @@ export function WorkoutTemplateForm({
     structureError == null &&
     !isSubmitting &&
     name.trim().length > 0 &&
-    structure.blocks.length > 0;
+    content.structure.blocks.length > 0;
 
   const handleSave = form.handleSubmit(async (data) => {
     if (structureError != null) return;
@@ -132,7 +158,7 @@ export function WorkoutTemplateForm({
         type: data.type,
         typeNotes: data.typeNotes?.trim() || undefined,
         subSport: data.subSport,
-        structure: data.structure,
+        content: data.content,
       });
       router.back();
     } catch (err) {
@@ -301,7 +327,7 @@ export function WorkoutTemplateForm({
           <FormSection title="Structure">
             <Controller
               control={form.control}
-              name="structure"
+              name="content.structure"
               render={({ field }) => (
                 <WorkoutStructureEditor
                   value={field.value}
@@ -329,7 +355,7 @@ export function WorkoutTemplateForm({
             </Text>
           )}
 
-          {onDelete && !readOnly && (
+          {onDelete && !readOnly && mode === "edit" && (
             <Pressable
               className="items-center py-2 active:opacity-70"
               onPress={() => deleteSheetRef.current?.present()}

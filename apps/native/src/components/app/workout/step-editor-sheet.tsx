@@ -14,7 +14,7 @@ import {
   mpsToPaceString,
   paceStringToMps,
   TARGET_LABELS,
-} from "@/components/app/workout-templates/workout-helpers";
+} from "@/components/app/workout/workout-helpers";
 import type { Step } from "@nativesquare/agoge";
 import { api } from "@packages/backend/convex/_generated/api";
 import { BottomSheetModal as GorhomBottomSheetModal } from "@gorhom/bottom-sheet";

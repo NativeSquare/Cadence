@@ -2,12 +2,12 @@ import { BottomSheetModal } from "@/components/custom/bottom-sheet";
 import { Text } from "@/components/ui/text";
 import { LIGHT_THEME } from "@/lib/design-tokens";
 import { selectionFeedback } from "@/lib/haptics";
-import type { TemplateOption } from "@/components/app/workout/workout-form";
 import { Ionicons } from "@expo/vector-icons";
 import { BottomSheetModal as GorhomBottomSheetModal } from "@gorhom/bottom-sheet";
 import { useRouter } from "expo-router";
 import React from "react";
 import { Pressable, View } from "react-native";
+import { WorkoutTemplateDoc } from "@nativesquare/agoge/schema";
 
 function formatDuration(sec?: number): string | null {
   if (sec == null || sec <= 0) return null;
@@ -29,8 +29,8 @@ export function TemplatePickerSheet({
   onPick,
 }: {
   sheetRef: React.RefObject<GorhomBottomSheetModal | null>;
-  templates: TemplateOption[];
-  onPick: (template: TemplateOption) => void;
+  templates: WorkoutTemplateDoc[];
+  onPick: (template: WorkoutTemplateDoc) => void;
 }) {
   const router = useRouter();
 
@@ -77,9 +77,7 @@ export function TemplatePickerSheet({
             {templates.map((t) => {
               const distance = formatDistance(t.content?.distanceMeters);
               const duration = formatDuration(t.content?.durationSeconds);
-              const summary = [distance, duration]
-                .filter(Boolean)
-                .join(" · ");
+              const summary = [distance, duration].filter(Boolean).join(" · ");
               return (
                 <Pressable
                   key={t._id}

@@ -1,14 +1,11 @@
-import {
-  WorkoutForm,
-  type WorkoutFormInitial,
-} from "@/components/app/workout/workout-form";
+import { WorkoutForm } from "@/components/app/workout/workout-form";
 import { Text } from "@/components/ui/text";
 import { LIGHT_THEME } from "@/lib/design-tokens";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
+import type { Workout } from "@nativesquare/agoge/schema";
 import { api } from "@packages/backend/convex/_generated/api";
 import { useMutation, useQuery } from "convex/react";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React from "react";
 import { ActivityIndicator, Pressable, View } from "react-native";
 
 export default function EditWorkoutScreen() {
@@ -68,59 +65,34 @@ function EditWorkoutContent() {
     );
   }
 
-  const isDoneInitial = workout.status === "completed";
-  const face = isDoneInitial
-    ? workout.actual ?? workout.planned
-    : workout.planned ?? workout.actual;
-  const date = face?.date?.slice(0, 10);
-  if (!date) {
-    return (
-      <View
-        className="flex-1 items-center justify-center px-6"
-        style={{ backgroundColor: LIGHT_THEME.w2 }}
-      >
-        <Text
-          className="text-center font-coach text-sm"
-          style={{ color: LIGHT_THEME.wMute }}
-        >
-          Workout has no date
-        </Text>
-      </View>
-    );
-  }
-
-  const initial: WorkoutFormInitial = {
-    date,
-    name: workout.name,
-    description: workout.description,
-    type: workout.type,
-    typeNotes: workout.typeNotes,
-    subSport: workout.subSport,
-    workoutMode: isDoneInitial ? "done" : "scheduled",
-    structure: face?.structure,
-  };
-
   return (
     <WorkoutForm
       title="Edit workout"
       mode="edit"
       submitLabel="Save changes"
-      initial={initial}
+      initial={workout as unknown as Workout}
       onSubmit={async (values) => {
         const isDone = values.workoutMode === "done";
-        const nextFace = {
-          date: `${values.date}T00:00:00.000Z`,
-          structure: values.structure,
-        };
+        const toFace = (face: typeof values.planned) => ({
+          ...face,
+          date: `${face.date}T00:00:00.000Z`,
+        });
         await updateWorkout({
           workoutId: workout._id,
           name: values.name,
-          description: values.description,
+          description: values.description?.trim() || undefined,
           type: values.type,
-          typeNotes: values.typeNotes,
+          typeNotes: values.typeNotes?.trim() || undefined,
           subSport: values.subSport,
           status: isDone ? "completed" : "planned",
-          ...(isDone ? { actual: nextFace } : { planned: nextFace }),
+          planned:
+            values.planned.structure.blocks.length > 0
+              ? toFace(values.planned)
+              : undefined,
+          actual:
+            isDone && values.actual.structure.blocks.length > 0
+              ? toFace(values.actual)
+              : undefined,
         });
       }}
       onDelete={async () => {

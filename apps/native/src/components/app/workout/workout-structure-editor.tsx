@@ -1,13 +1,13 @@
 import { Text } from "@/components/ui/text";
 import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
 import { selectionFeedback } from "@/lib/haptics";
-import { StepEditorSheet } from "@/components/app/workout-templates/step-editor-sheet";
+import { StepEditorSheet } from "@/components/app/workout/step-editor-sheet";
 import {
   formatDuration,
   formatTarget,
   INTENT_COLORS,
   INTENT_LABELS,
-} from "@/components/app/workout-templates/workout-helpers";
+} from "@/components/app/workout/workout-helpers";
 import type { Block, Repeat, Step, Workout } from "@nativesquare/agoge";
 import { Ionicons } from "@expo/vector-icons";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";

@@ -58,7 +58,7 @@ export default function TemplateDetailScreen() {
       type: values.type,
       typeNotes: values.typeNotes,
       subSport: values.subSport,
-      content: { ...(template.content ?? {}), structure: values.structure },
+      content: values.content,
     });
   };
 
@@ -70,7 +70,7 @@ export default function TemplateDetailScreen() {
     <WorkoutTemplateForm
       title="Template"
       mode="edit"
-      initial={template as unknown as WorkoutTemplate}
+      initial={template}
       submitLabel="Save"
       onSubmit={handleSubmit}
       onDelete={isGlobal ? undefined : handleDelete}

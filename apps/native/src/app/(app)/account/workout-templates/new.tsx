@@ -18,7 +18,7 @@ export default function NewTemplateScreen() {
       type: values.type,
       typeNotes: values.typeNotes,
       subSport: values.subSport,
-      content: { structure: values.structure },
+      content: values.content,
     });
   };
 

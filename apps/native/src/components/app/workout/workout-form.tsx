@@ -1,26 +1,21 @@
 import { DateField, FormField, FormSection } from "@/components/app/form";
 import { TemplatePickerSheet } from "@/components/app/workout/template-picker-sheet";
-import {
-  SUB_SPORT_LABELS,
-  SUB_SPORTS,
-  WORKOUT_TYPE_LABELS,
-  WORKOUT_TYPES,
-} from "@/components/app/workout-templates/workout-template-form";
-import { WorkoutStructureEditor } from "@/components/app/workout-templates/workout-structure-editor";
+import { WorkoutStructureEditor } from "@/components/app/workout/workout-structure-editor";
 import { ConfirmationSheet } from "@/components/shared/confirmation-sheet";
 import { Text } from "@/components/ui/text";
-import {
-  COLORS,
-  LIGHT_THEME,
-  type SessionCategory,
-  SESSION_TYPE_COLORS,
-} from "@/lib/design-tokens";
+import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
 import { selectionFeedback } from "@/lib/haptics";
 import { getConvexErrorMessage } from "@/utils/getConvexErrorMessage";
-import { safeParseWorkout, workoutSchemaValidated } from "@nativesquare/agoge";
+import {
+  safeParseWorkout,
+  type Workout as WorkoutStructure,
+  workoutSchemaValidated,
+} from "@nativesquare/agoge";
 import type {
   SubSport,
   Workout,
+  WorkoutTemplate,
+  WorkoutTemplateDoc,
   WorkoutType,
 } from "@nativesquare/agoge/schema";
 import { Ionicons } from "@expo/vector-icons";
@@ -41,6 +36,14 @@ import {
   View,
 } from "react-native";
 import { z } from "zod";
+import {
+  EMPTY_STRUCTURE,
+  SUB_SPORT_LABELS,
+  SUB_SPORTS,
+  WORKOUT_TYPE_COLORS,
+  WORKOUT_TYPE_LABELS,
+  WORKOUT_TYPES,
+} from "./workout-helpers";
 
 function todayDateString(): string {
   const now = new Date();
@@ -50,57 +53,66 @@ function todayDateString(): string {
   return `${y}-${m}-${d}`;
 }
 
-const formSchema = z.object({
+const workoutFaceSchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date is required"),
+  structure: workoutSchemaValidated,
+  durationSeconds: z.number().optional(),
+  distanceMeters: z.number().optional(),
+  load: z.number().optional(),
+  avgPaceMps: z.number().optional(),
+  avgHr: z.number().optional(),
+  maxHr: z.number().optional(),
+  elevationGainMeters: z.number().optional(),
+  rpe: z.number().optional(),
+  notes: z.string().optional(),
+});
+type WorkoutFaceValues = z.infer<typeof workoutFaceSchema>;
+
+const formSchema = z.object({
   workoutMode: z.enum(["done", "scheduled"]),
   name: z.string().trim().min(1, "Name is required"),
   description: z.string().optional(),
   type: z.custom<WorkoutType>(),
   typeNotes: z.string().optional(),
   subSport: z.custom<SubSport>().optional(),
-  structure: workoutSchemaValidated,
+  planned: workoutFaceSchema,
+  actual: workoutFaceSchema,
 });
-
 export type FormValues = z.infer<typeof formSchema>;
 
 export type WorkoutFormMode = "create" | "edit";
-export type WorkoutMode = "done" | "scheduled";
 
-export type WorkoutFormInitial = {
-  date: string;
-  name: string;
-  description?: string;
-  type: WorkoutType;
-  typeNotes?: string;
-  subSport?: SubSport;
-  workoutMode: WorkoutMode;
-  structure?: unknown;
-};
+function buildErrorByPath(
+  structure: WorkoutStructure | undefined,
+): Record<string, string> {
+  if (!structure || structure.blocks.length === 0) return {};
+  const result = safeParseWorkout(structure);
+  if (result.success) return {};
+  const map: Record<string, string> = {};
+  for (const issue of result.error.issues) {
+    const path = issue.path.join(".");
+    if (path.startsWith("blocks.") && map[path] == null) {
+      map[path] = issue.message;
+    }
+  }
+  return map;
+}
 
-export type WorkoutFormSubmit = FormValues & {
-  templateId?: string;
-};
-
-export type TemplateOption = {
-  _id: string;
-  name: string;
-  description?: string;
-  type: WorkoutType;
-  typeNotes?: string;
-  subSport?: SubSport;
-  content?: {
-    structure?: unknown;
-    durationSeconds?: number;
-    distanceMeters?: number;
-    notes?: string;
-  };
-};
+function firstStructureError(
+  structure: WorkoutStructure | undefined,
+): string | null {
+  if (!structure || structure.blocks.length === 0) return null;
+  const result = safeParseWorkout(structure);
+  if (result.success) return null;
+  const first = result.error.issues[0];
+  if (!first) return null;
+  return `${first.path.join(".") || "structure"}: ${first.message}`;
+}
 
 export function WorkoutForm({
   title,
   mode = "create",
   initial,
-  category,
   initialDate,
   templates,
   submitLabel,
@@ -111,42 +123,62 @@ export function WorkoutForm({
   title: string;
   mode?: WorkoutFormMode;
   initial?: Workout;
-  category?: SessionCategory;
   initialDate?: string;
-  templates?: TemplateOption[];
+  templates?: WorkoutTemplateDoc[];
   submitLabel: string;
-  onSubmit: (values: WorkoutFormSubmit) => Promise<void>;
+  onSubmit: (values: FormValues) => Promise<void>;
   onDelete?: () => Promise<void>;
   canDelete?: boolean;
 }) {
   const router = useRouter();
-  const defaultType: WorkoutType = initial?.type
-    ? initial.type
-    : category
-      ? CATEGORY_TO_TYPE[category]
-      : "easy";
 
-  const initialStructure =
-    (initial?.structure as Workout | undefined) ?? EMPTY_STRUCTURE;
+  const fallbackDate = initialDate ?? todayDateString();
+
+  const initialPlannedFace: WorkoutFaceValues = {
+    date: initial?.planned?.date?.slice(0, 10) ?? fallbackDate,
+    structure:
+      (initial?.planned?.structure as WorkoutStructure | undefined) ??
+      EMPTY_STRUCTURE,
+    notes: initial?.planned?.notes,
+    durationSeconds: initial?.planned?.durationSeconds,
+    distanceMeters: initial?.planned?.distanceMeters,
+    load: initial?.planned?.load,
+    avgPaceMps: initial?.planned?.avgPaceMps,
+    avgHr: initial?.planned?.avgHr,
+    maxHr: initial?.planned?.maxHr,
+    elevationGainMeters: initial?.planned?.elevationGainMeters,
+    rpe: initial?.planned?.rpe,
+  };
+
+  const initialActualFace: WorkoutFaceValues = {
+    date: initial?.actual?.date?.slice(0, 10) ?? fallbackDate,
+    structure:
+      (initial?.actual?.structure as WorkoutStructure | undefined) ??
+      EMPTY_STRUCTURE,
+    notes: initial?.actual?.notes,
+    durationSeconds: initial?.actual?.durationSeconds,
+    distanceMeters: initial?.actual?.distanceMeters,
+    load: initial?.actual?.load,
+    avgPaceMps: initial?.actual?.avgPaceMps,
+    avgHr: initial?.actual?.avgHr,
+    maxHr: initial?.actual?.maxHr,
+    elevationGainMeters: initial?.actual?.elevationGainMeters,
+    rpe: initial?.actual?.rpe,
+  };
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     mode: "onSubmit",
     reValidateMode: "onChange",
     defaultValues: {
-      date: initial?.date ?? initialDate ?? todayDateString(),
-      workoutMode: initial?.workoutMode ?? "done",
+      workoutMode: initial?.status === "planned" ? "scheduled" : "done",
       name: initial?.name ?? "",
       description: initial?.description ?? "",
       type: initial?.type ?? "easy",
       typeNotes: initial?.typeNotes ?? "",
       subSport: initial?.subSport,
-      structure: initial?.content?.structure ?? {
-        schema_version: 1,
-        discipline: "endurance",
-        sport: "run",
-        blocks: [],
-      },
+      planned: initialPlannedFace,
+      actual: initialActualFace,
     },
   });
 
@@ -157,53 +189,70 @@ export function WorkoutForm({
   const deleteSheetRef = React.useRef<BottomSheetModal>(null);
   const templateSheetRef = React.useRef<BottomSheetModal>(null);
 
-  const structure = useWatch({ control: form.control, name: "structure" });
+  const planned = useWatch({ control: form.control, name: "planned" });
+  const actual = useWatch({ control: form.control, name: "actual" });
   const name = useWatch({ control: form.control, name: "name" });
-  const date = useWatch({ control: form.control, name: "date" });
+  const workoutMode = useWatch({ control: form.control, name: "workoutMode" });
 
-  const errorByPath = React.useMemo(() => {
-    if (!structure || structure.blocks.length === 0) return {};
-    const result = safeParseWorkout(structure);
-    if (result.success) return {};
-    const map: Record<string, string> = {};
-    for (const issue of result.error.issues) {
-      const path = issue.path.join(".");
-      if (path.startsWith("blocks.") && map[path] == null) {
-        map[path] = issue.message;
-      }
-    }
-    return map;
-  }, [structure]);
-
-  const structureError = React.useMemo(() => {
-    if (!structure || structure.blocks.length === 0) return null;
-    const result = safeParseWorkout(structure);
-    if (result.success) return null;
-    const first = result.error.issues[0];
-    if (!first) return null;
-    return `${first.path.join(".") || "structure"}: ${first.message}`;
-  }, [structure]);
+  const plannedErrorByPath = React.useMemo(
+    () => buildErrorByPath(planned.structure),
+    [planned.structure],
+  );
+  const actualErrorByPath = React.useMemo(
+    () => buildErrorByPath(actual.structure),
+    [actual.structure],
+  );
+  const plannedError = React.useMemo(
+    () => firstStructureError(planned.structure),
+    [planned.structure],
+  );
+  const actualError = React.useMemo(
+    () => firstStructureError(actual.structure),
+    [actual.structure],
+  );
 
   const isSubmitting = form.formState.isSubmitting;
-  const canSave =
-    structureError == null &&
-    !isSubmitting &&
-    name.trim().length > 0 &&
-    date.length === 10 &&
-    structure.blocks.length > 0;
+  const isDoneMode = workoutMode === "done";
 
-  const handlePickTemplate = (template: TemplateOption) => {
+  const canSave = (() => {
+    if (isSubmitting) return false;
+    if (name.trim().length === 0) return false;
+    if (isDoneMode) {
+      // Actual is required; Planned is optional but must be valid if present.
+      if (actual.date.length !== 10) return false;
+      if (actual.structure.blocks.length === 0) return false;
+      if (actualError != null) return false;
+      if (planned.structure.blocks.length > 0 && plannedError != null) {
+        return false;
+      }
+    } else {
+      // Scheduling: Planned is required.
+      if (planned.date.length !== 10) return false;
+      if (planned.structure.blocks.length === 0) return false;
+      if (plannedError != null) return false;
+    }
+    return true;
+  })();
+
+  const handlePickTemplate = (template: WorkoutTemplateDoc) => {
     selectionFeedback();
     const pickedStructure =
-      (template.content?.structure as Workout | undefined) ?? EMPTY_STRUCTURE;
+      (template.content?.structure as WorkoutStructure | undefined) ??
+      EMPTY_STRUCTURE;
+    const current = form.getValues();
+    // Route picked structure to whichever face is the primary for the mode.
+    const targetFaceKey = isDoneMode ? "actual" : "planned";
     form.reset({
-      ...form.getValues(),
+      ...current,
       name: template.name,
       description: template.description ?? "",
       type: template.type,
       typeNotes: template.typeNotes ?? "",
       subSport: template.subSport,
-      structure: pickedStructure,
+      [targetFaceKey]: {
+        ...current[targetFaceKey],
+        structure: pickedStructure,
+      },
     });
     setTemplateId(template._id);
     setTemplateName(template.name);
@@ -217,21 +266,10 @@ export function WorkoutForm({
   };
 
   const handleSave = form.handleSubmit(async (data) => {
-    if (structureError != null) return;
     setSubmitError(null);
     Keyboard.dismiss();
     try {
-      await onSubmit({
-        date: data.date,
-        workoutMode: data.workoutMode,
-        name: data.name,
-        description: data.description?.trim() || undefined,
-        type: data.type,
-        typeNotes: data.typeNotes?.trim() || undefined,
-        subSport: data.subSport,
-        structure: data.structure,
-        templateId: templateId ?? undefined,
-      });
+      await onSubmit(data);
       router.back();
     } catch (err) {
       setSubmitError(getConvexErrorMessage(err));
@@ -386,18 +424,6 @@ export function WorkoutForm({
 
             <Controller
               control={form.control}
-              name="date"
-              render={({ field }) => (
-                <DateField
-                  label="Date"
-                  value={field.value || undefined}
-                  onChange={field.onChange}
-                />
-              )}
-            />
-
-            <Controller
-              control={form.control}
               name="name"
               render={({ field, fieldState }) => (
                 <FormField label="Name" error={fieldState.error?.message}>
@@ -503,24 +529,70 @@ export function WorkoutForm({
             />
           </FormSection>
 
-          <FormSection title="Structure">
+          {isDoneMode && (
+            <FormSection title="Actual">
+              <Controller
+                control={form.control}
+                name="actual.date"
+                render={({ field }) => (
+                  <DateField
+                    label="Date"
+                    value={field.value || undefined}
+                    onChange={field.onChange}
+                  />
+                )}
+              />
+              <Controller
+                control={form.control}
+                name="actual.structure"
+                render={({ field }) => (
+                  <WorkoutStructureEditor
+                    value={field.value}
+                    onChange={field.onChange}
+                    errorByPath={actualErrorByPath}
+                  />
+                )}
+              />
+              {actualError && (
+                <Text
+                  className="font-coach text-[12px]"
+                  style={{ color: COLORS.red }}
+                >
+                  {actualError}
+                </Text>
+              )}
+            </FormSection>
+          )}
+
+          <FormSection title={isDoneMode ? "Planned (optional)" : "Planned"}>
             <Controller
               control={form.control}
-              name="structure"
+              name="planned.date"
+              render={({ field }) => (
+                <DateField
+                  label="Date"
+                  value={field.value || undefined}
+                  onChange={field.onChange}
+                />
+              )}
+            />
+            <Controller
+              control={form.control}
+              name="planned.structure"
               render={({ field }) => (
                 <WorkoutStructureEditor
                   value={field.value}
                   onChange={field.onChange}
-                  errorByPath={errorByPath}
+                  errorByPath={plannedErrorByPath}
                 />
               )}
             />
-            {structureError && (
+            {plannedError && (
               <Text
                 className="font-coach text-[12px]"
                 style={{ color: COLORS.red }}
               >
-                {structureError}
+                {plannedError}
               </Text>
             )}
           </FormSection>
