@@ -1,15 +1,14 @@
 /**
  * Type definitions for Plan Screen components
- * Reference: cadence-full-v9.jsx PLAN array (lines 76-84)
  */
 
 /**
- * Session intensity level determines the visual color
+ * Workout intensity level determines the visual color
  */
-export type SessionIntensity = "key" | "high" | "low" | "rest";
+export type WorkoutIntensity = "key" | "high" | "low" | "rest";
 
 /**
- * Sync status for sessions recorded on external wearables
+ * Sync status for workouts recorded on external wearables
  */
 export type SyncStatus = "planned" | "exported" | "syncing" | "synced" | "failed";
 
@@ -24,26 +23,26 @@ export interface SyncedData {
 }
 
 /**
- * Individual training session data
+ * Individual training workout data
  */
 export interface WorkoutData {
   /** Agoge workout ID (present when loaded from DB) */
   workoutId?: string;
-  /** Session type (e.g., "Tempo", "Easy Run", "Intervals", "Rest", "Long Run") */
+  /** Workout type (e.g., "Tempo", "Easy Run", "Intervals", "Rest", "Long Run") */
   type: string;
   /** Distance in kilometers (or "-" for rest days) */
   km: string;
   /** Duration (e.g., "48min", "1h35", or "-" for rest) */
   dur: string;
-  /** Whether the session has been completed */
+  /** Whether the workout has been completed */
   done: boolean;
   /** Intensity level determines the accent color */
-  intensity: SessionIntensity;
+  intensity: WorkoutIntensity;
   /** Detailed description of the workout */
   desc: string;
   /** Training zone (e.g., "Z4", "Z2", "Z4-5", or "-" for rest) */
   zone: string;
-  /** Whether this is today's session */
+  /** Whether this is today's workout */
   today?: boolean;
   /** Actual duration recorded after completion (seconds) */
   actualDur?: string;
@@ -51,7 +50,7 @@ export interface WorkoutData {
   actualKm?: string;
   /** Adherence score 0-1 comparing actual vs target */
   adherenceScore?: number;
-  /** Sync state for wearable-recorded sessions */
+  /** Sync state for wearable-recorded workouts */
   syncStatus?: SyncStatus;
   /** Source wearable or service (e.g., "garmin", "apple_watch", "strava") */
   syncSource?: string;
@@ -89,8 +88,8 @@ export interface PlanData {
   weekNumber: number;
   /** Current training phase (e.g., "Build", "Peak", "Taper") */
   phase: string;
-  /** Array of 7 sessions for the week (Mon-Sun) */
-  sessions: WorkoutData[];
+  /** Array of 7 workouts for the week (Mon-Sun) */
+  workouts: WorkoutData[];
   /** Kilometers completed this week */
   volumeCompleted: number;
   /** Total planned kilometers for the week */

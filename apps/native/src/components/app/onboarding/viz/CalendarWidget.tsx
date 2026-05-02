@@ -1,7 +1,7 @@
 /**
  * CalendarWidget Component - Vertical expandable day cards layout.
  *
- * Displays: Mon-Sun as expandable cards with session details.
+ * Displays: Mon-Sun as expandable cards with workout details.
  * Features: springUp entrance animation, tap-to-expand, summary strip.
  *
  * Source: cadence-calendar-v2.jsx prototype
@@ -44,7 +44,7 @@ if (
 
 export type DayAbbrev = "Mon" | "Tue" | "Wed" | "Thu" | "Fri" | "Sat" | "Sun";
 
-export interface SessionData {
+export interface WorkoutDay {
   day: string;
   short: DayAbbrev;
   type: "Tempo" | "Easy" | "Intervals" | "Long Run" | "Rest" | string;
@@ -61,8 +61,8 @@ export interface SessionData {
 }
 
 export interface CalendarWidgetProps {
-  /** Array of 7 session data points for Mon-Sun */
-  schedule: SessionData[];
+  /** Array of 7 workout data points for Mon-Sun */
+  schedule: WorkoutDay[];
   /** Phase label displayed in header (e.g., "Build Phase") */
   phaseLabel?: string;
   /** Whether to animate on mount (default: true) */
@@ -123,16 +123,16 @@ function InfoIcon({ color }: { color: string }) {
 // =============================================================================
 
 interface DayCardProps {
-  session: SessionData;
+  workout: WorkoutDay;
   index: number;
   expanded: boolean;
   onToggle: () => void;
   animate: boolean;
 }
 
-function DayCard({ session, index, expanded, onToggle, animate }: DayCardProps) {
+function DayCard({ workout, index, expanded, onToggle, animate }: DayCardProps) {
   const { short, type, dur, effort, key, color, colorDim, pace, desc, structure, why, rest } =
-    session;
+    workout;
 
   const [pressed, setPressed] = useState(false);
 
@@ -193,19 +193,19 @@ function DayCard({ session, index, expanded, onToggle, animate }: DayCardProps) 
         </View>
 
         {/* Session info */}
-        <View style={styles.sessionInfo}>
-          <View style={styles.sessionTitleRow}>
+        <View style={styles.workoutInfo}>
+          <View style={styles.workoutTitleRow}>
             <Text
               style={[
-                styles.sessionType,
-                rest && styles.sessionTypeRest,
+                styles.workoutType,
+                rest && styles.workoutTypeRest,
               ]}
             >
               {type}
             </Text>
             {key && <View style={styles.keyDot} />}
           </View>
-          <Text style={styles.sessionMeta}>
+          <Text style={styles.workoutMeta}>
             {dur}
             {!rest && ` · Effort ${effort}`}
           </Text>
@@ -364,10 +364,10 @@ export function CalendarWidget({
 
       {/* Day cards */}
       <View style={styles.cardsList}>
-        {schedule.map((session, index) => (
+        {schedule.map((workout, index) => (
           <DayCard
-            key={session.day}
-            session={session}
+            key={workout.day}
+            workout={workout}
             index={index}
             expanded={expanded === index}
             onToggle={() => handleToggle(index)}
@@ -490,20 +490,20 @@ const styles = StyleSheet.create({
     letterSpacing: 0.4,
   },
   // Session info
-  sessionInfo: {
+  workoutInfo: {
     flex: 1,
   },
-  sessionTitleRow: {
+  workoutTitleRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
   },
-  sessionType: {
+  workoutType: {
     fontFamily: "Outfit-SemiBold",
     fontSize: 16,
     color: GRAYS.g1,
   },
-  sessionTypeRest: {
+  workoutTypeRest: {
     fontFamily: "Outfit-Regular",
     color: GRAYS.g4,
   },
@@ -513,7 +513,7 @@ const styles = StyleSheet.create({
     borderRadius: 3,
     backgroundColor: COLORS.lime,
   },
-  sessionMeta: {
+  workoutMeta: {
     fontFamily: "JetBrainsMono-Regular",
     fontSize: 11,
     color: GRAYS.g4,
@@ -647,10 +647,10 @@ const styles = StyleSheet.create({
 });
 
 // =============================================================================
-// Mock Data Export - Full session details per prototype
+// Mock Data Export - Full workout details per prototype
 // =============================================================================
 
-export const CALENDAR_MOCK_SCHEDULE: SessionData[] = [
+export const CALENDAR_MOCK_SCHEDULE: WorkoutDay[] = [
   {
     day: "Monday",
     short: "Mon",

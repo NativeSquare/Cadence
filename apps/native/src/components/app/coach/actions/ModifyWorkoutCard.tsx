@@ -1,7 +1,7 @@
 /**
- * ModifySessionCard
+ * ModifyWorkoutCard
  *
- * Renders a proposal to change session details with a diff view
+ * Renders a proposal to change workout details with a diff view
  * showing old values (strikethrough) → new values.
  */
 
@@ -14,24 +14,24 @@ import { ActionButtons } from "./ActionButtons";
 import { useActionCardState } from "./useActionCardState";
 import type { ModifyProposal, ActionCardProps } from "./types";
 
-interface ModifySessionCardProps extends Omit<ActionCardProps, "phase" | "onAccept" | "onReject"> {
+interface ModifyWorkoutCardProps extends Omit<ActionCardProps, "phase" | "onAccept" | "onReject"> {
   proposal: ModifyProposal;
   executeMutation: () => Promise<{ success: boolean; error?: string }>;
   onAccepted: () => void;
   onRejected: () => void;
 }
 
-export function ModifySessionCard({
+export function ModifyWorkoutCard({
   toolCallId,
   proposal,
   executeMutation,
   onAccepted,
   onRejected,
-}: ModifySessionCardProps) {
+}: ModifyWorkoutCardProps) {
   const { phase, errorMessage, accept, reject, retry } = useActionCardState();
 
   const changeLabels = proposal.changes.map((c) => c.fieldLabel).join(", ");
-  const summary = `${proposal.sessionName} updated: ${changeLabels}`;
+  const summary = `${proposal.workoutName} updated: ${changeLabels}`;
 
   const handleAccept = () => {
     accept(executeMutation).then(() => onAccepted());
@@ -49,14 +49,14 @@ export function ModifySessionCard({
   return (
     <ActionCardWrapper
       phase={phase}
-      title="Session Update"
+      title="Workout Update"
       summary={summary}
       errorMessage={errorMessage}
     >
       <View style={{ padding: 14, gap: 14 }}>
-        {/* Session name */}
+        {/* Workout name */}
         <Text style={{ color: LIGHT_THEME.wText, fontSize: 15, fontWeight: "600" }}>
-          {proposal.sessionName}
+          {proposal.workoutName}
         </Text>
 
         {/* Diff view */}

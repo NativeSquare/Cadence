@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { Text } from "@/components/ui/text";
 import type { WorkoutData } from "./types";
-import { getSessionColor } from "./utils";
+import { getWorkoutColor } from "./utils";
 import { LIGHT_THEME } from "@/lib/design-tokens";
 
 const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -32,7 +32,7 @@ const WEEKS_BUFFER = 12;
 const INITIAL_INDEX = WEEKS_BUFFER;
 
 interface CalendarStripProps {
-  sessionsByDate: Record<string, WorkoutData>;
+  workoutsByDate: Record<string, WorkoutData>;
   selectedDate: Date;
   onDateSelect: (date: Date) => void;
 }
@@ -51,7 +51,7 @@ interface DayInfo {
 interface DayButtonProps {
   dayLabel: string;
   dateNum: number;
-  session: WorkoutData | undefined;
+  workout: WorkoutData | undefined;
   isToday: boolean;
   isSelected: boolean;
   onPress: () => void;
@@ -107,13 +107,13 @@ function generateWeeks(): WeekData[] {
 function DayButton({
   dayLabel,
   dateNum,
-  session,
+  workout,
   isToday,
   isSelected,
   onPress,
 }: DayButtonProps) {
   const dotColor =
-    session && session.type !== "Rest" ? getSessionColor(session) : "transparent";
+    workout && workout.type !== "Rest" ? getWorkoutColor(workout) : "transparent";
 
   const getBorderStyle = () => {
     if (isSelected) return { borderWidth: 2, borderColor: LIGHT_THEME.wText };
@@ -175,7 +175,7 @@ function DayButton({
 }
 
 export function CalendarStrip({
-  sessionsByDate,
+  workoutsByDate,
   selectedDate,
   onDateSelect,
 }: CalendarStripProps) {
@@ -254,7 +254,7 @@ export function CalendarStrip({
                     key={day.date.toISOString()}
                     dayLabel={day.dayLabel}
                     dateNum={day.dateNum}
-                    session={sessionsByDate[toDateKey(day.date)]}
+                    workout={workoutsByDate[toDateKey(day.date)]}
                     isToday={isSameDay(day.date, today)}
                     isSelected={isSameDay(day.date, selectedDate)}
                     onPress={() => onDateSelect(day.date)}

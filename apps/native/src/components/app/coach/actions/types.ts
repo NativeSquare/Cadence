@@ -15,7 +15,7 @@ export type ActionCardPhase =
   | "applying" // User accepted, mutation in flight
   | "accepted" // Mutation succeeded
   | "rejected" // User explicitly rejected
-  | "expired" // Proposal is no longer valid (session changed externally)
+  | "expired" // Proposal is no longer valid (workout changed externally)
   | "error"; // Mutation failed
 
 // =============================================================================
@@ -24,9 +24,9 @@ export type ActionCardPhase =
 
 export interface RescheduleProposal {
   type: "reschedule";
-  sessionId: string;
-  sessionName: string;
-  sessionType: string;
+  workoutId: string;
+  workoutName: string;
+  workoutType: string;
   currentDate: string;
   currentDayOfWeek: string;
   proposedDate: string;
@@ -38,8 +38,8 @@ export interface RescheduleProposal {
 
 export interface ModifyProposal {
   type: "modify";
-  sessionId: string;
-  sessionName: string;
+  workoutId: string;
+  workoutName: string;
   changes: Array<{
     field: string;
     fieldLabel: string;
@@ -51,18 +51,18 @@ export interface ModifyProposal {
 
 export interface SwapProposal {
   type: "swap";
-  sessionA: {
-    sessionId: string;
-    sessionName: string;
-    sessionType: string;
+  workoutA: {
+    workoutId: string;
+    workoutName: string;
+    workoutType: string;
     date: string;
     dayOfWeek: string;
     duration: string;
   };
-  sessionB: {
-    sessionId: string;
-    sessionName: string;
-    sessionType: string;
+  workoutB: {
+    workoutId: string;
+    workoutName: string;
+    workoutType: string;
     date: string;
     dayOfWeek: string;
     duration: string;

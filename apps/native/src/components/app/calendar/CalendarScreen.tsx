@@ -1,13 +1,13 @@
 /**
  * CalendarScreen - Monthly calendar with two toggleable perspectives:
  *
- * 1. **Sessions** – rounded-square tiles with colored dots for each session type.
+ * 1. **Workouts** – rounded-square tiles with colored dots for each workout type.
  * 2. **Blocks** – same tile grid but tiles are tinted by training phase color
  *    (Base / Build / Taper / Race / Recovery) with a phase legend.
  *
  * - Animated month navigation with haptic feedback
  * - Tap month name to return to today
- * - Tap a training day to view session details in a bottom sheet
+ * - Tap a training day to view workout details in a bottom sheet
  */
 
 import React, { useCallback, useMemo, useState } from "react";
@@ -37,24 +37,24 @@ import {
   COLORS,
   GRAYS,
   LIGHT_THEME,
-  SESSION_TYPE_COLORS,
+  WORKOUT_CATEGORY_COLORS,
 } from "@/lib/design-tokens";
 import {
   MONTH_NAMES,
   DAY_HEADERS,
-  SESSION_LABELS,
+  WORKOUT_LABELS,
   TODAY_KEY,
 } from "./constants";
 import {
   buildWeeks,
   buildPhaseLookup,
   blendWithBg,
-  buildCalendarSessions,
+  buildCalendarWorkouts,
   buildPhasesFromBlocks,
 } from "./helpers";
-import type { CalSession, CalSessionType } from "./types";
+import type { CalWorkoutType } from "./types";
 
-type ViewMode = "sessions" | "blocks";
+type ViewMode = "workouts" | "blocks";
 
 const GRID_GAP = 6;
 const GRID_PADDING = 10;
@@ -81,13 +81,13 @@ function ViewToggle({
   value: ViewMode;
   onChange: (v: ViewMode) => void;
 }) {
-  const indicatorX = useSharedValue(value === "sessions" ? 0 : 1);
+  const indicatorX = useSharedValue(value === "workouts" ? 0 : 1);
 
   const handlePress = useCallback(
     (mode: ViewMode) => {
       if (mode === value) return;
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      indicatorX.value = withTiming(mode === "sessions" ? 0 : 1, {
+      indicatorX.value = withTiming(mode === "workouts" ? 0 : 1, {
         duration: 180,
       });
       onChange(mode);
@@ -104,16 +104,16 @@ function ViewToggle({
       <Animated.View style={[toggleStyles.indicator, indicatorStyle]} />
       <Pressable
         style={toggleStyles.option}
-        onPress={() => handlePress("sessions")}
+        onPress={() => handlePress("workouts")}
         hitSlop={4}
       >
         <Text
           style={[
             toggleStyles.label,
-            value === "sessions" && toggleStyles.labelActive,
+            value === "workouts" && toggleStyles.labelActive,
           ]}
         >
-          Sessions
+          Workouts
         </Text>
       </Pressable>
       <Pressable
@@ -147,7 +147,7 @@ export function CalendarScreen() {
 
   const [currentMonth, setCurrentMonth] = useState(todayDate.getMonth());
   const [currentYear, setCurrentYear] = useState(todayDate.getFullYear());
-  const [viewMode, setViewMode] = useState<ViewMode>("sessions");
+  const [viewMode, setViewMode] = useState<ViewMode>("workouts");
 
   const contentFade = useSharedValue(1);
   const contentTranslateX = useSharedValue(0);
@@ -168,8 +168,8 @@ export function CalendarScreen() {
     activePlan ? { planId: activePlan._id } : "skip",
   );
 
-  const calSessions = useMemo(
-    () => (workouts ? buildCalendarSessions(workouts) : {}),
+  const calWorkouts = useMemo(
+    () => (workouts ? buildCalendarWorkouts(workouts) : {}),
     [workouts],
   );
 
@@ -248,15 +248,15 @@ export function CalendarScreen() {
     transform: [{ translateX: contentTranslateX.value }],
   }));
 
-  // ─── Day / session press ─────────────────────────────────────────
+  // ─── Day / workout press ─────────────────────────────────────────
 
   const handleDayPress = useCallback((dateKey: string) => {
-    const sessions = calSessions[dateKey];
-    if (sessions && sessions.length > 0) {
+    const dayWorkouts = calWorkouts[dateKey];
+    if (dayWorkouts && dayWorkouts.length > 0) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      router.push(`/(app)/workouts/${sessions[0].workoutId}`);
+      router.push(`/(app)/workouts/${dayWorkouts[0].workoutId}`);
     }
-  }, [calSessions, router]);
+  }, [calWorkouts, router]);
 
   // ─── Render ───────────────────────────────────────────────────────
 
@@ -329,8 +329,8 @@ export function CalendarScreen() {
           {weeks.map((week, wi) => (
             <View key={`w-${wi}`} style={st.weekRow}>
               {week.map((day) => {
-                const sessions = calSessions[day.key];
-                const hasSession = sessions && sessions.length > 0;
+                const dayWorkouts = calWorkouts[day.key];
+                const hasWorkout = dayWorkouts && dayWorkouts.length > 0;
                 const isToday = day.key === TODAY_KEY;
                 const phase = phaseLookup.get(day.key);
                 const isBlocks = viewMode === "blocks";
@@ -370,8 +370,8 @@ export function CalendarScreen() {
                           tileStyle,
                           isBlocks
                             ? blockTileBg ?? st.tileEmpty
-                            : hasSession
-                              ? st.tileWithSession
+                            : hasWorkout
+                              ? st.tileWithWorkout
                               : st.tileEmpty,
                           isToday && st.tileToday,
                         ]}
@@ -382,7 +382,7 @@ export function CalendarScreen() {
                             isToday && st.dayNumToday,
                             !isToday &&
                               ((isBlocks && phase) ||
-                                (!isBlocks && hasSession)) &&
+                                (!isBlocks && hasWorkout)) &&
                               st.dayNumActive,
                           ]}
                         >
@@ -394,7 +394,7 @@ export function CalendarScreen() {
                             <View style={st.dotsRow}>
                               <View
                                 style={[
-                                  st.sessionDot,
+                                  st.workoutDot,
                                   { backgroundColor: phase.color },
                                 ]}
                               />
@@ -402,18 +402,18 @@ export function CalendarScreen() {
                           ) : (
                             <View style={st.dotsSpacer} />
                           )
-                        ) : hasSession ? (
+                        ) : hasWorkout ? (
                           <View style={st.dotsRow}>
-                            {sessions!.map((s, si) => (
+                            {dayWorkouts!.map((w, wi) => (
                               <View
-                                key={si}
+                                key={wi}
                                 style={[
-                                  st.sessionDot,
+                                  st.workoutDot,
                                   {
                                     backgroundColor:
-                                      SESSION_TYPE_COLORS[s.type],
+                                      WORKOUT_CATEGORY_COLORS[w.type],
                                   },
-                                  s.done && st.sessionDotDone,
+                                  w.done && st.workoutDotDone,
                                 ]}
                               />
                             ))}
@@ -429,13 +429,13 @@ export function CalendarScreen() {
             </View>
           ))}
 
-          {/* Legend — swaps between session types and training blocks */}
+          {/* Legend — swaps between workout types and training blocks */}
           <View style={st.legend}>
             <View style={st.legendCard}>
-              {viewMode === "sessions"
+              {viewMode === "workouts"
                 ? (
-                    Object.entries(SESSION_LABELS) as [
-                      CalSessionType,
+                    Object.entries(WORKOUT_LABELS) as [
+                      CalWorkoutType,
                       string,
                     ][]
                   ).map(([type, label]) => (
@@ -443,7 +443,7 @@ export function CalendarScreen() {
                       <View
                         style={[
                           st.legendDot,
-                          { backgroundColor: SESSION_TYPE_COLORS[type] },
+                          { backgroundColor: WORKOUT_CATEGORY_COLORS[type] },
                         ]}
                       />
                       <Text style={st.legendLabel}>{label}</Text>
@@ -573,7 +573,7 @@ const st = StyleSheet.create({
   tileEmpty: {
     backgroundColor: "#EAEAE8",
   },
-  tileWithSession: {
+  tileWithWorkout: {
     backgroundColor: "#FFFFFF",
     borderWidth: 1,
     borderColor: "rgba(0,0,0,0.06)",
@@ -611,7 +611,7 @@ const st = StyleSheet.create({
     color: LIGHT_THEME.wText,
   },
 
-  // ─── Session dots inside tile ───────────────────────────────────────
+  // ─── Workout dots inside tile ───────────────────────────────────────
 
   dotsRow: {
     flexDirection: "row",
@@ -619,12 +619,12 @@ const st = StyleSheet.create({
     gap: 3,
     marginTop: 4,
   },
-  sessionDot: {
+  workoutDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
   },
-  sessionDotDone: {
+  workoutDotDone: {
     opacity: 0.45,
   },
   dotsSpacer: {

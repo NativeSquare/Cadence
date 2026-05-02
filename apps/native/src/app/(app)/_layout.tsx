@@ -54,15 +54,6 @@ export default function AppLayout() {
             gestureDirection: "vertical",
           }}
         />
-        <Stack.Screen
-          name="active-session"
-          options={{
-            headerShown: false,
-            presentation: "fullScreenModal",
-            animation: "fade",
-            gestureEnabled: false,
-          }}
-        />
       </Stack>
     </View>
   );

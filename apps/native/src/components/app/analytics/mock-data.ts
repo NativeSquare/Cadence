@@ -150,8 +150,8 @@ export const PHASE_COLORS = {
 export const MOCK_STATS = {
   totalDistance: 387,
   totalPlanned: 520,
-  sessions: 31,
-  sessionsPlanned: 48,
+  workouts: 31,
+  workoutsPlanned: 48,
   longestRun: 18.2,
   longestRunWeek: 3,
 };

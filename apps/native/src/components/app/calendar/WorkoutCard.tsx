@@ -1,6 +1,6 @@
 /**
- * SessionCard - Pressable card with colored left accent strip for a calendar day cell.
- * Shows km and duration with a subtle session-type icon watermark.
+ * WorkoutCard - Pressable card with colored left accent strip for a calendar day cell.
+ * Shows km and duration with a subtle workout-type icon watermark.
  * Tappable with scale feedback, subtle shadow depth, and staggered entrance.
  */
 
@@ -19,11 +19,11 @@ import Animated, {
 import Svg, { Circle, Path } from "react-native-svg";
 import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
 import { useCalendarFocused } from "./CalendarFocusContext";
-import { SESSION_COLORS } from "./constants";
-import type { CalSession, CalSessionType } from "./types";
+import { WORKOUT_COLORS } from "./constants";
+import type { CalWorkout, CalWorkoutType } from "./types";
 
-interface SessionCardProps {
-  session: CalSession;
+interface WorkoutCardProps {
+  workout: CalWorkout;
   isToday: boolean;
   isOutside: boolean;
   onPress?: () => void;
@@ -32,12 +32,12 @@ interface SessionCardProps {
 
 const ICON_SW = 2;
 
-const SmallSessionIcon = React.memo(function SmallSessionIcon({
+const SmallWorkoutIcon = React.memo(function SmallWorkoutIcon({
   type,
   size = 10,
   color = LIGHT_THEME.wText,
 }: {
-  type: CalSessionType;
+  type: CalWorkoutType;
   size?: number;
   color?: string;
 }) {
@@ -118,9 +118,9 @@ const TodayDot = React.memo(function TodayDot() {
   return <Animated.View style={[styles.todayDot, animatedStyle]} pointerEvents="none" />;
 });
 
-export const SessionCard = React.memo(
-  function SessionCard({ session, isToday, isOutside, onPress, enterDelay = 0 }: SessionCardProps) {
-    const accentColor = SESSION_COLORS[session.type];
+export const WorkoutCard = React.memo(
+  function WorkoutCard({ workout, isToday, isOutside, onPress, enterDelay = 0 }: WorkoutCardProps) {
+    const accentColor = WORKOUT_COLORS[workout.type];
 
     const cardStyle = useMemo(
       () => [styles.card, isToday ? styles.todayCard : styles.normalCard, isOutside && styles.outsideCard],
@@ -128,18 +128,18 @@ export const SessionCard = React.memo(
     );
 
     const accentStyle = useMemo(
-      () => [styles.accentStrip, { backgroundColor: accentColor, opacity: session.done ? 1 : 0.5 }],
-      [accentColor, session.done]
+      () => [styles.accentStrip, { backgroundColor: accentColor, opacity: workout.done ? 1 : 0.5 }],
+      [accentColor, workout.done]
     );
 
     const inner = (
       <View style={cardStyle}>
         <View style={accentStyle} />
         <View style={styles.content}>
-          <Text style={[styles.kmText, session.done && styles.kmTextDone]}>{session.km}</Text>
-          <Text style={[styles.durText, session.done && styles.durTextDone]}>{session.dur}</Text>
+          <Text style={[styles.kmText, workout.done && styles.kmTextDone]}>{workout.km}</Text>
+          <Text style={[styles.durText, workout.done && styles.durTextDone]}>{workout.dur}</Text>
           <View style={styles.iconWatermark} pointerEvents="none">
-            <SmallSessionIcon type={session.type} />
+            <SmallWorkoutIcon type={workout.type} />
           </View>
         </View>
         {isToday && <TodayDot />}
@@ -166,9 +166,9 @@ export const SessionCard = React.memo(
     );
   },
   (prev, next) =>
-    prev.session.type === next.session.type &&
-    prev.session.done === next.session.done &&
-    prev.session.km === next.session.km &&
+    prev.workout.type === next.workout.type &&
+    prev.workout.done === next.workout.done &&
+    prev.workout.km === next.workout.km &&
     prev.isToday === next.isToday &&
     prev.isOutside === next.isOutside &&
     prev.onPress === next.onPress &&

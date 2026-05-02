@@ -7,10 +7,10 @@
  */
 
 // =============================================================================
-// Session classification
+// Workout classification
 // =============================================================================
 
-export type SessionType =
+export type WorkoutType =
   | "easy"
   | "tempo"
   | "intervals"
@@ -41,8 +41,8 @@ export interface CadenceActivity {
   trainingLoad?: number;
   /** Perceived exertion 1-10 */
   perceivedExertion?: number;
-  /** Session classification */
-  sessionType?: SessionType;
+  /** Workout classification */
+  workoutType?: WorkoutType;
 }
 
 // =============================================================================
@@ -83,7 +83,7 @@ export interface CadencePlannedWorkoutInput {
   id: string;
   /** Unix timestamp ms */
   scheduledDate: number;
-  sessionTypeDisplay: string;
+  workoutTypeDisplay: string;
   description?: string;
   targetDurationSeconds?: number;
   targetDistanceMeters?: number;
@@ -99,13 +99,13 @@ export interface CadencePlannedWorkoutInput {
 // =============================================================================
 
 /**
- * Canonical Terra activity type ids per SessionType.
- * The first entry is the "preferred" id used when converting SessionType → Terra.
+ * Canonical Terra activity type ids per WorkoutType.
+ * The first entry is the "preferred" id used when converting WorkoutType → Terra.
  * Reverse direction checks any entry in the array.
  *
  * https://docs.tryterra.co/reference/enums#activity-types
  */
-export const TERRA_ACTIVITY_TYPES: Record<SessionType, number[]> = {
+export const TERRA_ACTIVITY_TYPES: Record<WorkoutType, number[]> = {
   easy: [8],
   tempo: [8],
   intervals: [8],

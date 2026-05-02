@@ -16,9 +16,9 @@ import Animated, {
 } from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
 import { PhaseBand } from "./PhaseBand";
-import { SessionCard } from "./SessionCard";
+import { WorkoutCard } from "./WorkoutCard";
 import { computePhaseSegments } from "./helpers";
-import type { CalSession, CalendarDay, Phase } from "./types";
+import type { CalWorkout, CalendarDay, Phase } from "./types";
 
 const HIGHLIGHT_COLORS = ["rgba(200,255,0,0.047)", "rgba(200,255,0,0.024)"] as const;
 
@@ -26,9 +26,9 @@ interface WeekRowProps {
   week: CalendarDay[];
   weekIndex: number;
   phaseLookup: Map<string, Phase>;
-  sessions: Record<string, CalSession[]>;
+  workouts: Record<string, CalWorkout[]>;
   todayKey: string;
-  onSessionPress?: (dateKey: string, session: CalSession) => void;
+  onWorkoutPress?: (dateKey: string, workout: CalWorkout) => void;
   enterDelay?: number;
 }
 
@@ -59,16 +59,16 @@ export const WeekRow = React.memo(function WeekRow({
   week,
   weekIndex,
   phaseLookup,
-  sessions,
+  workouts,
   todayKey,
-  onSessionPress,
+  onWorkoutPress,
   enterDelay = 0,
 }: WeekRowProps) {
   const segments = useMemo(() => computePhaseSegments(week, phaseLookup), [week, phaseLookup]);
 
-  const weekHasSessions = useMemo(
-    () => week.some((d) => (sessions[d.key] || []).length > 0),
-    [week, sessions]
+  const weekHasWorkouts = useMemo(
+    () => week.some((d) => (workouts[d.key] || []).length > 0),
+    [week, workouts]
   );
 
   const todayColIdx = useMemo(() => week.findIndex((d) => d.key === todayKey), [week, todayKey]);
@@ -91,7 +91,7 @@ export const WeekRow = React.memo(function WeekRow({
     <Animated.View
       entering={FadeInUp.delay(enterDelay).duration(350).easing(Easing.out(Easing.cubic))}
       style={[
-        weekHasSessions ? styles.flexRow : styles.autoRow,
+        weekHasWorkouts ? styles.flexRow : styles.autoRow,
         weekIndex > 0 && styles.separator,
       ]}
     >
@@ -101,19 +101,19 @@ export const WeekRow = React.memo(function WeekRow({
 
       <View style={styles.cardsGrid}>
         {week.map((d, di) => {
-          const daySessions = sessions[d.key] || [];
-          const hasSession = daySessions.length > 0;
-          const s = daySessions[0];
+          const dayWorkouts = workouts[d.key] || [];
+          const hasWorkout = dayWorkouts.length > 0;
+          const w = dayWorkouts[0];
           const isToday = d.key === todayKey;
 
           return (
             <View key={di} style={styles.cardCell}>
-              {hasSession && s ? (
-                <SessionCard
-                  session={s}
+              {hasWorkout && w ? (
+                <WorkoutCard
+                  workout={w}
                   isToday={isToday}
                   isOutside={d.outside}
-                  onPress={onSessionPress ? () => onSessionPress(d.key, s) : undefined}
+                  onPress={onWorkoutPress ? () => onWorkoutPress(d.key, w) : undefined}
                   enterDelay={enterDelay + di * 30}
                 />
               ) : (

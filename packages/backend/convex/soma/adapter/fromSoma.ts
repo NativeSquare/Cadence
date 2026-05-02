@@ -16,7 +16,7 @@ import {
   type CadenceDailyBiometrics,
   type CadencePlannedWorkoutInput,
   type CadencePlannedWorkoutStructureSegment,
-  type SessionType,
+  type WorkoutType,
   TERRA_ACTIVITY_TYPES,
 } from "./types";
 
@@ -37,10 +37,10 @@ function metersPerSecToPaceString(mps: number): string | undefined {
 }
 
 // =============================================================================
-// Session type mapping (Terra numeric → Cadence enum)
+// Workout type mapping (Terra numeric → Cadence enum)
 // =============================================================================
 
-export function sessionType(terraType: number | undefined): SessionType {
+export function workoutType(terraType: number | undefined): WorkoutType {
   if (terraType === undefined) return "unstructured";
   // Running defaults to "easy" — the inference engine refines the classification
   // (tempo / intervals / long_run) based on pace and duration.
@@ -76,7 +76,7 @@ export function activity(
     maxHeartRate: soma.heart_rate_data?.summary?.max_hr_bpm,
     trainingLoad,
     perceivedExertion: undefined,
-    sessionType: sessionType(soma.metadata.type),
+    workoutType: workoutType(soma.metadata.type),
   };
 }
 
@@ -214,7 +214,7 @@ export function plannedWorkout(
   return {
     id: soma.metadata.id ?? "",
     scheduledDate,
-    sessionTypeDisplay: soma.metadata.name ?? "Workout",
+    workoutTypeDisplay: soma.metadata.name ?? "Workout",
     description: soma.metadata.description,
     targetDurationSeconds: soma.metadata.estimated_duration_seconds,
     targetDistanceMeters: soma.metadata.estimated_distance_meters,

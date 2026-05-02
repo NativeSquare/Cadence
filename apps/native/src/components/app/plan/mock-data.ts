@@ -1,8 +1,7 @@
 /**
- * Mock data for Plan Screen
- * Reference: cadence-full-v9.jsx PLAN array (lines 76-84) and COACH_MSG (line 85)
+ * Mock data for Plan Screen.
  *
- * This mock data will be replaced by Convex queries in production.
+ * This mock data is used by previews/Storybook; production reads from Convex.
  */
 
 import type { PlanData, RaceGoalData, WorkoutData } from "./types";
@@ -21,9 +20,9 @@ const REST_DONE: WorkoutData = { ...REST_DAY, done: true };
 
 /**
  * Mock 7-day training plan for the current week.
- * 4 running sessions + 3 rest days. TODAY_INDEX (3) points to Easy Run.
+ * 4 running workouts + 3 rest days. TODAY_INDEX (3) points to Easy Run.
  */
-export const MOCK_SESSIONS: WorkoutData[] = [
+export const MOCK_WORKOUTS: WorkoutData[] = [
   {
     type: "Tempo",
     km: "8.5",
@@ -129,7 +128,7 @@ const WEEK_PLUS_2: WorkoutData[] = [
   { type: "Long Run", km: "18.0", dur: "1h48", done: false, intensity: "key", desc: "Steady state, final long effort", zone: "Z2-3" },
 ];
 
-function buildCalendarSessions(): Record<string, WorkoutData> {
+function buildCalendarWorkouts(): Record<string, WorkoutData> {
   const today = new Date();
   const currentMonday = getMonday(today);
   const result: Record<string, WorkoutData> = {};
@@ -137,7 +136,7 @@ function buildCalendarSessions(): Record<string, WorkoutData> {
   const allWeeks: WorkoutData[][] = [
     WEEK_MINUS_2,
     WEEK_MINUS_1,
-    MOCK_SESSIONS,
+    MOCK_WORKOUTS,
     WEEK_PLUS_1,
     WEEK_PLUS_2,
   ];
@@ -156,12 +155,8 @@ function buildCalendarSessions(): Record<string, WorkoutData> {
   return result;
 }
 
-export const MOCK_CALENDAR_SESSIONS = buildCalendarSessions();
+export const MOCK_CALENDAR_WORKOUTS = buildCalendarWorkouts();
 
-/**
- * Mock coach message for today
- * Reference: cadence-full-v9.jsx line 85
- */
 export const MOCK_COACH_MESSAGE =
   "Easy day. Yesterday's intervals were demanding - your legs need low-stress miles to absorb that work. Keep it honest.";
 
@@ -178,14 +173,11 @@ export const MOCK_RACE_GOAL: RaceGoalData = {
   phase: "Build",
 };
 
-/**
- * Complete mock plan data
- */
 export const MOCK_PLAN_DATA: PlanData = {
   userName: "Alex",
   weekNumber: 4,
   phase: "Build",
-  sessions: MOCK_SESSIONS,
+  workouts: MOCK_WORKOUTS,
   volumeCompleted: 18.7,
   volumePlanned: 42.2,
   timeCompleted: "2h 25m",

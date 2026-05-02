@@ -5,8 +5,8 @@ import {
   SURFACES,
   LIGHT_THEME,
   ACTIVITY_COLORS,
-  SESSION_TYPE_COLORS,
-  SESSION_TYPE_COLORS_DIM,
+  WORKOUT_CATEGORY_COLORS,
+  WORKOUT_CATEGORY_COLORS_DIM,
 } from "./src/lib/design-tokens";
 
 const { hairlineWidth } = require("nativewind/theme");
@@ -107,22 +107,22 @@ export default {
         barEasy: ACTIVITY_COLORS.barEasy,
         barRest: ACTIVITY_COLORS.barRest,
 
-        // Session type colors (4-color scheme)
-        "session-easy": {
-          DEFAULT: SESSION_TYPE_COLORS.easy,
-          dim: SESSION_TYPE_COLORS_DIM.easy,
+        // Workout type colors (4-color scheme)
+        "workout-easy": {
+          DEFAULT: WORKOUT_CATEGORY_COLORS.easy,
+          dim: WORKOUT_CATEGORY_COLORS_DIM.easy,
         },
-        "session-specific": {
-          DEFAULT: SESSION_TYPE_COLORS.specific,
-          dim: SESSION_TYPE_COLORS_DIM.specific,
+        "workout-specific": {
+          DEFAULT: WORKOUT_CATEGORY_COLORS.specific,
+          dim: WORKOUT_CATEGORY_COLORS_DIM.specific,
         },
-        "session-long": {
-          DEFAULT: SESSION_TYPE_COLORS.long,
-          dim: SESSION_TYPE_COLORS_DIM.long,
+        "workout-long": {
+          DEFAULT: WORKOUT_CATEGORY_COLORS.long,
+          dim: WORKOUT_CATEGORY_COLORS_DIM.long,
         },
-        "session-race": {
-          DEFAULT: SESSION_TYPE_COLORS.race,
-          dim: SESSION_TYPE_COLORS_DIM.race,
+        "workout-race": {
+          DEFAULT: WORKOUT_CATEGORY_COLORS.race,
+          dim: WORKOUT_CATEGORY_COLORS_DIM.race,
         },
       },
       fontFamily: {

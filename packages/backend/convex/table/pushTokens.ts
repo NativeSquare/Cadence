@@ -6,7 +6,7 @@ import { v } from "convex/values";
  *
  * Supports multiple devices per user. Tokens are upserted on app launch
  * and used by the notification system to send push notifications
- * (e.g., session completion alerts).
+ * (e.g., workout completion alerts).
  */
 export const pushTokens = defineTable({
   userId: v.id("users"),

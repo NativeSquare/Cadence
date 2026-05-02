@@ -1,4 +1,4 @@
-import { SESSION_TYPE_COLORS } from "@/lib/design-tokens";
+import { WORKOUT_CATEGORY_COLORS } from "@/lib/design-tokens";
 import type {
   Duration,
   Step,
@@ -28,9 +28,9 @@ export const WORKOUT_TYPE_LABELS: Record<WorkoutTypeOption, string> = {
 };
 
 export const WORKOUT_TYPE_COLORS: Record<WorkoutTypeOption, string> = {
-  easy: SESSION_TYPE_COLORS.easy,
-  tempo: SESSION_TYPE_COLORS.specific,
-  long: SESSION_TYPE_COLORS.long,
+  easy: WORKOUT_CATEGORY_COLORS.easy,
+  tempo: WORKOUT_CATEGORY_COLORS.specific,
+  long: WORKOUT_CATEGORY_COLORS.long,
 };
 
 // ── Step intent ─────────────────────────────────────────────────────────────

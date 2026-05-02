@@ -21,14 +21,14 @@ import Animated, {
 } from "react-native-reanimated";
 import Svg, { Path } from "react-native-svg";
 import { Text } from "@/components/ui/text";
-import { SESSION_TYPE_COLORS } from "@/lib/design-tokens";
+import { WORKOUT_CATEGORY_COLORS } from "@/lib/design-tokens";
 import type { RaceGoalData } from "./types";
 
 interface RaceCountdownProps {
   race: RaceGoalData;
 }
 
-const RACE_ACCENT = SESSION_TYPE_COLORS.race;
+const RACE_ACCENT = WORKOUT_CATEGORY_COLORS.race;
 
 function daysUntil(timestamp: number): number {
   const now = new Date();

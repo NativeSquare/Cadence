@@ -1,5 +1,5 @@
 /**
- * ExportToWatchSheet - Bottom sheet for exporting a session to a watch provider.
+ * ExportToWatchSheet - Bottom sheet for exporting a workout to a watch provider.
  *
  * 4-step flow:
  * 1. Provider selection (Garmin, Coros)
@@ -30,7 +30,7 @@ export type WatchProvider = "garmin" | "coros";
 
 export interface ExportToWatchSheetProps {
   sheetRef: React.RefObject<GorhomBottomSheetModal | null>;
-  sessionType: string;
+  workoutType: string;
   workoutId?: string;
   onExportComplete: (provider: WatchProvider) => void;
 }
@@ -243,10 +243,10 @@ function SelectStep({
 
 function ExportingStep({
   provider,
-  sessionType,
+  workoutType,
 }: {
   provider: WatchProvider;
-  sessionType: string;
+  workoutType: string;
 }) {
   const providerName = provider === "garmin" ? "Garmin" : "Coros";
   const opacity = useSharedValue(0.4);
@@ -274,7 +274,7 @@ function ExportingStep({
         className="text-[13px] font-coach mt-2"
         style={{ color: LIGHT_THEME.wMute }}
       >
-        Sending {sessionType} workout
+        Sending {workoutType} workout
       </Text>
     </View>
   );
@@ -368,7 +368,7 @@ function ErrorStep({
 
 export function ExportToWatchSheet({
   sheetRef,
-  sessionType,
+  workoutType,
   workoutId,
   onExportComplete,
 }: ExportToWatchSheetProps) {
@@ -382,7 +382,7 @@ export function ExportToWatchSheet({
     connections?.some((c) => c.provider === "GARMIN" && c.active) ?? false;
 
   const exportToGarmin = useAction(
-    api.soma.garmin.exportSession,
+    api.soma.garmin.exportWorkout,
   );
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -422,7 +422,7 @@ export function ExportToWatchSheet({
           setStep("error");
         }
       } else {
-        setErrorMessage("No session available to export");
+        setErrorMessage("No workout available to export");
         setStep("error");
       }
     },
@@ -443,7 +443,7 @@ export function ExportToWatchSheet({
         />
       )}
       {step === "exporting" && selectedProvider && (
-        <ExportingStep provider={selectedProvider} sessionType={sessionType} />
+        <ExportingStep provider={selectedProvider} workoutType={workoutType} />
       )}
       {step === "success" && selectedProvider && (
         <SuccessStep provider={selectedProvider} />

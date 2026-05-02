@@ -1,21 +1,21 @@
 /**
- * RescheduleSessionCard
+ * RescheduleWorkoutCard
  *
- * Renders a proposal to move a session from one date to another.
- * Shows current vs proposed date with session details.
+ * Renders a proposal to move a workout from one date to another.
+ * Shows current vs proposed date with workout details.
  */
 
 import { View } from "react-native";
 import { Text } from "@/components/ui/text";
-import { COLORS, LIGHT_THEME, SESSION_TYPE_COLORS } from "@/lib/design-tokens";
-import { getSessionCategory } from "@/lib/design-tokens";
+import { COLORS, LIGHT_THEME, WORKOUT_CATEGORY_COLORS } from "@/lib/design-tokens";
+import { getWorkoutCategory } from "@/lib/design-tokens";
 import { ArrowRight } from "lucide-react-native";
 import { ActionCardWrapper } from "./ActionCardWrapper";
 import { ActionButtons } from "./ActionButtons";
 import { useActionCardState } from "./useActionCardState";
 import type { RescheduleProposal, ActionCardProps } from "./types";
 
-interface RescheduleSessionCardProps extends Omit<ActionCardProps, "phase" | "onAccept" | "onReject"> {
+interface RescheduleWorkoutCardProps extends Omit<ActionCardProps, "phase" | "onAccept" | "onReject"> {
   proposal: RescheduleProposal;
   /** Execute the reschedule mutation — called when user accepts */
   executeMutation: () => Promise<{ success: boolean; error?: string }>;
@@ -25,19 +25,19 @@ interface RescheduleSessionCardProps extends Omit<ActionCardProps, "phase" | "on
   onRejected: () => void;
 }
 
-export function RescheduleSessionCard({
+export function RescheduleWorkoutCard({
   toolCallId,
   proposal,
   executeMutation,
   onAccepted,
   onRejected,
-}: RescheduleSessionCardProps) {
+}: RescheduleWorkoutCardProps) {
   const { phase, errorMessage, accept, reject, retry } = useActionCardState();
 
-  const sessionColor =
-    SESSION_TYPE_COLORS[getSessionCategory(proposal.sessionType)] ?? COLORS.ora;
+  const workoutColor =
+    WORKOUT_CATEGORY_COLORS[getWorkoutCategory(proposal.workoutType)] ?? COLORS.ora;
 
-  const summary = `${proposal.sessionName} moved to ${proposal.proposedDayOfWeek}, ${proposal.proposedDate}`;
+  const summary = `${proposal.workoutName} moved to ${proposal.proposedDayOfWeek}, ${proposal.proposedDate}`;
 
   const handleAccept = () => {
     accept(executeMutation).then(() => onAccepted());
@@ -61,18 +61,18 @@ export function RescheduleSessionCard({
     >
       {/* Content: Current → Proposed */}
       <View style={{ padding: 14, gap: 14 }}>
-        {/* Session chip */}
+        {/* Workout chip */}
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
           <View
             style={{
               width: 8,
               height: 8,
               borderRadius: 4,
-              backgroundColor: sessionColor,
+              backgroundColor: workoutColor,
             }}
           />
           <Text style={{ color: LIGHT_THEME.wText, fontSize: 15, fontWeight: "600" }}>
-            {proposal.sessionName}
+            {proposal.workoutName}
           </Text>
           <Text style={{ color: LIGHT_THEME.wMute, fontSize: 13 }}>{proposal.duration}</Text>
         </View>

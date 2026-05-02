@@ -87,7 +87,7 @@ export const ACTIVITY_COLORS = {
 } as const;
 
 /**
- * Heart-rate zone colors used in analytics and session zone splits.
+ * Heart-rate zone colors used in analytics and workout zone splits.
  * Keeps zone coloring consistent across the app (Z1–Z5 and compound zones).
  */
 export const ZONE_COLORS: Record<string, string> = {
@@ -107,16 +107,16 @@ export function getZoneColor(zone: string): string {
 }
 
 /**
- * Session type category — one of four run categories used across calendar
- * and plan views to consistently color-code sessions.
+ * Workout category — one of four run categories used across calendar
+ * and plan views to consistently color-code workouts.
  */
-export type SessionCategory = "easy" | "specific" | "long" | "race";
+export type WorkoutCategory = "easy" | "specific" | "long" | "race";
 
 /**
- * Vibrant session type colors matched to the energy of the #C8FF00 primary.
+ * Vibrant workout category colors matched to the energy of the #C8FF00 primary.
  * Used for accent bars, dots, badges, and legend indicators.
  */
-export const SESSION_TYPE_COLORS: Record<SessionCategory, string> = {
+export const WORKOUT_CATEGORY_COLORS: Record<WorkoutCategory, string> = {
   easy: "#00E676",
   specific: "#FF6D00",
   long: "#00B0FF",
@@ -124,9 +124,9 @@ export const SESSION_TYPE_COLORS: Record<SessionCategory, string> = {
 } as const;
 
 /**
- * Dim (15% opacity) variants of session type colors for subtle backgrounds.
+ * Dim (15% opacity) variants of workout category colors for subtle backgrounds.
  */
-export const SESSION_TYPE_COLORS_DIM: Record<SessionCategory, string> = {
+export const WORKOUT_CATEGORY_COLORS_DIM: Record<WorkoutCategory, string> = {
   easy: "rgba(0, 230, 118, 0.15)",
   specific: "rgba(255, 109, 0, 0.15)",
   long: "rgba(0, 176, 255, 0.15)",
@@ -134,11 +134,11 @@ export const SESSION_TYPE_COLORS_DIM: Record<SessionCategory, string> = {
 } as const;
 
 /**
- * Map a free-form session type string (e.g. "Tempo", "Easy Run", "Long Run")
- * to one of the four session categories for consistent color-coding.
+ * Map a free-form workout type string (e.g. "Tempo", "Easy Run", "Long Run")
+ * to one of the four workout categories for consistent color-coding.
  */
-export function getSessionCategory(sessionType: string): SessionCategory {
-  const t = sessionType.toLowerCase();
+export function getWorkoutCategory(workoutType: string): WorkoutCategory {
+  const t = workoutType.toLowerCase();
   if (t.includes("long")) return "long";
   if (t.includes("race") || t.includes("marathon") || t.includes("semi")) return "race";
   if (
@@ -345,7 +345,7 @@ export const tailwindColors = {
   ...SURFACES,
   ...LIGHT_THEME,
   ...ACTIVITY_COLORS,
-  ...SESSION_TYPE_COLORS,
+  ...WORKOUT_CATEGORY_COLORS,
 } as const;
 
 // ═══════════════════════════════════════════════════════════════════════════

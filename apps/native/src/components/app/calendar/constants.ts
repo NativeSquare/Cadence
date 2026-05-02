@@ -2,12 +2,12 @@
  * Constants for Calendar Tab
  */
 
-import { SESSION_TYPE_COLORS } from "@/lib/design-tokens";
-import type { CalSessionType, Phase, PhaseName } from "./types";
+import { WORKOUT_CATEGORY_COLORS } from "@/lib/design-tokens";
+import type { CalWorkoutType, Phase, PhaseName } from "./types";
 
-export const SESSION_COLORS: Record<CalSessionType, string> = SESSION_TYPE_COLORS;
+export const WORKOUT_COLORS: Record<CalWorkoutType, string> = WORKOUT_CATEGORY_COLORS;
 
-export const SESSION_LABELS: Record<CalSessionType, string> = {
+export const WORKOUT_LABELS: Record<CalWorkoutType, string> = {
   easy: "Easy",
   specific: "Specific",
   long: "Long Run",

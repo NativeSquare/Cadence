@@ -3,7 +3,7 @@
  * StatsGrid Component - Training stats display grid
  *
  * Features:
- * - 2-column grid: Total Distance, Sessions, Longest Run
+ * - 2-column grid: Total Distance, Workouts, Longest Run
  * - Staggered entrance animations via Reanimated entering prop (UI thread)
  */
 
@@ -39,8 +39,8 @@ export interface StatsGridProps {
   stats?: {
     totalDistance: number;
     totalPlanned: number;
-    sessions: number;
-    sessionsPlanned: number;
+    workouts: number;
+    workoutsPlanned: number;
     longestRun: number;
     longestRunWeek: number;
   };
@@ -116,9 +116,9 @@ export function StatsGrid({ stats = MOCK_STATS }: StatsGridProps) {
         sub: `of ~${stats.totalPlanned} km`,
       },
       {
-        label: "Sessions",
-        value: stats.sessions,
-        sub: `of ${stats.sessionsPlanned} planned`,
+        label: "Workouts",
+        value: stats.workouts,
+        sub: `of ${stats.workoutsPlanned} planned`,
       },
       {
         label: "Longest Run",

@@ -1,5 +1,5 @@
 /**
- * WeekView - Detailed vertical list with dark session cards, animated summary,
+ * WeekView - Detailed vertical list with dark workout cards, animated summary,
  * and staggered entrance animations.
  */
 
@@ -17,18 +17,18 @@ import Animated, {
 import Svg, { Path, Circle } from "react-native-svg";
 import * as Haptics from "expo-haptics";
 import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
-import { PHASES, SESSION_COLORS, SESSION_LABELS, MONTH_NAMES } from "./constants";
+import { PHASES, WORKOUT_COLORS, WORKOUT_LABELS, MONTH_NAMES } from "./constants";
 import { getWeekDates, buildPhaseLookup } from "./helpers";
-import type { CalSession } from "./types";
+import type { CalWorkout } from "./types";
 
 interface WeekViewProps {
   selectedDate: string;
-  sessions: Record<string, CalSession[]>;
+  workouts: Record<string, CalWorkout[]>;
   todayKey: string;
-  onSessionPress?: (dateKey: string, session: CalSession) => void;
+  onWorkoutPress?: (dateKey: string, workout: CalWorkout) => void;
 }
 
-const SessionIcon = React.memo(function SessionIcon({
+const WorkoutIcon = React.memo(function WorkoutIcon({
   type,
   size = 13,
   color,
@@ -72,12 +72,12 @@ const SessionIcon = React.memo(function SessionIcon({
 });
 
 function AnimatedSummaryBar({
-  hasSess,
+  hasWorkout,
   done,
   color,
   index,
 }: {
-  hasSess: boolean;
+  hasWorkout: boolean;
   done: boolean;
   color: string;
   index: number;
@@ -98,7 +98,7 @@ function AnimatedSummaryBar({
         styles.summaryBarItem,
         {
           backgroundColor: color,
-          opacity: hasSess ? (done ? 1 : 0.35) : 1,
+          opacity: hasWorkout ? (done ? 1 : 0.35) : 1,
         },
         animStyle,
       ]}
@@ -129,27 +129,27 @@ function AnimatedKm({ value }: { value: number }) {
 
 export const WeekView = React.memo(function WeekView({
   selectedDate,
-  sessions,
+  workouts,
   todayKey,
-  onSessionPress,
+  onWorkoutPress,
 }: WeekViewProps) {
   const weekDates = useMemo(() => getWeekDates(selectedDate), [selectedDate]);
   const phaseLookup = useMemo(() => buildPhaseLookup(PHASES), []);
 
-  const { totalKm, sessCount, doneCount } = useMemo(() => {
+  const { totalKm, workoutCount, doneCount } = useMemo(() => {
     let km = 0;
-    let sess = 0;
+    let count = 0;
     let done = 0;
     for (const d of weekDates) {
-      const daySess = sessions[d.key] || [];
-      sess += daySess.length;
-      for (const s of daySess) {
-        km += parseFloat(s.km) || 0;
-        if (s.done) done++;
+      const dayWorkouts = workouts[d.key] || [];
+      count += dayWorkouts.length;
+      for (const w of dayWorkouts) {
+        km += parseFloat(w.km) || 0;
+        if (w.done) done++;
       }
     }
-    return { totalKm: km, sessCount: sess, doneCount: done };
-  }, [weekDates, sessions]);
+    return { totalKm: km, workoutCount: count, doneCount: done };
+  }, [weekDates, workouts]);
 
   const phase = phaseLookup.get(weekDates[0].key) || phaseLookup.get(weekDates[6].key);
 
@@ -172,9 +172,9 @@ export const WeekView = React.memo(function WeekView({
 
       {/* Day cards */}
       {weekDates.map((d, i) => {
-        const daySess = sessions[d.key] || [];
+        const dayWorkouts = workouts[d.key] || [];
         const isToday = d.key === todayKey;
-        const isRest = daySess.length === 0;
+        const isRest = dayWorkouts.length === 0;
 
         return (
           <Animated.View
@@ -183,16 +183,16 @@ export const WeekView = React.memo(function WeekView({
           >
             <Pressable
               onPress={
-                !isRest && onSessionPress
+                !isRest && onWorkoutPress
                   ? () => {
                       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                      onSessionPress(d.key, daySess[0]);
+                      onWorkoutPress(d.key, dayWorkouts[0]);
                     }
                   : undefined
               }
               style={({ pressed }) => [pressed && !isRest && styles.cardPressed]}
             >
-              <View style={[styles.dayCard, isRest ? styles.restCard : styles.sessionCardOuter]}>
+              <View style={[styles.dayCard, isRest ? styles.restCard : styles.workoutCardOuter]}>
                 {isRest ? (
                   <View style={styles.restContent}>
                     <View style={styles.dayInfo}>
@@ -207,13 +207,13 @@ export const WeekView = React.memo(function WeekView({
                     <Text style={styles.restLabel}>Rest</Text>
                   </View>
                 ) : (
-                  daySess.map((s, si) => {
-                    const color = SESSION_COLORS[s.type];
+                  dayWorkouts.map((w, wi) => {
+                    const color = WORKOUT_COLORS[w.type];
                     return (
-                      <View key={si} style={styles.sessionRow}>
-                        <View style={[styles.colorBar, { backgroundColor: color, opacity: s.done ? 1 : 0.5 }]} />
-                        <View style={styles.sessionContent}>
-                          <View style={styles.sessionHeader}>
+                      <View key={wi} style={styles.workoutRow}>
+                        <View style={[styles.colorBar, { backgroundColor: color, opacity: w.done ? 1 : 0.5 }]} />
+                        <View style={styles.workoutContent}>
+                          <View style={styles.workoutHeader}>
                             <View style={styles.dayInfo}>
                               <Text style={styles.dayLabelDark}>{d.dayName} {d.day}</Text>
                               {isToday && (
@@ -222,7 +222,7 @@ export const WeekView = React.memo(function WeekView({
                                 </View>
                               )}
                             </View>
-                            {s.done && (
+                            {w.done && (
                               <View style={styles.doneBadge}>
                                 <Svg width={9} height={9} viewBox="0 0 12 12" fill="none">
                                   <Path d="M2.5 6L5 8.5L9.5 3.5" stroke={COLORS.lime} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
@@ -231,18 +231,18 @@ export const WeekView = React.memo(function WeekView({
                             )}
                           </View>
 
-                          <View style={styles.sessionTypeRow}>
+                          <View style={styles.workoutTypeRow}>
                             <View style={[styles.iconBox, { backgroundColor: color + "25" }]}>
-                              <SessionIcon type={s.type} size={13} color={color} />
+                              <WorkoutIcon type={w.type} size={13} color={color} />
                             </View>
-                            <Text style={styles.sessionLabel}>{s.label}</Text>
+                            <Text style={styles.workoutLabel}>{w.label}</Text>
                           </View>
 
                           <View style={styles.metricsRow}>
-                            <Text style={styles.kmText}>{s.km} km</Text>
-                            <Text style={styles.durText}>{s.dur}</Text>
+                            <Text style={styles.kmText}>{w.km} km</Text>
+                            <Text style={styles.durText}>{w.dur}</Text>
                             <View style={[styles.typeBadge, { backgroundColor: color + "20" }]}>
-                              <Text style={[styles.typeBadgeText, { color }]}>{SESSION_LABELS[s.type]}</Text>
+                              <Text style={[styles.typeBadgeText, { color }]}>{WORKOUT_LABELS[w.type]}</Text>
                             </View>
                           </View>
                         </View>
@@ -261,7 +261,7 @@ export const WeekView = React.memo(function WeekView({
         <View style={styles.summaryCard}>
           <View style={styles.summaryHeader}>
             <Text style={styles.summaryTitle}>Week</Text>
-            <Text style={styles.summaryCount}>{doneCount}/{sessCount}</Text>
+            <Text style={styles.summaryCount}>{doneCount}/{workoutCount}</Text>
           </View>
           <View style={styles.summaryBody}>
             <View>
@@ -270,14 +270,14 @@ export const WeekView = React.memo(function WeekView({
             </View>
             <View style={styles.summaryBars}>
               {weekDates.map((d, i) => {
-                const daySess = sessions[d.key] || [];
-                const hasSess = daySess.length > 0;
-                const done = daySess.some((s) => s.done);
-                const color = hasSess ? SESSION_COLORS[daySess[0].type] : "rgba(255,255,255,0.06)";
+                const dayWorkouts = workouts[d.key] || [];
+                const hasWorkout = dayWorkouts.length > 0;
+                const done = dayWorkouts.some((w) => w.done);
+                const color = hasWorkout ? WORKOUT_COLORS[dayWorkouts[0].type] : "rgba(255,255,255,0.06)";
                 return (
                   <AnimatedSummaryBar
                     key={i}
-                    hasSess={hasSess}
+                    hasWorkout={hasWorkout}
                     done={done}
                     color={color}
                     index={i}
@@ -334,7 +334,7 @@ const styles = StyleSheet.create({
     borderStyle: "dashed",
     borderColor: LIGHT_THEME.wBrd,
   },
-  sessionCardOuter: {
+  workoutCardOuter: {
     backgroundColor: "#1A1A1A",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
@@ -354,17 +354,17 @@ const styles = StyleSheet.create({
     fontFamily: "Outfit-Regular",
     color: LIGHT_THEME.wMute,
   },
-  sessionRow: {
+  workoutRow: {
     flexDirection: "row",
     overflow: "hidden",
   },
   colorBar: { width: 4, flexShrink: 0 },
-  sessionContent: {
+  workoutContent: {
     flex: 1,
     paddingVertical: 11,
     paddingHorizontal: 14,
   },
-  sessionHeader: {
+  workoutHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -425,7 +425,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  sessionTypeRow: {
+  workoutTypeRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
@@ -437,7 +437,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  sessionLabel: {
+  workoutLabel: {
     fontSize: 15,
     fontWeight: "600",
     fontFamily: "Outfit-SemiBold",

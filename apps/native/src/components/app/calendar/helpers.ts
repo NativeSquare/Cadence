@@ -6,14 +6,14 @@
 import type {
   Phase,
   PhaseName,
-  CalSession,
-  CalSessionType,
+  CalWorkout,
+  CalWorkoutType,
   CalendarDay,
   WeekDate,
   PhaseSegment,
 } from "./types";
 import { DAY_HEADERS_FULL, PHASE_COLORS } from "./constants";
-import { getSessionCategory } from "@/lib/design-tokens";
+import { getWorkoutCategory } from "@/lib/design-tokens";
 import type { AgogeWorkout } from "../plan/utils";
 
 /** Subset of the agoge block doc the Calendar UI consumes. */
@@ -206,10 +206,10 @@ export function getWeekDates(dateKey: string): WeekDate[] {
  * Transform agoge workouts into the calendar's date-keyed lookup.
  * Skipped workouts are excluded so they render as empty tiles.
  */
-export function buildCalendarSessions(
+export function buildCalendarWorkouts(
   workouts: AgogeWorkout[],
-): Record<string, CalSession[]> {
-  const result: Record<string, CalSession[]> = {};
+): Record<string, CalWorkout[]> {
+  const result: Record<string, CalWorkout[]> = {};
   for (const w of workouts) {
     if (w.status === "skipped") continue;
     // Faces store date as a UTC ISO timestamp; the YYYY-MM-DD prefix is the
@@ -226,16 +226,16 @@ export function buildCalendarSessions(
     const dur = formatWorkoutDuration(
       w.actual?.durationSeconds ?? w.planned?.durationSeconds,
     );
-    const calSession: CalSession = {
+    const calWorkout: CalWorkout = {
       workoutId: w._id,
-      type: getSessionCategory(w.name) as CalSessionType,
+      type: getWorkoutCategory(w.name) as CalWorkoutType,
       label: w.name,
       km,
       dur,
       done: w.status === "completed",
     };
     if (!result[key]) result[key] = [];
-    result[key].push(calSession);
+    result[key].push(calWorkout);
   }
   return result;
 }

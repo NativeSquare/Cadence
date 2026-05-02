@@ -7,7 +7,7 @@ import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 
 /**
  * Main app tab navigation with 5 tabs:
- * - Today (Plan) - Daily training plan and session details
+ * - Today (Plan) - Daily training plan and workout details
  * - Calendar - Monthly/weekly training calendar
  * - Coach - AI coaching conversation
  * - Analytics - Training metrics and progress charts

@@ -2,7 +2,6 @@
  * Calendar Screen Components
  *
  * This module exports all components for the Calendar tab.
- * Reference: cadence-calendar-final.jsx CalendarTab component
  */
 
 export { CalendarScreen } from "./CalendarScreen";
@@ -11,7 +10,7 @@ export { WeekView } from "./WeekView";
 export { PhaseTimeline } from "./PhaseTimeline";
 export { WeekRow } from "./WeekRow";
 export { PhaseBand } from "./PhaseBand";
-export { SessionCard } from "./SessionCard";
+export { WorkoutCard } from "./WorkoutCard";
 export { WatermarkIcon } from "./WatermarkIcon";
 export { DiagonalStripes } from "./DiagonalStripes";
 export { TodayMarker } from "./TodayMarker";
@@ -19,8 +18,8 @@ export { Legend } from "./Legend";
 export { DayHeaders } from "./DayHeaders";
 // Types
 export type {
-  CalSession,
-  CalSessionType,
+  CalWorkout,
+  CalWorkoutType,
   Phase,
   PhaseName,
   CalendarView,
@@ -31,8 +30,8 @@ export type {
 
 // Constants
 export {
-  SESSION_COLORS,
-  SESSION_LABELS,
+  WORKOUT_COLORS,
+  WORKOUT_LABELS,
   PHASE_COLORS,
   TODAY_KEY,
   MONTH_NAMES,

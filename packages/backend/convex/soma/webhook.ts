@@ -122,7 +122,7 @@ export const matchActivityToWorkout = internalAction({
     console.log(
       `${TAG} ✓ Latest activity:\n` +
         `    Soma ID: ${latestActivity._id}\n` +
-        `    Type: ${inferenceActivity.sessionType}  |  Started: ${new Date(inferenceActivity.startTime).toLocaleString()}\n` +
+        `    Type: ${inferenceActivity.workoutType}  |  Started: ${new Date(inferenceActivity.startTime).toLocaleString()}\n` +
         `    Duration: ${fmtDuration(inferenceActivity.durationSeconds)}  |  Distance: ${fmtKm(inferenceActivity.distanceMeters)}  |  Pace: ${fmtPace(inferenceActivity.durationSeconds, inferenceActivity.distanceMeters)}\n` +
         `    HR: avg ${inferenceActivity.avgHeartRate ?? "—"} bpm  |  max ${inferenceActivity.maxHeartRate ?? "—"} bpm`,
     );
@@ -136,11 +136,11 @@ export const matchActivityToWorkout = internalAction({
       "unstructured",
     ];
     if (
-      inferenceActivity.sessionType &&
-      !runningTypes.includes(inferenceActivity.sessionType)
+      inferenceActivity.workoutType &&
+      !runningTypes.includes(inferenceActivity.workoutType)
     ) {
       console.log(
-        `${TAG} ✗ Activity type "${inferenceActivity.sessionType}" is not running. Skipping.`,
+        `${TAG} ✗ Activity type "${inferenceActivity.workoutType}" is not running. Skipping.`,
       );
       return null;
     }
@@ -219,11 +219,11 @@ export const matchActivityToWorkout = internalAction({
 
     await ctx.scheduler.runAfter(
       0,
-      internal.notifications.sendSessionCompleteNotification,
+      internal.notifications.sendWorkoutCompleteNotification,
       {
         userId: args.cadenceUserId as unknown as import("../_generated/dataModel").Id<"users">,
         workoutId: matched._id,
-        sessionType: matched.name,
+        workoutType: matched.name,
       },
     );
 

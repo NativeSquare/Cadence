@@ -14,11 +14,11 @@ export { WeekInsights } from "./WeekInsights";
 export { LogRunSection } from "./QuickActions";
 
 // Types
-export type { WorkoutData, PlanData, RaceGoalData, SessionIntensity } from "./types";
+export type { WorkoutData, PlanData, RaceGoalData, WorkoutIntensity } from "./types";
 export { DAYS } from "./types";
 
 // Utilities
-export { getSessionColor, getGreeting, formatDate, formatShortDate } from "./utils";
+export { getWorkoutColor, getGreeting, formatDate, formatShortDate } from "./utils";
 
 // Hooks
 export { useStream } from "./use-stream";

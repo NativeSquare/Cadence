@@ -1,41 +1,41 @@
 /**
- * SwapSessionsCard
+ * SwapWorkoutsCard
  *
- * Renders a proposal to swap two sessions' dates.
- * Shows both sessions side by side with a swap indicator.
+ * Renders a proposal to swap two workouts' dates.
+ * Shows both workouts side by side with a swap indicator.
  */
 
 import { View } from "react-native";
 import { Text } from "@/components/ui/text";
-import { COLORS, LIGHT_THEME, SESSION_TYPE_COLORS } from "@/lib/design-tokens";
-import { getSessionCategory } from "@/lib/design-tokens";
+import { COLORS, LIGHT_THEME, WORKOUT_CATEGORY_COLORS } from "@/lib/design-tokens";
+import { getWorkoutCategory } from "@/lib/design-tokens";
 import { ArrowLeftRight } from "lucide-react-native";
 import { ActionCardWrapper } from "./ActionCardWrapper";
 import { ActionButtons } from "./ActionButtons";
 import { useActionCardState } from "./useActionCardState";
 import type { SwapProposal, ActionCardProps } from "./types";
 
-interface SwapSessionsCardProps extends Omit<ActionCardProps, "phase" | "onAccept" | "onReject"> {
+interface SwapWorkoutsCardProps extends Omit<ActionCardProps, "phase" | "onAccept" | "onReject"> {
   proposal: SwapProposal;
   executeMutation: () => Promise<{ success: boolean; error?: string }>;
   onAccepted: () => void;
   onRejected: () => void;
 }
 
-function SessionChip({
+function WorkoutChip({
   name,
-  sessionType,
+  workoutType,
   dayOfWeek,
   date,
   duration,
 }: {
   name: string;
-  sessionType: string;
+  workoutType: string;
   dayOfWeek: string;
   date: string;
   duration: string;
 }) {
-  const color = SESSION_TYPE_COLORS[getSessionCategory(sessionType)] ?? COLORS.ora;
+  const color = WORKOUT_CATEGORY_COLORS[getWorkoutCategory(workoutType)] ?? COLORS.ora;
 
   return (
     <View
@@ -60,16 +60,16 @@ function SessionChip({
   );
 }
 
-export function SwapSessionsCard({
+export function SwapWorkoutsCard({
   toolCallId,
   proposal,
   executeMutation,
   onAccepted,
   onRejected,
-}: SwapSessionsCardProps) {
+}: SwapWorkoutsCardProps) {
   const { phase, errorMessage, accept, reject, retry } = useActionCardState();
 
-  const summary = `Swapped ${proposal.sessionA.sessionName} (${proposal.sessionA.dayOfWeek}) with ${proposal.sessionB.sessionName} (${proposal.sessionB.dayOfWeek})`;
+  const summary = `Swapped ${proposal.workoutA.workoutName} (${proposal.workoutA.dayOfWeek}) with ${proposal.workoutB.workoutName} (${proposal.workoutB.dayOfWeek})`;
 
   const handleAccept = () => {
     accept(executeMutation).then(() => onAccepted());
@@ -87,19 +87,19 @@ export function SwapSessionsCard({
   return (
     <ActionCardWrapper
       phase={phase}
-      title="Session Swap"
+      title="Workout Swap"
       summary={summary}
       errorMessage={errorMessage}
     >
       <View style={{ padding: 14, gap: 14 }}>
-        {/* Two session chips with swap icon */}
+        {/* Two workout chips with swap icon */}
         <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-          <SessionChip
-            name={proposal.sessionA.sessionName}
-            sessionType={proposal.sessionA.sessionType}
-            dayOfWeek={proposal.sessionA.dayOfWeek}
-            date={proposal.sessionA.date}
-            duration={proposal.sessionA.duration}
+          <WorkoutChip
+            name={proposal.workoutA.workoutName}
+            workoutType={proposal.workoutA.workoutType}
+            dayOfWeek={proposal.workoutA.dayOfWeek}
+            date={proposal.workoutA.date}
+            duration={proposal.workoutA.duration}
           />
 
           <View
@@ -115,12 +115,12 @@ export function SwapSessionsCard({
             <ArrowLeftRight size={16} color={COLORS.ora} />
           </View>
 
-          <SessionChip
-            name={proposal.sessionB.sessionName}
-            sessionType={proposal.sessionB.sessionType}
-            dayOfWeek={proposal.sessionB.dayOfWeek}
-            date={proposal.sessionB.date}
-            duration={proposal.sessionB.duration}
+          <WorkoutChip
+            name={proposal.workoutB.workoutName}
+            workoutType={proposal.workoutB.workoutType}
+            dayOfWeek={proposal.workoutB.dayOfWeek}
+            date={proposal.workoutB.date}
+            duration={proposal.workoutB.duration}
           />
         </View>
 

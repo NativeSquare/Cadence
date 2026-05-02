@@ -165,11 +165,11 @@
       --barEasy: #7CB342;
       --barRest: #5B9EFF;
 
-      /* Session type colors */
-      --session-easy: #00E676;
-      --session-specific: #FF6D00;
-      --session-long: #00B0FF;
-      --session-race: #FF0040;
+      /* Workout type colors */
+      --workout-easy: #00E676;
+      --workout-specific: #FF6D00;
+      --workout-long: #00B0FF;
+      --workout-race: #FF0040;
     }
   }
 }

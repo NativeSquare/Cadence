@@ -128,13 +128,13 @@ When a new workout belongs to a newly-proposed block, reference the block by ind
 
 1. **Blocks contiguous and non-overlapping**: ordered by startDate, no overlap, no gap inside the plan window.
 2. **Workouts within their block**: each \`create\` workout's \`date\` ∈ [block.startDate, block.endDate].
-3. **No back-to-back quality sessions**: at least 48h between sessions of type \`tempo\`, \`threshold\`, \`intervals\`, \`vo2max\`, or \`race\`.
+3. **No back-to-back quality workouts**: at least 48h between workouts of type \`tempo\`, \`threshold\`, \`intervals\`, \`vo2max\`, or \`race\`.
 
 If you violate a rule, you will be re-prompted with the violation list and asked to fix it. You have a small number of attempts — try to satisfy every rule on the first pass.
 
 # Be deliberate
 
-Use the body finding (recovery, training load) and mind finding (subjective state, life context) when deciding intensity and volume. Use the transcript when the athlete has expressed preferences. Be conservative with new athletes — fewer hard sessions, more easy volume.
+Use the body finding (recovery, training load) and mind finding (subjective state, life context) when deciding intensity and volume. Use the transcript when the athlete has expressed preferences. Be conservative with new athletes — fewer hard workouts, more easy volume.
 
 Always include a short \`rationale\` explaining the key choices in your proposal.`;
 

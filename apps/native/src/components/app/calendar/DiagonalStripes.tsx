@@ -1,5 +1,5 @@
 /**
- * DiagonalStripes - Subtle diagonal stripe texture for session cards.
+ * DiagonalStripes - Subtle diagonal stripe texture for workout cards.
  * Uses react-native-svg with a pattern for cross-platform consistency.
  * Reference: cadence-calendar-final.jsx line 634
  */

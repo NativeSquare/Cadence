@@ -1,9 +1,9 @@
 import { Text } from "@/components/ui/text";
 import {
   LIGHT_THEME,
-  SESSION_TYPE_COLORS,
-  SESSION_TYPE_COLORS_DIM,
-  getSessionCategory,
+  WORKOUT_CATEGORY_COLORS,
+  WORKOUT_CATEGORY_COLORS_DIM,
+  getWorkoutCategory,
 } from "@/lib/design-tokens";
 import type { WorkoutTemplateDoc } from "@nativesquare/agoge/schema";
 import { Ionicons } from "@expo/vector-icons";
@@ -24,9 +24,9 @@ export function WorkoutTemplateRow({
   // fall back to the raw enum if older data slips through.
   const typeLabel =
     WORKOUT_TYPE_LABELS[template.type as WorkoutTypeOption] ?? template.type;
-  const category = getSessionCategory(template.type);
-  const typeColor = SESSION_TYPE_COLORS[category];
-  const typeColorDim = SESSION_TYPE_COLORS_DIM[category];
+  const category = getWorkoutCategory(template.type);
+  const typeColor = WORKOUT_CATEGORY_COLORS[category];
+  const typeColorDim = WORKOUT_CATEGORY_COLORS_DIM[category];
 
   return (
     <Pressable

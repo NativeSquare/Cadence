@@ -2,7 +2,7 @@
  * Push Notification Infrastructure
  *
  * - Token registration (called from the native app on launch)
- * - Session completion notification (called from the Garmin webhook handler)
+ * - Workout completion notification (called from the Soma webhook handler)
  *
  * Uses the Expo Push API to deliver notifications to iOS/Android devices.
  */
@@ -81,14 +81,14 @@ export const getTokensForUser = internalQuery({
 // ─── Send Notification ────────────────────────────────────────────────────────
 
 /**
- * Send a push notification congratulating the user on completing a session.
- * Includes deep-link data so tapping opens the debrief screen.
+ * Send a push notification congratulating the user on completing a workout.
+ * Includes deep-link data so tapping opens the workout detail screen.
  */
-export const sendSessionCompleteNotification = internalAction({
+export const sendWorkoutCompleteNotification = internalAction({
   args: {
     userId: v.id("users"),
     workoutId: v.string(),
-    sessionType: v.string(),
+    workoutType: v.string(),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
@@ -97,8 +97,8 @@ export const sendSessionCompleteNotification = internalAction({
     console.log(
       `\n${TAG} ── Sending push notification ──\n` +
         `    User: ${args.userId}\n` +
-        `    Session: ${args.sessionType} (${args.workoutId})\n` +
-        `    Deep link: screen=debrief`,
+        `    Workout: ${args.workoutType} (${args.workoutId})\n` +
+        `    Deep link: screen=workout`,
     );
 
     const tokens = await ctx.runQuery(
@@ -116,10 +116,10 @@ export const sendSessionCompleteNotification = internalAction({
     const messages = tokens.map((token) => ({
       to: token,
       title: "Run Complete!",
-      body: `Your ${args.sessionType} session is logged. Tap to debrief.`,
+      body: `Your ${args.workoutType} workout is logged. Tap to view.`,
       data: {
         workoutId: args.workoutId,
-        screen: "debrief",
+        screen: "workout",
       },
       sound: "default" as const,
     }));
@@ -143,7 +143,7 @@ export const sendSessionCompleteNotification = internalAction({
         );
       } else {
         console.log(
-          `${TAG} ✓ Push sent! Title: "Run Complete!" Body: "Your ${args.sessionType} session is logged. Tap to debrief."`,
+          `${TAG} ✓ Push sent! Title: "Run Complete!" Body: "Your ${args.workoutType} workout is logged. Tap to view."`,
         );
       }
     } catch (err) {

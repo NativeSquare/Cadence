@@ -22,7 +22,7 @@ interface UseActionCardStateReturn {
   reject: () => void;
   /** Retry after error */
   retry: (executeMutation: () => Promise<{ success: boolean; error?: string }>) => Promise<void>;
-  /** Mark as expired (e.g., session changed externally) */
+  /** Mark as expired (e.g., workout changed externally) */
   expire: () => void;
 }
 

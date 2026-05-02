@@ -20,7 +20,7 @@ import {
   type CadenceDailyBiometrics,
   type CadencePlannedWorkoutInput,
   type CadencePlannedWorkoutStructureSegment,
-  type SessionType,
+  type WorkoutType,
   TERRA_ACTIVITY_TYPES,
 } from "./types";
 
@@ -52,10 +52,10 @@ function paceMinPerKmToMetersPerSec(paceMinPerKm: number): number {
 }
 
 // =============================================================================
-// Session type → Terra numeric
+// Workout type → Terra numeric
 // =============================================================================
 
-export function terraType(type: SessionType): number {
+export function terraType(type: WorkoutType): number {
   return TERRA_ACTIVITY_TYPES[type][0];
 }
 
@@ -168,7 +168,7 @@ function transformSegment(
   };
 }
 
-function buildSessionLevelSteps(
+function buildWorkoutLevelSteps(
   input: CadencePlannedWorkoutInput,
 ): SomaStep[] {
   const durations: SomaStepDuration[] = [];
@@ -231,13 +231,13 @@ export function plannedWorkout(
       order++;
     }
   } else {
-    steps = buildSessionLevelSteps(input);
+    steps = buildWorkoutLevelSteps(input);
   }
 
   const metadata: SomaPlannedWorkout["metadata"] = {
     id: input.id,
     type: "RUNNING",
-    name: input.sessionTypeDisplay,
+    name: input.workoutTypeDisplay,
     description: input.description,
     planned_date: formatDateYYYYMMDD(input.scheduledDate),
     estimated_duration_seconds: input.targetDurationSeconds,
@@ -262,7 +262,7 @@ export function activity(input: CadenceActivity): SomaActivity {
     metadata: {
       start_time: startIso,
       end_time: endIso,
-      type: input.sessionType ? terraType(input.sessionType) : 0,
+      type: input.workoutType ? terraType(input.workoutType) : 0,
       summary_id: input.id,
       upload_type: 0,
     },

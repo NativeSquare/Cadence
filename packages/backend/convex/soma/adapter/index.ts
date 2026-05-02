@@ -6,7 +6,7 @@
  *
  *   import { fromSoma, toSoma, type CadenceActivity } from "<path>/soma/adapter";
  *   const activity = fromSoma.activity(somaActivity);
- *   const workout = toSoma.plannedWorkout(plannedSession);
+ *   const workout = toSoma.plannedWorkout(plannedWorkout);
  */
 
 export * as fromSoma from "./fromSoma";
@@ -17,7 +17,7 @@ export type {
   CadenceDailyBiometrics,
   CadencePlannedWorkoutInput,
   CadencePlannedWorkoutStructureSegment,
-  SessionType,
+  WorkoutType,
 } from "./types";
 
 export { TERRA_ACTIVITY_TYPES } from "./types";

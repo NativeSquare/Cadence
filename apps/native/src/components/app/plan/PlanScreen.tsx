@@ -5,7 +5,7 @@
  * - Scroll-based header collapse animation
  * - Date header with greeting
  * - Calendar strip with day selection
- * - Today's session card with coach message
+ * - Today's workout card with coach message
  * - This Week insights (volume, streak, adherence)
  */
 
@@ -33,7 +33,7 @@ import { LogRunSection } from "./QuickActions";
 import { ExportToWatchSheet, type WatchProvider } from "./ExportToWatchSheet";
 import { LIGHT_THEME } from "@/lib/design-tokens";
 import {
-  buildSessionsByDate,
+  buildWorkoutsByDate,
   buildRaceGoal,
   computeWeekInsights,
 } from "./utils";
@@ -45,7 +45,7 @@ const REST_FALLBACK: WorkoutData = {
   dur: "-",
   done: false,
   intensity: "rest",
-  desc: "No session scheduled for today.",
+  desc: "No workout scheduled for today.",
   zone: "-",
   today: true,
 };
@@ -100,8 +100,8 @@ export function PlanScreen() {
   const workouts = useQuery(api.agoge.workouts.listWorkouts, workoutRange);
   const activePlan = useQuery(api.agoge.plans.getAthletePlan);
 
-  const sessionsByDate = useMemo(
-    () => (workouts ? buildSessionsByDate(workouts, today) : {}),
+  const workoutsByDate = useMemo(
+    () => (workouts ? buildWorkoutsByDate(workouts, today) : {}),
     [workouts, today]
   );
 
@@ -112,8 +112,8 @@ export function PlanScreen() {
 
   const selectedDateKey = `${selectedDate.getFullYear()}-${selectedDate.getMonth()}-${selectedDate.getDate()}`;
 
-  const baseSelectedSession: WorkoutData =
-    sessionsByDate[selectedDateKey] ?? REST_FALLBACK;
+  const baseSelectedWorkout: WorkoutData =
+    workoutsByDate[selectedDateKey] ?? REST_FALLBACK;
 
   const weekInsights = useMemo(
     () => (workouts ? computeWeekInsights(workouts, today) : null),
@@ -130,27 +130,27 @@ export function PlanScreen() {
 
   const exportSheetRef = useRef<BottomSheetModal>(null);
 
-  const [exportedSessions, setExportedSessions] = useState<
+  const [exportedWorkouts, setExportedWorkouts] = useState<
     Record<string, { syncStatus: SyncStatus; syncSource: string }>
   >({});
 
-  const sessionExport = baseSelectedSession.workoutId
-    ? exportedSessions[baseSelectedSession.workoutId]
+  const workoutExport = baseSelectedWorkout.workoutId
+    ? exportedWorkouts[baseSelectedWorkout.workoutId]
     : undefined;
 
-  const selectedSession_: WorkoutData = {
-    ...baseSelectedSession,
-    ...(sessionExport
-      ? { syncStatus: sessionExport.syncStatus, syncSource: sessionExport.syncSource }
+  const selectedWorkout_: WorkoutData = {
+    ...baseSelectedWorkout,
+    ...(workoutExport
+      ? { syncStatus: workoutExport.syncStatus, syncSource: workoutExport.syncSource }
       : {}),
   };
 
-  const handleOpenSessionDetail = useCallback(() => {
-    const sid = baseSelectedSession.workoutId;
+  const handleOpenWorkoutDetail = useCallback(() => {
+    const sid = baseSelectedWorkout.workoutId;
     if (sid) {
       router.push(`/(app)/workouts/${sid}`);
     }
-  }, [router, baseSelectedSession.workoutId]);
+  }, [router, baseSelectedWorkout.workoutId]);
 
   const selectedDateIso = toIsoDate(selectedDate);
   const todayIso = toIsoDate(today);
@@ -167,13 +167,13 @@ export function PlanScreen() {
   }, []);
 
   const handleExportComplete = useCallback((provider: WatchProvider) => {
-    const sid = baseSelectedSession.workoutId;
+    const sid = baseSelectedWorkout.workoutId;
     if (!sid) return;
-    setExportedSessions((prev) => ({
+    setExportedWorkouts((prev) => ({
       ...prev,
       [sid]: { syncStatus: "exported" as SyncStatus, syncSource: provider },
     }));
-  }, [baseSelectedSession.workoutId]);
+  }, [baseSelectedWorkout.workoutId]);
 
   const handleScroll = useAnimatedScrollHandler({
     onScroll: (event) => {
@@ -278,7 +278,7 @@ export function PlanScreen() {
         {/* CalendarStrip */}
         <View className="bg-w2 px-4">
           <CalendarStrip
-            sessionsByDate={sessionsByDate}
+            workoutsByDate={workoutsByDate}
             selectedDate={selectedDate}
             onDateSelect={handleDateSelect}
           />
@@ -287,16 +287,16 @@ export function PlanScreen() {
 
         {/* Scrollable content */}
         <View className="flex-1 bg-w2 pb-6">
-          {/* Today's Session Card */}
+          {/* Today's Workout Card */}
           <View className="px-4 pt-4">
             <TodayCard
-              session={selectedSession_}
+              workout={selectedWorkout_}
               coachMessage={coachMessage}
               selectedDate={selectedDate}
               isToday={isSelectedToday}
-              onStartPress={handleOpenSessionDetail}
+              onStartPress={handleOpenWorkoutDetail}
               onExportPress={handleOpenExportSheet}
-              onCardPress={handleOpenSessionDetail}
+              onCardPress={handleOpenWorkoutDetail}
               onAddPress={canAddOnSelectedDate ? handleAddOnSelectedDate : undefined}
             />
           </View>
@@ -309,7 +309,7 @@ export function PlanScreen() {
                 volumePlanned={weekInsights.volumePlanned}
                 timeCompleted={weekInsights.timeCompleted}
                 avgPace={weekInsights.avgPace}
-                sessions={weekInsights.currentWeekSessions}
+                workouts={weekInsights.currentWeekWorkouts}
               />
             </View>
           )}
@@ -364,7 +364,7 @@ export function PlanScreen() {
         <View className="bg-w2" style={{ paddingTop: insets.top }}>
           <View className="px-4">
             <CalendarStrip
-              sessionsByDate={sessionsByDate}
+              workoutsByDate={workoutsByDate}
               selectedDate={selectedDate}
               onDateSelect={handleDateSelect}
             />
@@ -376,8 +376,8 @@ export function PlanScreen() {
       {/* Export to Watch Bottom Sheet */}
       <ExportToWatchSheet
         sheetRef={exportSheetRef}
-        sessionType={selectedSession_.type}
-        workoutId={selectedSession_.workoutId}
+        workoutType={selectedWorkout_.type}
+        workoutId={selectedWorkout_.workoutId}
         onExportComplete={handleExportComplete}
       />
     </View>

@@ -1,5 +1,5 @@
 /**
- * WatermarkIcon - SVG watermark icons for session cards.
+ * WatermarkIcon - SVG watermark icons for workout cards.
  * 4 types: easy (concentric circles), specific (bolt), long (mountain), race (trophy).
  * Reference: cadence-calendar-final.jsx lines 268-297
  *
@@ -8,10 +8,10 @@
 
 import React from "react";
 import Svg, { Circle, Path } from "react-native-svg";
-import type { CalSessionType } from "./types";
+import type { CalWorkoutType } from "./types";
 
 interface WatermarkIconProps {
-  type: CalSessionType;
+  type: CalWorkoutType;
   size?: number;
   color?: string;
 }

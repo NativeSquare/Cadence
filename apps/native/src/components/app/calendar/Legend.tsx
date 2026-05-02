@@ -1,21 +1,21 @@
 /**
- * Legend - Session type colors + phase indicators with fade-in entrance.
+ * Legend - Workout type colors + phase indicators with fade-in entrance.
  */
 
 import React, { useMemo } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import Animated, { FadeIn } from "react-native-reanimated";
 import { LIGHT_THEME } from "@/lib/design-tokens";
-import { SESSION_COLORS, SESSION_LABELS, PHASES } from "./constants";
+import { WORKOUT_COLORS, WORKOUT_LABELS, PHASES } from "./constants";
 import { blendWithBg, formatDateKey, getDaysInMonth } from "./helpers";
-import type { CalSessionType } from "./types";
+import type { CalWorkoutType } from "./types";
 
 interface LegendProps {
   currentYear: number;
   currentMonth: number;
 }
 
-const SESSION_TYPES: CalSessionType[] = ["easy", "specific", "long", "race"];
+const WORKOUT_TYPES: CalWorkoutType[] = ["easy", "specific", "long", "race"];
 
 export const Legend = React.memo(function Legend({ currentYear, currentMonth }: LegendProps) {
   const visiblePhases = useMemo(() => {
@@ -27,10 +27,10 @@ export const Legend = React.memo(function Legend({ currentYear, currentMonth }: 
   return (
     <Animated.View entering={FadeIn.delay(400).duration(400)} style={styles.container}>
       <View style={styles.row}>
-        {SESSION_TYPES.map((type) => (
+        {WORKOUT_TYPES.map((type) => (
           <View key={type} style={styles.item}>
-            <View style={[styles.sessionDot, { backgroundColor: SESSION_COLORS[type] }]} />
-            <Text style={styles.sessionLabel}>{SESSION_LABELS[type]}</Text>
+            <View style={[styles.workoutDot, { backgroundColor: WORKOUT_COLORS[type] }]} />
+            <Text style={styles.workoutLabel}>{WORKOUT_LABELS[type]}</Text>
           </View>
         ))}
       </View>
@@ -68,12 +68,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 5,
   },
-  sessionDot: {
+  workoutDot: {
     width: 3,
     height: 12,
     borderRadius: 2,
   },
-  sessionLabel: {
+  workoutLabel: {
     fontSize: 11,
     fontWeight: "500",
     fontFamily: "Outfit-Medium",

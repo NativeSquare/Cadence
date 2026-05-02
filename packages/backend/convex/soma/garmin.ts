@@ -75,7 +75,7 @@ export const backfillAll = internalAction({
 
 // ─── Export to Watch ──────────────────────────────────────────────────────────────────
 
-export const exportSession = action({
+export const exportWorkout = action({
   args: { workoutId: v.string() },
   returns: v.object({
     garminWorkoutId: v.number(),

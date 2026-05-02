@@ -11,9 +11,9 @@
 import { useEffect, useRef } from "react";
 import { questionPause } from "@/lib/haptics";
 import {
-  RescheduleSessionCard,
-  ModifySessionCard,
-  SwapSessionsCard,
+  RescheduleWorkoutCard,
+  ModifyWorkoutCard,
+  SwapWorkoutsCard,
 } from "./actions";
 import type {
   RescheduleProposal,
@@ -67,9 +67,9 @@ export function CoachToolRenderer({
   if (state === "streaming") return null;
 
   switch (toolName) {
-    case "proposeRescheduleSession":
+    case "proposeRescheduleWorkout":
       return (
-        <RescheduleSessionCard
+        <RescheduleWorkoutCard
           toolCallId={toolCallId}
           proposal={args as RescheduleProposal}
           executeMutation={() => executeMutation(toolName, args)}
@@ -78,9 +78,9 @@ export function CoachToolRenderer({
         />
       );
 
-    case "proposeModifySession":
+    case "proposeModifyWorkout":
       return (
-        <ModifySessionCard
+        <ModifyWorkoutCard
           toolCallId={toolCallId}
           proposal={args as ModifyProposal}
           executeMutation={() => executeMutation(toolName, args)}
@@ -89,9 +89,9 @@ export function CoachToolRenderer({
         />
       );
 
-    case "proposeSwapSessions":
+    case "proposeSwapWorkouts":
       return (
-        <SwapSessionsCard
+        <SwapWorkoutsCard
           toolCallId={toolCallId}
           proposal={args as SwapProposal}
           executeMutation={() => executeMutation(toolName, args)}

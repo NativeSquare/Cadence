@@ -1,13 +1,13 @@
 import { View, Pressable } from "react-native";
 import { Text } from "@/components/ui/text";
 import {
-  SESSION_TYPE_COLORS,
+  WORKOUT_CATEGORY_COLORS,
   LIGHT_THEME,
-  type SessionCategory,
+  type WorkoutCategory,
 } from "@/lib/design-tokens";
 
-const SESSION_TILES: {
-  category: SessionCategory;
+const WORKOUT_TILES: {
+  category: WorkoutCategory;
   label: string;
   description: string;
 }[] = [
@@ -18,21 +18,21 @@ const SESSION_TILES: {
 ];
 
 interface LogRunSectionProps {
-  onSelectType: (category: SessionCategory) => void;
+  onSelectType: (category: WorkoutCategory) => void;
 }
 
-function SessionTile({
+function WorkoutTile({
   category,
   label,
   description,
   onPress,
 }: {
-  category: SessionCategory;
+  category: WorkoutCategory;
   label: string;
   description: string;
   onPress: () => void;
 }) {
-  const color = SESSION_TYPE_COLORS[category];
+  const color = WORKOUT_CATEGORY_COLORS[category];
 
   return (
     <Pressable
@@ -80,31 +80,31 @@ export function LogRunSection({ onSelectType }: LogRunSectionProps) {
       </Text>
       <View className="gap-2.5">
         <View className="flex-row gap-2.5">
-          <SessionTile
-            category={SESSION_TILES[0].category}
-            label={SESSION_TILES[0].label}
-            description={SESSION_TILES[0].description}
-            onPress={() => onSelectType(SESSION_TILES[0].category)}
+          <WorkoutTile
+            category={WORKOUT_TILES[0].category}
+            label={WORKOUT_TILES[0].label}
+            description={WORKOUT_TILES[0].description}
+            onPress={() => onSelectType(WORKOUT_TILES[0].category)}
           />
-          <SessionTile
-            category={SESSION_TILES[1].category}
-            label={SESSION_TILES[1].label}
-            description={SESSION_TILES[1].description}
-            onPress={() => onSelectType(SESSION_TILES[1].category)}
+          <WorkoutTile
+            category={WORKOUT_TILES[1].category}
+            label={WORKOUT_TILES[1].label}
+            description={WORKOUT_TILES[1].description}
+            onPress={() => onSelectType(WORKOUT_TILES[1].category)}
           />
         </View>
         <View className="flex-row gap-2.5">
-          <SessionTile
-            category={SESSION_TILES[2].category}
-            label={SESSION_TILES[2].label}
-            description={SESSION_TILES[2].description}
-            onPress={() => onSelectType(SESSION_TILES[2].category)}
+          <WorkoutTile
+            category={WORKOUT_TILES[2].category}
+            label={WORKOUT_TILES[2].label}
+            description={WORKOUT_TILES[2].description}
+            onPress={() => onSelectType(WORKOUT_TILES[2].category)}
           />
-          <SessionTile
-            category={SESSION_TILES[3].category}
-            label={SESSION_TILES[3].label}
-            description={SESSION_TILES[3].description}
-            onPress={() => onSelectType(SESSION_TILES[3].category)}
+          <WorkoutTile
+            category={WORKOUT_TILES[3].category}
+            label={WORKOUT_TILES[3].label}
+            description={WORKOUT_TILES[3].description}
+            onPress={() => onSelectType(WORKOUT_TILES[3].category)}
           />
         </View>
       </View>

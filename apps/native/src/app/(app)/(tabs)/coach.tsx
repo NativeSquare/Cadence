@@ -15,6 +15,6 @@ import { CoachScreen } from "@/components/app/coach";
  * Source: Story 10.3
  */
 export default function Coach() {
-  const { sessionContext } = useLocalSearchParams<{ sessionContext?: string }>();
-  return <CoachScreen initialPrompt={sessionContext} />;
+  const { workoutContext } = useLocalSearchParams<{ workoutContext?: string }>();
+  return <CoachScreen initialPrompt={workoutContext} />;
 }

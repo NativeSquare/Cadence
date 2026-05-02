@@ -91,12 +91,12 @@ export function usePushNotifications(enabled = true) {
     const subscription =
       Notifications.addNotificationResponseReceivedListener((response) => {
         const data = response.notification.request.content.data as {
-          sessionId?: string;
+          workoutId?: string;
           screen?: string;
         } | undefined;
 
-        if (data?.screen === "debrief" && data.sessionId) {
-          router.push(`/(app)/workouts/${data.sessionId}`);
+        if (data?.screen === "workout" && data.workoutId) {
+          router.push(`/(app)/workouts/${data.workoutId}`);
         }
       });
 

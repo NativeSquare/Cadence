@@ -9,13 +9,13 @@
 import {
   COLORS,
   LIGHT_THEME,
-  SESSION_TYPE_COLORS,
-  getSessionCategory,
+  WORKOUT_CATEGORY_COLORS,
+  getWorkoutCategory,
 } from "@/lib/design-tokens";
 import type {
   RaceGoalData,
   WorkoutData,
-  SessionIntensity,
+  WorkoutIntensity,
   SyncStatus,
   SyncedData,
 } from "./types";
@@ -86,8 +86,8 @@ function formatDurationLong(seconds: number): string {
   return rem === 0 ? `${h}h` : `${h}h ${rem}m`;
 }
 
-function intensityFromName(name: string): SessionIntensity {
-  const category = getSessionCategory(name);
+function intensityFromName(name: string): WorkoutIntensity {
+  const category = getWorkoutCategory(name);
   if (category === "race") return "key";
   if (category === "long") return "key";
   if (category === "easy") return "low";
@@ -131,7 +131,7 @@ export function workoutToWorkoutData(
   };
 }
 
-export function buildSessionsByDate(
+export function buildWorkoutsByDate(
   workouts: AgogeWorkout[],
   today: Date,
 ): Record<string, WorkoutData> {
@@ -168,7 +168,7 @@ export function computeWeekInsights(
   volumePlanned: number;
   timeCompleted: string;
   avgPace: string;
-  currentWeekSessions: WorkoutData[];
+  currentWeekWorkouts: WorkoutData[];
 } {
   const weekStart = isoWeekStart(today);
   const weekEnd = new Date(weekStart);
@@ -177,14 +177,14 @@ export function computeWeekInsights(
   let volumeCompletedMeters = 0;
   let volumePlannedMeters = 0;
   let timeCompletedSeconds = 0;
-  const currentWeekSessions: WorkoutData[] = [];
+  const currentWeekWorkouts: WorkoutData[] = [];
 
   for (const w of workouts) {
     const dateIso = workoutDate(w);
     if (!dateIso) continue;
     const d = localDateFromIso(dateIso);
     if (d < weekStart || d > weekEnd) continue;
-    currentWeekSessions.push(workoutToWorkoutData(w, today));
+    currentWeekWorkouts.push(workoutToWorkoutData(w, today));
 
     volumePlannedMeters += w.planned?.distanceMeters ?? 0;
     if (w.status === "completed" && w.actual) {
@@ -205,7 +205,7 @@ export function computeWeekInsights(
     timeCompleted:
       timeCompletedSeconds > 0 ? formatDurationLong(timeCompletedSeconds) : "0m",
     avgPace,
-    currentWeekSessions,
+    currentWeekWorkouts,
   };
 }
 
@@ -216,9 +216,9 @@ function formatPace(secondsPerMeter: number): string {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-export function getSessionColor(session: WorkoutData): string {
-  const category = getSessionCategory(session.type);
-  return SESSION_TYPE_COLORS[category];
+export function getWorkoutColor(workout: WorkoutData): string {
+  const category = getWorkoutCategory(workout.type);
+  return WORKOUT_CATEGORY_COLORS[category];
 }
 
 export function getGreeting(): string {

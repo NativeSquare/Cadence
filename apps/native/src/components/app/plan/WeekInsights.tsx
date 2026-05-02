@@ -3,7 +3,7 @@
  *
  * Three side-by-side insight cards:
  * - Volume: weekly km + time progress with animated bar
- * - Sessions: completed vs total training sessions with check indicators
+ * - Workouts: completed vs total training workouts with check indicators
  * - Streak: consecutive training days with flame icon
  */
 
@@ -96,9 +96,9 @@ function VolumeInsight({
   );
 }
 
-// ─── Sessions Card ────────────────────────────────────────────────────────────
+// ─── Workouts Card ────────────────────────────────────────────────────────────
 
-function SessionCheckDot({ done }: { done: boolean }) {
+function WorkoutCheckDot({ done }: { done: boolean }) {
   return (
     <View
       className="w-[18px] h-[18px] rounded-full items-center justify-center"
@@ -113,9 +113,9 @@ function SessionCheckDot({ done }: { done: boolean }) {
   );
 }
 
-function SessionsInsight({ sessions }: { sessions: WorkoutData[] }) {
-  const trainingSessions = sessions.filter((s) => s.intensity !== "rest");
-  const completed = trainingSessions.filter((s) => s.done).length;
+function WorkoutsInsight({ workouts }: { workouts: WorkoutData[] }) {
+  const trainingWorkouts = workouts.filter((w) => w.intensity !== "rest");
+  const completed = trainingWorkouts.filter((w) => w.done).length;
 
   return (
     <View
@@ -126,7 +126,7 @@ function SessionsInsight({ sessions }: { sessions: WorkoutData[] }) {
         className="text-[11px] font-coach-semibold text-wSub uppercase"
         style={{ letterSpacing: 0.05 * 11 }}
       >
-        Sessions
+        Workouts
       </Text>
 
       <View className="items-center mt-2">
@@ -135,7 +135,7 @@ function SessionsInsight({ sessions }: { sessions: WorkoutData[] }) {
             {completed}
           </Text>
           <Text className="text-[14px] font-coach-medium text-wMute">
-            /{trainingSessions.length}
+            /{trainingWorkouts.length}
           </Text>
         </View>
         <Text className="text-[11px] font-coach-medium text-wSub mt-0.5">
@@ -144,8 +144,8 @@ function SessionsInsight({ sessions }: { sessions: WorkoutData[] }) {
       </View>
 
       <View className="flex-row gap-1.5 mt-2.5">
-        {trainingSessions.map((session, i) => (
-          <SessionCheckDot key={i} done={session.done} />
+        {trainingWorkouts.map((workout, i) => (
+          <WorkoutCheckDot key={i} done={workout.done} />
         ))}
       </View>
     </View>
@@ -211,7 +211,7 @@ interface WeekInsightsProps {
   volumePlanned: number;
   timeCompleted: string;
   avgPace: string;
-  sessions: WorkoutData[];
+  workouts: WorkoutData[];
 }
 
 export function WeekInsights({
@@ -219,7 +219,7 @@ export function WeekInsights({
   volumePlanned,
   timeCompleted,
   avgPace,
-  sessions,
+  workouts,
 }: WeekInsightsProps) {
   return (
     <View>
@@ -237,7 +237,7 @@ export function WeekInsights({
       />
 
       <View className="flex-row gap-2.5 mt-2.5">
-        <SessionsInsight sessions={sessions} />
+        <WorkoutsInsight workouts={workouts} />
         <AvgPaceInsight avgPace={avgPace} />
       </View>
     </View>

@@ -65,9 +65,9 @@ export function CoachChatView({
   } = useAIChat({ conversationId });
 
   // Convex mutations for action tools (executed on Accept)
-  const rescheduleSession = useMutation(api.agoge.workouts.rescheduleWorkout);
-  const modifySession = useMutation(api.agoge.workouts.modifyWorkout);
-  const swapSessions = useMutation(api.agoge.workouts.swapWorkouts);
+  const rescheduleWorkout = useMutation(api.agoge.workouts.rescheduleWorkout);
+  const modifyWorkout = useMutation(api.agoge.workouts.updateWorkout);
+  const swapWorkouts = useMutation(api.agoge.workouts.swapWorkouts);
 
   // Voice recording state
   const [inputValue, setInputValue] = useState(initialPrompt ?? "");
@@ -142,17 +142,17 @@ export function CoachChatView({
     async (toolName: string, args: unknown): Promise<{ success: boolean; error?: string }> => {
       try {
         switch (toolName) {
-          case "proposeRescheduleSession": {
+          case "proposeRescheduleWorkout": {
             const p = args as RescheduleProposal;
-            await rescheduleSession({
-              workoutId: p.sessionId,
+            await rescheduleWorkout({
+              workoutId: p.workoutId,
               date: new Date(p.proposedDate).toISOString().slice(0, 10),
             });
             return { success: true };
           }
-          case "proposeModifySession": {
+          case "proposeModifyWorkout": {
             const p = args as {
-              sessionId: string;
+              workoutId: string;
               changes: Array<{ field: string; newValue: string }>;
               reason: string;
             };
@@ -164,7 +164,7 @@ export function CoachChatView({
                 durationSeconds?: number;
                 distanceMeters?: number;
               };
-            } = { workoutId: p.sessionId };
+            } = { workoutId: p.workoutId };
             for (const c of p.changes) {
               if (c.field === "name") patch.name = c.newValue;
               else if (c.field === "description") patch.description = c.newValue;
@@ -186,14 +186,14 @@ export function CoachChatView({
                 };
               }
             }
-            await modifySession(patch);
+            await modifyWorkout(patch as Parameters<typeof modifyWorkout>[0]);
             return { success: true };
           }
-          case "proposeSwapSessions": {
+          case "proposeSwapWorkouts": {
             const p = args as SwapProposal;
-            await swapSessions({
-              workoutAId: p.sessionA.sessionId,
-              workoutBId: p.sessionB.sessionId,
+            await swapWorkouts({
+              workoutAId: p.workoutA.workoutId,
+              workoutBId: p.workoutB.workoutId,
             });
             return { success: true };
           }
@@ -207,7 +207,7 @@ export function CoachChatView({
         };
       }
     },
-    [rescheduleSession, modifySession, swapSessions],
+    [rescheduleWorkout, modifyWorkout, swapWorkouts],
   );
 
   /** Post typed decision event to Router so it can follow up in Craftsperson voice. */

@@ -1,16 +1,16 @@
 /**
- * TodayCard - Main card showing today's session with coach message
+ * TodayCard - Main card showing today's workout with coach message
  *
- * Layout order: Sync banner → Session info → Coach quote → CTA
+ * Layout order: Sync banner → Workout info → Coach quote → CTA
  * When a sync status is active, the entire card is visually wrapped:
  * - Card border color matches the sync state
  * - Full-width banner at top with icon + label
  *
  * Features:
  * - Sync banner wraps the card (top banner + colored border)
- * - Session details with vertical accent bar
+ * - Workout details with vertical accent bar
  * - Coach quote section with lime background
- * - "Start Session" CTA button
+ * - "Start Workout" CTA button
  * - Pulsing dot during streaming animation
  */
 
@@ -27,11 +27,11 @@ import { useEffect } from "react";
 import Svg, { Path, Circle } from "react-native-svg";
 import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
 import { type WorkoutData, type SyncStatus } from "./types";
-import { getSessionColor, getSyncStatusLabel, getSyncStatusColor, formatShortDate } from "./utils";
+import { getWorkoutColor, getSyncStatusLabel, getSyncStatusColor, formatShortDate } from "./utils";
 import { useStream } from "./use-stream";
 
 interface TodayCardProps {
-  session: WorkoutData;
+  workout: WorkoutData;
   coachMessage: string;
   selectedDate?: Date;
   isToday?: boolean;
@@ -231,9 +231,9 @@ function NotSyncedIcon() {
  * Full-width sync banner — sits at the top of the card.
  * Shows "Not synced with watch" when no export, or the sync status after export.
  */
-function SyncBanner({ session }: { session: WorkoutData }) {
-  const { syncStatus, syncSource, syncedData } = session;
-  const isRest = session.intensity === "rest";
+function SyncBanner({ workout }: { workout: WorkoutData }) {
+  const { syncStatus, syncSource, syncedData } = workout;
+  const isRest = workout.intensity === "rest";
 
   if (isRest) return null;
 
@@ -330,8 +330,8 @@ function ChevronRight() {
   );
 }
 
-function CompletedBanner({ session }: { session: WorkoutData }) {
-  const actualPace = computeActualPace(session);
+function CompletedBanner({ workout }: { workout: WorkoutData }) {
+  const actualPace = computeActualPace(workout);
 
   return (
     <View
@@ -351,27 +351,27 @@ function CompletedBanner({ session }: { session: WorkoutData }) {
           </Svg>
         </View>
         <Text className="text-[13px] font-coach-bold" style={{ color: COLORS.lime }}>
-          Session Complete
+          Workout Complete
         </Text>
       </View>
       <View className="flex-row gap-5">
-        {session.actualDur != null && (
+        {workout.actualDur != null && (
           <View>
             <Text className="text-[11px] font-coach-medium" style={{ color: "rgba(255,255,255,0.45)" }}>
               Time
             </Text>
             <Text className="text-[15px] font-coach-bold text-g1">
-              {session.actualDur}
+              {workout.actualDur}
             </Text>
           </View>
         )}
-        {session.actualKm != null && (
+        {workout.actualKm != null && (
           <View>
             <Text className="text-[11px] font-coach-medium" style={{ color: "rgba(255,255,255,0.45)" }}>
               Distance
             </Text>
             <Text className="text-[15px] font-coach-bold text-g1">
-              {session.actualKm} km
+              {workout.actualKm} km
             </Text>
           </View>
         )}
@@ -385,13 +385,13 @@ function CompletedBanner({ session }: { session: WorkoutData }) {
             </Text>
           </View>
         )}
-        {session.adherenceScore != null && (
+        {workout.adherenceScore != null && (
           <View>
             <Text className="text-[11px] font-coach-medium" style={{ color: "rgba(255,255,255,0.45)" }}>
               Adherence
             </Text>
             <Text className="text-[15px] font-coach-bold" style={{ color: COLORS.lime }}>
-              {Math.round(session.adherenceScore * 100)}%
+              {Math.round(workout.adherenceScore * 100)}%
             </Text>
           </View>
         )}
@@ -400,15 +400,15 @@ function CompletedBanner({ session }: { session: WorkoutData }) {
   );
 }
 
-function computeActualPace(session: WorkoutData): string | null {
-  if (!session.actualDur || !session.actualKm) return null;
+function computeActualPace(workout: WorkoutData): string | null {
+  if (!workout.actualDur || !workout.actualKm) return null;
   // Parse actualKm to number
-  const km = parseFloat(session.actualKm);
+  const km = parseFloat(workout.actualKm);
   if (!km || km === 0) return null;
   // Parse actualDur to seconds — supports "45min", "1h05", "1h"
   let totalSec = 0;
-  const hMatch = session.actualDur.match(/(\d+)h/);
-  const mMatch = session.actualDur.match(/(\d+)min/) ?? session.actualDur.match(/h(\d+)/);
+  const hMatch = workout.actualDur.match(/(\d+)h/);
+  const mMatch = workout.actualDur.match(/(\d+)min/) ?? workout.actualDur.match(/h(\d+)/);
   if (hMatch) totalSec += parseInt(hMatch[1], 10) * 3600;
   if (mMatch) totalSec += parseInt(mMatch[1], 10) * 60;
   if (totalSec === 0) return null;
@@ -418,9 +418,9 @@ function computeActualPace(session: WorkoutData): string | null {
   return `${pMin}:${pSec.toString().padStart(2, "0")}/km`;
 }
 
-function SessionInfo({ session }: { session: WorkoutData }) {
-  const accentColor = getSessionColor(session);
-  const isRest = session.intensity === "rest";
+function WorkoutInfo({ workout }: { workout: WorkoutData }) {
+  const accentColor = getWorkoutColor(workout);
+  const isRest = workout.intensity === "rest";
 
   return (
     <View className="px-5 pt-5 pb-3">
@@ -432,7 +432,7 @@ function SessionInfo({ session }: { session: WorkoutData }) {
           }}
         />
         <Text className="text-xs font-coach-medium text-g3 uppercase" style={{ letterSpacing: 0.05 * 12 }}>
-          {isRest ? "Rest Day" : `${session.dur} · ${session.km} km · ${session.zone}`}
+          {isRest ? "Rest Day" : `${workout.dur} · ${workout.km} km · ${workout.zone}`}
         </Text>
       </View>
       <View className="flex-row items-center justify-between">
@@ -440,7 +440,7 @@ function SessionInfo({ session }: { session: WorkoutData }) {
           className="text-[26px] font-coach-bold text-g1 flex-1"
           style={{ letterSpacing: -0.02 * 26, lineHeight: 30 }}
         >
-          {session.type}
+          {workout.type}
         </Text>
         <ChevronRight />
       </View>
@@ -522,7 +522,7 @@ function RestDayCard({
               color: LIGHT_THEME.wSub,
             }}
           >
-            No session scheduled
+            No workout scheduled
           </Text>
 
           {onAddPress && (
@@ -547,10 +547,10 @@ function RestDayCard({
   );
 }
 
-export function TodayCard({ session, coachMessage, selectedDate, isToday = true, onStartPress, onExportPress, onCardPress, onAddPress }: TodayCardProps) {
+export function TodayCard({ workout, coachMessage, selectedDate, isToday = true, onStartPress, onExportPress, onCardPress, onAddPress }: TodayCardProps) {
   const dateLabel = isToday ? "Today" : formatShortDate(selectedDate ?? new Date());
-  const isRest = session.intensity === "rest";
-  const isCompleted = session.done;
+  const isRest = workout.intensity === "rest";
+  const isCompleted = workout.done;
 
   if (isRest) {
     return (
@@ -566,12 +566,12 @@ export function TodayCard({ session, coachMessage, selectedDate, isToday = true,
     speed: 20, delay: 800,
   });
 
-  const hasSyncStatus = session.syncStatus && session.syncStatus !== "planned";
-  const isExported = session.syncStatus === "exported" || session.syncStatus === "synced";
+  const hasSyncStatus = workout.syncStatus && workout.syncStatus !== "planned";
+  const isExported = workout.syncStatus === "exported" || workout.syncStatus === "synced";
   const borderColor = isCompleted
     ? COLORS.lime
     : hasSyncStatus
-      ? getSyncStatusColor(session.syncStatus!)
+      ? getSyncStatusColor(workout.syncStatus!)
       : undefined;
 
   return (
@@ -599,13 +599,13 @@ export function TodayCard({ session, coachMessage, selectedDate, isToday = true,
         >
           {/* 0. Top banner — completed state takes priority over sync banner */}
           {isCompleted ? (
-            <CompletedBanner session={session} />
+            <CompletedBanner workout={workout} />
           ) : (
-            <SyncBanner session={session} />
+            <SyncBanner workout={workout} />
           )}
 
-          {/* 1. Session info */}
-          <SessionInfo session={session} />
+          {/* 1. Workout info */}
+          <WorkoutInfo workout={workout} />
 
           {/* 2. Coach quote */}
           <CoachQuote displayed={displayed} done={done} started={started} />

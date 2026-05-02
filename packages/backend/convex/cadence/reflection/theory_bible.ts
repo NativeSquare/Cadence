@@ -179,8 +179,8 @@ const workoutsLieWithinTheirBlock: Rule = {
   },
 };
 
-const noBackToBackQualitySessions: Rule = {
-  name: "no_back_to_back_quality_sessions",
+const noBackToBackQualityWorkouts: Rule = {
+  name: "no_back_to_back_quality_workouts",
   check: (ctx) => {
     const violations: Violation[] = [];
 
@@ -228,9 +228,9 @@ const noBackToBackQualitySessions: Rule = {
       const gapMs = Date.parse(cur.date) - Date.parse(prev.date);
       if (gapMs < 2 * MS_PER_DAY) {
         violations.push({
-          rule: "no_back_to_back_quality_sessions",
+          rule: "no_back_to_back_quality_workouts",
           severity: "block",
-          message: `Quality sessions '${prev.name}' (${prev.date}, ${prev.type}) and '${cur.name}' (${cur.date}, ${cur.type}) are less than 48h apart.`,
+          message: `Quality workouts '${prev.name}' (${prev.date}, ${prev.type}) and '${cur.name}' (${cur.date}, ${cur.type}) are less than 48h apart.`,
         });
       }
     }
@@ -243,7 +243,7 @@ const noBackToBackQualitySessions: Rule = {
 export const theoryBible: Rule[] = [
   blocksContiguousAndNonOverlapping,
   workoutsLieWithinTheirBlock,
-  noBackToBackQualitySessions,
+  noBackToBackQualityWorkouts,
 ];
 
 export function validateProposal(ctx: RuleContext): {

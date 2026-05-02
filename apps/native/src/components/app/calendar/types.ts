@@ -1,10 +1,9 @@
 /**
  * Type definitions for Calendar Tab components
- * Reference: cadence-calendar-final.jsx
  */
 
-/** Session type determines card color */
-export type CalSessionType = "easy" | "specific" | "long" | "race";
+/** Workout type determines card color */
+export type CalWorkoutType = "easy" | "specific" | "long" | "race";
 
 /** Training phase name for color lookup */
 export type PhaseName =
@@ -21,10 +20,10 @@ export type PhaseName =
 /** View toggle state */
 export type CalendarView = "month" | "week";
 
-/** A single calendar session */
-export interface CalSession {
+/** A single calendar workout */
+export interface CalWorkout {
   workoutId: string;
-  type: CalSessionType;
+  type: CalWorkoutType;
   label: string;
   km: string;
   dur: string;

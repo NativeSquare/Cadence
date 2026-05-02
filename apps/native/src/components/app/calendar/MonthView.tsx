@@ -1,6 +1,6 @@
 /**
  * MonthView - Full month grid with PhaseTimeline, DayHeaders, WeekRows, and Legend.
- * Passes staggered entrance delays to WeekRows and session press callbacks.
+ * Passes staggered entrance delays to WeekRows and workout press callbacks.
  */
 
 import React, { useMemo, useRef } from "react";
@@ -12,20 +12,20 @@ import { WeekRow } from "./WeekRow";
 import { Legend } from "./Legend";
 import { buildWeeks, buildPhaseLookup } from "./helpers";
 import { PHASES, TODAY_KEY } from "./constants";
-import type { CalSession } from "./types";
+import type { CalWorkout } from "./types";
 
 interface MonthViewProps {
   year: number;
   month: number;
-  sessions: Record<string, CalSession[]>;
-  onSessionPress?: (dateKey: string, session: CalSession) => void;
+  workouts: Record<string, CalWorkout[]>;
+  onWorkoutPress?: (dateKey: string, workout: CalWorkout) => void;
 }
 
 export const MonthView = React.memo(function MonthView({
   year,
   month,
-  sessions,
-  onSessionPress,
+  workouts,
+  onWorkoutPress,
 }: MonthViewProps) {
   const weeks = useMemo(() => buildWeeks(year, month), [year, month]);
   const phaseLookup = useMemo(() => buildPhaseLookup(PHASES), []);
@@ -46,9 +46,9 @@ export const MonthView = React.memo(function MonthView({
             week={week}
             weekIndex={index}
             phaseLookup={phaseLookup}
-            sessions={sessions}
+            workouts={workouts}
             todayKey={TODAY_KEY}
-            onSessionPress={onSessionPress}
+            onWorkoutPress={onWorkoutPress}
             enterDelay={stagger ? index * 60 : 0}
           />
         ))}
