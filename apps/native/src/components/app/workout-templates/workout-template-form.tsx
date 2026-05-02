@@ -7,7 +7,6 @@ import { selectionFeedback } from "@/lib/haptics";
 import { getConvexErrorMessage } from "@/utils/getConvexErrorMessage";
 import { safeParseWorkout, workoutSchemaValidated } from "@nativesquare/agoge";
 import type {
-  SubSport,
   WorkoutTemplate,
   WorkoutTemplateDoc,
   WorkoutType,
@@ -31,8 +30,6 @@ import {
 import { z } from "zod";
 import {
   EMPTY_STRUCTURE,
-  SUB_SPORT_LABELS,
-  SUB_SPORTS,
   WORKOUT_TYPE_COLORS,
   WORKOUT_TYPE_LABELS,
   WORKOUT_TYPES,
@@ -55,8 +52,6 @@ const formSchema = z.object({
   name: z.string().trim().min(1, "Name is required"),
   description: z.string().optional(),
   type: z.custom<WorkoutType>(),
-  typeNotes: z.string().optional(),
-  subSport: z.custom<SubSport>().optional(),
   content: templateWorkoutFaceSchema,
 });
 export type FormValues = z.infer<typeof formSchema>;
@@ -89,8 +84,6 @@ export function WorkoutTemplateForm({
       name: initial?.name ?? "",
       description: initial?.description ?? "",
       type: initial?.type ?? "easy",
-      typeNotes: initial?.typeNotes ?? "",
-      subSport: initial?.subSport,
       content: {
         structure: initial?.content?.structure ?? EMPTY_STRUCTURE,
         notes: initial?.content?.notes,
@@ -155,8 +148,6 @@ export function WorkoutTemplateForm({
         name: data.name,
         description: data.description?.trim() || undefined,
         type: data.type,
-        typeNotes: data.typeNotes?.trim() || undefined,
-        subSport: data.subSport,
         content: data.content,
       });
       router.back();
@@ -276,51 +267,6 @@ export function WorkoutTemplateForm({
               )}
             />
 
-            <Controller
-              control={form.control}
-              name="typeNotes"
-              render={({ field, fieldState }) => (
-                <FormField
-                  label="Type notes (optional)"
-                  error={fieldState.error?.message}
-                >
-                  <TextInput
-                    className="h-12 rounded-xl border px-4 font-coach-medium text-[15px]"
-                    style={inputStyle}
-                    placeholder="Any extra context on the type"
-                    placeholderTextColor={LIGHT_THEME.wMute}
-                    value={field.value ?? ""}
-                    onChangeText={field.onChange}
-                    onBlur={field.onBlur}
-                    editable={!readOnly}
-                    selectionColor={COLORS.lime}
-                    cursorColor={COLORS.lime}
-                  />
-                </FormField>
-              )}
-            />
-
-            <Controller
-              control={form.control}
-              name="subSport"
-              render={({ field, fieldState }) => (
-                <FormField
-                  label="Sub-sport (optional)"
-                  error={fieldState.error?.message}
-                >
-                  <PillSelect
-                    options={SUB_SPORTS}
-                    labels={SUB_SPORT_LABELS}
-                    value={field.value ?? ""}
-                    onChange={(v) =>
-                      field.onChange(field.value === v ? undefined : v)
-                    }
-                    disabled={readOnly}
-                    allowClear
-                  />
-                </FormField>
-              )}
-            />
           </FormSection>
 
           <FormSection title="Structure">
@@ -419,7 +365,7 @@ export function WorkoutTemplateForm({
 }
 
 // `value` is intentionally widened beyond T: persisted templates may carry
-// a type/subSport outside the form's visible options, in which case no pill
+// a type outside the form's visible options, in which case no pill
 // is highlighted but the original value still round-trips on save (as long
 // as the user doesn't pick a new pill).
 function PillSelect<T extends string>({

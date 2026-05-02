@@ -221,9 +221,6 @@ export function SessionDetailPage({ sessionId }: SessionDetailPageProps) {
             }}
           >
             <SummaryRow label="Type" value={formatType(workout.type)} />
-            {workout.subSport && (
-              <SummaryRow label="Surface" value={formatType(workout.subSport)} />
-            )}
             {distance && <SummaryRow label="Distance" value={distance} />}
             {duration && <SummaryRow label="Duration" value={duration} />}
           </View>

@@ -116,15 +116,6 @@ export const workoutTypeZ = z.enum([
   "other",
 ]);
 
-export const subSportZ = z.enum([
-  "track",
-  "trail",
-  "treadmill",
-  "street",
-  "indoor",
-  "virtual",
-]);
-
 // ── Workout planned face ────────────────────────────────────────────────────
 
 export const plannedFaceZ = z.object({
@@ -190,7 +181,6 @@ const workoutCreate = z.object({
   description: z.string().max(1000).optional(),
   type: workoutTypeZ,
   sport: z.literal("run"),
-  subSport: subSportZ.optional(),
   planned: plannedFaceZ.optional(),
 });
 
@@ -201,7 +191,6 @@ const workoutUpdate = z.object({
   name: z.string().min(2).max(80).optional(),
   description: z.string().max(1000).optional(),
   type: workoutTypeZ.optional(),
-  subSport: subSportZ.optional(),
   planned: plannedFaceZ.optional(),
 });
 

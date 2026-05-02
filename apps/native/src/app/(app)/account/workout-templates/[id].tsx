@@ -56,8 +56,6 @@ export default function TemplateDetailScreen() {
       name: values.name,
       description: values.description,
       type: values.type,
-      typeNotes: values.typeNotes,
-      subSport: values.subSport,
       content: values.content,
     });
   };

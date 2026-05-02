@@ -33,9 +33,7 @@ export default function NewWorkoutScreen() {
           name: values.name,
           description: values.description?.trim() || undefined,
           type: values.type,
-          typeNotes: values.typeNotes?.trim() || undefined,
           sport: "run",
-          subSport: values.subSport,
           status: isDone ? "completed" : "planned",
           planned:
             values.planned.structure.blocks.length > 0

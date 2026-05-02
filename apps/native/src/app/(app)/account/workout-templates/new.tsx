@@ -16,8 +16,6 @@ export default function NewTemplateScreen() {
       name: values.name,
       description: values.description,
       type: values.type,
-      typeNotes: values.typeNotes,
-      subSport: values.subSport,
       content: values.content,
     });
   };

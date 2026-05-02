@@ -621,13 +621,6 @@ export declare const components: {
           };
           sport: "run";
           status: "planned" | "completed" | "missed" | "skipped";
-          subSport?:
-            | "track"
-            | "trail"
-            | "treadmill"
-            | "street"
-            | "indoor"
-            | "virtual";
           templateId?: string;
           type:
             | "easy"
@@ -648,7 +641,6 @@ export declare const components: {
             | "strength"
             | "rest"
             | "other";
-          typeNotes?: string;
         },
         string
       >;
@@ -672,13 +664,6 @@ export declare const components: {
           description?: string;
           name: string;
           sport: "run";
-          subSport?:
-            | "track"
-            | "trail"
-            | "treadmill"
-            | "street"
-            | "indoor"
-            | "virtual";
           type:
             | "easy"
             | "long"
@@ -698,7 +683,6 @@ export declare const components: {
             | "strength"
             | "rest"
             | "other";
-          typeNotes?: string;
         },
         string
       >;
@@ -902,13 +886,6 @@ export declare const components: {
           };
           sport: "run";
           status: "planned" | "completed" | "missed" | "skipped";
-          subSport?:
-            | "track"
-            | "trail"
-            | "treadmill"
-            | "street"
-            | "indoor"
-            | "virtual";
           templateId?: string;
           type:
             | "easy"
@@ -929,7 +906,6 @@ export declare const components: {
             | "strength"
             | "rest"
             | "other";
-          typeNotes?: string;
         }>
       >;
       getGoal: FunctionReference<
@@ -1071,13 +1047,6 @@ export declare const components: {
           };
           sport: "run";
           status: "planned" | "completed" | "missed" | "skipped";
-          subSport?:
-            | "track"
-            | "trail"
-            | "treadmill"
-            | "street"
-            | "indoor"
-            | "virtual";
           templateId?: string;
           type:
             | "easy"
@@ -1098,7 +1067,6 @@ export declare const components: {
             | "strength"
             | "rest"
             | "other";
-          typeNotes?: string;
         }>
       >;
       getPlansByAthleteAndStatus: FunctionReference<
@@ -1463,13 +1431,6 @@ export declare const components: {
           };
           sport: "run";
           status: "planned" | "completed" | "missed" | "skipped";
-          subSport?:
-            | "track"
-            | "trail"
-            | "treadmill"
-            | "street"
-            | "indoor"
-            | "virtual";
           templateId?: string;
           type:
             | "easy"
@@ -1490,7 +1451,6 @@ export declare const components: {
             | "strength"
             | "rest"
             | "other";
-          typeNotes?: string;
         } | null
       >;
       getWorkoutProviderRef: FunctionReference<
@@ -1586,13 +1546,6 @@ export declare const components: {
           };
           sport: "run";
           status: "planned" | "completed" | "missed" | "skipped";
-          subSport?:
-            | "track"
-            | "trail"
-            | "treadmill"
-            | "street"
-            | "indoor"
-            | "virtual";
           templateId?: string;
           type:
             | "easy"
@@ -1613,7 +1566,6 @@ export declare const components: {
             | "strength"
             | "rest"
             | "other";
-          typeNotes?: string;
         }>
       >;
       getWorkoutsByBlock: FunctionReference<
@@ -1664,13 +1616,6 @@ export declare const components: {
           };
           sport: "run";
           status: "planned" | "completed" | "missed" | "skipped";
-          subSport?:
-            | "track"
-            | "trail"
-            | "treadmill"
-            | "street"
-            | "indoor"
-            | "virtual";
           templateId?: string;
           type:
             | "easy"
@@ -1691,7 +1636,6 @@ export declare const components: {
             | "strength"
             | "rest"
             | "other";
-          typeNotes?: string;
         }>
       >;
       getWorkoutsByPlan: FunctionReference<
@@ -1742,13 +1686,6 @@ export declare const components: {
           };
           sport: "run";
           status: "planned" | "completed" | "missed" | "skipped";
-          subSport?:
-            | "track"
-            | "trail"
-            | "treadmill"
-            | "street"
-            | "indoor"
-            | "virtual";
           templateId?: string;
           type:
             | "easy"
@@ -1769,7 +1706,6 @@ export declare const components: {
             | "strength"
             | "rest"
             | "other";
-          typeNotes?: string;
         }>
       >;
       getWorkoutTemplate: FunctionReference<
@@ -1795,13 +1731,6 @@ export declare const components: {
           description?: string;
           name: string;
           sport: "run";
-          subSport?:
-            | "track"
-            | "trail"
-            | "treadmill"
-            | "street"
-            | "indoor"
-            | "virtual";
           type:
             | "easy"
             | "long"
@@ -1821,7 +1750,6 @@ export declare const components: {
             | "strength"
             | "rest"
             | "other";
-          typeNotes?: string;
         } | null
       >;
       getWorkoutTemplatesByAthlete: FunctionReference<
@@ -1847,13 +1775,6 @@ export declare const components: {
           description?: string;
           name: string;
           sport: "run";
-          subSport?:
-            | "track"
-            | "trail"
-            | "treadmill"
-            | "street"
-            | "indoor"
-            | "virtual";
           type:
             | "easy"
             | "long"
@@ -1873,7 +1794,6 @@ export declare const components: {
             | "strength"
             | "rest"
             | "other";
-          typeNotes?: string;
         }>
       >;
       getZone: FunctionReference<
@@ -2120,13 +2040,6 @@ export declare const components: {
           };
           sport?: "run";
           status?: "planned" | "completed" | "missed" | "skipped";
-          subSport?:
-            | "track"
-            | "trail"
-            | "treadmill"
-            | "street"
-            | "indoor"
-            | "virtual";
           templateId?: string;
           type?:
             | "easy"
@@ -2147,7 +2060,6 @@ export declare const components: {
             | "strength"
             | "rest"
             | "other";
-          typeNotes?: string;
           workoutId: string;
         },
         null
@@ -2172,13 +2084,6 @@ export declare const components: {
           description?: string;
           name?: string;
           sport?: "run";
-          subSport?:
-            | "track"
-            | "trail"
-            | "treadmill"
-            | "street"
-            | "indoor"
-            | "virtual";
           templateId: string;
           type?:
             | "easy"
@@ -2199,7 +2104,6 @@ export declare const components: {
             | "strength"
             | "rest"
             | "other";
-          typeNotes?: string;
         },
         null
       >;

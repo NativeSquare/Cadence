@@ -11,7 +11,6 @@ import {
   type Workout as WorkoutStructure,
 } from "@nativesquare/agoge";
 import type {
-  SubSport,
   Workout,
   WorkoutDoc,
   WorkoutTemplate,
@@ -38,8 +37,6 @@ import {
 import { z } from "zod";
 import {
   EMPTY_STRUCTURE,
-  SUB_SPORT_LABELS,
-  SUB_SPORTS,
   WORKOUT_TYPE_COLORS,
   WORKOUT_TYPE_LABELS,
   WORKOUT_TYPES,
@@ -76,8 +73,6 @@ const formSchema = z.object({
   name: z.string().trim().min(1, "Name is required"),
   description: z.string().optional(),
   type: z.custom<WorkoutType>(),
-  typeNotes: z.string().optional(),
-  subSport: z.custom<SubSport>().optional(),
   planned: workoutFaceSchema,
   actual: workoutFaceSchema,
 });
@@ -176,8 +171,6 @@ export function WorkoutForm({
       name: initial?.name ?? "",
       description: initial?.description ?? "",
       type: initial?.type ?? "easy",
-      typeNotes: initial?.typeNotes ?? "",
-      subSport: initial?.subSport,
       planned: initialPlannedFace,
       actual: initialActualFace,
     },
@@ -248,8 +241,6 @@ export function WorkoutForm({
       name: template.name,
       description: template.description ?? "",
       type: template.type,
-      typeNotes: template.typeNotes ?? "",
-      subSport: template.subSport,
       [targetFaceKey]: {
         ...current[targetFaceKey],
         structure: pickedStructure,
@@ -493,49 +484,6 @@ export function WorkoutForm({
               )}
             />
 
-            <Controller
-              control={form.control}
-              name="typeNotes"
-              render={({ field, fieldState }) => (
-                <FormField
-                  label="Type notes (optional)"
-                  error={fieldState.error?.message}
-                >
-                  <TextInput
-                    className="h-12 rounded-xl border px-4 font-coach-medium text-[15px]"
-                    style={inputStyle}
-                    placeholder="Any extra context on the type"
-                    placeholderTextColor={LIGHT_THEME.wMute}
-                    value={field.value ?? ""}
-                    onChangeText={field.onChange}
-                    onBlur={field.onBlur}
-                    selectionColor={COLORS.lime}
-                    cursorColor={COLORS.lime}
-                  />
-                </FormField>
-              )}
-            />
-
-            <Controller
-              control={form.control}
-              name="subSport"
-              render={({ field, fieldState }) => (
-                <FormField
-                  label="Sub-sport (optional)"
-                  error={fieldState.error?.message}
-                >
-                  <PillSelect
-                    options={SUB_SPORTS}
-                    labels={SUB_SPORT_LABELS}
-                    value={field.value ?? ""}
-                    onChange={(v) =>
-                      field.onChange(field.value === v ? undefined : v)
-                    }
-                    allowClear
-                  />
-                </FormField>
-              )}
-            />
           </FormSection>
 
           {isDoneMode && (

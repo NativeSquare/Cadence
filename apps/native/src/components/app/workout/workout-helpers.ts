@@ -5,7 +5,7 @@ import type {
   Target,
   Workout as WorkoutStructure,
 } from "@nativesquare/agoge";
-import { SubSport, WorkoutType } from "@nativesquare/agoge/schema";
+import { WorkoutType } from "@nativesquare/agoge/schema";
 
 export const EMPTY_STRUCTURE: WorkoutStructure = {
   schema_version: 1,
@@ -46,25 +46,6 @@ export const WORKOUT_TYPE_COLORS: Record<WorkoutTypeOption, string> = {
   easy: SESSION_TYPE_COLORS.easy,
   tempo: SESSION_TYPE_COLORS.specific,
   long: SESSION_TYPE_COLORS.long,
-};
-
-export const SUB_SPORTS = [
-  "track",
-  "trail",
-  "treadmill",
-  "street",
-  "indoor",
-  "virtual",
-] as const satisfies readonly SubSport[];
-export type SubSportOption = (typeof SUB_SPORTS)[number];
-
-export const SUB_SPORT_LABELS: Record<SubSportOption, string> = {
-  track: "Track",
-  trail: "Trail",
-  treadmill: "Treadmill",
-  street: "Street",
-  indoor: "Indoor",
-  virtual: "Virtual",
 };
 
 // ── Step intent ─────────────────────────────────────────────────────────────

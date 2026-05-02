@@ -474,7 +474,6 @@ export const applyProposal = mutation({
           description: op.description,
           type: op.type,
           sport: op.sport,
-          subSport: op.subSport,
           status: "planned",
           planned: { ...(op.planned ?? {}), date: op.date },
         });
@@ -502,7 +501,6 @@ export const applyProposal = mutation({
           name: op.name,
           description: op.description,
           type: op.type,
-          subSport: op.subSport,
           ...(nextPlanned !== undefined ? { planned: nextPlanned } : {}),
         });
         workoutsUpdated++;

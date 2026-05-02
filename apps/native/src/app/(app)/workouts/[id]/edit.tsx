@@ -2,7 +2,7 @@ import { WorkoutForm } from "@/components/app/workout/workout-form";
 import { Text } from "@/components/ui/text";
 import { LIGHT_THEME } from "@/lib/design-tokens";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
-import type { Workout } from "@nativesquare/agoge/schema";
+import type { WorkoutDoc } from "@nativesquare/agoge/schema";
 import { api } from "@packages/backend/convex/_generated/api";
 import { useMutation, useQuery } from "convex/react";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -70,7 +70,7 @@ function EditWorkoutContent() {
       title="Edit workout"
       mode="edit"
       submitLabel="Save changes"
-      initial={workout as unknown as Workout}
+      initial={workout as unknown as WorkoutDoc}
       onSubmit={async (values) => {
         const isDone = values.workoutMode === "done";
         const toFace = (face: typeof values.planned) => ({
@@ -82,8 +82,6 @@ function EditWorkoutContent() {
           name: values.name,
           description: values.description?.trim() || undefined,
           type: values.type,
-          typeNotes: values.typeNotes?.trim() || undefined,
-          subSport: values.subSport,
           status: isDone ? "completed" : "planned",
           planned:
             values.planned.structure.blocks.length > 0
