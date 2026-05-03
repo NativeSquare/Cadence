@@ -30,14 +30,14 @@ import { TodayCard } from "./TodayCard";
 import { RaceCountdown } from "./RaceCountdown";
 import { WeekInsights } from "./WeekInsights";
 import { LogRunSection } from "./QuickActions";
-import { ExportToProviderSheet, type ExportProvider } from "./ExportToProviderSheet";
+import { ExportToProviderSheet } from "./ExportToProviderSheet";
 import { LIGHT_THEME } from "@/lib/design-tokens";
 import {
   buildWorkoutsByDate,
   buildRaceGoal,
   computeWeekInsights,
 } from "./utils";
-import type { WorkoutData, SyncStatus } from "./types";
+import type { WorkoutData } from "./types";
 
 const REST_FALLBACK: WorkoutData = {
   type: "Rest",
@@ -130,20 +130,7 @@ export function PlanScreen() {
 
   const exportSheetRef = useRef<BottomSheetModal>(null);
 
-  const [exportedWorkouts, setExportedWorkouts] = useState<
-    Record<string, { syncStatus: SyncStatus; syncSource: string }>
-  >({});
-
-  const workoutExport = baseSelectedWorkout.workoutId
-    ? exportedWorkouts[baseSelectedWorkout.workoutId]
-    : undefined;
-
-  const selectedWorkout_: WorkoutData = {
-    ...baseSelectedWorkout,
-    ...(workoutExport
-      ? { syncStatus: workoutExport.syncStatus, syncSource: workoutExport.syncSource }
-      : {}),
-  };
+  const selectedWorkout_: WorkoutData = baseSelectedWorkout;
 
   const handleOpenWorkoutDetail = useCallback(() => {
     const sid = baseSelectedWorkout.workoutId;
@@ -165,15 +152,6 @@ export function PlanScreen() {
   const handleOpenExportSheet = useCallback(() => {
     exportSheetRef.current?.present();
   }, []);
-
-  const handleExportComplete = useCallback((provider: ExportProvider) => {
-    const sid = baseSelectedWorkout.workoutId;
-    if (!sid) return;
-    setExportedWorkouts((prev) => ({
-      ...prev,
-      [sid]: { syncStatus: "exported" as SyncStatus, syncSource: provider },
-    }));
-  }, [baseSelectedWorkout.workoutId]);
 
   const handleScroll = useAnimatedScrollHandler({
     onScroll: (event) => {
@@ -378,7 +356,6 @@ export function PlanScreen() {
         sheetRef={exportSheetRef}
         workoutType={selectedWorkout_.type}
         workoutId={selectedWorkout_.workoutId}
-        onExportComplete={handleExportComplete}
       />
     </View>
   );

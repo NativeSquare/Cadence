@@ -52,6 +52,8 @@ export interface AgogeWorkout {
   adherence?: {
     score: number;
   };
+  /** Providers this workout has been exported to. Empty when nothing was sent. */
+  providerRefs?: Array<{ provider: string; syncedAt: number }>;
 }
 
 function workoutDate(w: AgogeWorkout): string | undefined {
@@ -117,6 +119,8 @@ export function workoutToWorkoutData(
   const durationSeconds =
     face?.durationSeconds ?? summary.totalDurationSeconds ?? undefined;
 
+  const exportedRef = workout.providerRefs?.[0];
+
   return {
     workoutId: workout._id,
     type: workout.name,
@@ -137,6 +141,8 @@ export function workoutToWorkoutData(
         ? formatDistance(workout.actual.distanceMeters)
         : undefined,
     adherenceScore: workout.adherence?.score,
+    syncStatus: exportedRef ? "exported" : undefined,
+    syncSource: exportedRef?.provider,
   };
 }
 

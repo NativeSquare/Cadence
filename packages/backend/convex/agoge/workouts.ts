@@ -41,7 +41,22 @@ export const listWorkouts = query({
     const byId = new Map<string, (typeof planned)[number]>();
     for (const w of planned) byId.set(w._id, w);
     for (const w of completed) byId.set(w._id, w);
-    return Array.from(byId.values());
+    const merged = Array.from(byId.values());
+    const refsPerWorkout = await Promise.all(
+      merged.map((w) =>
+        ctx.runQuery(
+          components.agoge.public.getWorkoutProviderRefsByWorkout,
+          { workoutId: w._id },
+        ),
+      ),
+    );
+    return merged.map((w, i) => ({
+      ...w,
+      providerRefs: refsPerWorkout[i].map((r) => ({
+        provider: r.provider,
+        syncedAt: r.syncedAt,
+      })),
+    }));
   },
 });
 
@@ -51,7 +66,7 @@ export const getWorkout = query({
     const result = await loadOwnedWorkout(ctx, workoutId);
     if (!result) return null;
     const { workout } = result;
-    const [block, plan] = await Promise.all([
+    const [block, plan, refs] = await Promise.all([
       workout.blockId
         ? ctx.runQuery(components.agoge.public.getBlock, {
             blockId: workout.blockId,
@@ -62,8 +77,21 @@ export const getWorkout = query({
             planId: workout.planId,
           })
         : null,
+      ctx.runQuery(components.agoge.public.getWorkoutProviderRefsByWorkout, {
+        workoutId: workout._id,
+      }),
     ]);
-    return { workout, block, plan };
+    return {
+      workout: {
+        ...workout,
+        providerRefs: refs.map((r) => ({
+          provider: r.provider,
+          syncedAt: r.syncedAt,
+        })),
+      },
+      block,
+      plan,
+    };
   },
 });
 

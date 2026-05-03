@@ -35,7 +35,6 @@ export interface ExportToProviderSheetProps {
   sheetRef: React.RefObject<GorhomBottomSheetModal | null>;
   workoutType: string;
   workoutId?: string;
-  onExportComplete: (provider: ExportProvider) => void;
 }
 
 type ExportStep = "select" | "exporting" | "success" | "error";
@@ -378,7 +377,6 @@ export function ExportToProviderSheet({
   sheetRef,
   workoutType,
   workoutId,
-  onExportComplete,
 }: ExportToProviderSheetProps) {
   const [step, setStep] = useState<ExportStep>("select");
   const [selectedProvider, setSelectedProvider] =
@@ -417,7 +415,6 @@ export function ExportToProviderSheet({
         try {
           await exportToGarmin({ workoutId: workoutId });
           setStep("success");
-          onExportComplete(provider);
 
           dismissTimerRef.current = setTimeout(() => {
             sheetRef.current?.dismiss();
@@ -434,7 +431,7 @@ export function ExportToProviderSheet({
         setStep("error");
       }
     },
-    [exportToGarmin, workoutId, onExportComplete, sheetRef, resetState],
+    [exportToGarmin, workoutId, sheetRef, resetState],
   );
 
   return (
