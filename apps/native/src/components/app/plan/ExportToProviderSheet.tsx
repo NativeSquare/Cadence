@@ -387,9 +387,7 @@ export function ExportToProviderSheet({
   const garminConnected =
     connections?.some((c) => c.provider === "GARMIN" && c.active) ?? false;
 
-  const exportToGarmin = useAction(
-    api.soma.garmin.exportWorkout,
-  );
+  const exportToGarmin = useAction(api.agoge.sync.upsertWorkoutToGarmin);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 

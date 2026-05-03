@@ -1,9 +1,6 @@
 /**
- * Garmin - OAuth, sync, disconnect, and export-to-watch via Soma.
- *
- * Export-to-watch is currently stubbed. The full path (agoge workout →
- * step-tree → Soma planned workout → Garmin push) requires the adapter
- * rewrite tracked in the plan generator work.
+ * Garmin - OAuth, backfill, and disconnect via Soma. Workout-level operations
+ * (export to watch, sync, etc.) live in agoge — see agoge/sync.ts.
  */
 
 import { ConvexError, v } from "convex/values";
@@ -73,19 +70,3 @@ export const backfillAll = internalAction({
   },
 });
 
-// ─── Export to Watch ──────────────────────────────────────────────────────────────────
-
-export const exportWorkout = action({
-  args: { workoutId: v.string() },
-  returns: v.object({
-    garminWorkoutId: v.number(),
-    garminScheduleId: v.union(v.number(), v.null()),
-  }),
-  handler: async (_ctx, _args) => {
-    throw new ConvexError({
-      code: "NOT_IMPLEMENTED",
-      message:
-        "Export to Garmin watch is pending the agoge step-tree → Soma adapter rewrite.",
-    });
-  },
-});
