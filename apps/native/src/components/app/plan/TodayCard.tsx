@@ -229,7 +229,7 @@ function NotSyncedIcon() {
 
 /**
  * Full-width sync banner — sits at the top of the card.
- * Shows "Not synced with watch" when no export, or the sync status after export.
+ * Shows "Not sent to a provider" when nothing has been sent, or the sync status after.
  */
 function SyncBanner({ workout }: { workout: WorkoutData }) {
   const { syncStatus, syncSource, syncedData } = workout;
@@ -248,7 +248,7 @@ function SyncBanner({ workout }: { workout: WorkoutData }) {
           className="text-[12px] font-coach-medium"
           style={{ color: "rgba(255,255,255,0.35)" }}
         >
-          Not synced with watch
+          Not sent to a provider
         </Text>
       </View>
     );

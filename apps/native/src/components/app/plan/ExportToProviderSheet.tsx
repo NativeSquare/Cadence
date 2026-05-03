@@ -1,11 +1,14 @@
 /**
- * ExportToWatchSheet - Bottom sheet for exporting a workout to a watch provider.
+ * ExportToProviderSheet - Bottom sheet for sending a workout to a third-party provider.
+ *
+ * The provider (e.g. Garmin Connect) receives the workout. Whether/when it
+ * reaches the user's watch is owned by the provider's own sync to the device.
  *
  * 4-step flow:
- * 1. Provider selection (Garmin, Coros)
- * 2. Exporting animation (real API call to Garmin)
+ * 1. Provider selection (Garmin Connect, Coros)
+ * 2. Sending animation (real API call to provider)
  * 3. Success confirmation (checkmark + auto-dismiss)
- * 4. Error state (if export fails)
+ * 4. Error state (if send fails)
  */
 
 import React, { useState, useCallback, useEffect, useRef } from "react";
@@ -26,16 +29,21 @@ import { BottomSheetModal } from "@/components/custom/bottom-sheet";
 import { Text } from "@/components/ui/text";
 import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
 
-export type WatchProvider = "garmin" | "coros";
+export type ExportProvider = "garmin" | "coros";
 
-export interface ExportToWatchSheetProps {
+export interface ExportToProviderSheetProps {
   sheetRef: React.RefObject<GorhomBottomSheetModal | null>;
   workoutType: string;
   workoutId?: string;
-  onExportComplete: (provider: WatchProvider) => void;
+  onExportComplete: (provider: ExportProvider) => void;
 }
 
 type ExportStep = "select" | "exporting" | "success" | "error";
+
+const PROVIDER_NAMES: Record<ExportProvider, string> = {
+  garmin: "Garmin Connect",
+  coros: "Coros",
+};
 
 const SUCCESS_DISMISS_MS = 1400;
 
@@ -180,7 +188,7 @@ function ProviderCard({
           className="text-[13px] font-coach"
           style={{ color: LIGHT_THEME.wMute }}
         >
-          {subtitle ?? `Export workout to ${name}`}
+          {subtitle ?? `Send workout to ${name}`}
         </Text>
       </View>
       <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
@@ -201,7 +209,7 @@ function SelectStep({
   onSelectProvider,
 }: {
   garminConnected: boolean;
-  onSelectProvider: (p: WatchProvider) => void;
+  onSelectProvider: (p: ExportProvider) => void;
 }) {
   return (
     <View className="px-5 pb-2">
@@ -209,21 +217,21 @@ function SelectStep({
         className="text-[20px] font-coach-bold mb-1"
         style={{ color: LIGHT_THEME.wText, letterSpacing: -0.4 }}
       >
-        Export to Watch
+        Send Workout
       </Text>
       <Text
         className="text-[14px] font-coach mb-5"
         style={{ color: LIGHT_THEME.wMute }}
       >
-        Choose your watch to send the workout
+        Choose a provider to send your workout to
       </Text>
       <View className="gap-3">
         <ProviderCard
-          name="Garmin"
+          name="Garmin Connect"
           logo={<GarminLogo />}
           subtitle={
             garminConnected
-              ? "Export workout to Garmin"
+              ? "Send workout to Garmin Connect"
               : "Connect Garmin in Settings first"
           }
           disabled={!garminConnected}
@@ -245,10 +253,10 @@ function ExportingStep({
   provider,
   workoutType,
 }: {
-  provider: WatchProvider;
+  provider: ExportProvider;
   workoutType: string;
 }) {
-  const providerName = provider === "garmin" ? "Garmin" : "Coros";
+  const providerName = PROVIDER_NAMES[provider];
   const opacity = useSharedValue(0.4);
   useEffect(() => {
     opacity.value = withRepeat(
@@ -267,7 +275,7 @@ function ExportingStep({
           className="text-[16px] font-coach-semibold mt-5"
           style={{ color: LIGHT_THEME.wText }}
         >
-          Exporting to {providerName}…
+          Sending to {providerName}…
         </Text>
       </Animated.View>
       <Text
@@ -280,8 +288,8 @@ function ExportingStep({
   );
 }
 
-function SuccessStep({ provider }: { provider: WatchProvider }) {
-  const providerName = provider === "garmin" ? "Garmin" : "Coros";
+function SuccessStep({ provider }: { provider: ExportProvider }) {
+  const providerName = PROVIDER_NAMES[provider];
 
   return (
     <View className="px-5 pb-2 items-center py-6">
@@ -290,13 +298,13 @@ function SuccessStep({ provider }: { provider: WatchProvider }) {
         className="text-[16px] font-coach-semibold mt-5"
         style={{ color: LIGHT_THEME.wText }}
       >
-        Exported to {providerName}
+        Sent to {providerName}
       </Text>
       <Text
-        className="text-[13px] font-coach mt-2"
+        className="text-[13px] font-coach mt-2 text-center"
         style={{ color: LIGHT_THEME.wMute }}
       >
-        Workout is ready on your watch
+        Sync your watch with {providerName} to load it on-device
       </Text>
     </View>
   );
@@ -340,7 +348,7 @@ function ErrorStep({
         className="text-[16px] font-coach-semibold mt-5"
         style={{ color: LIGHT_THEME.wText }}
       >
-        Export failed
+        Send failed
       </Text>
       <Text
         className="text-[13px] font-coach mt-2 text-center"
@@ -366,15 +374,15 @@ function ErrorStep({
 
 // ─── Main component ──────────────────────────────────────────────────────────
 
-export function ExportToWatchSheet({
+export function ExportToProviderSheet({
   sheetRef,
   workoutType,
   workoutId,
   onExportComplete,
-}: ExportToWatchSheetProps) {
+}: ExportToProviderSheetProps) {
   const [step, setStep] = useState<ExportStep>("select");
   const [selectedProvider, setSelectedProvider] =
-    useState<WatchProvider | null>(null);
+    useState<ExportProvider | null>(null);
   const [errorMessage, setErrorMessage] = useState("");
 
   const connections = useQuery(api.soma.index.listConnections);
@@ -400,7 +408,7 @@ export function ExportToWatchSheet({
   }, []);
 
   const handleSelectProvider = useCallback(
-    async (provider: WatchProvider) => {
+    async (provider: ExportProvider) => {
       setSelectedProvider(provider);
       setStep("exporting");
       setErrorMessage("");
@@ -422,7 +430,7 @@ export function ExportToWatchSheet({
           setStep("error");
         }
       } else {
-        setErrorMessage("No workout available to export");
+        setErrorMessage("No workout available to send");
         setStep("error");
       }
     },

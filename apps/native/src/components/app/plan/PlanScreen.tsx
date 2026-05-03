@@ -30,7 +30,7 @@ import { TodayCard } from "./TodayCard";
 import { RaceCountdown } from "./RaceCountdown";
 import { WeekInsights } from "./WeekInsights";
 import { LogRunSection } from "./QuickActions";
-import { ExportToWatchSheet, type WatchProvider } from "./ExportToWatchSheet";
+import { ExportToProviderSheet, type ExportProvider } from "./ExportToProviderSheet";
 import { LIGHT_THEME } from "@/lib/design-tokens";
 import {
   buildWorkoutsByDate,
@@ -166,7 +166,7 @@ export function PlanScreen() {
     exportSheetRef.current?.present();
   }, []);
 
-  const handleExportComplete = useCallback((provider: WatchProvider) => {
+  const handleExportComplete = useCallback((provider: ExportProvider) => {
     const sid = baseSelectedWorkout.workoutId;
     if (!sid) return;
     setExportedWorkouts((prev) => ({
@@ -373,8 +373,8 @@ export function PlanScreen() {
         </View>
       </Animated.View>
 
-      {/* Export to Watch Bottom Sheet */}
-      <ExportToWatchSheet
+      {/* Send to Provider Bottom Sheet */}
+      <ExportToProviderSheet
         sheetRef={exportSheetRef}
         workoutType={selectedWorkout_.type}
         workoutId={selectedWorkout_.workoutId}

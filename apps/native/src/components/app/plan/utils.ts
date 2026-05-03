@@ -312,15 +312,24 @@ export function getSyncStatusColor(status: SyncStatus): string {
   }
 }
 
+const PROVIDER_DISPLAY_NAMES: Record<string, string> = {
+  garmin: "Garmin Connect",
+  coros: "Coros",
+};
+
+function providerLabel(syncSource?: string): string {
+  if (!syncSource) return "a provider";
+  return PROVIDER_DISPLAY_NAMES[syncSource] ?? capitalize(syncSource);
+}
+
 export function getSyncStatusLabel(
   status: SyncStatus,
   syncSource?: string,
   syncedData?: SyncedData,
 ): string {
-  const source = syncSource ? capitalize(syncSource) : "Watch";
   switch (status) {
     case "exported":
-      return `Exported to ${source}`;
+      return `Sent to ${providerLabel(syncSource)}`;
     case "syncing":
       return "Syncing…";
     case "synced":
