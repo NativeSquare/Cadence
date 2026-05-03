@@ -143,11 +143,14 @@ export function PlanScreen() {
   const todayIso = toIsoDate(today);
   const canAddOnSelectedDate = selectedDateIso >= todayIso;
   const handleAddOnSelectedDate = useCallback(() => {
+    const isFuture = selectedDateIso > todayIso;
     router.push({
-      pathname: "/(app)/workouts/new",
+      pathname: isFuture
+        ? "/(app)/workouts/schedule"
+        : "/(app)/workouts/log",
       params: { date: selectedDateIso },
     });
-  }, [router, selectedDateIso]);
+  }, [router, selectedDateIso, todayIso]);
 
   const handleOpenExportSheet = useCallback(() => {
     exportSheetRef.current?.present();
@@ -303,7 +306,7 @@ export function PlanScreen() {
             <LogRunSection
               onSelectType={(category) => {
                 router.push({
-                  pathname: "/(app)/workouts/new",
+                  pathname: "/(app)/workouts/log",
                   params: {
                     type: category,
                     date: toIsoDate(selectedDate),

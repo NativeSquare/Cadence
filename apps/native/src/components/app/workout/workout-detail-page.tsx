@@ -72,6 +72,14 @@ function formatDate(iso: string): string {
   });
 }
 
+function isFutureDay(iso: string): boolean {
+  const target = parseIsoDate(iso);
+  target.setHours(0, 0, 0, 0);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return target.getTime() > today.getTime();
+}
+
 function formatRelativeDate(iso: string): string | null {
   const target = parseIsoDate(iso);
   const today = new Date();
@@ -214,6 +222,19 @@ export function WorkoutDetailPage({ workoutId }: WorkoutDetailPageProps) {
       params: { id: workout._id },
     });
   };
+
+  const handleMarkAsDone = () => {
+    selectionFeedback();
+    router.push({
+      pathname: "/(app)/workouts/[id]/mark-done",
+      params: { id: workout._id },
+    });
+  };
+
+  const canMarkAsDone =
+    workout.status === "planned" &&
+    workout.planned != null &&
+    !isFutureDay(workout.planned.date);
 
   const handleDelete = async () => {
     setIsDeleting(true);
@@ -375,14 +396,36 @@ export function WorkoutDetailPage({ workoutId }: WorkoutDetailPageProps) {
       </ScrollView>
 
       <View className="mb-safe w-full max-w-md gap-2 self-center px-4 pb-4">
+        {canMarkAsDone && (
+          <Pressable
+            onPress={handleMarkAsDone}
+            className="items-center rounded-2xl py-3.5 active:opacity-90"
+            style={{ backgroundColor: LIGHT_THEME.wText }}
+          >
+            <Text
+              className="font-coach-bold text-sm"
+              style={{ color: "#FFFFFF" }}
+            >
+              Mark as done
+            </Text>
+          </Pressable>
+        )}
         <Pressable
           onPress={handleEdit}
           className="items-center rounded-2xl py-3.5 active:opacity-90"
-          style={{ backgroundColor: LIGHT_THEME.wText }}
+          style={
+            canMarkAsDone
+              ? {
+                  backgroundColor: LIGHT_THEME.w1,
+                  borderColor: LIGHT_THEME.wBrd,
+                  borderWidth: 1,
+                }
+              : { backgroundColor: LIGHT_THEME.wText }
+          }
         >
           <Text
             className="font-coach-bold text-sm"
-            style={{ color: "#FFFFFF" }}
+            style={{ color: canMarkAsDone ? LIGHT_THEME.wText : "#FFFFFF" }}
           >
             Edit workout
           </Text>

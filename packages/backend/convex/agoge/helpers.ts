@@ -59,6 +59,11 @@ export function assertActualFace(status: WorkoutStatus, actual: unknown) {
   if (status === "completed" && !actual) {
     throw new Error("A 'completed' workout must include an 'actual' face");
   }
+  if (status !== "completed" && actual) {
+    throw new Error(
+      `A workout with status '${status}' cannot include an 'actual' face — only 'completed' workouts may have one`,
+    );
+  }
 }
 
 export function assertUtcDate(date: string, label: string) {

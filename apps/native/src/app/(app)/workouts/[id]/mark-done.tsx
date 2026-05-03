@@ -1,4 +1,4 @@
-import { ModifyWorkoutForm } from "@/components/app/workout/modify-workout-form";
+import { MarkWorkoutAsDoneForm } from "@/components/app/workout/mark-workout-as-done-form";
 import { Text } from "@/components/ui/text";
 import { LIGHT_THEME } from "@/lib/design-tokens";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
@@ -6,17 +6,18 @@ import type { WorkoutDoc } from "@nativesquare/agoge/schema";
 import { api } from "@packages/backend/convex/_generated/api";
 import { useMutation, useQuery } from "convex/react";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import React from "react";
 import { ActivityIndicator, Pressable, View } from "react-native";
 
-export default function EditWorkoutScreen() {
+export default function MarkWorkoutAsDoneScreen() {
   return (
     <BottomSheetModalProvider>
-      <EditWorkoutContent />
+      <MarkWorkoutAsDoneContent />
     </BottomSheetModalProvider>
   );
 }
 
-function EditWorkoutContent() {
+function MarkWorkoutAsDoneContent() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const result = useQuery(
@@ -24,7 +25,6 @@ function EditWorkoutContent() {
     id ? { workoutId: id } : "skip",
   );
   const updateWorkout = useMutation(api.agoge.workouts.updateWorkout);
-  const deleteWorkout = useMutation(api.agoge.workouts.deleteWorkout);
 
   if (result === undefined) {
     return (
@@ -37,7 +37,7 @@ function EditWorkoutContent() {
     );
   }
 
-  if (result === null) {
+  if (result === null || !result.workout.planned) {
     return (
       <View
         className="flex-1 items-center justify-center px-6"
@@ -47,7 +47,9 @@ function EditWorkoutContent() {
           className="text-center font-coach text-sm"
           style={{ color: LIGHT_THEME.wMute }}
         >
-          Workout not found
+          {result === null
+            ? "Workout not found"
+            : "This workout has no planned version to complete."}
         </Text>
         <Pressable
           onPress={() => router.back()}
@@ -68,20 +70,14 @@ function EditWorkoutContent() {
   const workout = result.workout;
 
   return (
-    <ModifyWorkoutForm
+    <MarkWorkoutAsDoneForm
       workout={workout as unknown as WorkoutDoc}
       onSubmit={async (values) => {
         await updateWorkout({
           workoutId: workout._id,
-          name: values.name,
-          description: values.description?.trim() || undefined,
-          status: values.status,
-          planned: values.planned,
+          status: "completed",
           actual: values.actual,
         });
-      }}
-      onDelete={async () => {
-        await deleteWorkout({ workoutId: workout._id });
       }}
     />
   );
