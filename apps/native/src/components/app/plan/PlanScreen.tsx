@@ -272,7 +272,6 @@ export function PlanScreen() {
               coachMessage={coachMessage}
               selectedDate={selectedDate}
               isToday={isSelectedToday}
-              onStartPress={handleOpenWorkoutDetail}
               onExportPress={handleOpenExportSheet}
               onCardPress={handleOpenWorkoutDetail}
               onAddPress={canAddOnSelectedDate ? handleAddOnSelectedDate : undefined}

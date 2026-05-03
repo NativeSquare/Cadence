@@ -7,8 +7,6 @@
  */
 
 import {
-  COLORS,
-  LIGHT_THEME,
   WORKOUT_CATEGORY_COLORS,
   getWorkoutCategory,
 } from "@/lib/design-tokens";
@@ -18,8 +16,6 @@ import type {
   RaceGoalData,
   WorkoutData,
   WorkoutIntensity,
-  SyncStatus,
-  SyncedData,
 } from "./types";
 
 /**
@@ -124,6 +120,7 @@ export function workoutToWorkoutData(
   return {
     workoutId: workout._id,
     type: workout.name,
+    kind: workout.type,
     km: formatDistance(distanceMeters),
     dur: formatDurationShort(durationSeconds),
     done: workout.status === "completed",
@@ -131,7 +128,7 @@ export function workoutToWorkoutData(
     desc: workout.description ?? "",
     zone: "-",
     today: isToday,
-    intent: summary.intent ?? undefined,
+    structure: summary.structure,
     actualDur:
       workout.actual?.durationSeconds != null
         ? formatDurationShort(workout.actual.durationSeconds)
@@ -299,52 +296,3 @@ export function formatShortDate(date: Date = new Date()): string {
   return `${days[date.getDay()]}, ${months[date.getMonth()]} ${date.getDate()}`;
 }
 
-function capitalize(s: string): string {
-  return s.charAt(0).toUpperCase() + s.slice(1).replace(/_/g, " ");
-}
-
-export function getSyncStatusColor(status: SyncStatus): string {
-  switch (status) {
-    case "exported":
-      return LIGHT_THEME.wText;
-    case "syncing":
-      return COLORS.ora;
-    case "synced":
-      return COLORS.lime;
-    case "failed":
-      return COLORS.red;
-    default:
-      return LIGHT_THEME.wMute;
-  }
-}
-
-const PROVIDER_DISPLAY_NAMES: Record<string, string> = {
-  garmin: "Garmin Connect",
-  coros: "Coros",
-};
-
-function providerLabel(syncSource?: string): string {
-  if (!syncSource) return "a provider";
-  return PROVIDER_DISPLAY_NAMES[syncSource] ?? capitalize(syncSource);
-}
-
-export function getSyncStatusLabel(
-  status: SyncStatus,
-  syncSource?: string,
-  syncedData?: SyncedData,
-): string {
-  switch (status) {
-    case "exported":
-      return `Sent to ${providerLabel(syncSource)}`;
-    case "syncing":
-      return "Syncing…";
-    case "synced":
-      return syncedData
-        ? `Synced · ${syncedData.km} km recorded`
-        : "Synced";
-    case "failed":
-      return "Sync failed · Retry";
-    default:
-      return "";
-  }
-}

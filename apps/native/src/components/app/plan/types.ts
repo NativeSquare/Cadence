@@ -2,6 +2,9 @@
  * Type definitions for Plan Screen components
  */
 
+import type { Workout as WorkoutStructure } from "@nativesquare/agoge";
+import type { WorkoutType } from "@nativesquare/agoge/schema";
+
 /**
  * Workout intensity level determines the visual color
  */
@@ -28,8 +31,13 @@ export interface SyncedData {
 export interface WorkoutData {
   /** Agoge workout ID (present when loaded from DB) */
   workoutId?: string;
-  /** Workout type (e.g., "Tempo", "Easy Run", "Intervals", "Rest", "Long Run") */
+  /** User-facing workout name (e.g., "Tempo", "Easy Run", "Marathon Pace Run").
+   * Historically called `type` for legacy reasons — it is the *name*, not the
+   * taxonomic kind. Use `kind` for the agoge-defined taxonomy. */
   type: string;
+  /** Agoge workout taxonomy (e.g. "tempo", "intervals", "long", "easy"). Used
+   * for the small quiet type label on the home card. */
+  kind?: WorkoutType;
   /** Distance in kilometers (or "-" for rest days) */
   km: string;
   /** Duration (e.g., "48min", "1h35", or "-" for rest) */
@@ -44,10 +52,9 @@ export interface WorkoutData {
   zone: string;
   /** Whether this is today's workout */
   today?: boolean;
-  /** Structure-derived headline (e.g. "8 × 400 m @ Z4 HR"). Empty when the
-   * workout has no structured intervals or pace targets — caller falls back
-   * to volume (km/dur). */
-  intent?: string;
+  /** Parsed workout structure (warmup/work/recovery/cooldown blocks). Null
+   * when the workout has no structured plan — card falls back to volume. */
+  structure?: WorkoutStructure | null;
   /** Actual duration recorded after completion (seconds) */
   actualDur?: string;
   /** Actual distance recorded after completion (e.g. "8.2") */

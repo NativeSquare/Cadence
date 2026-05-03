@@ -1,17 +1,17 @@
 /**
- * TodayCard - Main card showing today's workout with coach message
+ * TodayCard - Main card showing today's (or selected day's) workout.
  *
- * Layout order: Sync banner → Workout info → Coach quote → CTA
- * When a sync status is active, the entire card is visually wrapped:
- * - Card border color matches the sync state
- * - Full-width banner at top with icon + label
+ * Two internal layouts:
+ * - PlannedView   — pre-workout. Compact structure preview + coach + CTA.
+ * - CompletedView — post-workout. Big metrics + adherence; structure deferred
+ *                   to the detail page.
  *
- * Features:
- * - Sync banner wraps the card (top banner + colored border)
- * - Workout details with vertical accent bar
- * - Coach quote section with lime background
- * - "Start Workout" CTA button
- * - Pulsing dot during streaming animation
+ * Sync state is a small inline badge (top-right), shown only for active
+ * states (exported / syncing / synced / failed). The "not sent to a provider"
+ * default is no longer surfaced — that's the resting state and adds noise.
+ *
+ * Border color reflects workout status only (completed = lime, otherwise
+ * subtle). Sync state never repaints the border.
  */
 
 import { View, Pressable } from "react-native";
@@ -23,11 +23,18 @@ import Animated, {
   withTiming,
   Easing,
 } from "react-native-reanimated";
-import { useEffect } from "react";
+import { useEffect, type ReactNode } from "react";
 import Svg, { Path, Circle } from "react-native-svg";
+import type { Repeat, Step } from "@nativesquare/agoge";
 import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
+import {
+  INTENT_COLORS,
+  INTENT_LABELS,
+  formatDuration,
+  formatTarget,
+} from "@/components/app/workout/workout-helpers";
 import { type WorkoutData, type SyncStatus } from "./types";
-import { getWorkoutColor, getSyncStatusLabel, getSyncStatusColor, formatShortDate } from "./utils";
+import { formatShortDate } from "./utils";
 import { useStream } from "./use-stream";
 
 interface TodayCardProps {
@@ -35,14 +42,13 @@ interface TodayCardProps {
   coachMessage: string;
   selectedDate?: Date;
   isToday?: boolean;
-  onStartPress?: () => void;
   onExportPress?: () => void;
   onCardPress?: () => void;
   /** Pass to show a "+ Add a workout" button on rest days (today / future). */
   onAddPress?: () => void;
 }
 
-// ─── Shared animation components ────────────────────────────────────────────
+// ─── Animation primitives ───────────────────────────────────────────────────
 
 function CoachPulsingDot({ isStreaming, color = "#000000" }: { isStreaming: boolean; color?: string }) {
   const opacity = useSharedValue(0.25);
@@ -78,43 +84,7 @@ function BlinkingCursor() {
   );
 }
 
-function WatchIcon() {
-  return (
-    <Svg width={16} height={16} viewBox="0 0 24 24" fill="none">
-      <Path d="M9 2V6" stroke="#1A1A1A" strokeWidth={2} strokeLinecap="round" />
-      <Path d="M15 2V6" stroke="#1A1A1A" strokeWidth={2} strokeLinecap="round" />
-      <Path d="M9 18V22" stroke="#1A1A1A" strokeWidth={2} strokeLinecap="round" />
-      <Path d="M15 18V22" stroke="#1A1A1A" strokeWidth={2} strokeLinecap="round" />
-      <Circle cx={12} cy={12} r={7} stroke="#1A1A1A" strokeWidth={2} />
-      <Path d="M12 9V12L14 14" stroke="#1A1A1A" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-    </Svg>
-  );
-}
-
-function QuoteMark({ position }: { position: "open" | "close" }) {
-  const isOpen = position === "open";
-  return (
-    <Text
-      className="font-coach"
-      style={{
-        position: "absolute",
-        top: isOpen ? 8 : undefined,
-        bottom: isOpen ? undefined : 4,
-        left: isOpen ? 12 : undefined,
-        right: isOpen ? undefined : 12,
-        fontSize: 48, fontWeight: "800",
-        color: "rgba(0,0,0,0.08)", lineHeight: 48,
-      }}
-    >
-      {isOpen ? "\u201C" : "\u201D"}
-    </Text>
-  );
-}
-
-// ─── Sync banner components ─────────────────────────────────────────────────
-
-/** Spinning sync arrows for syncing state */
-function SpinningSyncIcon({ color, size = 16 }: { color: string; size?: number }) {
+function SpinningSyncIcon({ color, size = 12 }: { color: string; size?: number }) {
   const rotation = useSharedValue(0);
   useEffect(() => {
     rotation.value = withRepeat(
@@ -141,152 +111,310 @@ function SpinningSyncIcon({ color, size = 16 }: { color: string; size?: number }
   );
 }
 
-/** White icon for inside the colored circle */
-function SyncBannerIcon({ status }: { status: SyncStatus }) {
-  const w = "#FFFFFF";
-  switch (status) {
-    case "exported":
-      // Tick — export completed successfully
-      return (
-        <Svg width={12} height={12} viewBox="0 0 24 24" fill="none">
-          <Path d="M4 12.5L9.5 18L20 6" stroke={w} strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" />
-        </Svg>
-      );
-    case "synced":
-      // Double tick — data received and confirmed (dark on lime)
-      return (
-        <Svg width={14} height={12} viewBox="0 0 28 24" fill="none">
-          <Path d="M2 12.5L7.5 18L18 6" stroke="#1A1A1A" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
-          <Path d="M10 12.5L15.5 18L26 6" stroke="#1A1A1A" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
-        </Svg>
-      );
-    case "failed":
-      // Exclamation
-      return (
-        <Svg width={12} height={12} viewBox="0 0 24 24" fill="none">
-          <Path d="M12 6V14" stroke={w} strokeWidth={3} strokeLinecap="round" />
-          <Path d="M12 18V18.01" stroke={w} strokeWidth={3} strokeLinecap="round" />
-        </Svg>
-      );
-    default:
-      return null;
-  }
+// ─── SVG icons ──────────────────────────────────────────────────────────────
+
+function WatchIcon() {
+  return (
+    <Svg width={16} height={16} viewBox="0 0 24 24" fill="none">
+      <Path d="M9 2V6" stroke="#1A1A1A" strokeWidth={2} strokeLinecap="round" />
+      <Path d="M15 2V6" stroke="#1A1A1A" strokeWidth={2} strokeLinecap="round" />
+      <Path d="M9 18V22" stroke="#1A1A1A" strokeWidth={2} strokeLinecap="round" />
+      <Path d="M15 18V22" stroke="#1A1A1A" strokeWidth={2} strokeLinecap="round" />
+      <Circle cx={12} cy={12} r={7} stroke="#1A1A1A" strokeWidth={2} />
+      <Path d="M12 9V12L14 14" stroke="#1A1A1A" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
 }
 
-/** Banner background tints */
-const SYNC_BANNER_BG: Record<string, string> = {
-  exported: "rgba(255,255,255,0.06)",
-  syncing: "rgba(255,149,0,0.10)",
-  synced: "rgba(200,255,0,0.12)",
-  failed: "rgba(255,90,90,0.10)",
-};
-
-/** Icon for the "not synced" state — cloud with an off-slash */
-function NotSyncedIcon() {
+function ChevronRight() {
   return (
-    <Svg width={14} height={14} viewBox="0 0 24 24" fill="none">
+    <Svg width={16} height={16} viewBox="0 0 24 24" fill="none">
       <Path
-        d="M12 8V12L14 14"
-        stroke="rgba(255,255,255,0.35)"
+        d="M9 6L15 12L9 18"
+        stroke="rgba(255,255,255,0.3)"
         strokeWidth={2}
         strokeLinecap="round"
         strokeLinejoin="round"
-      />
-      <Circle
-        cx={12}
-        cy={12}
-        r={7}
-        stroke="rgba(255,255,255,0.35)"
-        strokeWidth={2}
-      />
-      <Path
-        d="M9 2V5"
-        stroke="rgba(255,255,255,0.35)"
-        strokeWidth={2}
-        strokeLinecap="round"
-      />
-      <Path
-        d="M15 2V5"
-        stroke="rgba(255,255,255,0.35)"
-        strokeWidth={2}
-        strokeLinecap="round"
-      />
-      <Path
-        d="M9 19V22"
-        stroke="rgba(255,255,255,0.35)"
-        strokeWidth={2}
-        strokeLinecap="round"
-      />
-      <Path
-        d="M15 19V22"
-        stroke="rgba(255,255,255,0.35)"
-        strokeWidth={2}
-        strokeLinecap="round"
       />
     </Svg>
   );
 }
 
-/**
- * Full-width sync banner — sits at the top of the card.
- * Shows "Not sent to a provider" when nothing has been sent, or the sync status after.
- */
-function SyncBanner({ workout }: { workout: WorkoutData }) {
-  const { syncStatus, syncSource, syncedData } = workout;
-  const isRest = workout.intensity === "rest";
+function CheckIcon({ size = 10, color }: { size?: number; color: string }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M4 12.5L9.5 18L20 6" stroke={color} strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
 
-  if (isRest) return null;
+function DoubleCheckIcon({ size = 12, color }: { size?: number; color: string }) {
+  return (
+    <Svg width={size + 2} height={size} viewBox="0 0 28 24" fill="none">
+      <Path d="M2 12.5L7.5 18L18 6" stroke={color} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
+      <Path d="M10 12.5L15.5 18L26 6" stroke={color} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
 
-  if (!syncStatus || syncStatus === "planned") {
-    return (
-      <View
-        className="flex-row items-center gap-2.5 px-4 py-2.5"
-        style={{ backgroundColor: "rgba(255,255,255,0.04)" }}
-      >
-        <NotSyncedIcon />
-        <Text
-          className="text-[12px] font-coach-medium"
-          style={{ color: "rgba(255,255,255,0.35)" }}
-        >
-          Not sent to a provider
-        </Text>
-      </View>
-    );
+function AlertIcon({ size = 10, color }: { size?: number; color: string }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M12 6V14" stroke={color} strokeWidth={3} strokeLinecap="round" />
+      <Path d="M12 18V18.01" stroke={color} strokeWidth={3} strokeLinecap="round" />
+    </Svg>
+  );
+}
+
+function QuoteMark({ position }: { position: "open" | "close" }) {
+  const isOpen = position === "open";
+  return (
+    <Text
+      className="font-coach"
+      style={{
+        position: "absolute",
+        top: isOpen ? 8 : undefined,
+        bottom: isOpen ? undefined : 4,
+        left: isOpen ? 12 : undefined,
+        right: isOpen ? undefined : 12,
+        fontSize: 48, fontWeight: "800",
+        color: "rgba(0,0,0,0.08)", lineHeight: 48,
+      }}
+    >
+      {isOpen ? "“" : "”"}
+    </Text>
+  );
+}
+
+// ─── Sync badge (inline) ────────────────────────────────────────────────────
+
+const PROVIDER_DISPLAY_NAMES: Record<string, string> = {
+  garmin: "Garmin",
+  coros: "Coros",
+};
+
+function providerShort(syncSource?: string): string {
+  if (!syncSource) return "watch";
+  return PROVIDER_DISPLAY_NAMES[syncSource] ?? syncSource;
+}
+
+interface SyncBadgeContent {
+  icon: ReactNode;
+  label: string;
+  color: string;
+}
+
+function syncBadgeContent(status: SyncStatus, syncSource?: string): SyncBadgeContent | null {
+  const provider = providerShort(syncSource);
+  switch (status) {
+    case "exported":
+      return {
+        icon: <CheckIcon color="rgba(255,255,255,0.7)" />,
+        label: provider,
+        color: "rgba(255,255,255,0.7)",
+      };
+    case "syncing":
+      return {
+        icon: <SpinningSyncIcon color={COLORS.ora} />,
+        label: "Syncing",
+        color: COLORS.ora,
+      };
+    case "synced":
+      return {
+        icon: <DoubleCheckIcon color={COLORS.lime} />,
+        label: provider,
+        color: COLORS.lime,
+      };
+    case "failed":
+      return {
+        icon: <AlertIcon color={COLORS.red} />,
+        label: "Sync failed",
+        color: COLORS.red,
+      };
+    default:
+      return null;
   }
+}
 
-  const rawColor = getSyncStatusColor(syncStatus);
-  const isExported = syncStatus === "exported";
-  const textColor = isExported ? "rgba(255,255,255,0.60)" : rawColor;
-  const circleBg = isExported ? "rgba(255,255,255,0.12)" : rawColor;
-  const label = getSyncStatusLabel(syncStatus, syncSource, syncedData);
-  const bg = SYNC_BANNER_BG[syncStatus] ?? SYNC_BANNER_BG.exported;
-
+function SyncBadge({ workout }: { workout: WorkoutData }) {
+  if (!workout.syncStatus || workout.syncStatus === "planned") return null;
+  const content = syncBadgeContent(workout.syncStatus, workout.syncSource);
+  if (!content) return null;
   return (
     <View
-      className="flex-row items-center gap-2.5 px-4 py-2.5"
-      style={{ backgroundColor: bg }}
+      className="flex-row items-center gap-1.5 rounded-full px-2.5 py-1"
+      style={{
+        backgroundColor: "rgba(255,255,255,0.06)",
+        borderWidth: 1,
+        borderColor: "rgba(255,255,255,0.10)",
+      }}
     >
-      {syncStatus === "syncing" ? (
-        <SpinningSyncIcon color={textColor} size={18} />
-      ) : (
-        <View
-          style={{
-            width: 24, height: 24, borderRadius: 12,
-            backgroundColor: circleBg,
-            alignItems: "center", justifyContent: "center",
-          }}
-        >
-          <SyncBannerIcon status={syncStatus} />
-        </View>
-      )}
-      <Text className="text-[13px] font-coach-bold" style={{ color: textColor }}>
-        {label}
+      {content.icon}
+      <Text
+        className="text-[11px] font-coach-semibold"
+        style={{ color: content.color }}
+      >
+        {content.label}
       </Text>
     </View>
   );
 }
 
-// ─── Card sections ──────────────────────────────────────────────────────────
+// ─── Structure preview ──────────────────────────────────────────────────────
+
+const MAX_STRUCTURE_LINES = 4;
+
+function formatBlockLine(block: Step | Repeat): { label: string; dot: string } {
+  if (block.kind === "step") {
+    const dur = formatDuration(block.duration);
+    const target = formatTarget(block.target);
+    const dot = INTENT_COLORS[block.intent];
+
+    if (block.intent === "work") {
+      return {
+        label: target ? `${dur} @ ${target}` : dur,
+        dot,
+      };
+    }
+    const head = block.name ?? INTENT_LABELS[block.intent];
+    const tail = target ? ` @ ${target}` : "";
+    return { label: `${head} · ${dur}${tail}`, dot };
+  }
+
+  const work = block.children.find((c) => c.intent === "work") ?? block.children[0];
+  const rec = block.children.find(
+    (c) => c.intent === "recovery" || c.intent === "rest" || c.intent === "active",
+  );
+  if (!work) return { label: `${block.count}× repeat`, dot: INTENT_COLORS.work };
+
+  const workDur = formatDuration(work.duration);
+  const workTarget = formatTarget(work.target);
+  const workStr = workTarget ? `${workDur} @ ${workTarget}` : workDur;
+  const recStr = rec ? ` · rec ${formatDuration(rec.duration)}` : "";
+  return {
+    label: `${block.count}× ${workStr}${recStr}`,
+    dot: INTENT_COLORS.work,
+  };
+}
+
+function StructurePreview({ workout }: { workout: WorkoutData }) {
+  const blocks = workout.structure?.blocks;
+  if (!blocks || blocks.length === 0) return null;
+
+  const visible = blocks.slice(0, MAX_STRUCTURE_LINES);
+  const overflow = blocks.length - visible.length;
+
+  return (
+    <View className="px-5 pb-3 gap-2">
+      {visible.map((block, i) => {
+        const line = formatBlockLine(block);
+        return (
+          <View key={i} className="flex-row items-center gap-2.5">
+            <View
+              style={{
+                width: 6,
+                height: 6,
+                borderRadius: 3,
+                backgroundColor: line.dot,
+              }}
+            />
+            <Text
+              numberOfLines={1}
+              className="flex-1 text-[13px] font-coach-medium text-g1"
+            >
+              {line.label}
+            </Text>
+          </View>
+        );
+      })}
+      {overflow > 0 && (
+        <Text
+          className="text-[12px] font-coach-medium pl-[14px]"
+          style={{ color: "rgba(255,255,255,0.45)" }}
+        >
+          + {overflow} more
+        </Text>
+      )}
+    </View>
+  );
+}
+
+// ─── Volume summary ─────────────────────────────────────────────────────────
+
+function volumeSummary(workout: WorkoutData): string | null {
+  const hasKm = workout.km && workout.km !== "-";
+  const hasDur = workout.dur && workout.dur !== "-";
+  if (!hasKm && !hasDur) return null;
+  if (hasKm && hasDur) return `${workout.km} km · ${workout.dur}`;
+  return hasKm ? `${workout.km} km` : (workout.dur ?? null);
+}
+
+function StructureTotal({ workout }: { workout: WorkoutData }) {
+  const total = volumeSummary(workout);
+  if (!total) return null;
+  return (
+    <View className="px-5 pb-3">
+      <Text
+        className="text-[12px] font-coach-medium"
+        style={{ color: "rgba(255,255,255,0.45)" }}
+      >
+        Total · {total}
+      </Text>
+    </View>
+  );
+}
+
+// ─── Kind label ─────────────────────────────────────────────────────────────
+
+/** Format the agoge taxonomic type into a readable uppercase label.
+ * e.g. "race_pace" → "RACE PACE", "vo2max" → "VO2 MAX". */
+function formatKind(kind: string): string {
+  if (kind === "vo2max") return "VO2 MAX";
+  return kind.replace(/_/g, " ").toUpperCase();
+}
+
+// ─── Header (shared) ────────────────────────────────────────────────────────
+
+function CardHeader({
+  workout,
+  showSyncBadge,
+}: {
+  workout: WorkoutData;
+  showSyncBadge: boolean;
+}) {
+  const kindLabel = workout.kind ? formatKind(workout.kind) : null;
+
+  return (
+    <View className="px-5 pt-5 pb-3">
+      <View className="flex-row items-start justify-between mb-1.5">
+        {kindLabel ? (
+          <Text
+            className="text-[11px] font-coach-semibold uppercase"
+            style={{ letterSpacing: 0.08 * 11, color: "rgba(255,255,255,0.45)" }}
+            numberOfLines={1}
+          >
+            {kindLabel}
+          </Text>
+        ) : (
+          <View />
+        )}
+        {showSyncBadge && <SyncBadge workout={workout} />}
+      </View>
+      <View className="flex-row items-center justify-between">
+        <Text
+          className="text-[26px] font-coach-bold text-g1 flex-1"
+          style={{ letterSpacing: -0.02 * 26, lineHeight: 30 }}
+          numberOfLines={2}
+        >
+          {workout.type}
+        </Text>
+        <ChevronRight />
+      </View>
+    </View>
+  );
+}
+
+// ─── Coach quote ────────────────────────────────────────────────────────────
 
 function CoachQuote({
   displayed, done, started,
@@ -316,96 +444,48 @@ function CoachQuote({
   );
 }
 
-function ChevronRight() {
-  return (
-    <Svg width={16} height={16} viewBox="0 0 24 24" fill="none">
-      <Path
-        d="M9 6L15 12L9 18"
-        stroke="rgba(255,255,255,0.3)"
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
-  );
-}
+// ─── Completed banner + metrics ─────────────────────────────────────────────
 
-function CompletedBanner({ workout }: { workout: WorkoutData }) {
-  const actualPace = computeActualPace(workout);
-
+function CompletedHeaderBanner({ workout }: { workout: WorkoutData }) {
+  const provider = workout.syncSource ? providerShort(workout.syncSource) : null;
   return (
     <View
-      className="px-4 pt-3.5 pb-3"
+      className="px-4 pt-3 pb-3 flex-row items-center justify-between"
       style={{ backgroundColor: "rgba(200,255,0,0.10)" }}
     >
-      <View className="flex-row items-center gap-2 mb-2.5">
+      <View className="flex-row items-center gap-2">
         <View
           style={{
-            width: 24, height: 24, borderRadius: 12,
+            width: 22, height: 22, borderRadius: 11,
             backgroundColor: COLORS.lime,
             alignItems: "center", justifyContent: "center",
           }}
         >
-          <Svg width={12} height={12} viewBox="0 0 24 24" fill="none">
-            <Path d="M4 12.5L9.5 18L20 6" stroke="#1A1A1A" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" />
-          </Svg>
+          <CheckIcon color="#1A1A1A" size={11} />
         </View>
         <Text className="text-[13px] font-coach-bold" style={{ color: COLORS.lime }}>
           Workout Complete
         </Text>
       </View>
-      <View className="flex-row gap-5">
-        {workout.actualDur != null && (
-          <View>
-            <Text className="text-[11px] font-coach-medium" style={{ color: "rgba(255,255,255,0.45)" }}>
-              Time
-            </Text>
-            <Text className="text-[15px] font-coach-bold text-g1">
-              {workout.actualDur}
-            </Text>
-          </View>
-        )}
-        {workout.actualKm != null && (
-          <View>
-            <Text className="text-[11px] font-coach-medium" style={{ color: "rgba(255,255,255,0.45)" }}>
-              Distance
-            </Text>
-            <Text className="text-[15px] font-coach-bold text-g1">
-              {workout.actualKm} km
-            </Text>
-          </View>
-        )}
-        {actualPace != null && (
-          <View>
-            <Text className="text-[11px] font-coach-medium" style={{ color: "rgba(255,255,255,0.45)" }}>
-              Pace
-            </Text>
-            <Text className="text-[15px] font-coach-bold text-g1">
-              {actualPace}
-            </Text>
-          </View>
-        )}
-        {workout.adherenceScore != null && (
-          <View>
-            <Text className="text-[11px] font-coach-medium" style={{ color: "rgba(255,255,255,0.45)" }}>
-              Adherence
-            </Text>
-            <Text className="text-[15px] font-coach-bold" style={{ color: COLORS.lime }}>
-              {Math.round(workout.adherenceScore * 100)}%
-            </Text>
-          </View>
-        )}
-      </View>
+      {provider && (
+        <View className="flex-row items-center gap-1.5">
+          <DoubleCheckIcon color={COLORS.lime} size={12} />
+          <Text
+            className="text-[11px] font-coach-semibold"
+            style={{ color: "rgba(200,255,0,0.85)" }}
+          >
+            via {provider}
+          </Text>
+        </View>
+      )}
     </View>
   );
 }
 
 function computeActualPace(workout: WorkoutData): string | null {
   if (!workout.actualDur || !workout.actualKm) return null;
-  // Parse actualKm to number
   const km = parseFloat(workout.actualKm);
   if (!km || km === 0) return null;
-  // Parse actualDur to seconds — supports "45min", "1h05", "1h"
   let totalSec = 0;
   const hMatch = workout.actualDur.match(/(\d+)h/);
   const mMatch = workout.actualDur.match(/(\d+)min/) ?? workout.actualDur.match(/h(\d+)/);
@@ -418,39 +498,50 @@ function computeActualPace(workout: WorkoutData): string | null {
   return `${pMin}:${pSec.toString().padStart(2, "0")}/km`;
 }
 
-function WorkoutInfo({ workout }: { workout: WorkoutData }) {
-  const accentColor = getWorkoutColor(workout);
-  const isRest = workout.intensity === "rest";
-  const headline =
-    workout.intent ?? (workout.dur !== "-" || workout.km !== "-"
-      ? `${workout.dur} · ${workout.km} km`
-      : "");
+function CompletedMetrics({ workout }: { workout: WorkoutData }) {
+  const actualPace = computeActualPace(workout);
+  const cells: { label: string; value: string; accent?: boolean }[] = [];
+  if (workout.actualDur != null) {
+    cells.push({ label: "Time", value: workout.actualDur });
+  }
+  if (workout.actualKm != null) {
+    cells.push({ label: "Distance", value: `${workout.actualKm} km` });
+  }
+  if (actualPace != null) {
+    cells.push({ label: "Pace", value: actualPace });
+  }
+  if (workout.adherenceScore != null) {
+    cells.push({
+      label: "Adherence",
+      value: `${Math.round(workout.adherenceScore * 100)}%`,
+      accent: true,
+    });
+  }
+  if (cells.length === 0) return null;
 
   return (
-    <View className="px-5 pt-5 pb-3">
-      <View className="flex-row items-center gap-2.5 mb-2">
-        <View
-          style={{
-            width: 8, height: 8, borderRadius: 4,
-            backgroundColor: accentColor,
-          }}
-        />
-        <Text className="text-xs font-coach-medium text-g3 uppercase" style={{ letterSpacing: 0.05 * 12 }}>
-          {isRest ? "Rest Day" : headline}
-        </Text>
-      </View>
-      <View className="flex-row items-center justify-between">
-        <Text
-          className="text-[26px] font-coach-bold text-g1 flex-1"
-          style={{ letterSpacing: -0.02 * 26, lineHeight: 30 }}
-        >
-          {workout.type}
-        </Text>
-        <ChevronRight />
-      </View>
+    <View className="px-5 pb-3 flex-row gap-5">
+      {cells.map((c) => (
+        <View key={c.label}>
+          <Text
+            className="text-[11px] font-coach-medium"
+            style={{ color: "rgba(255,255,255,0.45)" }}
+          >
+            {c.label}
+          </Text>
+          <Text
+            className="text-[15px] font-coach-bold"
+            style={{ color: c.accent ? COLORS.lime : LIGHT_THEME.w1 }}
+          >
+            {c.value}
+          </Text>
+        </View>
+      ))}
     </View>
   );
 }
+
+// ─── CTA ────────────────────────────────────────────────────────────────────
 
 function ExportToWatchCTA({ onPress }: { onPress?: () => void }) {
   return (
@@ -472,7 +563,55 @@ function ExportToWatchCTA({ onPress }: { onPress?: () => void }) {
   );
 }
 
-// ─── Main component ─────────────────────────────────────────────────────────
+// ─── Layouts ────────────────────────────────────────────────────────────────
+
+function PlannedView({
+  workout,
+  coachMessage,
+  onExportPress,
+}: {
+  workout: WorkoutData;
+  coachMessage: string;
+  onExportPress?: () => void;
+}) {
+  const { displayed, done, started } = useStream(coachMessage, {
+    speed: 20, delay: 800,
+  });
+  const isExported =
+    workout.syncStatus === "exported" || workout.syncStatus === "synced";
+
+  return (
+    <>
+      <CardHeader workout={workout} showSyncBadge />
+      <StructurePreview workout={workout} />
+      <StructureTotal workout={workout} />
+      <CoachQuote displayed={displayed} done={done} started={started} />
+      {!isExported && <ExportToWatchCTA onPress={onExportPress} />}
+    </>
+  );
+}
+
+function CompletedView({
+  workout,
+  coachMessage,
+}: {
+  workout: WorkoutData;
+  coachMessage: string;
+}) {
+  const { displayed, done, started } = useStream(coachMessage, {
+    speed: 20, delay: 800,
+  });
+  return (
+    <>
+      <CompletedHeaderBanner workout={workout} />
+      <CardHeader workout={workout} showSyncBadge={false} />
+      <CompletedMetrics workout={workout} />
+      <CoachQuote displayed={displayed} done={done} started={started} />
+    </>
+  );
+}
+
+// ─── Rest day ───────────────────────────────────────────────────────────────
 
 function RestDayCard({
   dateLabel,
@@ -551,7 +690,17 @@ function RestDayCard({
   );
 }
 
-export function TodayCard({ workout, coachMessage, selectedDate, isToday = true, onStartPress, onExportPress, onCardPress, onAddPress }: TodayCardProps) {
+// ─── Main ───────────────────────────────────────────────────────────────────
+
+export function TodayCard({
+  workout,
+  coachMessage,
+  selectedDate,
+  isToday = true,
+  onExportPress,
+  onCardPress,
+  onAddPress,
+}: TodayCardProps) {
   const dateLabel = isToday ? "Today" : formatShortDate(selectedDate ?? new Date());
   const isRest = workout.intensity === "rest";
   const isCompleted = workout.done;
@@ -565,18 +714,6 @@ export function TodayCard({ workout, coachMessage, selectedDate, isToday = true,
       />
     );
   }
-
-  const { displayed, done, started } = useStream(coachMessage, {
-    speed: 20, delay: 800,
-  });
-
-  const hasSyncStatus = workout.syncStatus && workout.syncStatus !== "planned";
-  const isExported = workout.syncStatus === "exported" || workout.syncStatus === "synced";
-  const borderColor = isCompleted
-    ? COLORS.lime
-    : hasSyncStatus
-      ? getSyncStatusColor(workout.syncStatus!)
-      : undefined;
 
   return (
     <View>
@@ -592,8 +729,8 @@ export function TodayCard({ workout, coachMessage, selectedDate, isToday = true,
           className="rounded-[20px] overflow-hidden"
           style={{
             backgroundColor: "#1A1A1A",
-            borderWidth: isCompleted ? 1.5 : hasSyncStatus ? 1.5 : 1,
-            borderColor: borderColor ?? "rgba(255,255,255,0.08)",
+            borderWidth: isCompleted ? 1.5 : 1,
+            borderColor: isCompleted ? COLORS.lime : "rgba(255,255,255,0.08)",
             shadowColor: "#000",
             shadowOffset: { width: 0, height: 8 },
             shadowOpacity: 0.35,
@@ -601,23 +738,18 @@ export function TodayCard({ workout, coachMessage, selectedDate, isToday = true,
             elevation: 12,
           }}
         >
-          {/* 0. Top banner — completed state takes priority over sync banner */}
           {isCompleted ? (
-            <CompletedBanner workout={workout} />
+            <CompletedView workout={workout} coachMessage={coachMessage} />
           ) : (
-            <SyncBanner workout={workout} />
+            <PlannedView
+              workout={workout}
+              coachMessage={coachMessage}
+              onExportPress={onExportPress}
+            />
           )}
-
-          {/* 1. Workout info */}
-          <WorkoutInfo workout={workout} />
-
-          {/* 2. Coach quote */}
-          <CoachQuote displayed={displayed} done={done} started={started} />
-
-          {/* 3. CTA — hide when completed or already exported */}
-          {!isCompleted && !isExported && <ExportToWatchCTA onPress={onExportPress} />}
         </View>
       </Pressable>
     </View>
   );
 }
+
