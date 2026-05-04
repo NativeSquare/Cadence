@@ -26,26 +26,6 @@ interface OfflineScreenProps {
   showRetryButton?: boolean;
 }
 
-/**
- * OfflineScreen displays a user-friendly message when offline.
- *
- * Features:
- * - WiFi icon in lime accent color
- * - Friendly messaging per FR56
- * - Manual retry option
- * - Design system compliant styling
- *
- * @example
- * function OnboardingEntry() {
- *   const { isOffline } = useNetwork();
- *
- *   if (isOffline) {
- *     return <OfflineScreen />;
- *   }
- *
- *   return <AIConversationView />;
- * }
- */
 export function OfflineScreen({
   title = "No Connection",
   message = "I need to be online to get started. Connect to WiFi or cellular and let's try again.",

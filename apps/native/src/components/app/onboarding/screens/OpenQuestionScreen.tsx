@@ -5,9 +5,9 @@ import { Text } from "@/components/ui/text";
 import { useStream } from "@/hooks/use-stream";
 import { Cursor } from "../Cursor";
 import { StreamBlock } from "../StreamBlock";
-import { FreeformInput } from "../generative/FreeformInput";
-import { MiniAnalysis } from "../generative/MiniAnalysis";
-import { Btn } from "../generative/Choice";
+import { FreeformInput } from "../inputs/FreeformInput";
+import { MiniAnalysis } from "../inputs/MiniAnalysis";
+import { Btn } from "../inputs/Choice";
 import { COLORS, GRAYS } from "@/lib/design-tokens";
 
 interface OpenQuestionScreenProps {

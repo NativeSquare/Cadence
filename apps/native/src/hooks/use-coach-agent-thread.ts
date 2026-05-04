@@ -4,8 +4,6 @@ import { api } from "@packages/backend/convex/_generated/api";
 
 /**
  * Resolves (or lazily creates) the active agent thread for the current user.
- * Drop-in shape replacement for `useCoachChat` while we develop the new
- * `convex/coach/` agent backend alongside the legacy `convex/cadence/` chat.
  */
 
 export type CoachAgentThreadPhase = "loading" | "ready" | "error";

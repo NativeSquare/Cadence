@@ -5,7 +5,7 @@ import { Text } from "@/components/ui/text";
 import { useStream } from "@/hooks/use-stream";
 import { Cursor } from "../Cursor";
 import { StreamBlock } from "../StreamBlock";
-import { Choice, Btn } from "../generative/Choice";
+import { Choice, Btn } from "../inputs/Choice";
 import { COLORS, GRAYS } from "@/lib/design-tokens";
 
 export interface HealthData {

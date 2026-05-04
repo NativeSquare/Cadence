@@ -20,7 +20,6 @@ import {
   HealthScreen,
   StyleScreen,
   OpenQuestionScreen,
-  TransitionScreen,
   VerdictScreen,
   PaywallScreen,
 } from "./screens";
@@ -34,7 +33,6 @@ type ScreenName =
   | "health"
   | "style"
   | "openQuestion"
-  | "transition"
   | "verdict"
   | "paywall";
 
@@ -52,7 +50,6 @@ const SCREENS: ScreenConfig[] = [
   { name: "health", label: "Health" },
   { name: "style", label: "Style" },
   { name: "openQuestion", label: "OpenQ" },
-  { name: "transition", label: "Transition" },
   { name: "verdict", label: "Verdict" },
   { name: "paywall", label: "Paywall" },
 ];
@@ -94,9 +91,6 @@ export function OnboardingFlow() {
 
       case "openQuestion":
         return <OpenQuestionScreen onNext={goToNext} />;
-
-      case "transition":
-        return <TransitionScreen onDone={goToNext} />;
 
       case "verdict":
         return <VerdictScreen onComplete={goToNext} />;

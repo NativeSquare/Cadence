@@ -1,20 +1,5 @@
-/**
- * Coach Screen Type Definitions
- * Reference: cadence-full-v9.jsx CoachTab (lines 248-397)
- *
- * Source: Story 10.3 - AC#1, AC#2, AC#3
- */
+import type { MessagePart } from "@/lib/ai-stream";
 
-import type { MessagePart, ToolCall, ToolResult } from "@/lib/ai-stream";
-
-// =============================================================================
-// Chat Message Types
-// =============================================================================
-
-/**
- * Chat message for coach conversation
- * Reference: prototype INIT_MSGS (lines 249-255)
- */
 export interface ChatMessage {
   id: string;
   role: "user" | "assistant";
@@ -22,40 +7,8 @@ export interface ChatMessage {
   parts: MessagePart[];
   isStreaming: boolean;
   createdAt: number;
-  /** True if this message was interrupted by network loss */
   isInterrupted?: boolean;
 }
-
-/**
- * Tool message with data payload
- * Reference: prototype tool message format (line 253)
- */
-export interface ToolMessage {
-  id: string;
-  role: "tool";
-  title: string;
-  data: TrainingLoadData;
-}
-
-/**
- * Training load data from coach tools
- * Reference: prototype ToolCard data (lines 264-282)
- */
-export interface TrainingLoadData {
-  acute: number;
-  chronic: number;
-  ratio: number;
-  note: string;
-}
-
-/**
- * Union type for all displayable messages
- */
-export type DisplayMessage = ChatMessage | ToolMessage;
-
-// =============================================================================
-// Component Props
-// =============================================================================
 
 export interface ChatHeaderProps {
   isTyping: boolean;
@@ -67,19 +20,12 @@ export interface ChatMessageProps {
   isCoach: boolean;
 }
 
-export interface ToolCardProps {
-  title: string;
-  data: TrainingLoadData;
-}
-
 export interface TypingIndicatorProps {
   visible: boolean;
 }
 
 export interface PendingAttachment {
-  /** Local file URI or uploaded image URL for preview */
   uri: string;
-  /** Uploaded URL sent to the API (when present, upload is done) */
   url?: string;
 }
 
@@ -89,7 +35,6 @@ export interface ChatInputProps {
   onSend: () => void;
   onMicPress: () => void;
   onAttachmentPress?: () => void;
-  /** Pending media attachments (local uri + optional uploaded url) */
   attachments?: PendingAttachment[];
   onRemoveAttachment?: (index: number) => void;
   disabled?: boolean;
@@ -99,13 +44,4 @@ export interface VoiceRecorderProps {
   onCancel: () => void;
   onSend: (text: string) => void;
   transcript: string;
-}
-
-// =============================================================================
-// Mock Data Types
-// =============================================================================
-
-export interface MockReply {
-  text: string;
-  delay?: number;
 }

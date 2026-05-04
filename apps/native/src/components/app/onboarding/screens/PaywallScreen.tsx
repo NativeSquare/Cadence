@@ -15,7 +15,7 @@ import { ScrollView, View, StyleSheet } from "react-native";
 import Animated, { FadeIn, FadeInRight, ZoomIn } from "react-native-reanimated";
 import { Text } from "@/components/ui/text";
 import { StreamBlock } from "../StreamBlock";
-import { Btn } from "../generative/Choice";
+import { Btn } from "../inputs/Choice";
 import { COLORS, GRAYS, SURFACES } from "@/lib/design-tokens";
 import { api } from "@packages/backend/convex/_generated/api";
 import { useMutation, useQuery } from "convex/react";

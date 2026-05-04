@@ -1,11 +1,3 @@
-/**
- * CoachChatView - Chat UI.
- *
- * Messages are derived reactively from the `messages` table via useAIChat.
- * User sends go through `chat.send`. Tool-card rendering remains in place but
- * is dormant until the new chat brain emits tool-call parts again.
- */
-
 import { useState, useRef, useCallback, useEffect } from "react";
 import {
   View,
@@ -17,8 +9,6 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BottomSheetModal as GorhomBottomSheetModal } from "@gorhom/bottom-sheet";
-import { useMutation } from "convex/react";
-import { api } from "@packages/backend/convex/_generated/api";
 import { ChatHeader } from "./ChatHeader";
 import { ChatMessage as ChatMessageBubble } from "./ChatMessage";
 import { ChatErrorCard } from "./ChatErrorCard";
@@ -26,12 +16,10 @@ import { TypingIndicator } from "./TypingIndicator";
 import { ChatInput } from "./ChatInput";
 import { VoiceRecorder } from "./VoiceRecorder";
 import { CoachEmptyState } from "./CoachEmptyState";
-import { CoachToolRenderer } from "./CoachToolRenderer";
 import { UploadMediaBottomSheetModal } from "@/components/shared/upload-media-bottom-sheet-modal";
 import { useCoachAgent } from "@/hooks/use-coach-agent";
 import { useUploadImage } from "@/hooks/use-upload-image";
 import type { PendingAttachment } from "./types";
-import type { RescheduleProposal, SwapProposal } from "./actions";
 
 export interface CoachChatViewProps {
   threadId: string;
@@ -47,7 +35,6 @@ export function CoachChatView({
   const mediaSheetRef = useRef<GorhomBottomSheetModal>(null);
   const { uploadImage, isUploading } = useUploadImage();
 
-  // Pending media attachments (local uri → upload → url for API)
   const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([]);
 
   const {
@@ -60,21 +47,13 @@ export function CoachChatView({
     maxRetries,
     isRetriesExhausted,
     sendMessage,
-    sendToolDecision,
     retry,
   } = useCoachAgent({ threadId });
 
-  // Convex mutations for action tools (executed on Accept)
-  const rescheduleWorkout = useMutation(api.agoge.workouts.rescheduleWorkout);
-  const modifyWorkout = useMutation(api.agoge.workouts.updateWorkout);
-  const swapWorkouts = useMutation(api.agoge.workouts.swapWorkouts);
-
-  // Voice recording state
   const [inputValue, setInputValue] = useState(initialPrompt ?? "");
   const [isRecording, setIsRecording] = useState(false);
   const [transcript, setTranscript] = useState("");
 
-  // Auto-scroll to bottom when messages change or streaming state changes
   useEffect(() => {
     const timer = setTimeout(() => {
       scrollViewRef.current?.scrollToEnd({ animated: true });
@@ -133,106 +112,6 @@ export function CoachChatView({
     [isStreaming, sendMessage]
   );
 
-  // =========================================================================
-  // Action Tool Handlers
-  // =========================================================================
-
-  /** Execute the correct mutation based on the action tool name */
-  const handleExecuteMutation = useCallback(
-    async (toolName: string, args: unknown): Promise<{ success: boolean; error?: string }> => {
-      try {
-        switch (toolName) {
-          case "proposeRescheduleWorkout": {
-            const p = args as RescheduleProposal;
-            await rescheduleWorkout({
-              workoutId: p.workoutId,
-              date: new Date(p.proposedDate).toISOString().slice(0, 10),
-            });
-            return { success: true };
-          }
-          case "proposeModifyWorkout": {
-            const p = args as {
-              workoutId: string;
-              changes: Array<{ field: string; newValue: string }>;
-              reason: string;
-            };
-            const patch: {
-              workoutId: string;
-              name?: string;
-              description?: string;
-              planned?: {
-                durationSeconds?: number;
-                distanceMeters?: number;
-              };
-            } = { workoutId: p.workoutId };
-            for (const c of p.changes) {
-              if (c.field === "name") patch.name = c.newValue;
-              else if (c.field === "description") patch.description = c.newValue;
-              else if (
-                c.field === "plannedDurationSeconds" ||
-                c.field === "targetDurationSeconds"
-              ) {
-                patch.planned = {
-                  ...patch.planned,
-                  durationSeconds: Number(c.newValue),
-                };
-              } else if (
-                c.field === "plannedDistanceMeters" ||
-                c.field === "targetDistanceMeters"
-              ) {
-                patch.planned = {
-                  ...patch.planned,
-                  distanceMeters: Number(c.newValue),
-                };
-              }
-            }
-            await modifyWorkout(patch as Parameters<typeof modifyWorkout>[0]);
-            return { success: true };
-          }
-          case "proposeSwapWorkouts": {
-            const p = args as SwapProposal;
-            await swapWorkouts({
-              workoutAId: p.workoutA.workoutId,
-              workoutBId: p.workoutB.workoutId,
-            });
-            return { success: true };
-          }
-          default:
-            return { success: false, error: `Unknown action: ${toolName}` };
-        }
-      } catch (err) {
-        return {
-          success: false,
-          error: err instanceof Error ? err.message : "Something went wrong",
-        };
-      }
-    },
-    [rescheduleWorkout, modifyWorkout, swapWorkouts],
-  );
-
-  /** Post typed decision event to Router so it can follow up in Craftsperson voice. */
-  const handleActionAccepted = useCallback(
-    (toolName: string, args: unknown) => {
-      void sendToolDecision({ toolName, toolArgs: args, decision: "accepted" });
-    },
-    [sendToolDecision],
-  );
-
-  const handleActionRejected = useCallback(
-    (toolName: string, args: unknown) => {
-      void sendToolDecision({ toolName, toolArgs: args, decision: "declined" });
-    },
-    [sendToolDecision],
-  );
-
-  // =========================================================================
-  // Helpers
-  // =========================================================================
-
-  /** Check if a tool-call part is an action tool */
-  const isActionTool = (toolName: string) =>
-    toolName.startsWith("propose");
-
   const handleMicPress = useCallback(() => {
     setIsRecording(true);
     setTranscript("");
@@ -271,7 +150,6 @@ export function CoachChatView({
     [isStreaming, sendMessage]
   );
 
-  // Derive header status text
   const statusText = isOffline
     ? "Offline"
     : isReconnecting
@@ -285,7 +163,6 @@ export function CoachChatView({
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       className="flex-1 bg-black"
     >
-      {/* Dark header area */}
       <View
         className="bg-black px-6 pb-4"
         style={{ paddingTop: insets.top + 8 }}
@@ -293,7 +170,6 @@ export function CoachChatView({
         <ChatHeader isTyping={isStreaming} statusText={statusText} />
       </View>
 
-      {/* Light content area with chat */}
       <View
         className="flex-1 bg-w2 -mt-1"
         style={{
@@ -316,52 +192,16 @@ export function CoachChatView({
             contentContainerStyle={{ paddingBottom: 20 }}
           >
             {messages.map((message) => {
-              // Extract action tool calls from assistant message parts
-              const actionParts =
-                message.role === "assistant"
-                  ? message.parts.filter(
-                      (p) => p.type === "tool-call" && isActionTool(p.toolName),
-                    )
-                  : [];
-
-              // Skip assistant messages with no text and no action tools
-              if (
-                message.role === "assistant" &&
-                !message.content &&
-                actionParts.length === 0
-              ) {
-                return null;
-              }
-
+              if (!message.content) return null;
               return (
-                <View key={message.id}>
-                  {/* Text bubble (only if there's text content) */}
-                  {message.content ? (
-                    <ChatMessageBubble
-                      message={message}
-                      isCoach={message.role === "assistant"}
-                    />
-                  ) : null}
-
-                  {/* Action tool cards (inline after text) */}
-                  {actionParts.map((part: any) => (
-                    <CoachToolRenderer
-                      key={part.toolCallId}
-                      toolName={part.toolName}
-                      toolCallId={part.toolCallId}
-                      state={message.isStreaming ? "streaming" : "call"}
-                      args={part.args}
-                      executeMutation={handleExecuteMutation}
-                      onAccepted={handleActionAccepted}
-                      onRejected={handleActionRejected}
-                    />
-                  ))}
-                </View>
+                <ChatMessageBubble
+                  key={message.id}
+                  message={message}
+                  isCoach={message.role === "assistant"}
+                />
               );
             })}
 
-            {/* Typing indicator — only while waiting for the assistant bubble
-                to appear; once it's streaming, the bubble itself is the signal. */}
             <TypingIndicator
               visible={
                 isStreaming &&
@@ -369,7 +209,6 @@ export function CoachChatView({
               }
             />
 
-            {/* Error state */}
             {error && !isStreaming && (
               <ChatErrorCard
                 message={
@@ -385,7 +224,6 @@ export function CoachChatView({
           </ScrollView>
         )}
 
-        {/* Input area */}
         <View className="bg-w2">
           {isRecording ? (
             <VoiceRecorder

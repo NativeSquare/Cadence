@@ -4,14 +4,9 @@ import { useUIMessages } from "@convex-dev/agent/react";
 import { api } from "@packages/backend/convex/_generated/api";
 import type { MessagePart } from "@/lib/ai-stream";
 import { useNetworkOptional } from "@/contexts/network-context";
-import type { ChatMessage, UseAIChatReturn } from "./use-ai-chat";
-import { MAX_RETRIES } from "./use-ai-chat";
+import type { ChatMessage } from "@/components/app/coach/types";
 
-/**
- * Drop-in replacement for `useAIChat` that talks to the new `convex/coach/`
- * agent backend (`@convex-dev/agent`). Returns the same shape as `useAIChat`
- * so `CoachChatView` swaps with a single import change.
- */
+const MAX_RETRIES = 3;
 
 export interface UseCoachAgentOptions {
   threadId?: string;
@@ -19,9 +14,22 @@ export interface UseCoachAgentOptions {
   onError?: (error: Error) => void;
 }
 
+export interface UseCoachAgentReturn {
+  messages: ChatMessage[];
+  isStreaming: boolean;
+  error: Error | null;
+  isOffline: boolean;
+  isReconnecting: boolean;
+  retryCount: number;
+  maxRetries: number;
+  isRetriesExhausted: boolean;
+  sendMessage: (content: string, imageUrls?: string[]) => Promise<void>;
+  retry: () => Promise<void>;
+}
+
 export function useCoachAgent(
   options: UseCoachAgentOptions = {},
-): UseAIChatReturn {
+): UseCoachAgentReturn {
   const { threadId, maxRetries: maxRetriesOption = MAX_RETRIES, onError } = options;
 
   const sendAction = useAction(api.coach.messages.send);
@@ -97,34 +105,16 @@ export function useCoachAgent(
     await sendMessage(text, imageUrls);
   }, [sendMessage]);
 
-  const resetRetryCount = useCallback(() => {
-    setRetryCount(0);
-    setError(null);
-  }, []);
-
-  const sendToolDecision = useCallback(async () => {}, []);
-  const appendMessage = useCallback(() => {}, []);
-  const clearMessages = useCallback(() => {}, []);
-  const abort = useCallback(() => {}, []);
-  const saveProgress = useCallback(async (): Promise<string | null> => null, []);
-
   return {
     messages,
     isStreaming,
     error,
     isOffline,
     isReconnecting: false,
-    disconnectionDuration: 0,
     retryCount,
     maxRetries: maxRetriesOption,
     isRetriesExhausted: retryCount >= maxRetriesOption,
     sendMessage,
-    sendToolDecision,
-    appendMessage,
-    clearMessages,
-    abort,
     retry,
-    resetRetryCount,
-    saveProgress,
   };
 }

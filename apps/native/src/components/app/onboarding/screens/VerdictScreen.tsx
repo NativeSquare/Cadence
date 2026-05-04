@@ -15,7 +15,7 @@ import { Text } from "@/components/ui/text";
 import { COLORS, GRAYS } from "@/lib/design-tokens";
 import { Cursor } from "../Cursor";
 import { useStream } from "@/hooks/use-stream";
-import { Btn } from "../generative/Choice";
+import { Btn } from "../inputs/Choice";
 import {
   ProjectionCard,
   PROJECTION_MOCK_DATA,

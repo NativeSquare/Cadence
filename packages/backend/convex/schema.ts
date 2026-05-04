@@ -1,6 +1,5 @@
 import { authTables } from "@convex-dev/auth/server";
 import { defineSchema } from "convex/server";
-import { conversations, messages } from "./cadence/messages";
 import { adminInvites } from "./table/adminInvites";
 import { audienceMembers } from "./table/audienceMembers";
 import { audiences } from "./table/audiences";
@@ -28,9 +27,7 @@ export default defineSchema({
   broadcastRecipients,
   broadcasts,
   contacts,
-  conversations,
   feedback,
-  messages,
   pushTokens,
   users,
 });
