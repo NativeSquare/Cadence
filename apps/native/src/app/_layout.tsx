@@ -105,10 +105,7 @@ function RootStack() {
     isAuthenticated ? {} : "skip",
   );
   const upsertAthlete = useMutation(api.agoge.athletes.upsertAthlete);
-  // TEMP: onboarding flow disabled — route straight to (app) after sign-up.
-  const ONBOARDING_ENABLED = false;
-  const hasCompletedOnboarding =
-    !ONBOARDING_ENABLED || (user?.hasCompletedOnboarding ?? false);
+  const hasCompletedOnboarding = user?.hasCompletedOnboarding ?? false;
   const athleteCreationAttempted = useRef(false);
 
   // Auto-create agoge athlete for new users

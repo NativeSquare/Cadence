@@ -39,7 +39,6 @@ import type * as soma_index from "../soma/index.js";
 import type * as soma_strava from "../soma/strava.js";
 import type * as soma_webhook from "../soma/webhook.js";
 import type * as storage from "../storage.js";
-import type * as table_activities from "../table/activities.js";
 import type * as table_admin from "../table/admin.js";
 import type * as table_adminInvites from "../table/adminInvites.js";
 import type * as table_audienceMembers from "../table/audienceMembers.js";
@@ -91,7 +90,6 @@ declare const fullApi: ApiFromModules<{
   "soma/strava": typeof soma_strava;
   "soma/webhook": typeof soma_webhook;
   storage: typeof storage;
-  "table/activities": typeof table_activities;
   "table/admin": typeof table_admin;
   "table/adminInvites": typeof table_adminInvites;
   "table/audienceMembers": typeof table_audienceMembers;

@@ -5,7 +5,6 @@
 
 export { AnalyticsScreen } from "./AnalyticsScreen";
 export { PlanProgress } from "./PlanProgress";
-export { RunnerProfileCard } from "./runner-profile-card";
 export { PredictionCard } from "./prediction-card";
 export { HealthMetricsCard } from "./health-metrics-card";
 export { WeekVolumeCard } from "./WeekVolumeCard";

@@ -1,23 +1,44 @@
-import { OnboardingFlow } from "@/components/app/onboarding/OnboardingFlow";
-import { OfflineScreen } from "@/components/common/OfflineScreen";
-import { useNetwork } from "@/contexts/network-context";
-import { View, ActivityIndicator } from "react-native";
+import { useState } from "react";
+import { View } from "react-native";
+import { useMutation, useQuery } from "convex/react";
+import { api } from "@packages/backend/convex/_generated/api";
+import { Button } from "@/components/ui/button";
+import { Text } from "@/components/ui/text";
 
 export default function Onboarding() {
-  const { isOffline, status } = useNetwork();
+  const user = useQuery(api.table.users.currentUser);
+  const patchUser = useMutation(api.table.users.patch);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Show offline screen immediately if no network (AC#3: no loading then error)
-  if (isOffline) {
-    return <OfflineScreen />;
-  }
+  const handleContinue = async () => {
+    if (!user || isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      await patchUser({
+        id: user._id,
+        data: { hasCompletedOnboarding: true },
+      });
+    } catch {
+      setIsSubmitting(false);
+    }
+  };
 
-  if (status === "unknown") {
-    return (
-      <View className="flex-1 bg-[#0a0a0a] items-center justify-center">
-        <ActivityIndicator color="#a3e635" />
-      </View>
-    );
-  }
-
-  return <OnboardingFlow />;
+  return (
+    <View className="flex-1 items-center justify-center px-6 gap-3">
+      <Text variant="h2" className="border-b-0 text-center">
+        Onboarding — coming soon
+      </Text>
+      <Text className="text-center text-muted-foreground">
+        Tap continue to skip for now.
+      </Text>
+      <Button
+        size="lg"
+        className="mt-6 w-full max-w-xs"
+        onPress={handleContinue}
+        disabled={!user || isSubmitting}
+      >
+        <Text>Continue</Text>
+      </Button>
+    </View>
+  );
 }
