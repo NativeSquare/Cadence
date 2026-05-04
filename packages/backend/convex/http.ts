@@ -27,11 +27,11 @@ registerRoutes(http, components.soma, {
   strava: {
     oauth: {
       redirectTo: "cadence://oauth/strava/complete",
-      onComplete: async (ctx, event) => {
-        await ctx.scheduler.runAfter(0, internal.soma.strava.pullAll, {
-          userId: event.userId,
-        });
-      },
+      // onComplete: async (ctx, event) => {
+      //   await ctx.scheduler.runAfter(0, internal.soma.strava.pullAll, {
+      //     userId: event.userId,
+      //   });
+      // },
     },
     webhook: {
       events: {
@@ -50,16 +50,28 @@ registerRoutes(http, components.soma, {
     },
     webhook: {
       events: {
-        activities: async (ctx, event) => {
-          const userIds = [...new Set(event.items.map((item) => item.userId))];
-          if (userIds.length === 0) return;
-          await ctx.runAction(
-            internal.soma.webhook.handleActivityIngested,
-            { affectedUserIds: userIds },
-          );
-        },
-        hrv: true,
-        deregistration: true,
+        // "activities": async (ctx, event) => {
+        //   const userIds = [...new Set(event.items.map((item) => item.userId))];
+        //   if (userIds.length === 0) return;
+        //   await ctx.runAction(
+        //     internal.soma.webhook.handleActivityIngested,
+        //     { affectedUserIds: userIds },
+        //   );
+        // },
+        "blood-pressures": true,
+        "body-compositions": true,
+        "dailies": true,
+        "epochs": true,
+        "health-snapshot": true,
+        "sleeps": true,
+        "hrv": true,
+        "stress": true,
+        "pulse-ox": true,
+        "respiration": true,
+        "skin-temp": true,
+        "user-metrics": true,
+        "menstrual-cycle-tracking": true,
+        "deregistration": true,
       },
     },
   },

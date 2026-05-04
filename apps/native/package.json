@@ -24,7 +24,7 @@
     "@hookform/resolvers": "^5.2.2",
     "@kingstinct/react-native-healthkit": "^13.1.4",
     "@nativesquare/agoge": "2.6.3",
-    "@nativesquare/soma": "0.17.1",
+    "@nativesquare/soma": "0.18.0",
     "@packages/backend": "workspace:*",
     "@packages/shared": "workspace:*",
     "@react-native-async-storage/async-storage": "2.2.0",
