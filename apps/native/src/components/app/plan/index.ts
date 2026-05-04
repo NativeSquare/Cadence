@@ -20,5 +20,3 @@ export { DAYS } from "./types";
 // Utilities
 export { getWorkoutColor, getGreeting, formatDate, formatShortDate } from "./utils";
 
-// Hooks
-export { useStream } from "./use-stream";

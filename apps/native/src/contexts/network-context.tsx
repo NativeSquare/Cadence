@@ -78,16 +78,6 @@ export function NetworkProvider({ children }: NetworkProviderProps) {
  *
  * @throws Error if used outside NetworkProvider
  *
- * @example
- * function MyComponent() {
- *   const { isOnline, isOffline, connectionType } = useNetwork();
- *
- *   if (isOffline) {
- *     return <OfflineScreen />;
- *   }
- *
- *   return <OnlineContent />;
- * }
  */
 export function useNetwork(): NetworkContextValue {
   const context = useContext(NetworkContext);
