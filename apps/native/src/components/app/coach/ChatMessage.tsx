@@ -20,6 +20,7 @@
 import { View, Image } from "react-native";
 import { Text } from "@/components/ui/text";
 import Animated, { FadeIn } from "react-native-reanimated";
+import { useSmoothText } from "@convex-dev/agent/react";
 
 import type { ChatMessageProps } from "./types";
 
@@ -55,6 +56,14 @@ function CoachBadge() {
  * Uses the msgIn animation for entry: translateY(10px) scale(0.97) -> normal
  */
 export function ChatMessage({ message, isCoach }: ChatMessageProps) {
+  // Typewriter only for the actively-streaming assistant bubble; historical
+  // messages render instantly because startStreaming is false.
+  const [smoothContent] = useSmoothText(message.content, {
+    charsPerSec: 60,
+    startStreaming: isCoach && message.isStreaming,
+  });
+  const displayContent = isCoach ? smoothContent : message.content;
+
   return (
     <Animated.View
       entering={FadeIn.duration(200)}
@@ -97,7 +106,7 @@ export function ChatMessage({ message, isCoach }: ChatMessageProps) {
           className={`text-[14px] font-coach ${isCoach ? "text-wText" : "text-w1"}`}
           style={{ lineHeight: 14 * 1.55 }}
         >
-          {message.content}
+          {displayContent}
         </Text>
       </View>
     </Animated.View>

@@ -10,12 +10,12 @@
 import { View, ActivityIndicator } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text } from "@/components/ui/text";
-import { useCoachChat } from "@/hooks/use-coach-chat";
+import { useCoachAgentThread } from "@/hooks/use-coach-agent-thread";
 import { CoachChatView } from "./CoachChatView";
 
 export function CoachScreen({ initialPrompt }: { initialPrompt?: string }) {
   const insets = useSafeAreaInsets();
-  const { phase, conversationId } = useCoachChat();
+  const { phase, threadId } = useCoachAgentThread();
 
   if (phase === "loading") {
     return (
@@ -31,7 +31,7 @@ export function CoachScreen({ initialPrompt }: { initialPrompt?: string }) {
     );
   }
 
-  if (phase === "error" || !conversationId) {
+  if (phase === "error" || !threadId) {
     return (
       <View
         className="flex-1 bg-black items-center justify-center"
@@ -46,8 +46,8 @@ export function CoachScreen({ initialPrompt }: { initialPrompt?: string }) {
 
   return (
     <CoachChatView
-      key={conversationId}
-      conversationId={conversationId}
+      key={threadId}
+      threadId={threadId}
       initialPrompt={initialPrompt}
     />
   );

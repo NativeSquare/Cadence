@@ -28,18 +28,18 @@ import { VoiceRecorder } from "./VoiceRecorder";
 import { CoachEmptyState } from "./CoachEmptyState";
 import { CoachToolRenderer } from "./CoachToolRenderer";
 import { UploadMediaBottomSheetModal } from "@/components/shared/upload-media-bottom-sheet-modal";
-import { useAIChat } from "@/hooks/use-ai-chat";
+import { useCoachAgent } from "@/hooks/use-coach-agent";
 import { useUploadImage } from "@/hooks/use-upload-image";
 import type { PendingAttachment } from "./types";
 import type { RescheduleProposal, SwapProposal } from "./actions";
 
 export interface CoachChatViewProps {
-  conversationId: string;
+  threadId: string;
   initialPrompt?: string;
 }
 
 export function CoachChatView({
-  conversationId,
+  threadId,
   initialPrompt,
 }: CoachChatViewProps) {
   const insets = useSafeAreaInsets();
@@ -62,7 +62,7 @@ export function CoachChatView({
     sendMessage,
     sendToolDecision,
     retry,
-  } = useAIChat({ conversationId });
+  } = useCoachAgent({ threadId });
 
   // Convex mutations for action tools (executed on Accept)
   const rescheduleWorkout = useMutation(api.agoge.workouts.rescheduleWorkout);
@@ -360,8 +360,14 @@ export function CoachChatView({
               );
             })}
 
-            {/* Typing indicator */}
-            <TypingIndicator visible={isStreaming} />
+            {/* Typing indicator — only while waiting for the assistant bubble
+                to appear; once it's streaming, the bubble itself is the signal. */}
+            <TypingIndicator
+              visible={
+                isStreaming &&
+                messages[messages.length - 1]?.role !== "assistant"
+              }
+            />
 
             {/* Error state */}
             {error && !isStreaming && (
