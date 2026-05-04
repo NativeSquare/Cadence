@@ -10,6 +10,7 @@ import { Text } from "@/components/ui/text";
 import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
 import { selectionFeedback } from "@/lib/haptics";
 import { getConvexErrorMessage } from "@/utils/getConvexErrorMessage";
+import { api } from "@packages/backend/convex/_generated/api";
 import { Ionicons } from "@expo/vector-icons";
 import { BottomSheetModal as GorhomBottomSheetModal } from "@gorhom/bottom-sheet";
 import type {
@@ -17,6 +18,7 @@ import type {
   GoalStatus,
   GoalType,
 } from "@nativesquare/agoge/schema";
+import { useQuery } from "convex/react";
 import React from "react";
 import {
   ActivityIndicator,
@@ -89,6 +91,7 @@ export type GoalFormValues = {
   targetDate?: string;
   rank?: GoalRank;
   status?: GoalStatus;
+  raceId?: string;
 };
 
 export type GoalFormInitial = GoalFormValues;
@@ -107,6 +110,7 @@ type FormState = {
   targetDate: string;
   rank: GoalRank | "";
   status: GoalStatus;
+  raceId: string;
   // performance / time
   hours: string;
   minutes: string;
@@ -134,6 +138,7 @@ function emptyForm(): FormState {
     targetDate: "",
     rank: "",
     status: "active",
+    raceId: "",
     hours: "",
     minutes: "",
     seconds: "",
@@ -155,6 +160,7 @@ function initialToForm(initial: GoalFormInitial): FormState {
   base.targetDate = initial.targetDate ?? "";
   base.rank = initial.rank ?? "";
   base.status = initial.status ?? "active";
+  base.raceId = initial.raceId ?? "";
 
   const v = initial.targetValue ?? "";
   if (initial.type === "performance") {
@@ -255,6 +261,7 @@ export function GoalForm({
   sheetRef,
   mode,
   initial,
+  raceLocked = false,
   onSubmit,
   onDelete,
   onDismiss,
@@ -262,6 +269,7 @@ export function GoalForm({
   sheetRef: React.RefObject<GorhomBottomSheetModal | null>;
   mode: "create" | "edit";
   initial?: GoalFormInitial;
+  raceLocked?: boolean;
   onSubmit: (values: GoalFormValues) => Promise<void>;
   onDelete?: () => Promise<void>;
   onDismiss?: () => void;
@@ -273,6 +281,18 @@ export function GoalForm({
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const deleteSheetRef = React.useRef<GorhomBottomSheetModal>(null);
+
+  const showRacePicker = !raceLocked && mode === "create";
+  const races = useQuery(
+    api.agoge.races.listMyRaces,
+    showRacePicker ? {} : "skip",
+  );
+  const linkedRace = useQuery(
+    api.agoge.races.getMyRace,
+    !raceLocked && mode === "edit" && initial?.raceId
+      ? { raceId: initial.raceId }
+      : "skip",
+  );
 
   React.useEffect(() => {
     setForm(initial ? initialToForm(initial) : emptyForm());
@@ -301,6 +321,7 @@ export function GoalForm({
         targetDate: form.targetDate || undefined,
         rank: form.rank || undefined,
         status: mode === "edit" ? form.status : undefined,
+        raceId: showRacePicker ? form.raceId || undefined : undefined,
       });
       sheetRef.current?.dismiss();
     } catch (err) {
@@ -349,6 +370,45 @@ export function GoalForm({
           </View>
 
           <FormSection title="Goal">
+            {showRacePicker && races && races.length > 0 && (
+              <FormField label="Race (optional)">
+                <RacePicker
+                  races={races}
+                  value={form.raceId}
+                  onChange={(v) => setForm((f) => ({ ...f, raceId: v }))}
+                />
+              </FormField>
+            )}
+
+            {!raceLocked && mode === "edit" && linkedRace && (
+              <View
+                className="flex-row items-center gap-2 rounded-xl border px-4 py-3"
+                style={{
+                  backgroundColor: LIGHT_THEME.w1,
+                  borderColor: LIGHT_THEME.wBrd,
+                }}
+              >
+                <Ionicons
+                  name="flag-outline"
+                  size={14}
+                  color={LIGHT_THEME.wSub}
+                />
+                <Text
+                  className="font-coach-medium text-[13px]"
+                  style={{ color: LIGHT_THEME.wSub }}
+                  numberOfLines={1}
+                >
+                  Linked to{" "}
+                  <Text
+                    className="font-coach-bold"
+                    style={{ color: LIGHT_THEME.wText }}
+                  >
+                    {linkedRace.name}
+                  </Text>
+                </Text>
+              </View>
+            )}
+
             <FormField label="Type">
               <PillSelect
                 options={GOAL_TYPES}
@@ -729,6 +789,70 @@ function PillSelect<T extends string>({
           Tap again to clear
         </Text>
       )}
+    </View>
+  );
+}
+
+type RaceOption = { _id: string; name: string; date: string };
+
+function RacePicker({
+  races,
+  value,
+  onChange,
+}: {
+  races: readonly RaceOption[];
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const sorted = React.useMemo(
+    () => [...races].sort((a, b) => b.date.localeCompare(a.date)),
+    [races],
+  );
+  return (
+    <View className="flex-row flex-wrap gap-2">
+      <Pressable
+        onPress={() => {
+          selectionFeedback();
+          onChange("");
+        }}
+        className="rounded-full border px-[18px] py-2.5 active:opacity-80"
+        style={{
+          backgroundColor: value === "" ? LIGHT_THEME.wText : LIGHT_THEME.w1,
+          borderColor: value === "" ? LIGHT_THEME.wText : LIGHT_THEME.wBrd,
+        }}
+      >
+        <Text
+          className="font-coach-semibold text-[14px]"
+          style={{ color: value === "" ? "#FFFFFF" : LIGHT_THEME.wText }}
+        >
+          None
+        </Text>
+      </Pressable>
+      {sorted.map((race) => {
+        const selected = value === race._id;
+        return (
+          <Pressable
+            key={race._id}
+            onPress={() => {
+              selectionFeedback();
+              onChange(race._id);
+            }}
+            className="rounded-full border px-[18px] py-2.5 active:opacity-80"
+            style={{
+              backgroundColor: selected ? LIGHT_THEME.wText : LIGHT_THEME.w1,
+              borderColor: selected ? LIGHT_THEME.wText : LIGHT_THEME.wBrd,
+            }}
+          >
+            <Text
+              className="font-coach-semibold text-[14px]"
+              style={{ color: selected ? "#FFFFFF" : LIGHT_THEME.wText }}
+              numberOfLines={1}
+            >
+              {race.name}
+            </Text>
+          </Pressable>
+        );
+      })}
     </View>
   );
 }

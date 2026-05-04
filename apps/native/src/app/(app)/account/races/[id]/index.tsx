@@ -1,4 +1,11 @@
 import {
+  GOAL_RANK_COLORS,
+  GOAL_RANK_LABELS,
+  GOAL_STATUS_COLORS,
+  GOAL_STATUS_LABELS,
+  GOAL_TYPE_LABELS,
+} from "@/components/app/account/goal-display";
+import {
   GoalForm,
   type GoalFormInitial,
   type GoalFormValues,
@@ -71,45 +78,6 @@ const SURFACE_LABELS: Record<string, string> = {
   technical_trail: "Technical trail",
   track: "Track",
   other: "Other",
-};
-
-const GOAL_TYPE_LABELS: Record<GoalType, string> = {
-  performance: "Performance",
-  completion: "Completion",
-  process: "Process",
-  volume: "Volume",
-  body: "Body",
-  other: "Other",
-};
-
-const GOAL_RANK_COLORS: Record<GoalRank, string> = {
-  primary: COLORS.lime,
-  stretch: COLORS.ora,
-  minimum: LIGHT_THEME.wMute,
-  process: COLORS.blu,
-};
-
-const GOAL_RANK_LABELS: Record<GoalRank, string> = {
-  primary: "Primary",
-  stretch: "Stretch",
-  minimum: "Minimum",
-  process: "Process",
-};
-
-const GOAL_STATUS_LABELS: Record<GoalStatus, string> = {
-  active: "Active",
-  achieved: "Achieved",
-  missed: "Missed",
-  abandoned: "Abandoned",
-  paused: "Paused",
-};
-
-const GOAL_STATUS_COLORS: Record<GoalStatus, string> = {
-  active: LIGHT_THEME.wMute,
-  achieved: COLORS.grn,
-  missed: COLORS.red,
-  abandoned: LIGHT_THEME.wMute,
-  paused: COLORS.ylw,
 };
 
 function formatDate(iso: string): string {
@@ -401,6 +369,7 @@ export default function RaceDetailScreen() {
         sheetRef={goalSheetRef}
         mode={editingGoal ? "edit" : "create"}
         initial={goalFormInitial}
+        raceLocked
         onSubmit={handleSubmitGoal}
         onDelete={editingGoal ? handleDeleteGoal : undefined}
         onDismiss={() => setEditingGoal(null)}

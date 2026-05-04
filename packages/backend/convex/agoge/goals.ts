@@ -1,10 +1,10 @@
 /**
- * Goal mutations/queries for race-attached goals.
+ * Goal mutations/queries.
  *
- * Goals live in the Agoge component and carry an optional `raceId`. Cadence
- * exposes them only as race-scoped objectives — created from, listed on, and
- * deleted with their parent race. Standalone (race-less) goals are not exposed
- * in the UI yet.
+ * Goals live in the Agoge component and carry an optional `raceId` — they may
+ * be standalone or attached to a race. Cadence exposes both shapes: the race
+ * detail screen lists race-attached goals, and the top-level Goals screen
+ * lists every goal the athlete owns.
  */
 
 import { goalsValidator } from "@nativesquare/agoge/schema";
@@ -15,8 +15,34 @@ import {
   assertAthlete,
   assertGoalOwnership,
   assertRaceOwnership,
+  loadAthlete,
   loadOwnedRace,
 } from "./helpers";
+
+const GOAL_STATUSES = [
+  "active",
+  "achieved",
+  "missed",
+  "abandoned",
+  "paused",
+] as const;
+
+export const listMyGoals = query({
+  args: {},
+  handler: async (ctx) => {
+    const auth = await loadAthlete(ctx);
+    if (!auth) return [];
+    const buckets = await Promise.all(
+      GOAL_STATUSES.map((status) =>
+        ctx.runQuery(components.agoge.public.getGoalsByAthleteAndStatus, {
+          athleteId: auth.athlete._id,
+          status,
+        }),
+      ),
+    );
+    return buckets.flat();
+  },
+});
 
 export const listGoalsForRace = query({
   args: { raceId: v.string() },

@@ -189,6 +189,11 @@ export default function Profile() {
                   onPress: () => router.push("/account/races"),
                 },
                 {
+                  label: "Goals",
+                  icon: "trophy-outline",
+                  onPress: () => router.push("/account/goals"),
+                },
+                {
                   label: "Zones",
                   icon: "pulse-outline",
                   onPress: () => router.push("/account/zones"),
