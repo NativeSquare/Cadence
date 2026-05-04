@@ -70,23 +70,30 @@ export interface WorkoutData {
 }
 
 /**
- * Primary race goal data for the countdown card
+ * Primary race goal data for the countdown card.
+ *
+ * Plan-derived fields (currentWeek/totalWeeks/phase/targetTime) are optional —
+ * they require a training plan and goal attached to the race. The card renders
+ * countdown + name/distance unconditionally and only adds the progress section
+ * when those fields are supplied.
  */
 export interface RaceGoalData {
   /** Display name for the race (e.g., "NYC Half Marathon") */
   raceName: string;
-  /** Race distance label (e.g., "Half Marathon", "Marathon") */
+  /** Race distance label (e.g., "21.1 km", "Marathon") */
   raceDistance: string;
   /** Race date as Unix timestamp in ms */
   raceDate: number;
+  /** Race priority; surfaced as a small pill on the card */
+  priority?: "A" | "B" | "C";
   /** Target finish time formatted (e.g., "1:45:00") */
   targetTime?: string;
   /** Current week number within the training plan */
-  currentWeek: number;
+  currentWeek?: number;
   /** Total weeks in the training plan */
-  totalWeeks: number;
+  totalWeeks?: number;
   /** Current training phase (e.g., "Build", "Peak", "Taper") */
-  phase: string;
+  phase?: string;
 }
 
 /**

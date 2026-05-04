@@ -8,6 +8,7 @@ import {
   assertAthlete,
   assertAthletePlan,
   assertFaceDatesAreUtc,
+  assertPlannedDateInBlock,
   assertPlannedDateNotAfterActual,
   assertPlannedFace,
   assertStructureSportMatchesWorkout,
@@ -106,6 +107,7 @@ export const createWorkout = mutation({
     assertFaceDatesAreUtc(args.planned, args.actual);
     assertPlannedDateNotAfterActual(args.planned, args.actual);
     assertActualDateNotInFuture(args.actual);
+    await assertPlannedDateInBlock(ctx, args.planned?.date, args.blockId);
 
     if (args.planned?.structure !== undefined) {
       const parsed = assertWorkoutStructure(args.planned.structure);
@@ -152,6 +154,7 @@ export const rescheduleWorkout = mutation({
     }
     assertUtcDate(date, "date");
     assertPlannedDateNotAfterActual({ date }, workout.actual);
+    await assertPlannedDateInBlock(ctx, date, workout.blockId);
 
     await ctx.runMutation(components.agoge.public.updateWorkout, {
       workoutId: workoutId,
@@ -167,11 +170,14 @@ export const rescheduleWorkout = mutation({
 
 export const updateWorkout = mutation({
   args: workoutsValidator
-    .omit("athleteId", "planId")
+    .omit("athleteId", "planId", "blockId")
     .partial()
-    .extend({ workoutId: v.string() }),
+    .extend({
+      workoutId: v.string(),
+      blockId: v.optional(v.union(v.id("blocks"), v.null())),
+    }),
   handler: async (ctx, args) => {
-    const { workoutId, ...rest } = args;
+    const { workoutId, blockId, ...rest } = args;
     const { userId, workout: existing } = await assertWorkoutOwnership(
       ctx,
       workoutId,
@@ -211,14 +217,22 @@ export const updateWorkout = mutation({
     const nextStatus = rest.status ?? existing.status;
     const nextPlanned = rest.planned ?? existing.planned;
     const nextActual = rest.actual ?? existing.actual;
+    const nextBlockId =
+      blockId === undefined
+        ? existing.blockId
+        : blockId === null
+          ? undefined
+          : blockId;
 
     assertPlannedFace(nextStatus, nextPlanned);
     assertActualFace(nextStatus, nextActual);
     assertPlannedDateNotAfterActual(nextPlanned, nextActual);
     assertActualDateNotInFuture(nextActual);
+    await assertPlannedDateInBlock(ctx, nextPlanned?.date, nextBlockId);
 
     await ctx.runMutation(components.agoge.public.updateWorkout, {
       ...rest,
+      ...(blockId !== undefined ? { blockId: nextBlockId } : {}),
       workoutId,
     });
     await ctx.scheduler.runAfter(
@@ -241,6 +255,8 @@ export const swapWorkouts = mutation({
     }
     assertPlannedDateNotAfterActual({ date: b.planned.date }, a.actual);
     assertPlannedDateNotAfterActual({ date: a.planned.date }, b.actual);
+    await assertPlannedDateInBlock(ctx, b.planned.date, a.blockId);
+    await assertPlannedDateInBlock(ctx, a.planned.date, b.blockId);
 
     await Promise.all([
       ctx.runMutation(components.agoge.public.updateWorkout, {

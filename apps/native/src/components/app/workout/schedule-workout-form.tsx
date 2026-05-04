@@ -1,4 +1,5 @@
 import { FormSection } from "@/components/app/form";
+import { WorkoutBlockField } from "@/components/app/workout/workout-block-field";
 import { WorkoutFaceFields } from "@/components/app/workout/workout-face-fields";
 import { WorkoutFormShell } from "@/components/app/workout/workout-form-shell";
 import {
@@ -17,6 +18,7 @@ import { selectionFeedback } from "@/lib/haptics";
 import { getConvexErrorMessage } from "@/utils/getConvexErrorMessage";
 import { type Workout as WorkoutStructure } from "@nativesquare/agoge";
 import type {
+  BlockDoc,
   WorkoutTemplateDoc,
   WorkoutType,
 } from "@nativesquare/agoge/schema";
@@ -31,6 +33,7 @@ const formSchema = z.object({
   name: z.string().trim().min(1, "Name is required"),
   description: z.string().optional(),
   type: z.custom<WorkoutType>(),
+  blockId: z.string().nullable().optional(),
   planned: workoutFaceSchema,
 });
 export type ScheduleWorkoutFormValues = z.infer<typeof formSchema>;
@@ -38,10 +41,12 @@ export type ScheduleWorkoutFormValues = z.infer<typeof formSchema>;
 export function ScheduleWorkoutForm({
   initialDate,
   templates,
+  blocks,
   onSubmit,
 }: {
   initialDate?: string;
   templates?: WorkoutTemplateDoc[];
+  blocks: BlockDoc[];
   onSubmit: (values: ScheduleWorkoutFormValues) => Promise<void>;
 }) {
   const router = useRouter();
@@ -54,6 +59,7 @@ export function ScheduleWorkoutForm({
       name: "",
       description: "",
       type: "easy" as WorkoutTypeOption,
+      blockId: null,
       planned: {
         date: initialDate ?? nowIso(),
         structure: EMPTY_STRUCTURE,
@@ -147,6 +153,7 @@ export function ScheduleWorkoutForm({
           onPickTemplate={handlePickTemplate}
           onClearTemplate={clearTemplateLink}
         />
+        <WorkoutBlockField control={form.control} blocks={blocks} />
       </FormSection>
 
       <FormSection title="Planned">

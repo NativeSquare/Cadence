@@ -159,8 +159,51 @@ export function buildWorkoutsByDate(
   return result;
 }
 
-export function buildRaceGoal(_workouts: AgogeWorkout[]): RaceGoalData | null {
-  return null;
+/**
+ * Subset of the agoge race doc we need to render the home-page countdown.
+ * Mirrors `api.agoge.races.listMyRaces[number]` without forcing this util to
+ * import the generated API types.
+ */
+export interface RaceLite {
+  name: string;
+  /** YYYY-MM-DD UTC ISO string (matches schema) */
+  date: string;
+  distanceMeters?: number;
+  priority: "A" | "B" | "C";
+  status: "upcoming" | "completed" | "dnf" | "dns" | "cancelled";
+}
+
+function formatRaceDistance(meters: number | undefined): string {
+  if (meters == null) return "Race";
+  if (meters >= 1000) {
+    const km = Math.round((meters / 1000) * 10) / 10;
+    return `${km} km`;
+  }
+  return `${meters} m`;
+}
+
+/**
+ * Pick the primary upcoming race for the home-page card.
+ *
+ * Preference: next A race by date. Falls back to next B race if no A is
+ * scheduled. C races and non-upcoming races are ignored — those belong on the
+ * dedicated races screen, not the home page.
+ */
+export function selectPrimaryRace(
+  races: readonly RaceLite[] | undefined,
+): RaceGoalData | null {
+  if (!races || races.length === 0) return null;
+  const upcoming = races.filter((r) => r.status === "upcoming");
+  const aRaces = upcoming.filter((r) => r.priority === "A");
+  const pool = aRaces.length > 0 ? aRaces : upcoming.filter((r) => r.priority === "B");
+  if (pool.length === 0) return null;
+  const next = [...pool].sort((a, b) => a.date.localeCompare(b.date))[0];
+  return {
+    raceName: next.name,
+    raceDistance: formatRaceDistance(next.distanceMeters),
+    raceDate: localDateFromIso(next.date).getTime(),
+    priority: next.priority,
+  };
 }
 
 function isoWeekStart(d: Date): Date {

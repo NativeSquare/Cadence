@@ -1,112 +1,134 @@
+/**
+ * QuickActions - Two primary buttons under the home page card stack.
+ *
+ * - Schedule a workout → opens the schedule form prefilled with the selected
+ *   day on the calendar strip.
+ * - Log a workout      → opens the log form prefilled with the selected day.
+ *
+ * Workout-type selection (easy / specific / long / race) lives inside each
+ * form, not on the home page.
+ */
+
 import { View, Pressable } from "react-native";
+import Svg, { Path } from "react-native-svg";
 import { Text } from "@/components/ui/text";
-import {
-  WORKOUT_CATEGORY_COLORS,
-  LIGHT_THEME,
-  type WorkoutCategory,
-} from "@/lib/design-tokens";
+import { LIGHT_THEME } from "@/lib/design-tokens";
 
-const WORKOUT_TILES: {
-  category: WorkoutCategory;
-  label: string;
-  description: string;
-}[] = [
-  { category: "easy", label: "Easy", description: "Recovery / Z2" },
-  { category: "specific", label: "Specific", description: "Tempo / Intervals" },
-  { category: "long", label: "Long Run", description: "Endurance" },
-  { category: "race", label: "Race", description: "Race day" },
-];
-
-interface LogRunSectionProps {
-  onSelectType: (category: WorkoutCategory) => void;
+interface QuickActionsProps {
+  selectedDateIso: string;
+  onSchedule: (dateIso: string) => void;
+  onLog: (dateIso: string) => void;
 }
 
-function WorkoutTile({
-  category,
+function PlusIcon({ color }: { color: string }) {
+  return (
+    <Svg width={16} height={16} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M12 5V19M5 12H19"
+        stroke={color}
+        strokeWidth={2.5}
+        strokeLinecap="round"
+      />
+    </Svg>
+  );
+}
+
+function CheckIcon({ color }: { color: string }) {
+  return (
+    <Svg width={16} height={16} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M4 12.5L9.5 18L20 6"
+        stroke={color}
+        strokeWidth={2.5}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+function ActionButton({
   label,
   description,
+  icon,
   onPress,
+  variant,
 }: {
-  category: WorkoutCategory;
   label: string;
   description: string;
+  icon: React.ReactNode;
   onPress: () => void;
+  variant: "primary" | "secondary";
 }) {
-  const color = WORKOUT_CATEGORY_COLORS[category];
+  const isPrimary = variant === "primary";
+  const bg = isPrimary ? LIGHT_THEME.wText : LIGHT_THEME.w1;
+  const labelColor = isPrimary ? "#FFFFFF" : LIGHT_THEME.wText;
+  const descColor = isPrimary
+    ? "rgba(255,255,255,0.65)"
+    : LIGHT_THEME.wSub;
 
   return (
     <Pressable
+      onPress={onPress}
       className="flex-1 rounded-2xl px-4 py-3.5 active:scale-[0.97]"
       style={{
-        backgroundColor: LIGHT_THEME.w1,
-        borderWidth: 1,
+        backgroundColor: bg,
+        borderWidth: isPrimary ? 0 : 1,
         borderColor: "rgba(0,0,0,0.12)",
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.12,
-        shadowRadius: 16,
+        shadowOpacity: isPrimary ? 0.18 : 0.08,
+        shadowRadius: 14,
         elevation: 4,
       }}
-      onPress={onPress}
     >
       <View className="flex-row items-center gap-2 mb-1">
-        <View
-          style={{
-            width: 8,
-            height: 8,
-            borderRadius: 4,
-            backgroundColor: color,
-          }}
-        />
-        <Text className="text-[15px] font-coach-semibold text-wText">
+        {icon}
+        <Text
+          className="text-[15px] font-coach-semibold"
+          style={{ color: labelColor }}
+        >
           {label}
         </Text>
       </View>
-      <Text className="text-[12px] font-coach text-wSub ml-[18px]">
+      <Text
+        className="text-[12px] font-coach ml-[24px]"
+        style={{ color: descColor }}
+      >
         {description}
       </Text>
     </Pressable>
   );
 }
 
-export function LogRunSection({ onSelectType }: LogRunSectionProps) {
+export function QuickActions({
+  selectedDateIso,
+  onSchedule,
+  onLog,
+}: QuickActionsProps) {
   return (
     <View>
       <Text
         className="text-[11px] font-coach-semibold text-wMute px-1 mb-2.5 uppercase"
         style={{ letterSpacing: 0.05 * 11 }}
       >
-        Log a Run
+        Quick Actions
       </Text>
-      <View className="gap-2.5">
-        <View className="flex-row gap-2.5">
-          <WorkoutTile
-            category={WORKOUT_TILES[0].category}
-            label={WORKOUT_TILES[0].label}
-            description={WORKOUT_TILES[0].description}
-            onPress={() => onSelectType(WORKOUT_TILES[0].category)}
-          />
-          <WorkoutTile
-            category={WORKOUT_TILES[1].category}
-            label={WORKOUT_TILES[1].label}
-            description={WORKOUT_TILES[1].description}
-            onPress={() => onSelectType(WORKOUT_TILES[1].category)}
-          />
-        </View>
-        <View className="flex-row gap-2.5">
-          <WorkoutTile
-            category={WORKOUT_TILES[2].category}
-            label={WORKOUT_TILES[2].label}
-            description={WORKOUT_TILES[2].description}
-            onPress={() => onSelectType(WORKOUT_TILES[2].category)}
-          />
-          <WorkoutTile
-            category={WORKOUT_TILES[3].category}
-            label={WORKOUT_TILES[3].label}
-            description={WORKOUT_TILES[3].description}
-            onPress={() => onSelectType(WORKOUT_TILES[3].category)}
-          />
-        </View>
+      <View className="flex-row gap-2.5">
+        <ActionButton
+          label="Schedule"
+          description="Plan a workout"
+          icon={<PlusIcon color="#FFFFFF" />}
+          variant="primary"
+          onPress={() => onSchedule(selectedDateIso)}
+        />
+        <ActionButton
+          label="Log"
+          description="Record a run"
+          icon={<CheckIcon color={LIGHT_THEME.wText} />}
+          variant="secondary"
+          onPress={() => onLog(selectedDateIso)}
+        />
       </View>
     </View>
   );

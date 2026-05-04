@@ -27,14 +27,14 @@ import { api } from "@packages/backend/convex/_generated/api";
 import { DateHeader } from "./DateHeader";
 import { CalendarStrip } from "./CalendarStrip";
 import { TodayCard } from "./TodayCard";
-import { RaceCountdown } from "./RaceCountdown";
+import { RaceCountdown, EmptyRaceCard } from "./RaceCountdown";
 import { WeekInsights } from "./WeekInsights";
-import { LogRunSection } from "./QuickActions";
+import { QuickActions } from "./QuickActions";
 import { ExportToProviderSheet } from "./ExportToProviderSheet";
 import { LIGHT_THEME } from "@/lib/design-tokens";
 import {
   buildWorkoutsByDate,
-  buildRaceGoal,
+  selectPrimaryRace,
   computeWeekInsights,
 } from "./utils";
 import type { WorkoutData } from "./types";
@@ -99,6 +99,7 @@ export function PlanScreen() {
 
   const workouts = useQuery(api.agoge.workouts.listWorkouts, workoutRange);
   const activePlan = useQuery(api.agoge.plans.getAthletePlan);
+  const races = useQuery(api.agoge.races.listMyRaces);
 
   const workoutsByDate = useMemo(
     () => (workouts ? buildWorkoutsByDate(workouts, today) : {}),
@@ -120,10 +121,7 @@ export function PlanScreen() {
     [workouts, today]
   );
 
-  const raceGoal = useMemo(
-    () => (workouts ? buildRaceGoal(workouts) : null),
-    [workouts]
-  );
+  const raceGoal = useMemo(() => selectPrimaryRace(races), [races]);
 
   const weekNumber = activePlan ? computeWeekNumber(activePlan.startDate, today) : 0;
   const coachMessage = "Your coach is preparing your plan...";
@@ -294,25 +292,33 @@ export function PlanScreen() {
             </View>
           )}
 
-          {/* Primary Race Countdown */}
-          {raceGoal && (
-            <View className="px-4 mt-5">
-              <RaceCountdown race={raceGoal} />
-            </View>
-          )}
-
-          {/* Log a Run */}
+          {/* Primary Race Countdown (or empty state) */}
           <View className="px-4 mt-5">
-            <LogRunSection
-              onSelectType={(category) => {
+            {raceGoal ? (
+              <RaceCountdown race={raceGoal} />
+            ) : (
+              <EmptyRaceCard
+                onAddPress={() => router.push("/(app)/account/races/new")}
+              />
+            )}
+          </View>
+
+          {/* Quick Actions: Schedule + Log */}
+          <View className="px-4 mt-5">
+            <QuickActions
+              selectedDateIso={toIsoDate(selectedDate)}
+              onSchedule={(dateIso) =>
+                router.push({
+                  pathname: "/(app)/workouts/schedule",
+                  params: { date: dateIso },
+                })
+              }
+              onLog={(dateIso) =>
                 router.push({
                   pathname: "/(app)/workouts/log",
-                  params: {
-                    type: category,
-                    date: toIsoDate(selectedDate),
-                  },
-                });
-              }}
+                  params: { date: dateIso },
+                })
+              }
             />
           </View>
         </View>

@@ -92,6 +92,23 @@ export function assertPlannedDateNotAfterActual(
   }
 }
 
+export async function assertPlannedDateInBlock(
+  ctx: QueryCtx | MutationCtx,
+  plannedDate: string | undefined,
+  blockId: string | null | undefined,
+) {
+  if (!blockId || !plannedDate) return;
+  const block = await ctx.runQuery(components.agoge.public.getBlock, {
+    blockId,
+  });
+  if (!block) throw new Error("Block not found");
+  if (plannedDate < block.startDate || plannedDate > block.endDate) {
+    throw new Error(
+      `planned.date (${plannedDate}) must fall within the selected block "${block.name}" (${block.startDate} → ${block.endDate})`,
+    );
+  }
+}
+
 const CLOCK_SKEW_TOLERANCE_MS = 60_000;
 
 export function assertActualDateNotInFuture(

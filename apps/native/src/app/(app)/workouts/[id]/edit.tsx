@@ -5,6 +5,7 @@ import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import type { WorkoutDoc } from "@nativesquare/agoge/schema";
 import { api } from "@packages/backend/convex/_generated/api";
 import { useMutation, useQuery } from "convex/react";
+import type { GenericId } from "convex/values";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ActivityIndicator, Pressable, View } from "react-native";
 
@@ -23,6 +24,7 @@ function EditWorkoutContent() {
     api.agoge.workouts.getWorkout,
     id ? { workoutId: id } : "skip",
   );
+  const blocks = useQuery(api.agoge.blocks.listBlocksForActiveAthletePlan);
   const updateWorkout = useMutation(api.agoge.workouts.updateWorkout);
   const deleteWorkout = useMutation(api.agoge.workouts.deleteWorkout);
 
@@ -70,12 +72,14 @@ function EditWorkoutContent() {
   return (
     <ModifyWorkoutForm
       workout={workout as unknown as WorkoutDoc}
+      blocks={blocks ?? []}
       onSubmit={async (values) => {
         await updateWorkout({
           workoutId: workout._id,
           name: values.name,
           description: values.description?.trim() || undefined,
           status: values.status,
+          blockId: values.blockId as GenericId<"blocks"> | null,
           planned: values.planned,
           actual: values.actual,
         });

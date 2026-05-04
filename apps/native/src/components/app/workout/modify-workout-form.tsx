@@ -1,4 +1,5 @@
 import { FormSection } from "@/components/app/form";
+import { WorkoutBlockField } from "@/components/app/workout/workout-block-field";
 import { WorkoutFaceFields } from "@/components/app/workout/workout-face-fields";
 import { WorkoutFormShell } from "@/components/app/workout/workout-form-shell";
 import { EMPTY_STRUCTURE } from "@/components/app/workout/workout-helpers";
@@ -13,6 +14,7 @@ import {
 import { getConvexErrorMessage } from "@/utils/getConvexErrorMessage";
 import { type Workout as WorkoutStructure } from "@nativesquare/agoge";
 import type {
+  BlockDoc,
   WorkoutDoc,
   WorkoutStatus,
 } from "@nativesquare/agoge/schema";
@@ -26,6 +28,7 @@ import { z } from "zod";
 const formSchema = z.object({
   name: z.string().trim().min(1, "Name is required"),
   description: z.string().optional(),
+  blockId: z.string().nullable().optional(),
   planned: workoutFaceSchema,
   actual: workoutFaceSchema,
 });
@@ -35,6 +38,7 @@ export type ModifyWorkoutFormValues = {
   name: string;
   description?: string;
   status: WorkoutStatus;
+  blockId: string | null;
   planned?: ModifyWorkoutFormShape["planned"];
   actual?: ModifyWorkoutFormShape["actual"];
 };
@@ -74,10 +78,12 @@ function inferNextStatus(
 
 export function ModifyWorkoutForm({
   workout,
+  blocks,
   onSubmit,
   onDelete,
 }: {
   workout: WorkoutDoc;
+  blocks: BlockDoc[];
   onSubmit: (values: ModifyWorkoutFormValues) => Promise<void>;
   onDelete?: () => Promise<void>;
 }) {
@@ -91,6 +97,7 @@ export function ModifyWorkoutForm({
     defaultValues: {
       name: workout.name,
       description: workout.description ?? "",
+      blockId: workout.blockId ?? null,
       planned: faceFromExisting(workout.planned, fallbackDate),
       actual: faceFromExisting(workout.actual, fallbackDate),
     },
@@ -151,6 +158,7 @@ export function ModifyWorkoutForm({
           name: data.name,
           description: data.description,
           status: nextStatus,
+          blockId: data.blockId ?? null,
           planned: plannedFilled ? data.planned : undefined,
           actual: actualFilled ? data.actual : undefined,
         });
@@ -185,6 +193,7 @@ export function ModifyWorkoutForm({
           onClearTemplate={() => {}}
           hideType
         />
+        <WorkoutBlockField control={form.control} blocks={blocks} />
       </FormSection>
 
       <FormSection title="Planned">

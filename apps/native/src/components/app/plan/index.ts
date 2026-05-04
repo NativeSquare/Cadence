@@ -9,9 +9,9 @@ export { PlanScreen } from "./PlanScreen";
 export { DateHeader } from "./DateHeader";
 export { CalendarStrip } from "./CalendarStrip";
 export { TodayCard } from "./TodayCard";
-export { RaceCountdown } from "./RaceCountdown";
+export { RaceCountdown, EmptyRaceCard } from "./RaceCountdown";
 export { WeekInsights } from "./WeekInsights";
-export { LogRunSection } from "./QuickActions";
+export { QuickActions } from "./QuickActions";
 
 // Types
 export type { WorkoutData, PlanData, RaceGoalData, WorkoutIntensity } from "./types";
