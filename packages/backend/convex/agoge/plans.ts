@@ -5,9 +5,29 @@
  */
 
 import { plansValidator } from "@nativesquare/agoge/schema";
+import { ConvexError } from "convex/values";
 import { components } from "../_generated/api";
-import { mutation, query } from "../_generated/server";
-import { assertAthlete, assertPlanDateRange, loadAthlete } from "./helpers";
+import {
+  type MutationCtx,
+  mutation,
+  query,
+  type QueryCtx,
+} from "../_generated/server";
+import {
+  fail,
+  loadAthlete,
+  push,
+  requireAuthError,
+  result,
+  validatePlanDateRange,
+  type ValidationError,
+  type ValidationResult,
+  validationResultValidator,
+} from "./helpers";
+
+// ---------------------------------------------------------------------------
+// Reads
+// ---------------------------------------------------------------------------
 
 export const getAthletePlan = query({
   args: {},
@@ -22,14 +42,59 @@ export const getAthletePlan = query({
   },
 });
 
+// ---------------------------------------------------------------------------
+// Validators
+// ---------------------------------------------------------------------------
+
+const createPlanArgs = plansValidator.omit("athleteId");
+
+async function checkCreatePlan(
+  ctx: QueryCtx | MutationCtx,
+  args: typeof createPlanArgs.type,
+): Promise<ValidationResult> {
+  const auth = await loadAthlete(ctx);
+  if (!auth) return fail([requireAuthError]);
+  const errors: ValidationError[] = [];
+  push(errors, validatePlanDateRange(args.startDate, args.endDate));
+  return result(errors);
+}
+
+// ---------------------------------------------------------------------------
+// Validate query
+// ---------------------------------------------------------------------------
+
+export const validateCreate = query({
+  args: createPlanArgs.fields,
+  returns: validationResultValidator,
+  handler: (ctx, args) => checkCreatePlan(ctx, args),
+});
+
+// ---------------------------------------------------------------------------
+// Mutations
+// ---------------------------------------------------------------------------
+
+function throwIfInvalid(validation: ValidationResult): void {
+  if (!validation.ok) {
+    throw new ConvexError({
+      code: "VALIDATION_FAILED",
+      errors: validation.errors,
+    });
+  }
+}
+
 export const createPlan = mutation({
-  args: plansValidator.omit("athleteId"),
+  args: createPlanArgs.fields,
   handler: async (ctx, args): Promise<string> => {
-    const { athlete } = await assertAthlete(ctx);
-    assertPlanDateRange(args.startDate, args.endDate);
+    throwIfInvalid(await checkCreatePlan(ctx, args));
+    const auth = await loadAthlete(ctx);
+    if (!auth)
+      throw new ConvexError({
+        code: "VALIDATION_FAILED",
+        errors: [requireAuthError],
+      });
     return await ctx.runMutation(components.agoge.public.createPlan, {
       ...args,
-      athleteId: athlete._id,
+      athleteId: auth.athlete._id,
     });
   },
 });

@@ -1,15 +1,30 @@
 import { zonesValidator } from "@nativesquare/agoge/schema";
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { components } from "../_generated/api";
-import { mutation, query } from "../_generated/server";
 import {
-  assertAthlete,
-  assertZoneBoundariesExtremes,
-  assertZoneBoundariesLength,
-  assertZoneBoundariesOrder,
-  assertZoneOwnership,
+  type MutationCtx,
+  mutation,
+  query,
+  type QueryCtx,
+} from "../_generated/server";
+import {
+  fail,
   loadAthlete,
+  loadOwnedZone,
+  push,
+  requireAuthError,
+  result,
+  validateZoneBoundariesExtremes,
+  validateZoneBoundariesLength,
+  validateZoneBoundariesOrder,
+  type ValidationError,
+  type ValidationResult,
+  validationResultValidator,
 } from "./helpers";
+
+// ---------------------------------------------------------------------------
+// Reads
+// ---------------------------------------------------------------------------
 
 export const listAthleteZones = query({
   args: {},
@@ -30,35 +45,97 @@ export const listAthleteZones = query({
   },
 });
 
+// ---------------------------------------------------------------------------
+// Validators
+// ---------------------------------------------------------------------------
+
+const createZoneArgs = zonesValidator.omit("athleteId", "sport");
+
+async function checkCreateZone(
+  ctx: QueryCtx | MutationCtx,
+  args: typeof createZoneArgs.type,
+): Promise<ValidationResult> {
+  const auth = await loadAthlete(ctx);
+  if (!auth) return fail([requireAuthError]);
+  const errors: ValidationError[] = [];
+  push(errors, validateZoneBoundariesLength(args.boundaries));
+  push(errors, validateZoneBoundariesExtremes(args.boundaries));
+  push(errors, validateZoneBoundariesOrder(args.boundaries));
+  return result(errors);
+}
+
+const updateZoneArgs = zonesValidator
+  .omit("athleteId", "sport")
+  .partial()
+  .extend({ zoneId: v.string() });
+
+async function checkUpdateZone(
+  ctx: QueryCtx | MutationCtx,
+  args: typeof updateZoneArgs.type,
+): Promise<ValidationResult> {
+  const owned = await loadOwnedZone(ctx, args.zoneId);
+  if (!owned) return fail([requireAuthError]);
+  const errors: ValidationError[] = [];
+  if (args.boundaries !== undefined) {
+    push(errors, validateZoneBoundariesLength(args.boundaries));
+    push(errors, validateZoneBoundariesExtremes(args.boundaries));
+    push(errors, validateZoneBoundariesOrder(args.boundaries));
+  }
+  return result(errors);
+}
+
+// ---------------------------------------------------------------------------
+// Validate queries
+// ---------------------------------------------------------------------------
+
+export const validateCreate = query({
+  args: createZoneArgs.fields,
+  returns: validationResultValidator,
+  handler: (ctx, args) => checkCreateZone(ctx, args),
+});
+
+export const validateUpdate = query({
+  args: updateZoneArgs.fields,
+  returns: validationResultValidator,
+  handler: (ctx, args) => checkUpdateZone(ctx, args),
+});
+
+// ---------------------------------------------------------------------------
+// Mutations
+// ---------------------------------------------------------------------------
+
+function throwIfInvalid(validation: ValidationResult): void {
+  if (!validation.ok) {
+    throw new ConvexError({
+      code: "VALIDATION_FAILED",
+      errors: validation.errors,
+    });
+  }
+}
+
 export const createZone = mutation({
-  args: zonesValidator.omit("athleteId", "sport"),
+  args: createZoneArgs.fields,
   handler: async (ctx, args) => {
-    const { athlete } = await assertAthlete(ctx);
-    assertZoneBoundariesLength(args.boundaries);
-    assertZoneBoundariesExtremes(args.boundaries);
-    assertZoneBoundariesOrder(args.boundaries);
+    throwIfInvalid(await checkCreateZone(ctx, args));
+    const auth = await loadAthlete(ctx);
+    if (!auth)
+      throw new ConvexError({
+        code: "VALIDATION_FAILED",
+        errors: [requireAuthError],
+      });
     return await ctx.runMutation(components.agoge.public.createZone, {
       ...args,
-      athleteId: athlete._id,
+      athleteId: auth.athlete._id,
       sport: "run",
     });
   },
 });
 
 export const updateZone = mutation({
-  args: zonesValidator
-    .omit("athleteId", "sport")
-    .partial()
-    .extend({ zoneId: v.string() }),
+  args: updateZoneArgs.fields,
   handler: async (ctx, args) => {
+    throwIfInvalid(await checkUpdateZone(ctx, args));
     const { zoneId, ...patch } = args;
-    const { athlete } = await assertAthlete(ctx);
-    await assertZoneOwnership(ctx, zoneId, athlete._id);
-    if (patch.boundaries !== undefined) {
-      assertZoneBoundariesLength(patch.boundaries);
-      assertZoneBoundariesExtremes(patch.boundaries);
-      assertZoneBoundariesOrder(patch.boundaries);
-    }
     await ctx.runMutation(components.agoge.public.updateZone, {
       zoneId,
       ...patch,
@@ -70,8 +147,12 @@ export const updateZone = mutation({
 export const deleteZone = mutation({
   args: { zoneId: v.string() },
   handler: async (ctx, { zoneId }) => {
-    const { athlete } = await assertAthlete(ctx);
-    await assertZoneOwnership(ctx, zoneId, athlete._id);
+    const owned = await loadOwnedZone(ctx, zoneId);
+    if (!owned)
+      throw new ConvexError({
+        code: "VALIDATION_FAILED",
+        errors: [requireAuthError],
+      });
     await ctx.runMutation(components.agoge.public.deleteZone, { zoneId });
     return null;
   },

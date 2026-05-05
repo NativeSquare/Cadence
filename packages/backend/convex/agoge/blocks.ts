@@ -4,19 +4,34 @@
  */
 
 import { blocksValidator } from "@nativesquare/agoge/schema";
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { components } from "../_generated/api";
-import { mutation, query } from "../_generated/server";
 import {
-  assertAthlete,
-  assertAthletePlan,
-  assertBlockDateRange,
-  assertBlockOwnership,
-  assertBlockWithinPlan,
-  assertNoBlockOverlap,
+  type MutationCtx,
+  mutation,
+  query,
+  type QueryCtx,
+} from "../_generated/server";
+import {
+  fail,
+  loadActiveAthletePlan,
   loadAthlete,
   loadOwnedBlock,
+  noActivePlanError,
+  push,
+  requireAuthError,
+  result,
+  validateBlockDateRange,
+  validateBlockWithinPlan,
+  validateNoBlockOverlap,
+  type ValidationError,
+  type ValidationResult,
+  validationResultValidator,
 } from "./helpers";
+
+// ---------------------------------------------------------------------------
+// Reads
+// ---------------------------------------------------------------------------
 
 export const listBlocks = query({
   args: { planId: v.string() },
@@ -52,14 +67,110 @@ export const getBlock = query({
   },
 });
 
+// ---------------------------------------------------------------------------
+// Validators
+// ---------------------------------------------------------------------------
+
+const createBlockArgs = blocksValidator.omit("planId");
+
+async function checkCreateBlock(
+  ctx: QueryCtx | MutationCtx,
+  args: typeof createBlockArgs.type,
+): Promise<ValidationResult> {
+  const auth = await loadAthlete(ctx);
+  if (!auth) return fail([requireAuthError]);
+  const plan = await loadActiveAthletePlan(ctx, auth.athlete._id);
+  if (!plan) return fail([noActivePlanError]);
+
+  const errors: ValidationError[] = [];
+  push(errors, validateBlockDateRange(args.startDate, args.endDate));
+  push(errors, validateBlockWithinPlan(args, plan));
+  push(errors, await validateNoBlockOverlap(ctx, plan._id, args));
+  return result(errors);
+}
+
+const updateBlockArgs = blocksValidator
+  .omit("planId")
+  .partial()
+  .extend({ blockId: v.string() });
+
+async function checkUpdateBlock(
+  ctx: QueryCtx | MutationCtx,
+  args: typeof updateBlockArgs.type,
+): Promise<ValidationResult> {
+  const { blockId, ...patch } = args;
+  const owned = await loadOwnedBlock(ctx, blockId);
+  if (!owned) return fail([requireAuthError]);
+  const { block, plan } = owned;
+
+  const nextStart = patch.startDate ?? block.startDate;
+  const nextEnd = patch.endDate ?? block.endDate;
+
+  const errors: ValidationError[] = [];
+  push(errors, validateBlockDateRange(nextStart, nextEnd));
+  push(
+    errors,
+    validateBlockWithinPlan({ startDate: nextStart, endDate: nextEnd }, plan),
+  );
+  push(
+    errors,
+    await validateNoBlockOverlap(
+      ctx,
+      plan._id,
+      { startDate: nextStart, endDate: nextEnd },
+      { excludeBlockId: block._id },
+    ),
+  );
+  return result(errors);
+}
+
+// ---------------------------------------------------------------------------
+// Validate queries (AI-tool-callable dry-runs)
+// ---------------------------------------------------------------------------
+
+export const validateCreate = query({
+  args: createBlockArgs.fields,
+  returns: validationResultValidator,
+  handler: (ctx, args) => checkCreateBlock(ctx, args),
+});
+
+export const validateUpdate = query({
+  args: updateBlockArgs.fields,
+  returns: validationResultValidator,
+  handler: (ctx, args) => checkUpdateBlock(ctx, args),
+});
+
+// ---------------------------------------------------------------------------
+// Mutations
+// ---------------------------------------------------------------------------
+
+function throwIfInvalid(validation: ValidationResult): void {
+  if (!validation.ok) {
+    throw new ConvexError({
+      code: "VALIDATION_FAILED",
+      errors: validation.errors,
+    });
+  }
+}
+
 export const createBlock = mutation({
-  args: blocksValidator.omit("planId"),
+  args: createBlockArgs.fields,
   handler: async (ctx, args) => {
-    const { athlete } = await assertAthlete(ctx);
-    const plan = await assertAthletePlan(ctx, athlete._id);
-    assertBlockDateRange(args.startDate, args.endDate);
-    assertBlockWithinPlan(args, plan);
-    await assertNoBlockOverlap(ctx, plan._id, args);
+    throwIfInvalid(await checkCreateBlock(ctx, args));
+
+    const auth = await loadAthlete(ctx);
+    if (!auth)
+      throw new ConvexError({
+        code: "VALIDATION_FAILED",
+        errors: [requireAuthError],
+      });
+    const plan = await loadActiveAthletePlan(ctx, auth.athlete._id);
+    if (!plan)
+      throw new ConvexError({
+        code: "VALIDATION_FAILED",
+        errors: [noActivePlanError],
+      });
+
     return await ctx.runMutation(components.agoge.public.createBlock, {
       ...args,
       planId: plan._id,
@@ -68,25 +179,20 @@ export const createBlock = mutation({
 });
 
 export const updateBlock = mutation({
-  args: blocksValidator
-    .omit("planId")
-    .partial()
-    .extend({ blockId: v.string() }),
+  args: updateBlockArgs.fields,
   handler: async (ctx, args) => {
+    throwIfInvalid(await checkUpdateBlock(ctx, args));
+
     const { blockId, ...patch } = args;
-    const { block, plan } = await assertBlockOwnership(ctx, blockId);
-    const nextStart = patch.startDate ?? block.startDate;
-    const nextEnd = patch.endDate ?? block.endDate;
-    assertBlockDateRange(nextStart, nextEnd);
-    assertBlockWithinPlan({ startDate: nextStart, endDate: nextEnd }, plan);
-    await assertNoBlockOverlap(
-      ctx,
-      plan._id,
-      { startDate: nextStart, endDate: nextEnd },
-      { excludeBlockId: block._id },
-    );
+    const owned = await loadOwnedBlock(ctx, blockId);
+    if (!owned)
+      throw new ConvexError({
+        code: "VALIDATION_FAILED",
+        errors: [requireAuthError],
+      });
+
     await ctx.runMutation(components.agoge.public.updateBlock, {
-      blockId: block._id,
+      blockId: owned.block._id,
       ...patch,
     });
     return null;
@@ -96,9 +202,14 @@ export const updateBlock = mutation({
 export const deleteBlock = mutation({
   args: { blockId: v.string() },
   handler: async (ctx, { blockId }) => {
-    const { block } = await assertBlockOwnership(ctx, blockId);
+    const owned = await loadOwnedBlock(ctx, blockId);
+    if (!owned)
+      throw new ConvexError({
+        code: "VALIDATION_FAILED",
+        errors: [requireAuthError],
+      });
     await ctx.runMutation(components.agoge.public.deleteBlock, {
-      blockId: block._id,
+      blockId: owned.block._id,
     });
     return null;
   },

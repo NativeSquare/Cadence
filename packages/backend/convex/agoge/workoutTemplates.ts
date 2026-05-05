@@ -1,14 +1,29 @@
 import { workoutTemplatesValidator } from "@nativesquare/agoge/schema";
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { components } from "../_generated/api";
-import { mutation, query } from "../_generated/server";
 import {
-  assertAthlete,
-  assertWorkoutStructure,
-  assertWorkoutTemplateOwnership,
+  type MutationCtx,
+  mutation,
+  query,
+  type QueryCtx,
+} from "../_generated/server";
+import {
+  fail,
   loadAthlete,
   loadOwnedWorkoutTemplate,
+  push,
+  requireAuthError,
+  result,
+  validateWorkoutStructure,
+  validateWorkoutTemplateOwnership,
+  type ValidationError,
+  type ValidationResult,
+  validationResultValidator,
 } from "./helpers";
+
+// ---------------------------------------------------------------------------
+// Reads
+// ---------------------------------------------------------------------------
 
 export const listMyWorkoutTemplates = query({
   args: {},
@@ -30,17 +45,96 @@ export const getMyWorkoutTemplate = query({
   },
 });
 
+// ---------------------------------------------------------------------------
+// Validators
+// ---------------------------------------------------------------------------
+
+const createWorkoutTemplateArgs = workoutTemplatesValidator.omit(
+  "athleteId",
+  "sport",
+);
+
+async function checkCreateWorkoutTemplate(
+  ctx: QueryCtx | MutationCtx,
+  args: typeof createWorkoutTemplateArgs.type,
+): Promise<ValidationResult> {
+  const auth = await loadAthlete(ctx);
+  if (!auth) return fail([requireAuthError]);
+  const errors: ValidationError[] = [];
+  const r = validateWorkoutStructure(args.content.structure);
+  if (!r.ok) push(errors, r.error);
+  return result(errors);
+}
+
+const updateWorkoutTemplateArgs = workoutTemplatesValidator
+  .omit("athleteId", "sport")
+  .partial()
+  .extend({ templateId: v.string() });
+
+async function checkUpdateWorkoutTemplate(
+  ctx: QueryCtx | MutationCtx,
+  args: typeof updateWorkoutTemplateArgs.type,
+): Promise<ValidationResult> {
+  const auth = await loadAthlete(ctx);
+  if (!auth) return fail([requireAuthError]);
+  const ownership = await validateWorkoutTemplateOwnership(
+    ctx,
+    args.templateId,
+    auth.athlete._id,
+  );
+  if (ownership) return fail([ownership]);
+  const errors: ValidationError[] = [];
+  if (args.content?.structure !== undefined) {
+    const r = validateWorkoutStructure(args.content.structure);
+    if (!r.ok) push(errors, r.error);
+  }
+  return result(errors);
+}
+
+// ---------------------------------------------------------------------------
+// Validate queries
+// ---------------------------------------------------------------------------
+
+export const validateCreate = query({
+  args: createWorkoutTemplateArgs.fields,
+  returns: validationResultValidator,
+  handler: (ctx, args) => checkCreateWorkoutTemplate(ctx, args),
+});
+
+export const validateUpdate = query({
+  args: updateWorkoutTemplateArgs.fields,
+  returns: validationResultValidator,
+  handler: (ctx, args) => checkUpdateWorkoutTemplate(ctx, args),
+});
+
+// ---------------------------------------------------------------------------
+// Mutations
+// ---------------------------------------------------------------------------
+
+function throwIfInvalid(validation: ValidationResult): void {
+  if (!validation.ok) {
+    throw new ConvexError({
+      code: "VALIDATION_FAILED",
+      errors: validation.errors,
+    });
+  }
+}
+
 export const createWorkoutTemplate = mutation({
-  args: workoutTemplatesValidator
-    .omit("athleteId", "sport"),
+  args: createWorkoutTemplateArgs.fields,
   handler: async (ctx, args) => {
-    const { athlete } = await assertAthlete(ctx);
-    assertWorkoutStructure(args.content.structure)
+    throwIfInvalid(await checkCreateWorkoutTemplate(ctx, args));
+    const auth = await loadAthlete(ctx);
+    if (!auth)
+      throw new ConvexError({
+        code: "VALIDATION_FAILED",
+        errors: [requireAuthError],
+      });
     return await ctx.runMutation(
       components.agoge.public.createWorkoutTemplate,
       {
         ...args,
-        athleteId: athlete._id,
+        athleteId: auth.athlete._id,
         sport: "run",
       },
     );
@@ -48,19 +142,10 @@ export const createWorkoutTemplate = mutation({
 });
 
 export const updateWorkoutTemplate = mutation({
-  args: workoutTemplatesValidator
-    .omit("athleteId", "sport")
-    .partial()
-    .extend({
-      templateId: v.string(),
-    }),
+  args: updateWorkoutTemplateArgs.fields,
   handler: async (ctx, args) => {
+    throwIfInvalid(await checkUpdateWorkoutTemplate(ctx, args));
     const { templateId, ...patch } = args;
-    const { athlete } = await assertAthlete(ctx);
-    await assertWorkoutTemplateOwnership(ctx, templateId, athlete._id);
-    if (patch.content?.structure !== undefined) {
-      assertWorkoutStructure(patch.content.structure);
-    }
     await ctx.runMutation(components.agoge.public.updateWorkoutTemplate, {
       templateId,
       ...patch,
@@ -72,8 +157,22 @@ export const updateWorkoutTemplate = mutation({
 export const deleteWorkoutTemplate = mutation({
   args: { templateId: v.string() },
   handler: async (ctx, { templateId }) => {
-    const { athlete } = await assertAthlete(ctx);
-    await assertWorkoutTemplateOwnership(ctx, templateId, athlete._id);
+    const auth = await loadAthlete(ctx);
+    if (!auth)
+      throw new ConvexError({
+        code: "VALIDATION_FAILED",
+        errors: [requireAuthError],
+      });
+    const ownership = await validateWorkoutTemplateOwnership(
+      ctx,
+      templateId,
+      auth.athlete._id,
+    );
+    if (ownership)
+      throw new ConvexError({
+        code: "VALIDATION_FAILED",
+        errors: [ownership],
+      });
     await ctx.runMutation(components.agoge.public.deleteWorkoutTemplate, {
       templateId,
     });
