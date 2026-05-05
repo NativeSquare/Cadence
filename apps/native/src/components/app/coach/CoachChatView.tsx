@@ -20,6 +20,11 @@ import { CoachEmptyState } from "./CoachEmptyState";
 import { UploadMediaBottomSheetModal } from "@/components/shared/upload-media-bottom-sheet-modal";
 import { useCoachAgent } from "@/hooks/use-coach-agent";
 import { useUploadImage } from "@/hooks/use-upload-image";
+import {
+  useCoachVerbose,
+  toggleCoachVerbose,
+} from "@/hooks/use-coach-verbose";
+import { isWritingToolPart } from "@/lib/ai-stream";
 import type { PendingAttachment } from "./types";
 
 export interface CoachChatViewProps {
@@ -37,6 +42,7 @@ export function CoachChatView({
   const { uploadImage, isUploading } = useUploadImage();
 
   const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([]);
+  const verbose = useCoachVerbose();
 
   const {
     messages,
@@ -169,7 +175,12 @@ export function CoachChatView({
         className="bg-black px-6 pb-4"
         style={{ paddingTop: insets.top + 8 }}
       >
-        <ChatHeader isTyping={isStreaming} statusText={statusText} />
+        <ChatHeader
+          isTyping={isStreaming}
+          statusText={statusText}
+          verbose={verbose}
+          onToggleVerbose={toggleCoachVerbose}
+        />
       </View>
 
       <View
@@ -248,7 +259,10 @@ export function CoachChatView({
                     });
                     return;
                   }
-                  // Tool parts are part of the assistant's turn.
+                  // Tool parts are part of the assistant's turn. Reading-
+                  // tool pills are gated by the verbose toggle so the chat
+                  // stays clean for users who don't want to see them.
+                  if (!verbose && !isWritingToolPart(part)) return;
                   items.push({
                     key: partKey,
                     sender: "assistant",

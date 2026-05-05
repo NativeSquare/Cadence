@@ -1,20 +1,14 @@
 /**
- * ChatHeader - Header with title and online/typing status
- * Reference: cadence-full-v9.jsx CoachTab header (lines 324-336)
+ * ChatHeader - Header with title, online/typing status, and verbose toggle
  *
  * Layout:
  * - Left: "Coach" title (24px bold), status with dot
- * - Right: "Context" button pill
- *
- * Font specifications from prototype:
- * - Title: fontSize:24, fontWeight:700, color:T.g1, letterSpacing:"-.03em"
- * - Status: fontSize:12, color:T.g3
- * - Context button: fontSize:12, fontWeight:500, color:T.g3
- *
- * Source: Story 10.3 - AC#1, Task 2
+ * - Right: Eye / EyeOff icon toggle for the verbose preference (controls
+ *   whether reading-tool pills like "Checking sessions…" render in chat)
  */
 
 import { View, Pressable } from "react-native";
+import { Eye, EyeOff } from "lucide-react-native";
 import { Text } from "@/components/ui/text";
 import Animated, {
   useAnimatedStyle,
@@ -80,24 +74,18 @@ function StatusDot({
 // Main Component
 // =============================================================================
 
-/**
- * ChatHeader component
- *
- * Renders the header for the coach chat screen with:
- * - "Coach" title with proper typography
- * - Status indicator with animated dot
- * - Optional "Context" button pill
- */
-export function ChatHeader({ isTyping, statusText }: ChatHeaderProps) {
-  const status = isTyping
-    ? "Thinking..."
-    : statusText ?? "Online";
+export function ChatHeader({
+  isTyping,
+  statusText,
+  verbose,
+  onToggleVerbose,
+}: ChatHeaderProps) {
+  const status = isTyping ? "Thinking..." : statusText ?? "Online";
+  const Icon = verbose ? Eye : EyeOff;
 
   return (
     <View className="flex-row items-center justify-between">
-      {/* Left side: Title and status */}
       <View>
-        {/* Coach title - 24px, weight 700, letter-spacing -0.03em */}
         <Text
           className="text-[24px] font-coach-bold text-g1"
           style={{ letterSpacing: -0.03 * 24 }}
@@ -105,18 +93,22 @@ export function ChatHeader({ isTyping, statusText }: ChatHeaderProps) {
           Coach
         </Text>
 
-        {/* Status row with dot - 12px, color g3 */}
         <View className="flex-row items-center gap-1.5 mt-1">
           <StatusDot isTyping={isTyping} statusText={statusText} />
           <Text className="text-[12px] font-coach text-g3">{status}</Text>
         </View>
       </View>
 
-      {/* Right side: Context button */}
       <Pressable
-        className="px-3.5 py-1.5 rounded-[14px] bg-card-surface border border-brd active:opacity-70"
+        onPress={onToggleVerbose}
+        accessibilityRole="switch"
+        accessibilityState={{ checked: verbose }}
+        accessibilityLabel={
+          verbose ? "Hide tool activity" : "Show tool activity"
+        }
+        className="w-9 h-9 rounded-full items-center justify-center bg-card-surface border border-brd active:opacity-70"
       >
-        <Text className="text-[12px] font-coach-medium text-g3">Context</Text>
+        <Icon size={16} color="#a3a3a0" strokeWidth={1.75} />
       </Pressable>
     </View>
   );

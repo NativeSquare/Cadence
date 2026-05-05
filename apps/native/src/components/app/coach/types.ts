@@ -13,6 +13,9 @@ export interface ChatMessage {
 export interface ChatHeaderProps {
   isTyping: boolean;
   statusText?: string;
+  /** When true, the header's eye icon is filled; reading-tool pills show in chat. */
+  verbose: boolean;
+  onToggleVerbose: () => void;
 }
 
 export interface ChatMessageProps {

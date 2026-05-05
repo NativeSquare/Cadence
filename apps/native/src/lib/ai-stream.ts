@@ -56,3 +56,17 @@ export function isToolPart(part: MessagePart): part is ToolMessagePart {
 export function extractToolName(part: ToolMessagePart): string {
   return part.type.slice("tool-".length);
 }
+
+/**
+ * A tool part is "writing" if the framework has gated it on user approval —
+ * either currently asking, already responded, or carrying an `approval`
+ * envelope from a prior turn. Reading tools auto-execute and never carry
+ * any of these signals.
+ */
+export function isWritingToolPart(part: ToolMessagePart): boolean {
+  return (
+    !!part.approval ||
+    part.state === "approval-requested" ||
+    part.state === "approval-responded"
+  );
+}
