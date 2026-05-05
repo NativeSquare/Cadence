@@ -5,7 +5,6 @@ import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import type { WorkoutDoc } from "@nativesquare/agoge/schema";
 import { api } from "@packages/backend/convex/_generated/api";
 import { useMutation, useQuery } from "convex/react";
-import type { GenericId } from "convex/values";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ActivityIndicator, Pressable, View } from "react-native";
 
@@ -79,7 +78,7 @@ function EditWorkoutContent() {
           name: values.name,
           description: values.description?.trim() || undefined,
           status: values.status,
-          blockId: values.blockId as GenericId<"blocks"> | null,
+          blockId: values.blockId ?? null,
           planned: values.planned,
           actual: values.actual,
         });

@@ -201,6 +201,11 @@ export default function Profile() {
               title="Training"
               items={[
                 {
+                  label: "Training Plan",
+                  icon: "walk-outline",
+                  onPress: () => router.push("/account/training-plan"),
+                },
+                {
                   label: "Races",
                   icon: "flag-outline",
                   onPress: () => router.push("/account/races"),

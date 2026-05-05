@@ -2,7 +2,6 @@ import { ScheduleWorkoutForm } from "@/components/app/workout/schedule-workout-f
 import { api } from "@packages/backend/convex/_generated/api";
 import { useMutation, useQuery } from "convex/react";
 import { useLocalSearchParams } from "expo-router";
-import type { GenericId } from "convex/values";
 
 function parseDateParam(raw: string | string[] | undefined): string | undefined {
   const value = Array.isArray(raw) ? raw[0] : raw;
@@ -16,9 +15,13 @@ function ymdToIso(ymd: string): string {
 }
 
 export default function ScheduleWorkoutScreen() {
-  const params = useLocalSearchParams<{ date?: string }>();
+  const params = useLocalSearchParams<{ date?: string; blockId?: string }>();
   const initialDateYmd = parseDateParam(params.date);
   const initialDate = initialDateYmd ? ymdToIso(initialDateYmd) : undefined;
+  const initialBlockId =
+    typeof params.blockId === "string" && params.blockId.length > 0
+      ? params.blockId
+      : undefined;
 
   const createWorkout = useMutation(api.agoge.workouts.createWorkout);
   const templates = useQuery(api.agoge.workoutTemplates.listMyWorkoutTemplates);
@@ -27,6 +30,7 @@ export default function ScheduleWorkoutScreen() {
   return (
     <ScheduleWorkoutForm
       initialDate={initialDate}
+      initialBlockId={initialBlockId}
       templates={templates}
       blocks={blocks ?? []}
       onSubmit={async (values) => {
@@ -36,9 +40,7 @@ export default function ScheduleWorkoutScreen() {
           type: values.type,
           sport: "run",
           status: "planned",
-          blockId: (values.blockId ?? undefined) as
-            | GenericId<"blocks">
-            | undefined,
+          blockId: values.blockId ?? undefined,
           planned: values.planned,
         });
       }}

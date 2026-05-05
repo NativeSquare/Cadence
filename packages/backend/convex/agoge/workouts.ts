@@ -61,6 +61,25 @@ export const listWorkouts = query({
   },
 });
 
+export const listWorkoutsByBlock = query({
+  args: { blockId: v.string() },
+  handler: async (ctx, { blockId }) => {
+    const result = await loadAthlete(ctx);
+    if (!result) return [];
+    const block = await ctx.runQuery(components.agoge.public.getBlock, {
+      blockId,
+    });
+    if (!block) return [];
+    const plan = await ctx.runQuery(components.agoge.public.getPlan, {
+      planId: block.planId,
+    });
+    if (!plan || plan.athleteId !== result.athlete._id) return [];
+    return await ctx.runQuery(components.agoge.public.getWorkoutsByBlock, {
+      blockId,
+    });
+  },
+});
+
 export const getWorkout = query({
   args: { workoutId: v.string() },
   handler: async (ctx, { workoutId }) => {
@@ -97,7 +116,12 @@ export const getWorkout = query({
 });
 
 export const createWorkout = mutation({
-  args: workoutsValidator.omit("athleteId", "planId"),
+  args: workoutsValidator
+    .omit("athleteId", "planId", "blockId", "templateId")
+    .extend({
+      blockId: v.optional(v.string()),
+      templateId: v.optional(v.string()),
+    }),
   handler: async (ctx, args) => {
     const { userId, athlete } = await assertAthlete(ctx);
     const plan = await assertAthletePlan(ctx, athlete._id);
@@ -170,11 +194,12 @@ export const rescheduleWorkout = mutation({
 
 export const updateWorkout = mutation({
   args: workoutsValidator
-    .omit("athleteId", "planId", "blockId")
+    .omit("athleteId", "planId", "blockId", "templateId")
     .partial()
     .extend({
       workoutId: v.string(),
-      blockId: v.optional(v.union(v.id("blocks"), v.null())),
+      blockId: v.optional(v.union(v.string(), v.null())),
+      templateId: v.optional(v.string()),
     }),
   handler: async (ctx, args) => {
     const { workoutId, blockId, ...rest } = args;

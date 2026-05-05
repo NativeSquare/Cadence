@@ -201,6 +201,91 @@ export async function assertAthletePlan(
   return plan;
 }
 
+export async function loadOwnedBlock(
+  ctx: QueryCtx | MutationCtx,
+  blockId: string,
+) {
+  const [auth, block] = await Promise.all([
+    loadAthlete(ctx),
+    ctx.runQuery(components.agoge.public.getBlock, { blockId }),
+  ]);
+  if (!auth || !block) return null;
+  const plan = await ctx.runQuery(components.agoge.public.getPlan, {
+    planId: block.planId,
+  });
+  if (!plan || plan.athleteId !== auth.athlete._id) return null;
+  return { userId: auth.userId, athlete: auth.athlete, block, plan };
+}
+
+export async function assertBlockOwnership(
+  ctx: MutationCtx,
+  blockId: string,
+) {
+  const result = await loadOwnedBlock(ctx, blockId);
+  if (!result) throw new Error("Block not found");
+  return result;
+}
+
+export function assertBlockDateRange(startDate: string, endDate: string) {
+  assertUtcDate(startDate, "Block startDate");
+  assertUtcDate(endDate, "Block endDate");
+  if (endDate < startDate) {
+    throw new ConvexError({
+      message: "Block endDate must be on or after startDate.",
+    });
+  }
+}
+
+export function assertPlanDateRange(startDate: string, endDate?: string) {
+  assertUtcDate(startDate, "Plan startDate");
+  if (endDate !== undefined) {
+    assertUtcDate(endDate, "Plan endDate");
+    if (endDate < startDate) {
+      throw new ConvexError({
+        message: "Plan endDate must be on or after startDate.",
+      });
+    }
+  }
+}
+
+export function assertBlockWithinPlan(
+  range: { startDate: string; endDate: string },
+  plan: { startDate: string; endDate?: string; name: string },
+) {
+  if (range.startDate < plan.startDate) {
+    throw new ConvexError({
+      message: `Block startDate (${range.startDate}) cannot be before plan "${plan.name}" startDate (${plan.startDate}).`,
+    });
+  }
+  if (plan.endDate && range.endDate > plan.endDate) {
+    throw new ConvexError({
+      message: `Block endDate (${range.endDate}) cannot be after plan "${plan.name}" endDate (${plan.endDate}).`,
+    });
+  }
+}
+
+export async function assertNoBlockOverlap(
+  ctx: QueryCtx | MutationCtx,
+  planId: string,
+  range: { startDate: string; endDate: string },
+  options?: { excludeBlockId?: string },
+) {
+  const siblings = await ctx.runQuery(components.agoge.public.getBlocksByPlan, {
+    planId,
+  });
+  const conflict = siblings.find(
+    (b) =>
+      b._id !== options?.excludeBlockId &&
+      range.startDate <= b.endDate &&
+      range.endDate >= b.startDate,
+  );
+  if (conflict) {
+    throw new ConvexError({
+      message: `Block dates overlap with existing block "${conflict.name}" (${conflict.startDate} → ${conflict.endDate}).`,
+    });
+  }
+}
+
 export async function loadOwnedWorkoutTemplate(
   ctx: QueryCtx | MutationCtx,
   templateId: string,

@@ -40,11 +40,13 @@ export type ScheduleWorkoutFormValues = z.infer<typeof formSchema>;
 
 export function ScheduleWorkoutForm({
   initialDate,
+  initialBlockId,
   templates,
   blocks,
   onSubmit,
 }: {
   initialDate?: string;
+  initialBlockId?: string;
   templates?: WorkoutTemplateDoc[];
   blocks: BlockDoc[];
   onSubmit: (values: ScheduleWorkoutFormValues) => Promise<void>;
@@ -59,7 +61,7 @@ export function ScheduleWorkoutForm({
       name: "",
       description: "",
       type: "easy" as WorkoutTypeOption,
-      blockId: null,
+      blockId: initialBlockId ?? null,
       planned: {
         date: initialDate ?? nowIso(),
         structure: EMPTY_STRUCTURE,

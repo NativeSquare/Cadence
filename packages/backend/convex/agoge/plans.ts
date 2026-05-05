@@ -7,7 +7,7 @@
 import { plansValidator } from "@nativesquare/agoge/schema";
 import { components } from "../_generated/api";
 import { mutation, query } from "../_generated/server";
-import { assertAthlete, loadAthlete } from "./helpers";
+import { assertAthlete, assertPlanDateRange, loadAthlete } from "./helpers";
 
 export const getAthletePlan = query({
   args: {},
@@ -26,6 +26,7 @@ export const createPlan = mutation({
   args: plansValidator.omit("athleteId"),
   handler: async (ctx, args): Promise<string> => {
     const { athlete } = await assertAthlete(ctx);
+    assertPlanDateRange(args.startDate, args.endDate);
     return await ctx.runMutation(components.agoge.public.createPlan, {
       ...args,
       athleteId: athlete._id,

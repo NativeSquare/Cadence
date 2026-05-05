@@ -16,7 +16,7 @@ export default function AppLayout() {
       createAttempted.current = true;
       createPlan({
         name: "Cadence",
-        startDate: new Date().toISOString().slice(0, 10),
+        startDate: `${new Date().toISOString().slice(0, 10)}T00:00:00.000Z`,
         status: "active",
       }).catch((err) => {
         console.error("[AppLayout] createPlan failed:", err);
