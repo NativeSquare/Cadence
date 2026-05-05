@@ -179,6 +179,23 @@ export default function Profile() {
         {/* Light content */}
         <View className="flex-1 bg-w2 px-4 pb-6">
           <View className="w-full max-w-2xl gap-5 self-center">
+            {/* Account */}
+            <SettingsGroup
+              title="Account"
+              items={[
+                {
+                  label: "Profile",
+                  icon: "person-outline",
+                  onPress: () => router.push("/account/edit"),
+                },
+                {
+                  label: "Subscription",
+                  icon: "lock-closed-outline",
+                  onPress: () => router.push("/account/subscription"),
+                },
+              ]}
+            />
+
             {/* Training */}
             <SettingsGroup
               title="Training"
@@ -223,32 +240,10 @@ export default function Profile() {
               ]}
             />
 
-            {/* Account */}
-            <SettingsGroup
-              title="Account"
-              items={[
-                {
-                  label: "Profile",
-                  icon: "person-outline",
-                  onPress: () => router.push("/account/edit"),
-                },
-                {
-                  label: "Subscription",
-                  icon: "lock-closed-outline",
-                  onPress: () => router.push("/account/subscription"),
-                },
-              ]}
-            />
-
             {/* Preferences */}
             <SettingsGroup
               title="Preferences"
               items={[
-                {
-                  label: "Coaching Voice",
-                  icon: "chatbubble-ellipses-outline",
-                  onPress: () => router.push("/account/coaching"),
-                },
                 {
                   label: "Notifications",
                   icon: "notifications-outline",
