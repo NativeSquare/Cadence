@@ -1,16 +1,14 @@
 /**
  * Generic fallback card for any writing tool without a specific renderer.
  *
- * Shown when a tool emits `state: "approval-requested"` and no entry exists
- * for `toolName` in the tool-cards registry. Renders the tool name + raw
- * JSON input + Accept/Deny buttons. After resolution it shows a compact
- * "Accepted" / "Denied" status pill.
+ * Wraps `ProposalCard` and renders the raw JSON input as the body. Tool-
+ * specific cards should also use `ProposalCard` and supply their own body
+ * + a tailored title.
  */
 
-import { View, Pressable } from "react-native";
-import Animated, { FadeIn } from "react-native-reanimated";
-import { Check, X } from "lucide-react-native";
+import { View } from "react-native";
 import { Text } from "@/components/ui/text";
+import { ProposalCard } from "./ProposalCard";
 import type { ToolCardProps } from "./types";
 
 export function PendingActionCard({
@@ -23,86 +21,34 @@ export function PendingActionCard({
   onDeny,
   busy,
 }: ToolCardProps) {
-  const isAwaiting = state === "approval-requested" && !!approvalId;
-  const isResolved =
-    state === "approval-responded" ||
-    state === "output-available" ||
-    state === "output-error";
-
   return (
-    <Animated.View
-      entering={FadeIn.duration(200)}
-      className="flex-row justify-start"
+    <ProposalCard
+      title={humanizeToolName(toolName)}
+      state={state}
+      errorText={errorText}
+      approvalId={approvalId}
+      onAccept={onAccept}
+      onDeny={onDeny}
+      busy={busy}
     >
-      <View
-        className="max-w-[85%] px-4 py-3.5 bg-w1"
-        style={{
-          borderTopLeftRadius: 18,
-          borderTopRightRadius: 18,
-          borderBottomLeftRadius: 18,
-          borderBottomRightRadius: 18,
-          borderWidth: 1,
-          borderColor: "rgba(0,0,0,0.08)",
-        }}
-      >
-        <View className="flex-row items-center gap-1.5 mb-2">
-          <View className="w-[5px] h-[5px] rounded-full bg-lime" />
-          <Text className="text-[10px] font-coach-semibold text-primary">
-            Coach proposal
-          </Text>
-        </View>
-
+      <View className="bg-w2 rounded-lg px-3 py-2.5">
         <Text
-          className="text-[13px] font-coach-semibold text-wText mb-1"
-          style={{ lineHeight: 13 * 1.4 }}
-        >
-          {toolName}
-        </Text>
-
-        <Text
-          className="text-[12px] font-coach text-wMute mb-3"
+          className="text-[12px] font-coach text-wMute"
           style={{ lineHeight: 12 * 1.5 }}
         >
           {JSON.stringify(input, null, 2)}
         </Text>
-
-        {errorText ? (
-          <Text className="text-[12px] font-coach text-red-500 mb-2">
-            {errorText}
-          </Text>
-        ) : null}
-
-        {isAwaiting ? (
-          <View className="flex-row gap-2">
-            <Pressable
-              disabled={busy}
-              onPress={onAccept}
-              className="flex-1 flex-row items-center justify-center gap-1.5 bg-wText py-2.5 rounded-xl active:opacity-80"
-              style={{ opacity: busy ? 0.5 : 1 }}
-            >
-              <Check size={13} color="#ffffff" />
-              <Text className="text-[13px] font-coach-medium text-w1">
-                Accept
-              </Text>
-            </Pressable>
-            <Pressable
-              disabled={busy}
-              onPress={onDeny}
-              className="flex-1 flex-row items-center justify-center gap-1.5 bg-w2 border border-wMute/30 py-2.5 rounded-xl active:opacity-80"
-              style={{ opacity: busy ? 0.5 : 1 }}
-            >
-              <X size={13} color="#1a1a1a" />
-              <Text className="text-[13px] font-coach-medium text-wText">
-                Deny
-              </Text>
-            </Pressable>
-          </View>
-        ) : isResolved ? (
-          <Text className="text-[11px] font-coach-medium text-wMute">
-            {state === "output-error" ? "Error" : "Resolved"}
-          </Text>
-        ) : null}
       </View>
-    </Animated.View>
+    </ProposalCard>
   );
+}
+
+function humanizeToolName(name: string): string {
+  const spaced = name
+    .replace(/[_-]+/g, " ")
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
 }

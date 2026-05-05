@@ -2,13 +2,15 @@
  * Tool-card registry — maps a tool name to its card component.
  *
  * Adding a card for a new writing tool: drop a `<MyToolCard>` file in this
- * folder and register it below. Tools without a registered card fall back
- * to `PendingActionCard`. Reading-tool calls render via `ReadingToolPill`
- * unless overridden here.
+ * folder, wrap its body in `<ProposalCard>` for the shared title/footer
+ * chrome, and register it below. Tools without a registered card fall
+ * back to `PendingActionCard`. Reading-tool calls render via
+ * `ReadingToolPill` unless overridden here.
  */
 
 import type { ToolCardComponent } from "./types";
 import { PendingActionCard } from "./PendingActionCard";
+import { ProposalCard } from "./ProposalCard";
 import { ReadingToolPill } from "./ReadingToolPill";
 
 /** Per-tool overrides. Empty until specific cards are added. */
@@ -32,4 +34,4 @@ export function resolveToolCard(args: {
 }
 
 export type { ToolCardProps, ToolCardComponent } from "./types";
-export { PendingActionCard, ReadingToolPill };
+export { PendingActionCard, ProposalCard, ReadingToolPill };
