@@ -7,13 +7,11 @@
  * "Accepted" / "Denied" status pill.
  */
 
-import { View, Image, Pressable } from "react-native";
+import { View, Pressable } from "react-native";
 import Animated, { FadeIn } from "react-native-reanimated";
 import { Check, X } from "lucide-react-native";
 import { Text } from "@/components/ui/text";
 import type { ToolCardProps } from "./types";
-
-const CADENCE_ICON = require("../../../../../assets/icons/ios-icon.png");
 
 export function PendingActionCard({
   toolName,
@@ -34,18 +32,14 @@ export function PendingActionCard({
   return (
     <Animated.View
       entering={FadeIn.duration(200)}
-      className="flex-row justify-start mb-2.5"
+      className="flex-row justify-start"
     >
-      <View className="w-7 h-7 rounded-full overflow-hidden mr-2 mt-1">
-        <Image source={CADENCE_ICON} className="w-7 h-7" />
-      </View>
-
       <View
         className="max-w-[85%] px-4 py-3.5 bg-w1"
         style={{
           borderTopLeftRadius: 18,
           borderTopRightRadius: 18,
-          borderBottomLeftRadius: 6,
+          borderBottomLeftRadius: 18,
           borderBottomRightRadius: 18,
           borderWidth: 1,
           borderColor: "rgba(0,0,0,0.08)",

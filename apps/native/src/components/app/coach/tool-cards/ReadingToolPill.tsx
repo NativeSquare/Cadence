@@ -18,7 +18,7 @@ export function ReadingToolPill({ toolName, state }: ToolCardProps) {
   return (
     <Animated.View
       entering={FadeIn.duration(150)}
-      className="flex-row justify-start mb-1.5 ml-9"
+      className="flex-row justify-start"
     >
       <View className="px-2.5 py-1 rounded-full bg-w1 border border-wMute/20 flex-row items-center gap-1.5">
         <View

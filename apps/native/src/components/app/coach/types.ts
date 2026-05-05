@@ -18,6 +18,7 @@ export interface ChatHeaderProps {
 export interface ChatMessageProps {
   message: ChatMessage;
   isCoach: boolean;
+  showFooterIcon?: boolean;
 }
 
 export interface TypingIndicatorProps {

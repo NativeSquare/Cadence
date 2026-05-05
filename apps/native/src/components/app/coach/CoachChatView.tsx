@@ -193,39 +193,91 @@ export function CoachChatView({
             keyboardShouldPersistTaps="handled"
             contentContainerStyle={{ paddingBottom: 20 }}
           >
-            {messages.flatMap((message) => {
-              const isCoach = message.role === "assistant";
-              const lastIdx = message.parts.length - 1;
-              return message.parts
-                .map((part, idx) => {
+            {(() => {
+              // Locate the last assistant text part across all messages so
+              // only that bubble shows the Cadence footer icon.
+              let footerMsgIdx = -1;
+              let footerPartIdx = -1;
+              for (let m = messages.length - 1; m >= 0; m--) {
+                const msg = messages[m];
+                if (msg.role !== "assistant") continue;
+                for (let p = msg.parts.length - 1; p >= 0; p--) {
+                  const part = msg.parts[p];
+                  if (part.type === "text" && part.text) {
+                    footerMsgIdx = m;
+                    footerPartIdx = p;
+                    break;
+                  }
+                }
+                if (footerMsgIdx !== -1) break;
+              }
+
+              type RenderItem = {
+                key: string;
+                sender: "user" | "assistant";
+                node: React.ReactNode;
+              };
+              const items: RenderItem[] = [];
+
+              messages.forEach((message, mIdx) => {
+                const isCoach = message.role === "assistant";
+                const lastIdx = message.parts.length - 1;
+                message.parts.forEach((part, idx) => {
                   const partKey = `${message.id}:${idx}`;
                   if (part.type === "text") {
-                    if (!part.text) return null;
-                    return (
-                      <ChatMessageBubble
-                        key={partKey}
-                        message={{
-                          id: partKey,
-                          role: message.role,
-                          content: part.text,
-                          parts: [part],
-                          isStreaming: message.isStreaming && idx === lastIdx,
-                          createdAt: message.createdAt,
-                        }}
-                        isCoach={isCoach}
-                      />
-                    );
+                    if (!part.text) return;
+                    items.push({
+                      key: partKey,
+                      sender: message.role,
+                      node: (
+                        <ChatMessageBubble
+                          message={{
+                            id: partKey,
+                            role: message.role,
+                            content: part.text,
+                            parts: [part],
+                            isStreaming: message.isStreaming && idx === lastIdx,
+                            createdAt: message.createdAt,
+                          }}
+                          isCoach={isCoach}
+                          showFooterIcon={
+                            mIdx === footerMsgIdx && idx === footerPartIdx
+                          }
+                        />
+                      ),
+                    });
+                    return;
                   }
-                  return (
-                    <ChatToolPart
-                      key={partKey}
-                      part={part}
-                      onRespond={respondToToolApproval}
-                    />
-                  );
-                })
-                .filter((node): node is NonNullable<typeof node> => node !== null);
-            })}
+                  // Tool parts are part of the assistant's turn.
+                  items.push({
+                    key: partKey,
+                    sender: "assistant",
+                    node: (
+                      <ChatToolPart
+                        part={part}
+                        onRespond={respondToToolApproval}
+                      />
+                    ),
+                  });
+                });
+              });
+
+              // Turn-aware spacing: 24px between sender swaps, 16px within
+              // a single sender's run.
+              return items.map((item, i) => {
+                const next = items[i + 1];
+                const marginBottom = !next
+                  ? 0
+                  : next.sender === item.sender
+                    ? 16
+                    : 24;
+                return (
+                  <View key={item.key} style={{ marginBottom }}>
+                    {item.node}
+                  </View>
+                );
+              });
+            })()}
 
             <TypingIndicator
               visible={
