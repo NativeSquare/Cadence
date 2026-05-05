@@ -1,9 +1,19 @@
 import { getAuthUserId } from "@convex-dev/auth/server";
-import { listUIMessages, syncStreams, vStreamArgs } from "@convex-dev/agent";
+import {
+  getThreadMetadata,
+  listUIMessages,
+  syncStreams,
+  vStreamArgs,
+} from "@convex-dev/agent";
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
-import { components } from "../_generated/api";
-import { action, query } from "../_generated/server";
+import { components, internal } from "../_generated/api";
+import {
+  action,
+  internalAction,
+  mutation,
+  query,
+} from "../_generated/server";
 import { coach } from "./agent";
 
 export const list = query({
@@ -34,6 +44,64 @@ export const send = action({
       ctx,
       { threadId, userId: userId as string },
       { prompt: text },
+      { saveStreamDeltas: true },
+    );
+  },
+});
+
+/**
+ * Resolve a pending tool-approval-request from the chat UI.
+ *
+ * - approved=true  → framework runs the tool's `execute()` (the real DB write).
+ * - approved=false → framework injects an `execution-denied` result; no write.
+ *
+ * After saving the response, schedules `continueAfterApproval` to re-enter
+ * generation so the model can react to the result.
+ */
+export const respondToToolApproval = mutation({
+  args: {
+    threadId: v.string(),
+    approvalId: v.string(),
+    approved: v.boolean(),
+    reason: v.optional(v.string()),
+  },
+  handler: async (ctx, { threadId, approvalId, approved, reason }) => {
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) {
+      throw new ConvexError({ code: "UNAUTHORIZED", message: "Not authenticated" });
+    }
+
+    const thread = await getThreadMetadata(ctx, components.agent, { threadId });
+    if (thread.userId !== (userId as string)) {
+      throw new ConvexError({
+        code: "FORBIDDEN",
+        message: "Thread not owned by caller",
+      });
+    }
+
+    const { messageId } = approved
+      ? await coach.approveToolCall(ctx, { threadId, approvalId, reason })
+      : await coach.denyToolCall(ctx, { threadId, approvalId, reason });
+
+    await ctx.scheduler.runAfter(0, internal.coach.messages.continueAfterApproval, {
+      threadId,
+      promptMessageId: messageId,
+      userId: userId as string,
+    });
+  },
+});
+
+export const continueAfterApproval = internalAction({
+  args: {
+    threadId: v.string(),
+    promptMessageId: v.string(),
+    userId: v.string(),
+  },
+  handler: async (ctx, { threadId, promptMessageId, userId }) => {
+    await coach.streamText(
+      ctx,
+      { threadId, userId },
+      { promptMessageId },
       { saveStreamDeltas: true },
     );
   },

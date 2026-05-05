@@ -1,8 +1,8 @@
 import { useCallback, useMemo, useRef, useState } from "react";
-import { useAction } from "convex/react";
+import { useAction, useMutation } from "convex/react";
 import { useUIMessages } from "@convex-dev/agent/react";
 import { api } from "@packages/backend/convex/_generated/api";
-import type { MessagePart } from "@/lib/ai-stream";
+import type { MessagePart, ToolMessagePart } from "@/lib/ai-stream";
 import { useNetworkOptional } from "@/contexts/network-context";
 import type { ChatMessage } from "@/components/app/coach/types";
 
@@ -25,6 +25,11 @@ export interface UseCoachAgentReturn {
   isRetriesExhausted: boolean;
   sendMessage: (content: string, imageUrls?: string[]) => Promise<void>;
   retry: () => Promise<void>;
+  respondToToolApproval: (args: {
+    approvalId: string;
+    approved: boolean;
+    reason?: string;
+  }) => Promise<void>;
 }
 
 export function useCoachAgent(
@@ -33,6 +38,9 @@ export function useCoachAgent(
   const { threadId, maxRetries: maxRetriesOption = MAX_RETRIES, onError } = options;
 
   const sendAction = useAction(api.coach.messages.send);
+  const respondToToolApprovalMutation = useMutation(
+    api.coach.messages.respondToToolApproval,
+  );
 
   const { results } = useUIMessages(
     api.coach.messages.list,
@@ -54,8 +62,25 @@ export function useCoachAgent(
       .filter((m) => m.role === "user" || m.role === "assistant")
       .map((m) => {
         const parts: MessagePart[] = (m.parts ?? [])
-          .filter((p): p is { type: "text"; text: string } => p.type === "text")
-          .map((p) => ({ type: "text", text: p.text }));
+          .map((p): MessagePart | null => {
+            if (p.type === "text") {
+              return { type: "text", text: p.text };
+            }
+            if (typeof p.type === "string" && p.type.startsWith("tool-")) {
+              const tp = p as unknown as ToolMessagePart;
+              return {
+                type: tp.type,
+                toolCallId: tp.toolCallId,
+                state: tp.state,
+                input: tp.input,
+                output: tp.output,
+                errorText: tp.errorText,
+                approval: tp.approval,
+              };
+            }
+            return null;
+          })
+          .filter((p): p is MessagePart => p !== null);
         return {
           id: m.key,
           role: m.role as "user" | "assistant",
@@ -105,6 +130,14 @@ export function useCoachAgent(
     await sendMessage(text, imageUrls);
   }, [sendMessage]);
 
+  const respondToToolApproval = useCallback(
+    async (args: { approvalId: string; approved: boolean; reason?: string }) => {
+      if (!threadId) return;
+      await respondToToolApprovalMutation({ threadId, ...args });
+    },
+    [threadId, respondToToolApprovalMutation],
+  );
+
   return {
     messages,
     isStreaming,
@@ -116,5 +149,6 @@ export function useCoachAgent(
     isRetriesExhausted: retryCount >= maxRetriesOption,
     sendMessage,
     retry,
+    respondToToolApproval,
   };
 }

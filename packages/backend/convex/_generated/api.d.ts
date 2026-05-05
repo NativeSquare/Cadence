@@ -27,6 +27,8 @@ import type * as broadcasts from "../broadcasts.js";
 import type * as coach_agent from "../coach/agent.js";
 import type * as coach_messages from "../coach/messages.js";
 import type * as coach_threads from "../coach/threads.js";
+import type * as coach_tools_reading from "../coach/tools/reading.js";
+import type * as coach_tools_writing from "../coach/tools/writing.js";
 import type * as contacts from "../contacts.js";
 import type * as crons from "../crons.js";
 import type * as emails from "../emails.js";
@@ -78,6 +80,8 @@ declare const fullApi: ApiFromModules<{
   "coach/agent": typeof coach_agent;
   "coach/messages": typeof coach_messages;
   "coach/threads": typeof coach_threads;
+  "coach/tools/reading": typeof coach_tools_reading;
+  "coach/tools/writing": typeof coach_tools_writing;
   contacts: typeof contacts;
   crons: typeof crons;
   emails: typeof emails;

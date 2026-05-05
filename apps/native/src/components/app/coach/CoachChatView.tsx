@@ -11,6 +11,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BottomSheetModal as GorhomBottomSheetModal } from "@gorhom/bottom-sheet";
 import { ChatHeader } from "./ChatHeader";
 import { ChatMessage as ChatMessageBubble } from "./ChatMessage";
+import { ChatToolPart } from "./ChatToolPart";
 import { ChatErrorCard } from "./ChatErrorCard";
 import { TypingIndicator } from "./TypingIndicator";
 import { ChatInput } from "./ChatInput";
@@ -48,6 +49,7 @@ export function CoachChatView({
     isRetriesExhausted,
     sendMessage,
     retry,
+    respondToToolApproval,
   } = useCoachAgent({ threadId });
 
   const [inputValue, setInputValue] = useState(initialPrompt ?? "");
@@ -191,15 +193,38 @@ export function CoachChatView({
             keyboardShouldPersistTaps="handled"
             contentContainerStyle={{ paddingBottom: 20 }}
           >
-            {messages.map((message) => {
-              if (!message.content) return null;
-              return (
-                <ChatMessageBubble
-                  key={message.id}
-                  message={message}
-                  isCoach={message.role === "assistant"}
-                />
-              );
+            {messages.flatMap((message) => {
+              const isCoach = message.role === "assistant";
+              const lastIdx = message.parts.length - 1;
+              return message.parts
+                .map((part, idx) => {
+                  const partKey = `${message.id}:${idx}`;
+                  if (part.type === "text") {
+                    if (!part.text) return null;
+                    return (
+                      <ChatMessageBubble
+                        key={partKey}
+                        message={{
+                          id: partKey,
+                          role: message.role,
+                          content: part.text,
+                          parts: [part],
+                          isStreaming: message.isStreaming && idx === lastIdx,
+                          createdAt: message.createdAt,
+                        }}
+                        isCoach={isCoach}
+                      />
+                    );
+                  }
+                  return (
+                    <ChatToolPart
+                      key={partKey}
+                      part={part}
+                      onRespond={respondToToolApproval}
+                    />
+                  );
+                })
+                .filter((node): node is NonNullable<typeof node> => node !== null);
             })}
 
             <TypingIndicator
