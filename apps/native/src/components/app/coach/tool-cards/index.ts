@@ -9,18 +9,39 @@
  */
 
 import type { ToolCardComponent } from "./types";
+import { CreateBlockCard } from "./CreateBlockCard";
+import { CreateWorkoutCard } from "./CreateWorkoutCard";
+import { DeleteBlockCard } from "./DeleteBlockCard";
+import { DeleteWorkoutCard } from "./DeleteWorkoutCard";
 import { PendingActionCard } from "./PendingActionCard";
 import { ProposalCard } from "./ProposalCard";
 import { ReadingToolPill } from "./ReadingToolPill";
+import { RescheduleWorkoutCard } from "./RescheduleWorkoutCard";
+import { UpdateBlockCard } from "./UpdateBlockCard";
+import { UpdateWorkoutCard } from "./UpdateWorkoutCard";
 
-/** Per-tool overrides. Empty until specific cards are added. */
 const writingCards: Record<string, ToolCardComponent> = {
-  // modifySession: ModifySessionCard,
+  createWorkout: CreateWorkoutCard,
+  updateWorkout: UpdateWorkoutCard,
+  rescheduleWorkout: RescheduleWorkoutCard,
+  deleteWorkout: DeleteWorkoutCard,
+  createBlock: CreateBlockCard,
+  updateBlock: UpdateBlockCard,
+  deleteBlock: DeleteBlockCard,
 };
 
-const readingCards: Record<string, ToolCardComponent> = {
-  // listRecentSessions: RecentSessionsList,
-};
+const readingCards: Record<string, ToolCardComponent> = {};
+
+/**
+ * Whether a tool name is registered as a writing tool. The UI uses this to
+ * recognize silent-retry tool calls — writing tools whose `needsApproval`
+ * preflight returned false and whose execute() ran silently. Such parts
+ * carry no approval signals, so the part-shape heuristic (`isWritingToolPart`)
+ * misses them; the registry is the source of truth.
+ */
+export function isKnownWritingTool(toolName: string): boolean {
+  return toolName in writingCards;
+}
 
 export function resolveToolCard(args: {
   toolName: string;

@@ -4,12 +4,19 @@
  * Reading tools (no approval ever requested) render as a compact pill.
  * Writing tools (any approval state seen on the part) render as a card with
  * Accept/Deny when in `approval-requested` state.
+ *
+ * Silent-retry writing tools render nothing. When a writing tool's
+ * server-side `needsApproval` preflight returns false (validation failed),
+ * the framework runs `execute()` immediately without an approval card; the
+ * part carries no approval signals and would otherwise be mis-rendered as a
+ * reading pill. We detect known writing tools by name and hide them in this
+ * silent-failure state. The LLM still sees the structured error and retries.
  */
 
 import { useState, useCallback } from "react";
 import { Alert } from "react-native";
 import { extractToolName, type ToolMessagePart } from "@/lib/ai-stream";
-import { resolveToolCard } from "./tool-cards";
+import { isKnownWritingTool, resolveToolCard } from "./tool-cards";
 
 interface ChatToolPartProps {
   part: ToolMessagePart;
@@ -26,6 +33,14 @@ export function ChatToolPart({ part, onRespond }: ChatToolPartProps) {
     !!part.approval ||
     part.state === "approval-requested" ||
     part.state === "approval-responded";
+
+  // Silent-retry path: known writing tool that never reached an approval
+  // state. Hide it entirely so the chat doesn't surface failed validation
+  // attempts as confusing reading-tool pills.
+  if (!isWriting && isKnownWritingTool(toolName)) {
+    return null;
+  }
+
   const Card = resolveToolCard({ toolName, isWriting });
 
   const [busy, setBusy] = useState(false);
