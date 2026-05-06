@@ -220,21 +220,6 @@ export const readingTools = {
     },
   }),
 
-  readSomaProfile: createTool({
-    description:
-      "Read the user's Soma-side athlete profile (devices, bio, provider " +
-      "fields). Distinct from getAthlete (Agoge profile). Use to know " +
-      "which devices supply data.",
-    inputSchema: z.object({}),
-    needsApproval: false,
-    execute: async (ctx): Promise<unknown> => {
-      if (!ctx.userId) return [];
-      return await ctx.runQuery(components.soma.public.listAthletes, {
-        userId: ctx.userId,
-      });
-    },
-  }),
-
   readConnections: createTool({
     description:
       "List the user's provider connections (Garmin, Strava, HealthKit) " +
