@@ -24,15 +24,19 @@
  * `ConvexError({code:"VALIDATION_FAILED", errors})` on stale-state races; we
  * catch and convert.
  *
- * Tools without a matching `validate*` query (deletes) keep
- * `needsApproval: true` — there's nothing to validate, the question is just
- * "do you want to delete this?".
+ * After Agoge passes, each tool also checks the coach-only Philosophy layer
+ * (api.coach.philosophy.validate.*). The Philosophy layer is server-enforced
+ * coaching policy ("no single workout > 50 km", etc.) and runs only on the
+ * AI Coach's path — manual user CRUD bypasses it. Deletes have no Agoge
+ * `validate*` query (the question is just "do you want to delete this?")
+ * but still route through the Philosophy validator so future delete-time
+ * policy rules can short-circuit before the approval card.
  */
 
 import { createTool } from "@convex-dev/agent";
 import { z } from "zod";
 import { ConvexError } from "convex/values";
-import { api } from "../../_generated/api";
+import { api, internal } from "../../_generated/api";
 
 type WriteResult<T = null> =
   | { ok: true; result: T }
@@ -70,6 +74,35 @@ function fromConvexError(err: unknown): {
       },
     ],
   };
+}
+
+// ---------------------------------------------------------------------------
+// Philosophy preflight — short-circuits execute() when a Philosophy rule
+// blocks. The Agoge mutation does not know about Philosophy, so without this
+// step a Philosophy-blocked + Agoge-passing payload would still write.
+// ---------------------------------------------------------------------------
+
+type PhilosophyBlock = {
+  ok: false;
+  errors: { code: string; message: string }[];
+};
+
+async function checkPhilosophy(
+  ctx: {
+    runQuery: (
+      ref: any,
+      args: any,
+    ) => Promise<{
+      ok: boolean;
+      errors?: { code: string; message: string }[];
+    }>;
+  },
+  queryRef: any,
+  input: unknown,
+): Promise<PhilosophyBlock | null> {
+  const r = await ctx.runQuery(queryRef, input);
+  if (!r.ok) return { ok: false, errors: r.errors ?? [] };
+  return null;
 }
 
 // ---------------------------------------------------------------------------
@@ -168,10 +201,21 @@ export const writingTools = {
       templateId: z.string().optional(),
     }),
     needsApproval: async (ctx, input): Promise<boolean> => {
-      const v = await ctx.runQuery(api.agoge.workouts.validateCreate, input);
-      return v.ok;
+      const a = await ctx.runQuery(api.agoge.workouts.validateCreate, input);
+      if (!a.ok) return false;
+      const p = await ctx.runQuery(
+        api.coach.philosophy.validate.validateWorkoutCreate,
+        input,
+      );
+      return p.ok;
     },
     execute: async (ctx, args): Promise<WriteResult<{ workoutId: string }>> => {
+      const blocked = await checkPhilosophy(
+        ctx,
+        api.coach.philosophy.validate.validateWorkoutCreate,
+        args,
+      );
+      if (blocked) return blocked;
       try {
         const workoutId = await ctx.runMutation(
           api.agoge.workouts.createWorkout,
@@ -204,10 +248,21 @@ export const writingTools = {
       templateId: z.string().optional(),
     }),
     needsApproval: async (ctx, input): Promise<boolean> => {
-      const v = await ctx.runQuery(api.agoge.workouts.validateUpdate, input);
-      return v.ok;
+      const a = await ctx.runQuery(api.agoge.workouts.validateUpdate, input);
+      if (!a.ok) return false;
+      const p = await ctx.runQuery(
+        api.coach.philosophy.validate.validateWorkoutUpdate,
+        input,
+      );
+      return p.ok;
     },
     execute: async (ctx, args): Promise<WriteResult> => {
+      const blocked = await checkPhilosophy(
+        ctx,
+        api.coach.philosophy.validate.validateWorkoutUpdate,
+        args,
+      );
+      if (blocked) return blocked;
       try {
         await ctx.runMutation(api.agoge.workouts.updateWorkout, args);
         return { ok: true, result: null };
@@ -230,13 +285,24 @@ export const writingTools = {
         .describe("New planned date as a UTC ISO 8601 timestamp."),
     }),
     needsApproval: async (ctx, input): Promise<boolean> => {
-      const v = await ctx.runQuery(
+      const a = await ctx.runQuery(
         api.agoge.workouts.validateReschedule,
         input,
       );
-      return v.ok;
+      if (!a.ok) return false;
+      const p = await ctx.runQuery(
+        api.coach.philosophy.validate.validateWorkoutReschedule,
+        input,
+      );
+      return p.ok;
     },
     execute: async (ctx, args): Promise<WriteResult> => {
+      const blocked = await checkPhilosophy(
+        ctx,
+        api.coach.philosophy.validate.validateWorkoutReschedule,
+        args,
+      );
+      if (blocked) return blocked;
       try {
         await ctx.runMutation(api.agoge.workouts.rescheduleWorkout, args);
         return { ok: true, result: null };
@@ -254,10 +320,34 @@ export const writingTools = {
     inputSchema: z.object({
       workoutId: z.string(),
     }),
-    needsApproval: true,
+    needsApproval: async (ctx, input): Promise<boolean> => {
+      const p = await ctx.runQuery(
+        api.coach.philosophy.validate.validateWorkoutDelete,
+        input,
+      );
+      return p.ok;
+    },
     execute: async (ctx, args): Promise<WriteResult> => {
+      const blocked = await checkPhilosophy(
+        ctx,
+        api.coach.philosophy.validate.validateWorkoutDelete,
+        args,
+      );
+      if (blocked) return blocked;
+      // Post-approval execution runs as a scheduled internalAction with no
+      // auth identity. Use the thread-bound ctx.userId and call the internal
+      // variant that trusts it explicitly, instead of getAuthUserId.
+      if (!ctx.userId) {
+        return {
+          ok: false,
+          errors: [{ code: "NOT_AUTHORIZED", message: "Not authorized" }],
+        };
+      }
       try {
-        await ctx.runMutation(api.agoge.workouts.deleteWorkout, args);
+        await ctx.runMutation(internal.agoge.workouts.deleteWorkoutAsUser, {
+          ...args,
+          userId: ctx.userId,
+        });
         return { ok: true, result: null };
       } catch (err) {
         return fromConvexError(err);
@@ -289,10 +379,21 @@ export const writingTools = {
         .describe("Sort order within the plan, 0-indexed."),
     }),
     needsApproval: async (ctx, input): Promise<boolean> => {
-      const v = await ctx.runQuery(api.agoge.blocks.validateCreate, input);
-      return v.ok;
+      const a = await ctx.runQuery(api.agoge.blocks.validateCreate, input);
+      if (!a.ok) return false;
+      const p = await ctx.runQuery(
+        api.coach.philosophy.validate.validateBlockCreate,
+        input,
+      );
+      return p.ok;
     },
     execute: async (ctx, args): Promise<WriteResult<{ blockId: string }>> => {
+      const blocked = await checkPhilosophy(
+        ctx,
+        api.coach.philosophy.validate.validateBlockCreate,
+        args,
+      );
+      if (blocked) return blocked;
       try {
         const blockId = await ctx.runMutation(
           api.agoge.blocks.createBlock,
@@ -321,10 +422,21 @@ export const writingTools = {
       order: z.number().int().nonnegative().optional(),
     }),
     needsApproval: async (ctx, input): Promise<boolean> => {
-      const v = await ctx.runQuery(api.agoge.blocks.validateUpdate, input);
-      return v.ok;
+      const a = await ctx.runQuery(api.agoge.blocks.validateUpdate, input);
+      if (!a.ok) return false;
+      const p = await ctx.runQuery(
+        api.coach.philosophy.validate.validateBlockUpdate,
+        input,
+      );
+      return p.ok;
     },
     execute: async (ctx, args): Promise<WriteResult> => {
+      const blocked = await checkPhilosophy(
+        ctx,
+        api.coach.philosophy.validate.validateBlockUpdate,
+        args,
+      );
+      if (blocked) return blocked;
       try {
         await ctx.runMutation(api.agoge.blocks.updateBlock, args);
         return { ok: true, result: null };
@@ -341,8 +453,20 @@ export const writingTools = {
     inputSchema: z.object({
       blockId: z.string(),
     }),
-    needsApproval: true,
+    needsApproval: async (ctx, input): Promise<boolean> => {
+      const p = await ctx.runQuery(
+        api.coach.philosophy.validate.validateBlockDelete,
+        input,
+      );
+      return p.ok;
+    },
     execute: async (ctx, args): Promise<WriteResult> => {
+      const blocked = await checkPhilosophy(
+        ctx,
+        api.coach.philosophy.validate.validateBlockDelete,
+        args,
+      );
+      if (blocked) return blocked;
       try {
         await ctx.runMutation(api.agoge.blocks.deleteBlock, args);
         return { ok: true, result: null };

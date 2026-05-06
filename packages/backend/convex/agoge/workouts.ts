@@ -2,6 +2,7 @@ import { workoutsValidator } from "@nativesquare/agoge/schema";
 import { ConvexError, v } from "convex/values";
 import { components, internal } from "../_generated/api";
 import {
+  internalMutation,
   type MutationCtx,
   mutation,
   query,
@@ -577,33 +578,74 @@ export const swapWorkouts = mutation({
   },
 });
 
+async function performDeleteWorkout(
+  ctx: MutationCtx,
+  userId: string,
+  workoutId: string,
+): Promise<void> {
+  const athlete = await ctx.runQuery(
+    components.agoge.public.getAthleteByUserId,
+    { userId },
+  );
+  if (!athlete) {
+    throw new ConvexError({
+      code: "VALIDATION_FAILED",
+      errors: [requireAuthError],
+    });
+  }
+  const workout = await ctx.runQuery(components.agoge.public.getWorkout, {
+    workoutId,
+  });
+  if (!workout || workout.athleteId !== athlete._id) {
+    throw new ConvexError({
+      code: "VALIDATION_FAILED",
+      errors: [requireAuthError],
+    });
+  }
+  const ref = await ctx.runQuery(
+    components.agoge.public.getWorkoutProviderRef,
+    { workoutId, provider: "garmin" },
+  );
+  await ctx.runMutation(components.agoge.public.deleteWorkout, { workoutId });
+  if (ref) {
+    await ctx.scheduler.runAfter(
+      0,
+      internal.agoge.sync.syncWorkoutToProviders,
+      {
+        userId,
+        workoutId,
+        operation: "delete",
+        deletePayload: {
+          externalWorkoutId: ref.externalWorkoutId,
+          externalScheduleId: ref.externalScheduleId,
+        },
+      },
+    );
+  }
+}
+
 export const deleteWorkout = mutation({
   args: { workoutId: v.string() },
   handler: async (ctx, { workoutId }) => {
-    const owned = await loadOwnedWorkout(ctx, workoutId);
-    if (!owned) throw new ConvexError({ code: "VALIDATION_FAILED", errors: [requireAuthError] });
-    const { userId } = owned;
-    const ref = await ctx.runQuery(
-      components.agoge.public.getWorkoutProviderRef,
-      { workoutId, provider: "garmin" },
-    );
-    await ctx.runMutation(components.agoge.public.deleteWorkout, {
-      workoutId: workoutId,
-    });
-    if (ref) {
-      await ctx.scheduler.runAfter(
-        0,
-        internal.agoge.sync.syncWorkoutToProviders,
-        {
-          userId,
-          workoutId,
-          operation: "delete",
-          deletePayload: {
-            externalWorkoutId: ref.externalWorkoutId,
-            externalScheduleId: ref.externalScheduleId,
-          },
-        },
-      );
+    const auth = await loadAthlete(ctx);
+    if (!auth) {
+      throw new ConvexError({
+        code: "VALIDATION_FAILED",
+        errors: [requireAuthError],
+      });
     }
+    await performDeleteWorkout(ctx, auth.userId, workoutId);
+  },
+});
+
+// Variant called from the coach agent's tool execution path. The agent's
+// post-approval continuation runs as a scheduled internalAction, which has no
+// auth identity — so getAuthUserId would return null and trigger NOT_AUTHORIZED.
+// The agent framework provides ctx.userId on the tool ctx (bound to the thread
+// at streamText time), and we trust that here instead of re-deriving from auth.
+export const deleteWorkoutAsUser = internalMutation({
+  args: { userId: v.string(), workoutId: v.string() },
+  handler: async (ctx, { userId, workoutId }) => {
+    await performDeleteWorkout(ctx, userId, workoutId);
   },
 });

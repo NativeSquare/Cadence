@@ -50,14 +50,18 @@ registerRoutes(http, components.soma, {
     },
     webhook: {
       events: {
-        // "activities": async (ctx, event) => {
-        //   const userIds = [...new Set(event.items.map((item) => item.userId))];
-        //   if (userIds.length === 0) return;
-        //   await ctx.runAction(
-        //     internal.soma.webhook.handleActivityIngested,
-        //     { affectedUserIds: userIds },
-        //   );
-        // },
+        "activities": {
+          autoIngest: false,
+          handler: async (ctx, event) => {
+            const userIds = [...new Set(event.items.map((item) => item.userId))];
+            if (userIds.length === 0) return;
+            await ctx.scheduler.runAfter(
+              0,
+              internal.soma.webhook.handleActivityIngested,
+              { affectedUserIds: userIds },
+            );
+          },
+        },
         "blood-pressures": true,
         "body-compositions": true,
         "dailies": true,

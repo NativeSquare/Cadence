@@ -1,6 +1,7 @@
 import { anthropic } from "@ai-sdk/anthropic";
 import { Agent, stepCountIs } from "@convex-dev/agent";
 import { components } from "../_generated/api";
+import { renderPhilosophy } from "./philosophy/prompt";
 import { readingTools } from "./tools/reading";
 import { writingTools } from "./tools/writing";
 
@@ -19,6 +20,8 @@ export const coach = new Agent(components.agent, {
     "- If your args are invalid, the tool returns { ok: false, errors } silently — no card, the athlete sees nothing. This is a private signal to YOU.",
     "",
     "On a silent { ok: false, errors } response: read the errors, fix the args (e.g. choose a different date that respects the block boundaries, drop a conflicting field), and call the same tool again with corrected args. Do not narrate this retry to the athlete — just call the tool again. Only break out of the silent retry loop and address the athlete directly when (a) the errors require information you don't have (e.g. user preference between two valid options), or (b) repeated retries are clearly not converging. When you do address the athlete, be brief and constructive — describe the constraint, propose alternatives.",
+    "",
+    renderPhilosophy(),
     "",
     "Always read the relevant state before proposing a write so your first attempt is usually valid.",
   ].join("\n"),
