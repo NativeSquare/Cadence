@@ -7,6 +7,7 @@ import { blocksValidator } from "@nativesquare/agoge/schema";
 import { ConvexError, v } from "convex/values";
 import { components } from "../_generated/api";
 import {
+  internalMutation,
   type MutationCtx,
   mutation,
   query,
@@ -76,8 +77,9 @@ const createBlockArgs = blocksValidator.omit("planId");
 async function checkCreateBlock(
   ctx: QueryCtx | MutationCtx,
   args: typeof createBlockArgs.type,
+  userIdOverride?: string,
 ): Promise<ValidationResult> {
-  const auth = await loadAthlete(ctx);
+  const auth = await loadAthlete(ctx, userIdOverride);
   if (!auth) return fail([requireAuthError]);
   const plan = await loadActiveAthletePlan(ctx, auth.athlete._id);
   if (!plan) return fail([noActivePlanError]);
@@ -97,9 +99,10 @@ const updateBlockArgs = blocksValidator
 async function checkUpdateBlock(
   ctx: QueryCtx | MutationCtx,
   args: typeof updateBlockArgs.type,
+  userIdOverride?: string,
 ): Promise<ValidationResult> {
   const { blockId, ...patch } = args;
-  const owned = await loadOwnedBlock(ctx, blockId);
+  const owned = await loadOwnedBlock(ctx, blockId, userIdOverride);
   if (!owned) return fail([requireAuthError]);
   const { block, plan } = owned;
 
@@ -153,48 +156,78 @@ function throwIfInvalid(validation: ValidationResult): void {
   }
 }
 
+async function performCreateBlock(
+  ctx: MutationCtx,
+  args: typeof createBlockArgs.type,
+  userIdOverride?: string,
+): Promise<string> {
+  throwIfInvalid(await checkCreateBlock(ctx, args, userIdOverride));
+
+  const auth = await loadAthlete(ctx, userIdOverride);
+  if (!auth)
+    throw new ConvexError({
+      code: "VALIDATION_FAILED",
+      errors: [requireAuthError],
+    });
+  const plan = await loadActiveAthletePlan(ctx, auth.athlete._id);
+  if (!plan)
+    throw new ConvexError({
+      code: "VALIDATION_FAILED",
+      errors: [noActivePlanError],
+    });
+
+  return await ctx.runMutation(components.agoge.public.createBlock, {
+    ...args,
+    planId: plan._id,
+  });
+}
+
+async function performUpdateBlock(
+  ctx: MutationCtx,
+  args: typeof updateBlockArgs.type,
+  userIdOverride?: string,
+): Promise<void> {
+  throwIfInvalid(await checkUpdateBlock(ctx, args, userIdOverride));
+
+  const { blockId, ...patch } = args;
+  const owned = await loadOwnedBlock(ctx, blockId, userIdOverride);
+  if (!owned)
+    throw new ConvexError({
+      code: "VALIDATION_FAILED",
+      errors: [requireAuthError],
+    });
+
+  await ctx.runMutation(components.agoge.public.updateBlock, {
+    blockId: owned.block._id,
+    ...patch,
+  });
+}
+
+async function performDeleteBlock(
+  ctx: MutationCtx,
+  blockId: string,
+  userIdOverride?: string,
+): Promise<void> {
+  const owned = await loadOwnedBlock(ctx, blockId, userIdOverride);
+  if (!owned)
+    throw new ConvexError({
+      code: "VALIDATION_FAILED",
+      errors: [requireAuthError],
+    });
+  await ctx.runMutation(components.agoge.public.deleteBlock, {
+    blockId: owned.block._id,
+  });
+}
+
 export const createBlock = mutation({
   args: createBlockArgs.fields,
-  handler: async (ctx, args) => {
-    throwIfInvalid(await checkCreateBlock(ctx, args));
-
-    const auth = await loadAthlete(ctx);
-    if (!auth)
-      throw new ConvexError({
-        code: "VALIDATION_FAILED",
-        errors: [requireAuthError],
-      });
-    const plan = await loadActiveAthletePlan(ctx, auth.athlete._id);
-    if (!plan)
-      throw new ConvexError({
-        code: "VALIDATION_FAILED",
-        errors: [noActivePlanError],
-      });
-
-    return await ctx.runMutation(components.agoge.public.createBlock, {
-      ...args,
-      planId: plan._id,
-    });
-  },
+  handler: async (ctx, args) => performCreateBlock(ctx, args),
 });
 
 export const updateBlock = mutation({
   args: updateBlockArgs.fields,
   handler: async (ctx, args) => {
-    throwIfInvalid(await checkUpdateBlock(ctx, args));
-
-    const { blockId, ...patch } = args;
-    const owned = await loadOwnedBlock(ctx, blockId);
-    if (!owned)
-      throw new ConvexError({
-        code: "VALIDATION_FAILED",
-        errors: [requireAuthError],
-      });
-
-    await ctx.runMutation(components.agoge.public.updateBlock, {
-      blockId: owned.block._id,
-      ...patch,
-    });
+    await performUpdateBlock(ctx, args);
     return null;
   },
 });
@@ -202,15 +235,36 @@ export const updateBlock = mutation({
 export const deleteBlock = mutation({
   args: { blockId: v.string() },
   handler: async (ctx, { blockId }) => {
-    const owned = await loadOwnedBlock(ctx, blockId);
-    if (!owned)
-      throw new ConvexError({
-        code: "VALIDATION_FAILED",
-        errors: [requireAuthError],
-      });
-    await ctx.runMutation(components.agoge.public.deleteBlock, {
-      blockId: owned.block._id,
-    });
+    await performDeleteBlock(ctx, blockId);
     return null;
+  },
+});
+
+// Variants called from the coach agent's tool execution path. Post-approval
+// continuations run as a scheduled internalAction with no auth identity, so
+// getAuthUserId returns null and would trigger NOT_AUTHORIZED. The agent
+// framework provides ctx.userId on the tool ctx (bound to the thread at
+// streamText time), and we trust that here instead of re-deriving from auth.
+
+export const createBlockAsUser = internalMutation({
+  args: { ...createBlockArgs.fields, userId: v.string() },
+  handler: async (ctx, args) => {
+    const { userId, ...rest } = args;
+    return await performCreateBlock(ctx, rest, userId);
+  },
+});
+
+export const updateBlockAsUser = internalMutation({
+  args: { ...updateBlockArgs.fields, userId: v.string() },
+  handler: async (ctx, args) => {
+    const { userId, ...rest } = args;
+    await performUpdateBlock(ctx, rest, userId);
+  },
+});
+
+export const deleteBlockAsUser = internalMutation({
+  args: { userId: v.string(), blockId: v.string() },
+  handler: async (ctx, { userId, blockId }) => {
+    await performDeleteBlock(ctx, blockId, userId);
   },
 });

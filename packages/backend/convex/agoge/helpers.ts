@@ -60,8 +60,14 @@ const notFound = (message: string): ValidationError => ({
 // Loaders (no errors, just shape) — used by both validators and mutations
 // ---------------------------------------------------------------------------
 
-export async function loadAthlete(ctx: QueryCtx | MutationCtx) {
-  const userId = await getAuthUserId(ctx);
+// `userIdOverride` lets callers in auth-less contexts (e.g. the coach agent's
+// post-approval scheduled internalAction) pass a thread-bound userId instead
+// of relying on getAuthUserId, which returns null in those contexts.
+export async function loadAthlete(
+  ctx: QueryCtx | MutationCtx,
+  userIdOverride?: string,
+) {
+  const userId = userIdOverride ?? (await getAuthUserId(ctx));
   if (!userId) return null;
   const athlete = await ctx.runQuery(
     components.agoge.public.getAthleteByUserId,
@@ -74,9 +80,10 @@ export async function loadAthlete(ctx: QueryCtx | MutationCtx) {
 export async function loadOwnedWorkout(
   ctx: QueryCtx | MutationCtx,
   workoutId: string,
+  userIdOverride?: string,
 ) {
   const [auth, workout] = await Promise.all([
-    loadAthlete(ctx),
+    loadAthlete(ctx, userIdOverride),
     ctx.runQuery(components.agoge.public.getWorkout, { workoutId }),
   ]);
   if (!auth || !workout) return null;
@@ -87,9 +94,10 @@ export async function loadOwnedWorkout(
 export async function loadOwnedBlock(
   ctx: QueryCtx | MutationCtx,
   blockId: string,
+  userIdOverride?: string,
 ) {
   const [auth, block] = await Promise.all([
-    loadAthlete(ctx),
+    loadAthlete(ctx, userIdOverride),
     ctx.runQuery(components.agoge.public.getBlock, { blockId }),
   ]);
   if (!auth || !block) return null;

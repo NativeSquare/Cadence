@@ -131,33 +131,39 @@ export function ChatInput({
 
         {/* Right action: Mic (empty) or Send (has text or attachments) */}
         {canSend ? (
-          <AnimatedPressable
+          <Animated.View
             key="send"
             entering={FadeIn.duration(150)}
             exiting={FadeOut.duration(100)}
-            onPress={onSend}
-            onPressIn={handleSendPressIn}
-            onPressOut={handleSendPressOut}
-            disabled={disabled}
-            style={[
-              sendAnimStyle,
-              { opacity: disabled ? 0.5 : 1 },
-            ]}
-            className="w-9 h-9 rounded-full bg-wText items-center justify-center mb-[1px]"
           >
-            <ArrowUp size={18} color="#C8FF00" strokeWidth={2.5} />
-          </AnimatedPressable>
+            <AnimatedPressable
+              onPress={onSend}
+              onPressIn={handleSendPressIn}
+              onPressOut={handleSendPressOut}
+              disabled={disabled}
+              style={[
+                sendAnimStyle,
+                { opacity: disabled ? 0.5 : 1 },
+              ]}
+              className="w-9 h-9 rounded-full bg-wText items-center justify-center mb-[1px]"
+            >
+              <ArrowUp size={18} color="#C8FF00" strokeWidth={2.5} />
+            </AnimatedPressable>
+          </Animated.View>
         ) : (
-          <AnimatedPressable
+          <Animated.View
             key="mic"
             entering={FadeIn.duration(150)}
             exiting={FadeOut.duration(100)}
-            onPress={onMicPress}
-            disabled={disabled}
-            className="w-9 h-9 rounded-full items-center justify-center mb-[1px] active:opacity-60"
           >
-            <Mic size={18} color={LIGHT_THEME.wMute} strokeWidth={1.8} />
-          </AnimatedPressable>
+            <Pressable
+              onPress={onMicPress}
+              disabled={disabled}
+              className="w-9 h-9 rounded-full items-center justify-center mb-[1px] active:opacity-60"
+            >
+              <Mic size={18} color={LIGHT_THEME.wMute} strokeWidth={1.8} />
+            </Pressable>
+          </Animated.View>
         )}
       </View>
     </View>

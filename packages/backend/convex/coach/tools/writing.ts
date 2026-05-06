@@ -105,6 +105,25 @@ async function checkPhilosophy(
   return null;
 }
 
+// Post-approval execution runs as a scheduled internalAction with no auth
+// identity, so the user-facing `api.agoge.*` mutations would see
+// getAuthUserId === null and throw NOT_AUTHORIZED. We instead route writes
+// through the `internal.agoge.*AsUser` variants and pass the thread-bound
+// ctx.userId explicitly.
+function requireUserId(
+  ctx: { userId?: string },
+):
+  | { ok: true; userId: string }
+  | { ok: false; errors: { code: string; message: string }[] } {
+  if (!ctx.userId) {
+    return {
+      ok: false,
+      errors: [{ code: "NOT_AUTHORIZED", message: "Not authorized" }],
+    };
+  }
+  return { ok: true, userId: ctx.userId };
+}
+
 // ---------------------------------------------------------------------------
 // Reusable schemas — zod mirrors of the Agoge validators (loose where the
 // underlying validator is too dense to mirror; the mutation re-validates
@@ -216,10 +235,12 @@ export const writingTools = {
         args,
       );
       if (blocked) return blocked;
+      const auth = requireUserId(ctx);
+      if (!auth.ok) return auth;
       try {
         const workoutId = await ctx.runMutation(
-          api.agoge.workouts.createWorkout,
-          args,
+          internal.agoge.workouts.createWorkoutAsUser,
+          { ...args, userId: auth.userId },
         );
         return { ok: true, result: { workoutId } };
       } catch (err) {
@@ -263,8 +284,13 @@ export const writingTools = {
         args,
       );
       if (blocked) return blocked;
+      const auth = requireUserId(ctx);
+      if (!auth.ok) return auth;
       try {
-        await ctx.runMutation(api.agoge.workouts.updateWorkout, args);
+        await ctx.runMutation(internal.agoge.workouts.updateWorkoutAsUser, {
+          ...args,
+          userId: auth.userId,
+        });
         return { ok: true, result: null };
       } catch (err) {
         return fromConvexError(err);
@@ -303,8 +329,13 @@ export const writingTools = {
         args,
       );
       if (blocked) return blocked;
+      const auth = requireUserId(ctx);
+      if (!auth.ok) return auth;
       try {
-        await ctx.runMutation(api.agoge.workouts.rescheduleWorkout, args);
+        await ctx.runMutation(
+          internal.agoge.workouts.rescheduleWorkoutAsUser,
+          { ...args, userId: auth.userId },
+        );
         return { ok: true, result: null };
       } catch (err) {
         return fromConvexError(err);
@@ -334,19 +365,12 @@ export const writingTools = {
         args,
       );
       if (blocked) return blocked;
-      // Post-approval execution runs as a scheduled internalAction with no
-      // auth identity. Use the thread-bound ctx.userId and call the internal
-      // variant that trusts it explicitly, instead of getAuthUserId.
-      if (!ctx.userId) {
-        return {
-          ok: false,
-          errors: [{ code: "NOT_AUTHORIZED", message: "Not authorized" }],
-        };
-      }
+      const auth = requireUserId(ctx);
+      if (!auth.ok) return auth;
       try {
         await ctx.runMutation(internal.agoge.workouts.deleteWorkoutAsUser, {
           ...args,
-          userId: ctx.userId,
+          userId: auth.userId,
         });
         return { ok: true, result: null };
       } catch (err) {
@@ -394,10 +418,12 @@ export const writingTools = {
         args,
       );
       if (blocked) return blocked;
+      const auth = requireUserId(ctx);
+      if (!auth.ok) return auth;
       try {
         const blockId = await ctx.runMutation(
-          api.agoge.blocks.createBlock,
-          args,
+          internal.agoge.blocks.createBlockAsUser,
+          { ...args, userId: auth.userId },
         );
         return { ok: true, result: { blockId } };
       } catch (err) {
@@ -437,8 +463,13 @@ export const writingTools = {
         args,
       );
       if (blocked) return blocked;
+      const auth = requireUserId(ctx);
+      if (!auth.ok) return auth;
       try {
-        await ctx.runMutation(api.agoge.blocks.updateBlock, args);
+        await ctx.runMutation(internal.agoge.blocks.updateBlockAsUser, {
+          ...args,
+          userId: auth.userId,
+        });
         return { ok: true, result: null };
       } catch (err) {
         return fromConvexError(err);
@@ -467,8 +498,13 @@ export const writingTools = {
         args,
       );
       if (blocked) return blocked;
+      const auth = requireUserId(ctx);
+      if (!auth.ok) return auth;
       try {
-        await ctx.runMutation(api.agoge.blocks.deleteBlock, args);
+        await ctx.runMutation(internal.agoge.blocks.deleteBlockAsUser, {
+          ...args,
+          userId: auth.userId,
+        });
         return { ok: true, result: null };
       } catch (err) {
         return fromConvexError(err);
