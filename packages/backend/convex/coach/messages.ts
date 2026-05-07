@@ -33,11 +33,46 @@ export const send = action({
   args: {
     threadId: v.string(),
     text: v.string(),
+    attachments: v.optional(
+      v.array(
+        v.object({
+          url: v.string(),
+          mimeType: v.string(),
+          kind: v.union(v.literal("image"), v.literal("file")),
+        }),
+      ),
+    ),
   },
-  handler: async (ctx, { threadId, text }) => {
+  handler: async (ctx, { threadId, text, attachments }) => {
     const userId = await getAuthUserId(ctx);
     if (userId === null) {
       throw new ConvexError({ code: "UNAUTHORIZED", message: "Not authenticated" });
+    }
+
+    if (attachments && attachments.length > 0) {
+      // Multimodal: build a user message with text + image/file content parts.
+      // AI SDK v5 uses `mediaType` (not `mimeType`) on ImagePart/FilePart.
+      const content: Array<
+        | { type: "text"; text: string }
+        | { type: "image"; image: string; mediaType?: string }
+        | { type: "file"; data: string; mediaType: string }
+      > = [{ type: "text", text }];
+
+      for (const a of attachments) {
+        if (a.kind === "image") {
+          content.push({ type: "image", image: a.url, mediaType: a.mimeType });
+        } else {
+          content.push({ type: "file", data: a.url, mediaType: a.mimeType });
+        }
+      }
+
+      await coach.streamText(
+        ctx,
+        { threadId, userId: userId as string },
+        { messages: [{ role: "user", content }] },
+        { saveStreamDeltas: true },
+      );
+      return;
     }
 
     await coach.streamText(

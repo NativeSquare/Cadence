@@ -2,11 +2,21 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { useAction, useMutation } from "convex/react";
 import { useUIMessages } from "@convex-dev/agent/react";
 import { api } from "@packages/backend/convex/_generated/api";
-import type { MessagePart, ToolMessagePart } from "@/lib/ai-stream";
+import type {
+  FileMessagePart,
+  MessagePart,
+  ToolMessagePart,
+} from "@/lib/ai-stream";
 import { useNetworkOptional } from "@/contexts/network-context";
 import type { ChatMessage } from "@/components/app/coach/types";
 
 const MAX_RETRIES = 3;
+
+export interface CoachAttachment {
+  url: string;
+  mimeType: string;
+  kind: "image" | "file";
+}
 
 export interface UseCoachAgentOptions {
   threadId?: string;
@@ -23,7 +33,7 @@ export interface UseCoachAgentReturn {
   retryCount: number;
   maxRetries: number;
   isRetriesExhausted: boolean;
-  sendMessage: (content: string, imageUrls?: string[]) => Promise<void>;
+  sendMessage: (content: string, attachments?: CoachAttachment[]) => Promise<void>;
   retry: () => Promise<void>;
   respondToToolApproval: (args: {
     approvalId: string;
@@ -51,7 +61,7 @@ export function useCoachAgent(
   const [error, setError] = useState<Error | null>(null);
   const [retryCount, setRetryCount] = useState(0);
   const [sending, setSending] = useState(false);
-  const lastPayloadRef = useRef<{ text: string; imageUrls?: string[] } | null>(null);
+  const lastPayloadRef = useRef<{ text: string; attachments?: CoachAttachment[] } | null>(null);
 
   const network = useNetworkOptional();
   const isOffline = network?.isOffline ?? false;
@@ -65,6 +75,15 @@ export function useCoachAgent(
           .map((p): MessagePart | null => {
             if (p.type === "text") {
               return { type: "text", text: p.text };
+            }
+            if (p.type === "file") {
+              const fp = p as unknown as FileMessagePart;
+              return {
+                type: "file",
+                mediaType: fp.mediaType,
+                url: fp.url,
+                filename: fp.filename,
+              };
             }
             if (typeof p.type === "string" && p.type.startsWith("tool-")) {
               const tp = p as unknown as ToolMessagePart;
@@ -100,17 +119,21 @@ export function useCoachAgent(
   }, [sending, messages]);
 
   const sendMessage = useCallback(
-    async (content: string, imageUrls?: string[]) => {
+    async (content: string, attachments?: CoachAttachment[]) => {
       if (!threadId) return;
       if (isOffline) return;
       if (sending) return;
 
-      lastPayloadRef.current = { text: content, imageUrls };
+      lastPayloadRef.current = { text: content, attachments };
       setSending(true);
       setError(null);
 
       try {
-        await sendAction({ threadId, text: content });
+        await sendAction({
+          threadId,
+          text: content,
+          attachments: attachments && attachments.length > 0 ? attachments : undefined,
+        });
         setRetryCount(0);
       } catch (err) {
         const e = err instanceof Error ? err : new Error(String(err));
@@ -126,8 +149,8 @@ export function useCoachAgent(
   const retry = useCallback(async () => {
     if (!lastPayloadRef.current) return;
     setRetryCount((prev) => prev + 1);
-    const { text, imageUrls } = lastPayloadRef.current;
-    await sendMessage(text, imageUrls);
+    const { text, attachments } = lastPayloadRef.current;
+    await sendMessage(text, attachments);
   }, [sendMessage]);
 
   const respondToToolApproval = useCallback(

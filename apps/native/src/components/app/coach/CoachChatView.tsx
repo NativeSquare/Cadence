@@ -11,19 +11,20 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BottomSheetModal as GorhomBottomSheetModal } from "@gorhom/bottom-sheet";
 import { ChatHeader } from "./ChatHeader";
 import { ChatMessage as ChatMessageBubble } from "./ChatMessage";
+import { ChatAttachmentBubble } from "./ChatAttachmentBubble";
 import { ChatToolPart } from "./ChatToolPart";
 import { ChatErrorCard } from "./ChatErrorCard";
 import { TypingIndicator } from "./TypingIndicator";
 import { ChatInput } from "./ChatInput";
 import { VoiceRecorder } from "./VoiceRecorder";
 import { CoachEmptyState } from "./CoachEmptyState";
-import { UploadMediaBottomSheetModal } from "@/components/shared/upload-media-bottom-sheet-modal";
+import {
+  UploadMediaBottomSheetModal,
+  type SelectedAttachmentAsset,
+} from "@/components/shared/upload-media-bottom-sheet-modal";
 import { useCoachAgent } from "@/hooks/use-coach-agent";
 import { useUploadImage } from "@/hooks/use-upload-image";
-import {
-  useCoachVerbose,
-  toggleCoachVerbose,
-} from "@/hooks/use-coach-verbose";
+import { useCoachVerbose, toggleCoachVerbose } from "@/hooks/use-coach-verbose";
 import { isWritingToolPart } from "@/lib/ai-stream";
 import type { PendingAttachment } from "./types";
 
@@ -32,16 +33,15 @@ export interface CoachChatViewProps {
   initialPrompt?: string;
 }
 
-export function CoachChatView({
-  threadId,
-  initialPrompt,
-}: CoachChatViewProps) {
+export function CoachChatView({ threadId, initialPrompt }: CoachChatViewProps) {
   const insets = useSafeAreaInsets();
   const scrollViewRef = useRef<ScrollView>(null);
   const mediaSheetRef = useRef<GorhomBottomSheetModal>(null);
-  const { uploadImage, isUploading } = useUploadImage();
+  const { uploadImage, uploadFile, isUploading } = useUploadImage();
 
-  const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([]);
+  const [pendingAttachments, setPendingAttachments] = useState<
+    PendingAttachment[]
+  >([]);
   const verbose = useCoachVerbose();
 
   const {
@@ -71,40 +71,55 @@ export function CoachChatView({
 
   const handleSend = useCallback(async () => {
     const text = inputValue.trim();
-    const attachmentUrls = pendingAttachments
-      .map((a) => a.url)
-      .filter((u): u is string => !!u);
-    const hasContent = text.length > 0 || attachmentUrls.length > 0;
+    const readyAttachments = pendingAttachments
+      .filter((a): a is PendingAttachment & { url: string } => !!a.url)
+      .map((a) => ({
+        url: a.url,
+        kind: a.kind,
+        mimeType:
+          a.mimeType ??
+          (a.kind === "image" ? "image/jpeg" : "application/octet-stream"),
+      }));
+    const hasContent = text.length > 0 || readyAttachments.length > 0;
     if (!hasContent || isStreaming) return;
 
     Keyboard.dismiss();
     setInputValue("");
     setPendingAttachments([]);
 
-    await sendMessage(text || "What do you see?", attachmentUrls);
+    await sendMessage(text || "What do you see?", readyAttachments);
   }, [inputValue, pendingAttachments, isStreaming, sendMessage]);
 
   const handleAttachmentPress = useCallback(() => {
+    Keyboard.dismiss();
     mediaSheetRef.current?.present();
   }, []);
 
   const handleMediaSelected = useCallback(
-    async (asset: { uri: string; width?: number; height?: number }) => {
-      const uri = asset.uri;
-      const placeholder: PendingAttachment = { uri };
+    async (asset: SelectedAttachmentAsset) => {
+      const { uri, kind, mimeType, name } = asset;
+      const placeholder: PendingAttachment = { uri, kind, mimeType, name };
       setPendingAttachments((prev) => [...prev, placeholder]);
       try {
-        const url = await uploadImage(uri);
+        const url =
+          kind === "image"
+            ? await uploadImage(uri)
+            : await uploadFile(uri, mimeType ?? "application/octet-stream");
         setPendingAttachments((prev) =>
-          prev.map((a) => (a.uri === uri ? { ...a, url } : a))
+          prev.map((a) => (a.uri === uri ? { ...a, url } : a)),
         );
       } catch (err) {
         console.error("[CoachChatView] Upload failed:", err);
         setPendingAttachments((prev) => prev.filter((a) => a.uri !== uri));
-        Alert.alert("Upload failed", "Could not upload the image. Please try again.");
+        Alert.alert(
+          "Upload failed",
+          kind === "image"
+            ? "Could not upload the image. Please try again."
+            : "Could not upload the file. Please try again.",
+        );
       }
     },
-    [uploadImage]
+    [uploadImage, uploadFile],
   );
 
   const handleRemoveAttachment = useCallback((index: number) => {
@@ -117,7 +132,7 @@ export function CoachChatView({
       Keyboard.dismiss();
       await sendMessage(text);
     },
-    [isStreaming, sendMessage]
+    [isStreaming, sendMessage],
   );
 
   const handleMicPress = useCallback(() => {
@@ -131,7 +146,7 @@ export function CoachChatView({
       if (idx < mockTranscript.length) {
         idx = Math.min(
           idx + Math.floor(Math.random() * 3) + 1,
-          mockTranscript.length
+          mockTranscript.length,
         );
         setTranscript(mockTranscript.slice(0, idx));
       } else {
@@ -155,7 +170,7 @@ export function CoachChatView({
 
       await sendMessage(trimmed);
     },
-    [isStreaming, sendMessage]
+    [isStreaming, sendMessage],
   );
 
   const statusText = isOffline
@@ -259,6 +274,21 @@ export function CoachChatView({
                     });
                     return;
                   }
+                  if (part.type === "file") {
+                    items.push({
+                      key: partKey,
+                      sender: message.role,
+                      node: (
+                        <ChatAttachmentBubble
+                          mediaType={part.mediaType}
+                          url={part.url}
+                          filename={part.filename}
+                          isUser={!isCoach}
+                        />
+                      ),
+                    });
+                    return;
+                  }
                   // Tool parts are part of the assistant's turn. Reading-
                   // tool pills are gated by the verbose toggle so the chat
                   // stays clean for users who don't want to see them.
@@ -336,7 +366,7 @@ export function CoachChatView({
               />
               <UploadMediaBottomSheetModal
                 bottomSheetModalRef={mediaSheetRef}
-                onImageSelected={handleMediaSelected}
+                onAttachmentSelected={handleMediaSelected}
                 options={["camera", "gallery", "files"]}
               />
             </>

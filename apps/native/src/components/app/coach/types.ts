@@ -31,6 +31,9 @@ export interface TypingIndicatorProps {
 export interface PendingAttachment {
   uri: string;
   url?: string;
+  kind: "image" | "file";
+  mimeType?: string;
+  name?: string;
 }
 
 export interface ChatInputProps {

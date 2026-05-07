@@ -88,9 +88,49 @@ export function useUploadImage() {
     [uploadImage]
   );
 
+  /**
+   * Uploads an arbitrary file (e.g. PDF) without manipulation and returns the
+   * public URL. Use this for non-image attachments where compression/resize
+   * isn't appropriate.
+   */
+  const uploadFile = React.useCallback(
+    async (uri: string, mimeType: string): Promise<string> => {
+      setIsUploading(true);
+      try {
+        const response = await fetch(uri);
+        const blob = await response.blob();
+
+        const uploadUrl = await generateUploadUrl();
+        const uploadResult = await fetch(uploadUrl, {
+          method: "POST",
+          headers: { "Content-Type": mimeType || "application/octet-stream" },
+          body: blob,
+        });
+
+        const { storageId } = (await uploadResult.json()) as {
+          storageId: Id<"_storage">;
+        };
+
+        const fileUrl = await convex.query(api.storage.getImageUrl, {
+          storageId,
+        });
+
+        if (!fileUrl) {
+          throw new Error("Failed to get file URL from storage");
+        }
+
+        return fileUrl;
+      } finally {
+        setIsUploading(false);
+      }
+    },
+    [convex, generateUploadUrl]
+  );
+
   return {
     uploadImage,
     uploadImages,
+    uploadFile,
     isUploading,
   };
 }

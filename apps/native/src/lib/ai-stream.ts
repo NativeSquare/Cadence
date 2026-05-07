@@ -45,8 +45,22 @@ export interface ToolMessagePart {
   };
 }
 
+/**
+ * Image/file attachments authored by the user (or returned by the model).
+ * The `@convex-dev/agent` UI mapping collapses both ImagePart and FilePart
+ * into a single `{ type: "file", mediaType, url, filename? }` UI part — see
+ * `toUIFilePart` in mapping.ts. We branch on `mediaType` at render time.
+ */
+export interface FileMessagePart {
+  type: "file";
+  mediaType: string;
+  url: string;
+  filename?: string;
+}
+
 export type MessagePart =
   | { type: "text"; text: string }
+  | FileMessagePart
   | ToolMessagePart;
 
 export function isToolPart(part: MessagePart): part is ToolMessagePart {
