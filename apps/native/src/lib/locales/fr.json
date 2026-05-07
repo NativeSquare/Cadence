@@ -2,7 +2,81 @@
   "common": {
     "submit": "Envoyer",
     "cancel": "Annuler",
-    "back": "Retour"
+    "back": "Retour",
+    "continue": "Continuer"
+  },
+  "auth": {
+    "tagline": "Un coaching IA qui voit ce que vous ne voyez pas.",
+    "communityPulseSuffix": "coureurs s'entraînent avec Cadence",
+    "continueWithGoogle": "Continuer avec Google",
+    "continueWithApple": "Continuer avec Apple",
+    "continueWithEmail": "Continuer par e-mail",
+    "legal": {
+      "intro": "En vous connectant, vous acceptez nos ",
+      "terms": "Conditions d'utilisation",
+      "and": " et notre ",
+      "privacy": "Politique de confidentialité"
+    },
+    "emailAuth": {
+      "signInTitle": "Bon retour",
+      "signInSubtitle": "Connectez-vous avec votre e-mail et votre mot de passe.",
+      "signUpTitle": "Créez votre compte",
+      "signUpSubtitle": "Remplissez les informations pour commencer.",
+      "name": "Nom",
+      "namePlaceholder": "Votre nom",
+      "email": "E-mail",
+      "emailPlaceholder": "m@exemple.com",
+      "password": "Mot de passe",
+      "passwordPlaceholderSignIn": "Votre mot de passe",
+      "passwordPlaceholderSignUp": "Choisissez un mot de passe",
+      "confirmPassword": "Confirmer le mot de passe",
+      "confirmPasswordPlaceholder": "Confirmer le mot de passe",
+      "acceptTerms": "J'accepte les conditions d'utilisation",
+      "submitSignIn": "Se connecter",
+      "submitSignUp": "Continuer",
+      "forgotPassword": "Mot de passe oublié ?",
+      "haveAccount": "Vous avez déjà un compte ?",
+      "noAccount": "Vous n'avez pas de compte ?",
+      "signIn": "Se connecter",
+      "signUp": "S'inscrire"
+    },
+    "forgotPassword": {
+      "title": "Mot de passe oublié ?",
+      "subtitle": "Saisissez votre e-mail pour recevoir un code de réinitialisation.",
+      "email": "E-mail",
+      "emailPlaceholder": "m@exemple.com",
+      "submit": "Réinitialiser le mot de passe",
+      "remember": "Vous vous souvenez de votre mot de passe ?",
+      "signIn": "Se connecter",
+      "noAccountFound": "Aucun compte trouvé avec cet e-mail."
+    },
+    "resetPassword": {
+      "title": "Réinitialiser le mot de passe",
+      "subtitle": "Saisissez le code envoyé à {{email}} et définissez un nouveau mot de passe.",
+      "newPassword": "Nouveau mot de passe",
+      "newPasswordPlaceholder": "Nouveau mot de passe",
+      "verificationCode": "Code de vérification",
+      "submit": "Réinitialiser"
+    },
+    "verifyEmail": {
+      "title": "Vérifiez votre e-mail",
+      "subtitle": "Saisissez le code de vérification envoyé à {{email}}",
+      "verificationCode": "Code de vérification",
+      "submit": "Continuer",
+      "cancel": "Annuler",
+      "invalidCode": "Code de vérification invalide."
+    },
+    "errors": {
+      "invalidAccountId": "Aucun compte trouvé avec cet e-mail.",
+      "invalidSecret": "Mot de passe incorrect.",
+      "tooManyFailedAttempts": "Trop de tentatives. Veuillez réessayer plus tard.",
+      "accountAlreadyExists": "Un compte existe déjà avec cet e-mail.",
+      "invalidVerificationCode": "Code de vérification invalide."
+    }
+  },
+  "onboarding": {
+    "comingSoonTitle": "Onboarding — bientôt disponible",
+    "comingSoonHelper": "Appuyez sur Continuer pour ignorer pour l'instant."
   },
   "account": {
     "language": {
@@ -10,6 +84,14 @@
       "sectionTitle": "Langue",
       "english": "English",
       "french": "Français"
+    },
+    "notifications": {
+      "title": "Notifications",
+      "sectionTitle": "Notifications push",
+      "receiveLabel": "Recevoir les notifications",
+      "receiveHelper": "Désactivez pour ne plus recevoir les notifications sans révoquer l'autorisation.",
+      "permissionDenied": "Les notifications sont bloquées dans vos réglages système.",
+      "openSettings": "Ouvrir les réglages"
     },
     "sendFeedback": {
       "title": "Envoyer un commentaire",

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { View } from "react-native";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@packages/backend/convex/_generated/api";
@@ -6,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
 
 export default function Onboarding() {
+  const { t } = useTranslation();
   const user = useQuery(api.table.users.currentUser);
   const patchUser = useMutation(api.table.users.patch);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -26,10 +28,10 @@ export default function Onboarding() {
   return (
     <View className="flex-1 items-center justify-center px-6 gap-3">
       <Text variant="h2" className="border-b-0 text-center">
-        Onboarding — coming soon
+        {t("onboarding.comingSoonTitle")}
       </Text>
       <Text className="text-center text-muted-foreground">
-        Tap continue to skip for now.
+        {t("onboarding.comingSoonHelper")}
       </Text>
       <Button
         size="lg"
@@ -37,7 +39,7 @@ export default function Onboarding() {
         onPress={handleContinue}
         disabled={!user || isSubmitting}
       >
-        <Text>Continue</Text>
+        <Text>{t("common.continue")}</Text>
       </Button>
     </View>
   );

@@ -9,12 +9,14 @@ import { useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { openAuthSessionAsync } from "expo-web-browser";
 import * as React from "react";
+import { useTranslation } from "react-i18next";
 import { Platform, Pressable, StyleSheet, View } from "react-native";
 import Animated, { FadeIn, FadeInUp } from "react-native-reanimated";
 import { GoogleButton, AppleButton } from "./oauth-buttons";
 import { CommunityPulse } from "./community-pulse";
 
 export function SignInCard() {
+  const { t } = useTranslation();
   const redirectTo = makeRedirectUri();
   const { signIn } = useAuthActions();
   const router = useRouter();
@@ -91,7 +93,7 @@ export function SignInCard() {
         entering={FadeIn.duration(600).delay(150)}
         style={styles.tagline}
       >
-        AI coaching that sees what you can't.
+        {t("auth.tagline")}
       </Animated.Text>
 
       {/* Community counter */}
@@ -124,7 +126,7 @@ export function SignInCard() {
       {/* Email fallback */}
       <Animated.View entering={FadeIn.duration(500).delay(350)}>
         <Pressable onPress={() => router.navigate("/email-auth")}>
-          <Text style={styles.emailLink}>Continue with email</Text>
+          <Text style={styles.emailLink}>{t("auth.continueWithEmail")}</Text>
         </Pressable>
       </Animated.View>
 
@@ -133,13 +135,13 @@ export function SignInCard() {
         entering={FadeIn.duration(500).delay(400)}
         style={styles.legal}
       >
-        By signing in, you agree to our{" "}
+        {t("auth.legal.intro")}
         <Text onPress={openTerms} style={styles.legalLink}>
-          Terms of Service
-        </Text>{" "}
-        and{" "}
+          {t("auth.legal.terms")}
+        </Text>
+        {t("auth.legal.and")}
         <Text onPress={openPrivacy} style={styles.legalLink}>
-          Privacy Policy
+          {t("auth.legal.privacy")}
         </Text>
       </Animated.Text>
     </View>

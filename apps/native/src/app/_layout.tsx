@@ -114,6 +114,9 @@ function RootStack() {
   );
   const upsertAthlete = useMutation(api.agoge.athletes.upsertAthlete);
   const setUserLocale = useMutation(api.table.users.setLocale);
+  const clearPushToken = useMutation(
+    api.notifications.clearPushNotificationToken,
+  );
   const currentLocale = useLanguage();
   const hasCompletedOnboarding = user?.hasCompletedOnboarding ?? false;
   const athleteCreationAttempted = useRef(false);
@@ -167,7 +170,15 @@ function RootStack() {
         user?.banReason
           ? `Your account has been suspended: ${user.banReason}. Contact support if you believe this is an error.`
           : "Your account has been suspended. Contact support if you believe this is an error.",
-        [{ text: "OK", onPress: () => signOut() }],
+        [
+          {
+            text: "OK",
+            onPress: async () => {
+              await clearPushToken().catch(() => {});
+              signOut();
+            },
+          },
+        ],
       );
     }
   }, [isAuthenticated, isBanned]);

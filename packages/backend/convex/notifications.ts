@@ -11,7 +11,7 @@ import { getAuthUserId } from "@convex-dev/auth/server";
 import { PushNotifications } from "@convex-dev/expo-push-notifications";
 import { ConvexError, v } from "convex/values";
 import { components } from "./_generated/api";
-import { internalAction, mutation } from "./_generated/server";
+import { internalAction, mutation, query } from "./_generated/server";
 
 const pushNotifications = new PushNotifications(components.pushNotifications);
 
@@ -30,6 +30,50 @@ export const recordPushNotificationToken = mutation({
       userId,
       pushToken: args.token,
     });
+    return null;
+  },
+});
+
+export const clearPushNotificationToken = mutation({
+  args: {},
+  returns: v.null(),
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return null;
+    await pushNotifications.removeToken(ctx, { userId });
+    return null;
+  },
+});
+
+export const getPushNotificationStatus = query({
+  args: {},
+  returns: v.union(
+    v.null(),
+    v.object({ hasToken: v.boolean(), paused: v.boolean() }),
+  ),
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return null;
+    return await pushNotifications.getStatusForUser(ctx, { userId });
+  },
+});
+
+export const setPushNotificationsPaused = mutation({
+  args: { paused: v.boolean() },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      throw new ConvexError({
+        code: "UNAUTHORIZED",
+        message: "Not authenticated",
+      });
+    }
+    if (args.paused) {
+      await pushNotifications.pauseNotificationsForUser(ctx, { userId });
+    } else {
+      await pushNotifications.unpauseNotificationsForUser(ctx, { userId });
+    }
     return null;
   },
 });

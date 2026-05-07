@@ -1,5 +1,6 @@
 import { GRAYS, SURFACES } from "@/lib/design-tokens";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Pressable,
@@ -23,6 +24,7 @@ interface OAuthButtonProps {
 }
 
 export function GoogleButton({ onPress, loading, disabled }: OAuthButtonProps) {
+  const { t } = useTranslation();
   const scale = useSharedValue(1);
 
   const animatedStyle = useAnimatedStyle(() => ({
@@ -50,7 +52,7 @@ export function GoogleButton({ onPress, loading, disabled }: OAuthButtonProps) {
       ) : (
         <View style={styles.buttonContent}>
           <GoogleLogo />
-          <Text style={styles.googleText}>Continue with Google</Text>
+          <Text style={styles.googleText}>{t("auth.continueWithGoogle")}</Text>
         </View>
       )}
     </AnimatedPressable>
@@ -58,6 +60,7 @@ export function GoogleButton({ onPress, loading, disabled }: OAuthButtonProps) {
 }
 
 export function AppleButton({ onPress, loading, disabled }: OAuthButtonProps) {
+  const { t } = useTranslation();
   const scale = useSharedValue(1);
 
   const animatedStyle = useAnimatedStyle(() => ({
@@ -85,7 +88,7 @@ export function AppleButton({ onPress, loading, disabled }: OAuthButtonProps) {
       ) : (
         <View style={styles.buttonContent}>
           <AppleLogo />
-          <Text style={styles.appleText}>Continue with Apple</Text>
+          <Text style={styles.appleText}>{t("auth.continueWithApple")}</Text>
         </View>
       )}
     </AnimatedPressable>

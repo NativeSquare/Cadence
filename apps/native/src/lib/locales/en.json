@@ -2,7 +2,81 @@
   "common": {
     "submit": "Submit",
     "cancel": "Cancel",
-    "back": "Back"
+    "back": "Back",
+    "continue": "Continue"
+  },
+  "auth": {
+    "tagline": "AI coaching that sees what you can't.",
+    "communityPulseSuffix": "runners training with Cadence",
+    "continueWithGoogle": "Continue with Google",
+    "continueWithApple": "Continue with Apple",
+    "continueWithEmail": "Continue with email",
+    "legal": {
+      "intro": "By signing in, you agree to our ",
+      "terms": "Terms of Service",
+      "and": " and ",
+      "privacy": "Privacy Policy"
+    },
+    "emailAuth": {
+      "signInTitle": "Welcome back",
+      "signInSubtitle": "Sign in with your email and password.",
+      "signUpTitle": "Create your account",
+      "signUpSubtitle": "Fill in the details to get started.",
+      "name": "Name",
+      "namePlaceholder": "Your name",
+      "email": "Email",
+      "emailPlaceholder": "m@example.com",
+      "password": "Password",
+      "passwordPlaceholderSignIn": "Your password",
+      "passwordPlaceholderSignUp": "Set a password",
+      "confirmPassword": "Confirm Password",
+      "confirmPasswordPlaceholder": "Confirm password",
+      "acceptTerms": "Accept terms and conditions",
+      "submitSignIn": "Sign In",
+      "submitSignUp": "Continue",
+      "forgotPassword": "Forgot password?",
+      "haveAccount": "Already have an account?",
+      "noAccount": "Don't have an account?",
+      "signIn": "Sign In",
+      "signUp": "Sign Up"
+    },
+    "forgotPassword": {
+      "title": "Forgot password?",
+      "subtitle": "Enter your email to receive a reset code.",
+      "email": "Email",
+      "emailPlaceholder": "m@example.com",
+      "submit": "Reset your password",
+      "remember": "Remember your password?",
+      "signIn": "Sign In",
+      "noAccountFound": "No account found with this email."
+    },
+    "resetPassword": {
+      "title": "Reset password",
+      "subtitle": "Enter the code sent to {{email}} and set a new password.",
+      "newPassword": "New password",
+      "newPasswordPlaceholder": "New password",
+      "verificationCode": "Verification code",
+      "submit": "Reset Password"
+    },
+    "verifyEmail": {
+      "title": "Verify your email",
+      "subtitle": "Enter the verification code sent to {{email}}",
+      "verificationCode": "Verification code",
+      "submit": "Continue",
+      "cancel": "Cancel",
+      "invalidCode": "Invalid verification code."
+    },
+    "errors": {
+      "invalidAccountId": "No account found with this email.",
+      "invalidSecret": "Incorrect password.",
+      "tooManyFailedAttempts": "Too many attempts. Please try again later.",
+      "accountAlreadyExists": "An account with this email already exists.",
+      "invalidVerificationCode": "Invalid verification code."
+    }
+  },
+  "onboarding": {
+    "comingSoonTitle": "Onboarding — coming soon",
+    "comingSoonHelper": "Tap continue to skip for now."
   },
   "account": {
     "language": {
@@ -10,6 +84,14 @@
       "sectionTitle": "Language",
       "english": "English",
       "french": "Français"
+    },
+    "notifications": {
+      "title": "Notifications",
+      "sectionTitle": "Push notifications",
+      "receiveLabel": "Receive notifications",
+      "receiveHelper": "Pause to stop notifications without revoking permission.",
+      "permissionDenied": "Notifications are blocked in your system settings.",
+      "openSettings": "Open settings"
     },
     "sendFeedback": {
       "title": "Send Feedback",

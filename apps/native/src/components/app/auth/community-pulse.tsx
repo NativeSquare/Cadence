@@ -1,5 +1,7 @@
 import { COLORS, GRAYS } from "@/lib/design-tokens";
+import { useLanguage } from "@/lib/i18n";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { StyleSheet, View } from "react-native";
 import Animated, {
   useAnimatedStyle,
@@ -12,6 +14,8 @@ import Animated, {
 import { Text } from "@/components/ui/text";
 
 export function CommunityPulse() {
+  const { t } = useTranslation();
+  const locale = useLanguage();
   const [count, setCount] = useState(12847);
   const ringScale = useSharedValue(1);
   const ringOpacity = useSharedValue(0.3);
@@ -58,8 +62,8 @@ export function CommunityPulse() {
       </View>
 
       <Text style={styles.text}>
-        <Text style={styles.count}>{count.toLocaleString()}</Text> runners
-        training with Cadence
+        <Text style={styles.count}>{count.toLocaleString(locale)}</Text>{" "}
+        {t("auth.communityPulseSuffix")}
       </Text>
     </View>
   );

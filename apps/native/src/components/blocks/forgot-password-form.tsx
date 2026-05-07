@@ -7,6 +7,7 @@ import { useAuthActions } from "@convex-dev/auth/react";
 import { useConvex } from "convex/react";
 import { useRouter } from "expo-router";
 import * as React from "react";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Pressable,
@@ -27,6 +28,7 @@ import { api } from "@packages/backend/convex/_generated/api";
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 export function ForgotPasswordForm() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { signIn } = useAuthActions();
   const convex = useConvex();
@@ -52,7 +54,7 @@ export function ForgotPasswordForm() {
       email,
     });
     if (!user) {
-      setFormError("No account found with this email.");
+      setFormError(t("auth.forgotPassword.noAccountFound"));
       return;
     }
 
@@ -92,9 +94,9 @@ export function ForgotPasswordForm() {
 
       {/* Title */}
       <Animated.View entering={FadeIn.duration(500).delay(50)}>
-        <Text style={styles.title}>Forgot password?</Text>
+        <Text style={styles.title}>{t("auth.forgotPassword.title")}</Text>
         <Text style={styles.subtitle}>
-          Enter your email to receive a reset code.
+          {t("auth.forgotPassword.subtitle")}
         </Text>
       </Animated.View>
 
@@ -106,13 +108,13 @@ export function ForgotPasswordForm() {
 
       {/* Email field */}
       <Animated.View entering={FadeInUp.duration(500).delay(100)}>
-        <Text style={styles.label}>Email</Text>
+        <Text style={styles.label}>{t("auth.forgotPassword.email")}</Text>
         <View
           style={[styles.inputContainer, focused && styles.inputContainerFocused]}
         >
           <TextInput
             style={styles.input}
-            placeholder="m@example.com"
+            placeholder={t("auth.forgotPassword.emailPlaceholder")}
             placeholderTextColor={GRAYS.g4}
             keyboardType="email-address"
             autoComplete="email"
@@ -146,7 +148,9 @@ export function ForgotPasswordForm() {
           {isLoading ? (
             <ActivityIndicator color="#000" />
           ) : (
-            <Text style={styles.submitText}>Reset your password</Text>
+            <Text style={styles.submitText}>
+              {t("auth.forgotPassword.submit")}
+            </Text>
           )}
         </AnimatedPressable>
       </Animated.View>
@@ -156,12 +160,16 @@ export function ForgotPasswordForm() {
         entering={FadeIn.duration(400).delay(300)}
         style={styles.toggleRow}
       >
-        <Text style={styles.toggleLabel}>Remember your password?</Text>
+        <Text style={styles.toggleLabel}>
+          {t("auth.forgotPassword.remember")}
+        </Text>
         <Pressable
           onPress={() => router.navigate("/email-auth")}
           hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }}
         >
-          <Text style={styles.toggleLink}>Sign In</Text>
+          <Text style={styles.toggleLink}>
+            {t("auth.forgotPassword.signIn")}
+          </Text>
         </Pressable>
       </Animated.View>
     </View>

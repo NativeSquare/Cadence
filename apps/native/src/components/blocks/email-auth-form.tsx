@@ -6,6 +6,7 @@ import { useAuthActions } from "@convex-dev/auth/react";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import * as React from "react";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Pressable,
@@ -24,17 +25,20 @@ import z from "zod";
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
-const AUTH_ERROR_MAP: Record<string, string> = {
-  InvalidAccountId: "No account found with this email.",
-  InvalidSecret: "Incorrect password.",
-  TooManyFailedAttempts: "Too many attempts. Please try again later.",
-  AccountAlreadyExists: "An account with this email already exists.",
-  InvalidVerificationCode: "Invalid verification code.",
+const AUTH_ERROR_KEYS: Record<string, string> = {
+  InvalidAccountId: "auth.errors.invalidAccountId",
+  InvalidSecret: "auth.errors.invalidSecret",
+  TooManyFailedAttempts: "auth.errors.tooManyFailedAttempts",
+  AccountAlreadyExists: "auth.errors.accountAlreadyExists",
+  InvalidVerificationCode: "auth.errors.invalidVerificationCode",
 };
 
-function friendlyAuthError(raw: string): string {
-  for (const [key, friendly] of Object.entries(AUTH_ERROR_MAP)) {
-    if (raw.includes(key)) return friendly;
+function friendlyAuthError(
+  raw: string,
+  t: (key: string) => string,
+): string {
+  for (const [key, transKey] of Object.entries(AUTH_ERROR_KEYS)) {
+    if (raw.includes(key)) return t(transKey);
   }
   return raw;
 }
@@ -42,6 +46,7 @@ function friendlyAuthError(raw: string): string {
 type Mode = "sign-in" | "sign-up";
 
 export function EmailAuthForm() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { signIn } = useAuthActions();
 
@@ -95,7 +100,7 @@ export function EmailAuthForm() {
       try {
         await signIn("password", { email, password, flow: "signIn" });
       } catch (error) {
-        setFormError(friendlyAuthError(getConvexErrorMessage(error)));
+        setFormError(friendlyAuthError(getConvexErrorMessage(error), t));
       } finally {
         setIsLoading(false);
       }
@@ -132,7 +137,7 @@ export function EmailAuthForm() {
           router.replace({ pathname: "/verify-email", params: { email, name } });
         }
       } catch (error) {
-        setFormError(friendlyAuthError(getConvexErrorMessage(error)));
+        setFormError(friendlyAuthError(getConvexErrorMessage(error), t));
       } finally {
         setIsLoading(false);
       }
@@ -155,12 +160,14 @@ export function EmailAuthForm() {
       {/* Title */}
       <Animated.View entering={FadeIn.duration(500).delay(50)}>
         <Text style={styles.title}>
-          {isSignUp ? "Create your account" : "Welcome back"}
+          {isSignUp
+            ? t("auth.emailAuth.signUpTitle")
+            : t("auth.emailAuth.signInTitle")}
         </Text>
         <Text style={styles.subtitle}>
           {isSignUp
-            ? "Fill in the details to get started."
-            : "Sign in with your email and password."}
+            ? t("auth.emailAuth.signUpSubtitle")
+            : t("auth.emailAuth.signInSubtitle")}
         </Text>
       </Animated.View>
 
@@ -177,7 +184,7 @@ export function EmailAuthForm() {
       >
         {isSignUp && (
           <View>
-            <Text style={styles.label}>Name</Text>
+            <Text style={styles.label}>{t("auth.emailAuth.name")}</Text>
             <View
               style={[
                 styles.inputContainer,
@@ -187,7 +194,7 @@ export function EmailAuthForm() {
               <TextInput
                 ref={nameRef}
                 style={styles.input}
-                placeholder="Your name"
+                placeholder={t("auth.emailAuth.namePlaceholder")}
                 placeholderTextColor={GRAYS.g4}
                 autoComplete="name"
                 autoCapitalize="words"
@@ -206,7 +213,7 @@ export function EmailAuthForm() {
         )}
 
         <View>
-          <Text style={styles.label}>Email</Text>
+          <Text style={styles.label}>{t("auth.emailAuth.email")}</Text>
           <View
             style={[
               styles.inputContainer,
@@ -216,7 +223,7 @@ export function EmailAuthForm() {
             <TextInput
               ref={emailRef}
               style={styles.input}
-              placeholder="m@example.com"
+              placeholder={t("auth.emailAuth.emailPlaceholder")}
               placeholderTextColor={GRAYS.g4}
               keyboardType="email-address"
               autoComplete="email"
@@ -235,7 +242,7 @@ export function EmailAuthForm() {
         </View>
 
         <View>
-          <Text style={styles.label}>Password</Text>
+          <Text style={styles.label}>{t("auth.emailAuth.password")}</Text>
           <View
             style={[
               styles.inputContainer,
@@ -245,7 +252,11 @@ export function EmailAuthForm() {
             <TextInput
               ref={passwordRef}
               style={[styles.input, { paddingRight: 52 }]}
-              placeholder={isSignUp ? "Set a password" : "Your password"}
+              placeholder={
+                isSignUp
+                  ? t("auth.emailAuth.passwordPlaceholderSignUp")
+                  : t("auth.emailAuth.passwordPlaceholderSignIn")
+              }
               placeholderTextColor={GRAYS.g4}
               secureTextEntry={!showPassword}
               returnKeyType={isSignUp ? "next" : "done"}
@@ -279,7 +290,9 @@ export function EmailAuthForm() {
         {isSignUp && (
           <>
             <View>
-              <Text style={styles.label}>Confirm Password</Text>
+              <Text style={styles.label}>
+                {t("auth.emailAuth.confirmPassword")}
+              </Text>
               <View
                 style={[
                   styles.inputContainer,
@@ -290,7 +303,7 @@ export function EmailAuthForm() {
                 <TextInput
                   ref={confirmPasswordRef}
                   style={[styles.input, { paddingRight: 52 }]}
-                  placeholder="Confirm password"
+                  placeholder={t("auth.emailAuth.confirmPasswordPlaceholder")}
                   placeholderTextColor={GRAYS.g4}
                   secureTextEntry={!showConfirmPassword}
                   returnKeyType="done"
@@ -337,7 +350,7 @@ export function EmailAuthForm() {
                 )}
               </View>
               <Text style={styles.termsText}>
-                Accept terms and conditions
+                {t("auth.emailAuth.acceptTerms")}
               </Text>
             </Pressable>
             {fieldErrors.acceptTerms && (
@@ -352,7 +365,11 @@ export function EmailAuthForm() {
         <SubmitButton
           onPress={onSubmit}
           loading={isLoading}
-          label={isSignUp ? "Continue" : "Sign In"}
+          label={
+            isSignUp
+              ? t("auth.emailAuth.submitSignUp")
+              : t("auth.emailAuth.submitSignIn")
+          }
         />
       </Animated.View>
 
@@ -364,7 +381,9 @@ export function EmailAuthForm() {
             style={styles.forgotButton}
             hitSlop={{ top: 10, bottom: 10, left: 16, right: 16 }}
           >
-            <Text style={styles.forgotText}>Forgot password?</Text>
+            <Text style={styles.forgotText}>
+              {t("auth.emailAuth.forgotPassword")}
+            </Text>
           </Pressable>
         </Animated.View>
       )}
@@ -375,14 +394,18 @@ export function EmailAuthForm() {
         style={styles.toggleRow}
       >
         <Text style={styles.toggleLabel}>
-          {isSignUp ? "Already have an account?" : "Don't have an account?"}
+          {isSignUp
+            ? t("auth.emailAuth.haveAccount")
+            : t("auth.emailAuth.noAccount")}
         </Text>
         <Pressable
           onPress={toggleMode}
           hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }}
         >
           <Text style={styles.toggleLink}>
-            {isSignUp ? "Sign In" : "Sign Up"}
+            {isSignUp
+              ? t("auth.emailAuth.signIn")
+              : t("auth.emailAuth.signUp")}
           </Text>
         </Pressable>
       </Animated.View>

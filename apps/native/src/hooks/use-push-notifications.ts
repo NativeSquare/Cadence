@@ -4,10 +4,12 @@
  * Handles the full push notification lifecycle:
  * 1. Requests notification permissions
  * 2. Registers the Expo push token with the backend
- * 3. Listens for notification taps and navigates accordingly
+ * 3. Re-checks on app foreground so OS-level permission flips are picked up
+ * 4. Listens for notification taps and navigates accordingly
  */
 
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
+import { AppState } from "react-native";
 import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
 import Constants from "expo-constants";
@@ -18,7 +20,6 @@ import { api } from "@packages/backend/convex/_generated/api";
 // Configure how notifications are presented when the app is in the foreground
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
     shouldPlaySound: true,
     shouldSetBadge: false,
     shouldShowBanner: true,
@@ -29,14 +30,11 @@ Notifications.setNotificationHandler({
 export function usePushNotifications(enabled = true) {
   const router = useRouter();
   const recordToken = useMutation(api.notifications.recordPushNotificationToken);
-  const registeredRef = useRef(false);
 
-  // Register push token when enabled (authenticated + onboarded)
   useEffect(() => {
-    if (!enabled || registeredRef.current) return;
+    if (!enabled) return;
 
-    async function register() {
-      // Push notifications only work on physical devices
+    async function register({ requestPermission }: { requestPermission: boolean }) {
       if (!Device.isDevice) {
         console.log("[push] Must use physical device for push notifications");
         return;
@@ -46,15 +44,12 @@ export function usePushNotifications(enabled = true) {
         await Notifications.getPermissionsAsync();
       let finalStatus = existingStatus;
 
-      if (existingStatus !== "granted") {
+      if (existingStatus !== "granted" && requestPermission) {
         const { status } = await Notifications.requestPermissionsAsync();
         finalStatus = status;
       }
 
-      if (finalStatus !== "granted") {
-        console.log("[push] Permission not granted");
-        return;
-      }
+      if (finalStatus !== "granted") return;
 
       const projectId =
         Constants.expoConfig?.extra?.eas?.projectId ??
@@ -69,17 +64,21 @@ export function usePushNotifications(enabled = true) {
         const { data: token } = await Notifications.getExpoPushTokenAsync({
           projectId,
         });
-
         await recordToken({ token });
-
-        registeredRef.current = true;
-        console.log("[push] Token registered:", token);
       } catch (err) {
         console.error("[push] Failed to register token:", err);
       }
     }
 
-    register();
+    register({ requestPermission: true });
+
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state === "active") {
+        register({ requestPermission: false });
+      }
+    });
+
+    return () => sub.remove();
   }, [enabled, recordToken]);
 
   // Listen for notification taps (response = user interacted with notification)

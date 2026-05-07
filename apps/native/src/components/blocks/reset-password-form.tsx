@@ -6,6 +6,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useRouter } from "expo-router";
 import * as React from "react";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Pressable,
@@ -26,6 +27,7 @@ import z from "zod";
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 export function ResetPasswordForm({ email }: { email: string }) {
+  const { t } = useTranslation();
   const router = useRouter();
   const { signIn } = useAuthActions();
 
@@ -93,9 +95,9 @@ export function ResetPasswordForm({ email }: { email: string }) {
 
       {/* Title */}
       <Animated.View entering={FadeIn.duration(500).delay(50)}>
-        <Text style={styles.title}>Reset password</Text>
+        <Text style={styles.title}>{t("auth.resetPassword.title")}</Text>
         <Text style={styles.subtitle}>
-          Enter the code sent to {email} and set a new password.
+          {t("auth.resetPassword.subtitle", { email })}
         </Text>
       </Animated.View>
 
@@ -111,7 +113,7 @@ export function ResetPasswordForm({ email }: { email: string }) {
         style={styles.fields}
       >
         <View>
-          <Text style={styles.label}>New password</Text>
+          <Text style={styles.label}>{t("auth.resetPassword.newPassword")}</Text>
           <View
             style={[
               styles.inputContainer,
@@ -120,7 +122,7 @@ export function ResetPasswordForm({ email }: { email: string }) {
           >
             <TextInput
               style={[styles.input, { paddingRight: 52 }]}
-              placeholder="New password"
+              placeholder={t("auth.resetPassword.newPasswordPlaceholder")}
               placeholderTextColor={GRAYS.g4}
               secureTextEntry={!showPassword}
               returnKeyType="next"
@@ -148,7 +150,9 @@ export function ResetPasswordForm({ email }: { email: string }) {
 
         {/* OTP code */}
         <View>
-          <Text style={styles.label}>Verification code</Text>
+          <Text style={styles.label}>
+            {t("auth.resetPassword.verificationCode")}
+          </Text>
           <OtpInput
             numberOfDigits={6}
             focusColor={GRAYS.g1}
@@ -196,7 +200,9 @@ export function ResetPasswordForm({ email }: { email: string }) {
           {isLoading ? (
             <ActivityIndicator color="#000" />
           ) : (
-            <Text style={styles.submitText}>Reset Password</Text>
+            <Text style={styles.submitText}>
+              {t("auth.resetPassword.submit")}
+            </Text>
           )}
         </AnimatedPressable>
       </Animated.View>

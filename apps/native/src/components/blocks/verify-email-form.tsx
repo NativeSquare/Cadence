@@ -5,6 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useRouter } from "expo-router";
 import * as React from "react";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Pressable,
@@ -24,6 +25,7 @@ import z from "zod";
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 export function VerifyEmailForm({ email, name }: { email: string; name?: string }) {
+  const { t } = useTranslation();
   const router = useRouter();
   const { signIn } = useAuthActions();
 
@@ -53,7 +55,7 @@ export function VerifyEmailForm({ email, name }: { email: string; name?: string 
         ...(name ? { name } : {}),
       });
     } catch (error) {
-      setFormError("Invalid verification code.");
+      setFormError(t("auth.verifyEmail.invalidCode"));
     } finally {
       setIsLoading(false);
     }
@@ -79,9 +81,9 @@ export function VerifyEmailForm({ email, name }: { email: string; name?: string 
 
       {/* Title */}
       <Animated.View entering={FadeIn.duration(500).delay(50)}>
-        <Text style={styles.title}>Verify your email</Text>
+        <Text style={styles.title}>{t("auth.verifyEmail.title")}</Text>
         <Text style={styles.subtitle}>
-          Enter the verification code sent to {email}
+          {t("auth.verifyEmail.subtitle", { email })}
         </Text>
       </Animated.View>
 
@@ -93,7 +95,9 @@ export function VerifyEmailForm({ email, name }: { email: string; name?: string 
 
       {/* OTP */}
       <Animated.View entering={FadeInUp.duration(500).delay(100)}>
-        <Text style={styles.label}>Verification code</Text>
+        <Text style={styles.label}>
+          {t("auth.verifyEmail.verificationCode")}
+        </Text>
         <OtpInput
           numberOfDigits={6}
           focusColor={GRAYS.g1}
@@ -139,7 +143,9 @@ export function VerifyEmailForm({ email, name }: { email: string; name?: string 
           {isLoading ? (
             <ActivityIndicator color="#000" />
           ) : (
-            <Text style={styles.submitText}>Continue</Text>
+            <Text style={styles.submitText}>
+              {t("auth.verifyEmail.submit")}
+            </Text>
           )}
         </AnimatedPressable>
       </Animated.View>
@@ -151,7 +157,7 @@ export function VerifyEmailForm({ email, name }: { email: string; name?: string 
           style={styles.cancelButton}
           hitSlop={{ top: 10, bottom: 10, left: 16, right: 16 }}
         >
-          <Text style={styles.cancelText}>Cancel</Text>
+          <Text style={styles.cancelText}>{t("auth.verifyEmail.cancel")}</Text>
         </Pressable>
       </Animated.View>
     </View>

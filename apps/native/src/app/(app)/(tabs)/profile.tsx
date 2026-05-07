@@ -38,6 +38,9 @@ export default function Profile() {
   const { signOut } = useAuthActions();
   const user = useQuery(api.table.users.currentUser);
   const deleteAccount = useMutation(api.table.users.deleteAccount);
+  const clearPushToken = useMutation(
+    api.notifications.clearPushNotificationToken,
+  );
 
   const logoutSheetRef = React.useRef<BottomSheetModal>(null);
   const deleteAccountSheetRef = React.useRef<BottomSheetModal>(null);
@@ -95,8 +98,9 @@ export default function Profile() {
     return { backgroundColor };
   });
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     logoutSheetRef.current?.dismiss();
+    await clearPushToken().catch(() => {});
     signOut();
   };
 
@@ -104,6 +108,7 @@ export default function Profile() {
     setIsDeleting(true);
     try {
       await deleteAccount();
+      await clearPushToken().catch(() => {});
       deleteAccountSheetRef.current?.dismiss();
       signOut();
     } catch (error) {
