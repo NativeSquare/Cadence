@@ -1,4 +1,5 @@
 import { View, Image, Pressable } from "react-native";
+import { useTranslation } from "react-i18next";
 import { Text } from "@/components/ui/text";
 import Animated, { FadeIn } from "react-native-reanimated";
 import { RotateCcw, WifiOff } from "lucide-react-native";
@@ -18,6 +19,7 @@ export function ChatErrorCard({
   retryCount = 0,
   maxRetries = 3,
 }: ChatErrorCardProps) {
+  const { t } = useTranslation();
   const isExhausted = retryCount >= maxRetries;
 
   return (
@@ -46,7 +48,7 @@ export function ChatErrorCard({
         <View className="flex-row items-center gap-1.5 mb-2">
           <View className="w-[5px] h-[5px] rounded-full bg-red-400" />
           <Text className="text-[10px] font-coach-semibold text-red-400">
-            Coach
+            {t("coach.errorCard.badge")}
           </Text>
         </View>
 
@@ -71,7 +73,8 @@ export function ChatErrorCard({
           >
             <RotateCcw size={13} color="#ffffff" />
             <Text className="text-[13px] font-coach-medium text-w1">
-              Retry{retryCount > 0 ? ` (${retryCount}/${maxRetries})` : ""}
+              {t("coach.errorCard.retry")}
+              {retryCount > 0 ? ` (${retryCount}/${maxRetries})` : ""}
             </Text>
           </Pressable>
         )}

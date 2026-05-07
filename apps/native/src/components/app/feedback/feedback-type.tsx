@@ -1,5 +1,6 @@
 import { Text } from "@/components/ui/text";
 import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
+import { useTranslation } from "react-i18next";
 import { Pressable, View } from "react-native";
 
 export type FeedbackTypeFieldProps = {
@@ -9,21 +10,25 @@ export type FeedbackTypeFieldProps = {
   error?: string;
 };
 
+// The values are persisted in Convex as the `type` field; keep them stable
+// English keys and translate only the displayed label.
 const FEEDBACK_TYPES = ["Bug Report", "Feature Request", "General Feedback"];
 
 export function FeedbackTypeField({
-  label = "Feedback Type",
+  label,
   onSelect,
   isSelected,
   error,
 }: FeedbackTypeFieldProps) {
+  const { t } = useTranslation();
+  const resolvedLabel = label ?? t("feedback.typeLabel");
   return (
     <View className="gap-2">
       <Text
         className="font-coach-semibold text-[11px] uppercase tracking-wider"
         style={{ color: LIGHT_THEME.wMute }}
       >
-        {label}
+        {resolvedLabel}
       </Text>
       <View className="flex-row flex-wrap gap-2">
         {FEEDBACK_TYPES.map((option) => {
@@ -49,7 +54,7 @@ export function FeedbackTypeField({
                   color: active ? "#FFFFFF" : LIGHT_THEME.wText,
                 }}
               >
-                {option}
+                {t(`feedback.types.${option}` as const)}
               </Text>
             </Pressable>
           );

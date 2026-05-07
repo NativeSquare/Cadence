@@ -3,7 +3,16 @@
     "submit": "Submit",
     "cancel": "Cancel",
     "back": "Back",
-    "continue": "Continue"
+    "continue": "Continue",
+    "relativeShort": {
+      "justNow": "just now",
+      "minutes": "{{count}}m ago",
+      "hours": "{{count}}h ago",
+      "days": "{{count}}d ago",
+      "weeks": "{{count}}w ago",
+      "months": "{{count}}mo ago",
+      "years": "{{count}}y ago"
+    }
   },
   "auth": {
     "tagline": "AI coaching that sees what you can't.",
@@ -77,6 +86,147 @@
   "onboarding": {
     "comingSoonTitle": "Onboarding — coming soon",
     "comingSoonHelper": "Tap continue to skip for now."
+  },
+  "calendar": {
+    "viewMode": {
+      "workouts": "Workouts",
+      "blocks": "Blocks"
+    },
+    "types": {
+      "easy": "Easy",
+      "specific": "Specific",
+      "long": "Long Run",
+      "race": "Race"
+    }
+  },
+  "coach": {
+    "loadingConversation": "Loading conversation...",
+    "unableToStart": "Unable to start conversation. Please try again.",
+    "title": "Coach",
+    "status": {
+      "online": "Online",
+      "thinking": "Thinking...",
+      "offline": "Offline",
+      "reconnecting": "Reconnecting...",
+      "errorTapRetry": "Error · tap retry"
+    },
+    "toggleVerbose": {
+      "show": "Show tool activity",
+      "hide": "Hide tool activity"
+    },
+    "emptyState": {
+      "heading": "Your running coach",
+      "subheading": "Ask me anything about your training, recovery, or race prep.",
+      "suggestions": [
+        "How's my training load looking?",
+        "Am I ready for race day?",
+        "Suggest a recovery plan",
+        "What should I focus on this week?"
+      ]
+    },
+    "errorCard": {
+      "badge": "Coach",
+      "retry": "Retry",
+      "connectionTrouble": "I'm having trouble connecting right now. Please try again later.",
+      "somethingWentWrong": "Something went wrong. Let's try that again."
+    },
+    "input": {
+      "placeholder": "Ask your coach...",
+      "attachmentLabel": "Add photo or file",
+      "attachmentHint": "Opens options to take a photo, choose from library, or browse files",
+      "messageLabel": "Message input",
+      "messageHint": "Type a message to your coach",
+      "removeAttachment": "Remove attachment",
+      "documentFallback": "Document"
+    },
+    "attachment": {
+      "openImage": "Open image",
+      "openFormat": "Open {{name}}",
+      "documentFallback": "Document"
+    },
+    "upload": {
+      "failedTitle": "Upload failed",
+      "failedImage": "Could not upload the image. Please try again.",
+      "failedFile": "Could not upload the file. Please try again."
+    },
+    "fallbackPrompt": "What do you see?",
+    "mockTranscript": "Can we swap tomorrow's rest for an easy run",
+    "voice": {
+      "liveTranscription": "Live transcription"
+    },
+    "tool": {
+      "couldNotSubmit": "Could not submit response"
+    },
+    "typing": {
+      "badge": "Coach"
+    },
+    "tools": {
+      "actions": {
+        "deny": "Deny",
+        "accept": "Accept",
+        "resolved": "Resolved",
+        "error": "Error"
+      },
+      "card": {
+        "createWorkoutTitle": "Create workout",
+        "updateWorkoutTitle": "Update workout",
+        "rescheduleWorkoutTitle": "Reschedule workout",
+        "deleteWorkoutTitle": "Delete workout",
+        "createBlockTitle": "Create block",
+        "updateBlockTitle": "Update block",
+        "deleteBlockTitle": "Delete block",
+        "workoutFallback": "Workout",
+        "blockFallback": "Block",
+        "loading": "Loading…",
+        "noFieldChanges": "No field changes detected.",
+        "attachedWorkoutsDetached": "Attached workouts are detached, not deleted.",
+        "rows": {
+          "name": "Name",
+          "type": "Type",
+          "status": "Status",
+          "plannedDate": "Planned date",
+          "distance": "Distance",
+          "duration": "Duration",
+          "avgPace": "Avg pace",
+          "avgHr": "Avg HR",
+          "block": "Block",
+          "start": "Start",
+          "end": "End",
+          "focus": "Focus",
+          "order": "Order"
+        }
+      },
+      "reading": {
+        "checkingFormat": "Checking {{label}}…",
+        "checkedFormat": "Checked {{label}}",
+        "labels": {
+          "getAthlete": "athlete profile",
+          "getAthletePlan": "training plan",
+          "listBlocks": "training blocks",
+          "getBlock": "block details",
+          "listWorkouts": "workouts",
+          "listWorkoutsByBlock": "block workouts",
+          "getWorkout": "workout details",
+          "readSleep": "sleep",
+          "readDailySummary": "daily metrics",
+          "readNutrition": "nutrition",
+          "readMenstruation": "cycle",
+          "readSomaProfile": "device profile",
+          "readConnections": "data connections"
+        }
+      }
+    }
+  },
+  "feedback": {
+    "describeLabel": "Describe Feedback",
+    "describePlaceholder": "Describe your feedback...",
+    "typeLabel": "Feedback Type",
+    "addPhotosLabel": "Add Photos",
+    "types": {
+      "Bug Report": "Bug Report",
+      "Feature Request": "Feature Request",
+      "General Feedback": "General Feedback"
+    }
   },
   "plan": {
     "greetingMorning": "Morning",
@@ -177,6 +327,12 @@
       "title": "Edit workout",
       "submit": "Save changes"
     },
+    "template": {
+      "section": "Template",
+      "structureSection": "Structure",
+      "deleteTitle": "Delete template",
+      "tapToClear": "Tap again to clear"
+    },
     "markDone": {
       "titleFormat": "Mark \"{{name}}\" as done",
       "submit": "Mark as done",
@@ -198,8 +354,32 @@
     },
     "types": {
       "easy": "Easy",
+      "long": "Long",
       "tempo": "Tempo",
-      "long": "Long"
+      "threshold": "Threshold",
+      "intervals": "Intervals",
+      "vo2max": "VO2 max",
+      "fartlek": "Fartlek",
+      "progression": "Progression",
+      "race_pace": "Race pace",
+      "recovery": "Recovery",
+      "strides": "Strides",
+      "hills": "Hills",
+      "race": "Race",
+      "test": "Test",
+      "cross_training": "Cross-training",
+      "strength": "Strength",
+      "rest": "Rest",
+      "other": "Other"
+    },
+    "blockTypes": {
+      "base": "Base",
+      "build": "Build",
+      "peak": "Peak",
+      "taper": "Taper",
+      "recovery": "Recovery",
+      "maintenance": "Maintenance",
+      "transition": "Transition"
     },
     "intents": {
       "warmup": {
@@ -411,6 +591,281 @@
       "english": "English",
       "french": "Français"
     },
+    "suspended": {
+      "title": "Account Suspended",
+      "messageWithReason": "Your account has been suspended: {{reason}}. Contact support if you believe this is an error.",
+      "messageDefault": "Your account has been suspended. Contact support if you believe this is an error.",
+      "ok": "OK"
+    },
+    "subscription": {
+      "title": "Subscription",
+      "comingSoon": "Coming soon — plan, billing, manage."
+    },
+    "calendars": {
+      "title": "Calendars",
+      "helper": "Connect a calendar to see your sessions alongside the rest of your schedule. Calendar sync is coming soon.",
+      "notConnected": "Not yet connected",
+      "comingSoon": "Coming soon",
+      "providers": {
+        "google": {
+          "name": "Google Calendar",
+          "description": "Sync sessions with your Google Calendar"
+        },
+        "apple": {
+          "name": "Apple Calendar",
+          "description": "Sync sessions with your Apple Calendar"
+        }
+      }
+    },
+    "workoutTemplates": {
+      "title": "Workout Templates",
+      "noneYet": "No templates yet",
+      "helper": "Save the workouts you want to repeat — easy runs, intervals, your long-run plan.",
+      "createFirst": "Create your first template",
+      "newTitle": "New Template",
+      "createSubmit": "Create",
+      "detailTitle": "Template",
+      "saveSubmit": "Save",
+      "notFound": "Template not found.",
+      "readOnlyReason": "Shared template — read-only."
+    },
+    "races": {
+      "detail": {
+        "header": "Race",
+        "goalsSection": "Goals",
+        "addGoal": "Add a goal",
+        "eventSection": "Event",
+        "raceDetailsSection": "Race details",
+        "resultSection": "Result",
+        "rows": {
+          "location": "Location",
+          "notes": "Notes",
+          "course": "Course",
+          "surface": "Surface",
+          "elevationGain": "Elevation gain",
+          "bib": "Bib",
+          "registration": "Registration",
+          "finishTime": "Finish time",
+          "placement": "Placement"
+        }
+      },
+      "title": "Races",
+      "noneYet": "No races yet",
+      "helper": "Add a target race to focus your training.",
+      "upcoming": "Upcoming",
+      "past": "Past",
+      "newTitle": "New race",
+      "createSubmit": "Create race",
+      "editTitle": "Edit race",
+      "saveSubmit": "Save",
+      "notFound": "Race not found",
+      "statusPills": {
+        "completed": "Done",
+        "cancelled": "Cancelled",
+        "dnf": "DNF",
+        "dns": "DNS"
+      },
+      "form": {
+        "sections": {
+          "event": "Event",
+          "race": "Race",
+          "result": "Result"
+        },
+        "fields": {
+          "name": "Name",
+          "namePlaceholder": "e.g. Paris Marathon",
+          "date": "Date",
+          "locationOptional": "Location (optional)",
+          "city": "City",
+          "country": "Country",
+          "notesOptional": "Notes (optional)",
+          "notesPlaceholder": "Terrain, course notes, expectations…",
+          "priority": "Priority",
+          "format": "Format",
+          "distance": "Distance",
+          "distancePlaceholder": "—",
+          "discipline": "Discipline",
+          "status": "Status",
+          "courseTypeOptional": "Course type (optional)",
+          "surfaceOptional": "Surface (optional)",
+          "itraOptional": "ITRA category (optional)",
+          "elevationOptional": "Elevation (optional)",
+          "elevationGain": "Gain",
+          "elevationLoss": "Loss",
+          "finishTime": "Finish time (HH:MM:SS)",
+          "finishHours": "HH",
+          "finishMinutes": "MM",
+          "finishSeconds": "SS",
+          "placementOptional": "Placement (optional)",
+          "placementPlaceholder": "—",
+          "resultNotesOptional": "Result notes (optional)",
+          "resultNotesPlaceholder": "How did it go?"
+        },
+        "pastDatePrompt": {
+          "title": "This date is in the past",
+          "description": "Is this a completed race you're logging?",
+          "primaryAction": "Yes, log it as completed",
+          "secondaryAction": "No, fix the date"
+        },
+        "deleteRace": "Delete race",
+        "deleteDescription": "This cannot be undone.",
+        "tapToClear": "Tap again to clear",
+        "errors": {
+          "required": "Name, date and format are required",
+          "upcomingPast": "An upcoming race cannot have a past date.",
+          "completedFuture": "A completed/DNF/DNS race must have a past or today's date.",
+          "invalidDistance": "Invalid distance",
+          "distanceMin": "Distance must be at least {{min}} km",
+          "distanceMax": "Distance can't exceed {{max}} km",
+          "invalidElevationGain": "Invalid elevation gain",
+          "invalidElevationLoss": "Invalid elevation loss",
+          "invalidFinishTime": "Invalid finish time",
+          "invalidPlacement": "Invalid placement"
+        },
+        "priorityDescriptions": {
+          "A": "Primary goal",
+          "B": "Secondary",
+          "C": "Training"
+        },
+        "statusLabels": {
+          "upcoming": "Upcoming",
+          "completed": "Completed",
+          "dnf": "DNF",
+          "dns": "DNS",
+          "cancelled": "Cancelled"
+        },
+        "courseTypes": {
+          "loop": "Loop",
+          "point_to_point": "Point to point",
+          "out_and_back": "Out & back",
+          "laps": "Laps",
+          "stages": "Stages",
+          "other": "Other"
+        },
+        "surfaces": {
+          "road": "Road",
+          "mixed": "Mixed",
+          "trail": "Trail",
+          "technical_trail": "Technical trail",
+          "track": "Track",
+          "other": "Other"
+        },
+        "disciplines": {
+          "road": "Road",
+          "trail": "Trail",
+          "track": "Track",
+          "cross_country": "Cross-country"
+        },
+        "formats": {
+          "5k": "5K",
+          "10k": "10K",
+          "15k": "15K",
+          "half_marathon": "Half marathon",
+          "marathon": "Marathon",
+          "custom": "Custom"
+        }
+      }
+    },
+    "goals": {
+      "title": "Goals",
+      "noneYet": "No goals yet",
+      "helper": "Set targets to focus your training.",
+      "active": "Active",
+      "resolved": "Resolved",
+      "byDate": "by {{date}}",
+      "targetFinish": "Finish",
+      "types": {
+        "performance": "Performance",
+        "completion": "Completion",
+        "process": "Process",
+        "volume": "Volume",
+        "body": "Body",
+        "other": "Other"
+      },
+      "ranks": {
+        "primary": "Primary",
+        "stretch": "Stretch",
+        "minimum": "Minimum",
+        "process": "Process"
+      },
+      "statuses": {
+        "active": "Active",
+        "achieved": "Achieved",
+        "missed": "Missed",
+        "abandoned": "Abandoned",
+        "paused": "Paused"
+      },
+      "form": {
+        "newGoal": "New goal",
+        "editGoal": "Edit goal",
+        "goalSection": "Goal",
+        "raceOptional": "Race (optional)",
+        "linkedToPrefix": "Linked to ",
+        "type": "Type",
+        "title": "Title",
+        "titlePlaceholder": "e.g. Sub-3 marathon",
+        "metric": "Metric",
+        "performanceModes": {
+          "time": "Time",
+          "pace": "Pace",
+          "place": "Placement"
+        },
+        "finishTime": "Finish time (HH:MM:SS)",
+        "finishHours": "HH",
+        "finishMinutes": "MM",
+        "finishSeconds": "SS",
+        "pacePerKm": "Pace (per km)",
+        "placement": "Placement",
+        "placementPlaceholder": "e.g. 10",
+        "distance": "Distance",
+        "distancePlaceholder": "—",
+        "weight": "Weight",
+        "weightPlaceholder": "—",
+        "targetPrefix": "Target: ",
+        "targetLabel": "Target",
+        "targetPlaceholder": "e.g. Hit fueling plan",
+        "rankOptional": "Rank (optional)",
+        "targetDateOptional": "Target date (optional)",
+        "descriptionOptional": "Description (optional)",
+        "descriptionPlaceholder": "Why this goal? Any context…",
+        "status": "Status",
+        "addGoal": "Add goal",
+        "saveGoal": "Save goal",
+        "deleteGoal": "Delete goal",
+        "deleteDescription": "This cannot be undone.",
+        "errorRequired": "Title and target are required.",
+        "tapToClear": "Tap again to clear",
+        "racePickerNone": "None"
+      }
+    },
+    "zones": {
+      "title": "Zones",
+      "hrZones": "HR Zones",
+      "paceZones": "Pace Zones",
+      "errorThresholdRequired": "Set a threshold before re-syncing zones."
+    },
+    "blocks": {
+      "newTitle": "New block",
+      "createSubmit": "Create block",
+      "editTitle": "Edit block",
+      "saveSubmit": "Save",
+      "notFound": "Block not found",
+      "section": "Block",
+      "datesSection": "Dates",
+      "orderSection": "Order",
+      "name": "Name",
+      "namePlaceholder": "e.g. Marathon Build 1",
+      "type": "Type",
+      "focusOptional": "Focus (optional)",
+      "focusPlaceholder": "e.g. Aerobic capacity, threshold",
+      "startDate": "Start date",
+      "endDate": "End date",
+      "positionInPlan": "Position in plan",
+      "deleteBlock": "Delete block",
+      "deleteDescription": "This will also delete every workout in the block. This cannot be undone.",
+      "errorEndBeforeStart": "End date must be on or after start date.",
+      "errorRequired": "Name, dates and order are required."
+    },
     "notifications": {
       "title": "Notifications",
       "sectionTitle": "Push notifications",
@@ -425,6 +880,115 @@
       "submit": "Submit",
       "errors": {
         "notLoggedIn": "You must be logged in to submit feedback"
+      }
+    },
+    "profile": {
+      "title": "Profile",
+      "athleteSection": "Athlete",
+      "athleteSectionHelper": "Used to personalize training zones and AI coaching.",
+      "fields": {
+        "name": "Name",
+        "namePlaceholder": "John Smith",
+        "sex": "Sex",
+        "dateOfBirth": "Date of birth",
+        "dobDay": "DD",
+        "dobMonth": "MM",
+        "dobYear": "YYYY",
+        "height": "Height",
+        "weight": "Weight"
+      },
+      "sex": {
+        "male": "Male",
+        "female": "Female",
+        "other": "Other"
+      },
+      "profilePhoto": "Profile Photo",
+      "guestFallback": "Guest",
+      "save": "Save",
+      "removePhoto": {
+        "label": "Remove profile photo",
+        "title": "Remove Photo",
+        "description": "Are you sure you want to remove your profile photo?",
+        "confirm": "Remove"
+      },
+      "changePhotoLabel": "Change profile photo",
+      "errors": {
+        "notLoggedIn": "You must be logged in to update your profile",
+        "invalidDob": "Invalid date of birth",
+        "invalidValues": "Invalid values"
+      }
+    },
+    "connections": {
+      "title": "Apps & Devices",
+      "connected": "Connected",
+      "notYetConnected": "Not yet connected",
+      "connect": "Connect",
+      "comingSoon": "Coming soon",
+      "syncing": "Syncing…",
+      "lastSync": "Last sync · {{time}}",
+      "providers": {
+        "strava": {
+          "description": "Sync activities, routes & training"
+        },
+        "appleHealth": {
+          "description": "Heart rate, sleep & recovery data"
+        },
+        "garmin": {
+          "description": "GPS watch & wearable data"
+        },
+        "coros": {
+          "description": "GPS watch & training data"
+        }
+      },
+      "detail": {
+        "connectedOn": "Connected on {{date}}",
+        "dataWeHave": "Data we have",
+        "noDataYet": "No data synced yet.",
+        "actions": "Actions",
+        "syncNow": "Sync now",
+        "checkingForData": "Checking for new data…",
+        "syncedNewItems": "Synced · {{count}} new items",
+        "upToDateJustNow": "Up to date · just now",
+        "tapToCheck": "Tap to check for new data",
+        "disconnect": "Disconnect {{name}}",
+        "confirmDisconnectTitle": "Disconnect {{name}}?",
+        "confirmDisconnectDescription": "Your synced data will be kept, but new activities won't sync until you reconnect.",
+        "confirmDisconnect": "Disconnect",
+        "since": "Since {{date}}",
+        "dataTypes": {
+          "activities": "Activities",
+          "body": "Body measurements",
+          "daily": "Daily metrics",
+          "menstruation": "Menstruation",
+          "nutrition": "Nutrition",
+          "sleep": "Sleep"
+        },
+        "counts": {
+          "sleep_one": "{{count}} night",
+          "sleep_other": "{{count}} nights",
+          "daily_one": "{{count}} day",
+          "daily_other": "{{count}} days",
+          "entries_one": "{{count}} entry",
+          "entries_other": "{{count}} entries"
+        }
+      },
+      "permission": {
+        "title": "Connect {{name}}",
+        "subtitle": "One more step",
+        "continue": "Continue",
+        "cancel": "Cancel",
+        "garmin": {
+          "intro": "On the next screen, Garmin will ask what to share. Historical Data is off by default — turn it on so we can analyze your past training.",
+          "caption": "Turn on Historical Data, then tap Save."
+        },
+        "appleHealth": {
+          "intro": "iOS will show a permission sheet next. Tap Turn On All so your coach gets the full picture — heart rate, sleep, workouts and more.",
+          "caption": "Tap Turn On All at the top, then Allow."
+        },
+        "strava": {
+          "intro": "Strava defaults to checking all boxes. Keep private activities checked so your full history imports — otherwise we only see your public workouts.",
+          "caption": "Leave private activities checked, then tap Authorize."
+        }
       }
     }
   }

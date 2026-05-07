@@ -8,10 +8,12 @@
 import { useQuery } from "convex/react";
 import { ArrowRight } from "lucide-react-native";
 import { View } from "react-native";
+import { useTranslation } from "react-i18next";
 import { api } from "@packages/backend/convex/_generated/api";
 import { Text } from "@/components/ui/text";
+import { blockTypeLabel } from "@/components/app/workout/workout-helpers";
 import { ProposalCard } from "./ProposalCard";
-import { formatDate, humanize } from "./format";
+import { formatDate } from "./format";
 import type { ToolCardProps } from "./types";
 
 interface UpdateBlockInput {
@@ -31,6 +33,7 @@ interface DiffRow {
 }
 
 export function UpdateBlockCard(props: ToolCardProps) {
+  const { t } = useTranslation();
   const input = (props.input ?? {}) as Partial<UpdateBlockInput>;
   const block = useQuery(
     api.agoge.blocks.getBlock,
@@ -39,39 +42,43 @@ export function UpdateBlockCard(props: ToolCardProps) {
 
   const rows: DiffRow[] = [];
   if (input.name !== undefined) {
-    rows.push({ label: "Name", before: block?.name, after: input.name });
+    rows.push({
+      label: t("coach.tools.card.rows.name"),
+      before: block?.name,
+      after: input.name,
+    });
   }
   if (input.type !== undefined) {
     rows.push({
-      label: "Type",
-      before: block ? humanize(block.type) : null,
-      after: humanize(input.type),
+      label: t("coach.tools.card.rows.type"),
+      before: block ? blockTypeLabel(t, block.type) : null,
+      after: blockTypeLabel(t, input.type),
     });
   }
   if (input.startDate !== undefined) {
     rows.push({
-      label: "Start",
+      label: t("coach.tools.card.rows.start"),
       before: block?.startDate ? formatDate(block.startDate) : null,
       after: formatDate(input.startDate),
     });
   }
   if (input.endDate !== undefined) {
     rows.push({
-      label: "End",
+      label: t("coach.tools.card.rows.end"),
       before: block?.endDate ? formatDate(block.endDate) : null,
       after: formatDate(input.endDate),
     });
   }
   if (input.focus !== undefined) {
     rows.push({
-      label: "Focus",
+      label: t("coach.tools.card.rows.focus"),
       before: block?.focus ?? "—",
       after: input.focus || "—",
     });
   }
   if (input.order !== undefined) {
     rows.push({
-      label: "Order",
+      label: t("coach.tools.card.rows.order"),
       before: block?.order != null ? String(block.order) : null,
       after: String(input.order),
     });
@@ -79,7 +86,7 @@ export function UpdateBlockCard(props: ToolCardProps) {
 
   return (
     <ProposalCard
-      title="Update block"
+      title={t("coach.tools.card.updateBlockTitle")}
       state={props.state}
       errorText={props.errorText}
       approvalId={props.approvalId}
@@ -92,11 +99,11 @@ export function UpdateBlockCard(props: ToolCardProps) {
           className="text-[14px] font-coach-semibold text-wText"
           style={{ lineHeight: 14 * 1.4 }}
         >
-          {block?.name ?? "Block"}
+          {block?.name ?? t("coach.tools.card.blockFallback")}
         </Text>
         {rows.length === 0 ? (
           <Text className="text-[12px] font-coach text-wMute">
-            No field changes detected.
+            {t("coach.tools.card.noFieldChanges")}
           </Text>
         ) : (
           <View className="gap-1.5">

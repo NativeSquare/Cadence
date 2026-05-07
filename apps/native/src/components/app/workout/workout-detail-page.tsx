@@ -22,8 +22,10 @@ import { useLanguage, type Language } from "@/lib/i18n";
 import { selectionFeedback } from "@/lib/haptics";
 import { getConvexErrorMessage } from "@/utils/getConvexErrorMessage";
 import {
+  blockTypeLabel,
   mpsToPaceString,
   WORKOUT_TYPE_COLORS,
+  workoutTypeLabel,
 } from "@/components/app/workout/workout-helpers";
 import { WorkoutStructureView } from "@/components/app/workout/workout-structure-view";
 import { Ionicons } from "@expo/vector-icons";
@@ -142,10 +144,6 @@ function formatRpe(rpe?: number): string | null {
 function formatLoad(load?: number): string | null {
   if (load == null || load <= 0) return null;
   return String(Math.round(load));
-}
-
-function formatType(type: string): string {
-  return type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 function getTypeColor(type: string): string {
@@ -303,7 +301,7 @@ export function WorkoutDetailPage({ workoutId }: WorkoutDetailPageProps) {
                 {workout.name}
               </Text>
               <Chip accent={getTypeColor(workout.type)} prominent>
-                {formatType(workout.type)}
+                {workoutTypeLabel(t, workout.type)}
               </Chip>
             </View>
             <View className="flex-row flex-wrap items-center gap-2">
@@ -355,7 +353,7 @@ export function WorkoutDetailPage({ workoutId }: WorkoutDetailPageProps) {
               <View className="mt-1 flex-row flex-wrap gap-2">
                 <Chip>
                   {t("workout.detail.weekOfBlock", {
-                    type: formatType(block.type),
+                    type: blockTypeLabel(t, block.type),
                     week: blockProgress.week,
                     total: blockProgress.total,
                   })}

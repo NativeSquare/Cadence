@@ -18,8 +18,9 @@ import Animated, {
   Easing,
 } from "react-native-reanimated";
 import { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 
-import type { ChatHeaderProps } from "./types";
+import type { ChatHeaderProps, ChatStatusKind } from "./types";
 
 // =============================================================================
 // Sub-components
@@ -36,14 +37,13 @@ import type { ChatHeaderProps } from "./types";
  */
 function StatusDot({
   isTyping,
-  statusText,
+  statusKind,
 }: {
   isTyping: boolean;
-  statusText?: string;
+  statusKind: ChatStatusKind;
 }) {
   const opacity = useSharedValue(1);
-  const isOfflineOrError =
-    statusText?.startsWith("Offline") || statusText?.startsWith("Error");
+  const isOfflineOrError = statusKind === "offline" || statusKind === "error";
 
   useEffect(() => {
     if (isTyping) {
@@ -76,11 +76,14 @@ function StatusDot({
 
 export function ChatHeader({
   isTyping,
-  statusText,
+  statusKind,
   verbose,
   onToggleVerbose,
 }: ChatHeaderProps) {
-  const status = isTyping ? "Thinking..." : statusText ?? "Online";
+  const { t } = useTranslation();
+  const status = isTyping
+    ? t("coach.status.thinking")
+    : t(`coach.status.${statusKind === "error" ? "errorTapRetry" : statusKind}`);
   const Icon = verbose ? Eye : EyeOff;
 
   return (
@@ -90,11 +93,11 @@ export function ChatHeader({
           className="text-[24px] font-coach-bold text-g1"
           style={{ letterSpacing: -0.03 * 24 }}
         >
-          Coach
+          {t("coach.title")}
         </Text>
 
         <View className="flex-row items-center gap-1.5 mt-1">
-          <StatusDot isTyping={isTyping} statusText={statusText} />
+          <StatusDot isTyping={isTyping} statusKind={statusKind} />
           <Text className="text-[12px] font-coach text-g3">{status}</Text>
         </View>
       </View>
@@ -104,7 +107,7 @@ export function ChatHeader({
         accessibilityRole="switch"
         accessibilityState={{ checked: verbose }}
         accessibilityLabel={
-          verbose ? "Hide tool activity" : "Show tool activity"
+          verbose ? t("coach.toggleVerbose.hide") : t("coach.toggleVerbose.show")
         }
         className="w-9 h-9 rounded-full items-center justify-center bg-card-surface border border-brd active:opacity-70"
       >

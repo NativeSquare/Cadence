@@ -9,8 +9,13 @@
 import { useQuery } from "convex/react";
 import { ArrowRight } from "lucide-react-native";
 import { View } from "react-native";
+import { useTranslation } from "react-i18next";
 import { api } from "@packages/backend/convex/_generated/api";
 import { Text } from "@/components/ui/text";
+import {
+  workoutStatusLabel,
+  workoutTypeLabel,
+} from "@/components/app/workout/workout-helpers";
 import { ProposalCard } from "./ProposalCard";
 import {
   formatDate,
@@ -18,7 +23,6 @@ import {
   formatDuration,
   formatHr,
   formatPace,
-  humanize,
 } from "./format";
 import type { ToolCardProps } from "./types";
 
@@ -48,6 +52,7 @@ interface DiffRow {
 }
 
 export function UpdateWorkoutCard(props: ToolCardProps) {
+  const { t } = useTranslation();
   const input = (props.input ?? {}) as Partial<UpdateInput>;
   const result = useQuery(
     api.agoge.workouts.getWorkout,
@@ -57,60 +62,64 @@ export function UpdateWorkoutCard(props: ToolCardProps) {
 
   const rows: DiffRow[] = [];
   if (input.name !== undefined) {
-    rows.push({ label: "Name", before: workout?.name, after: input.name });
+    rows.push({
+      label: t("coach.tools.card.rows.name"),
+      before: workout?.name,
+      after: input.name,
+    });
   }
   if (input.type !== undefined) {
     rows.push({
-      label: "Type",
-      before: workout ? humanize(workout.type) : null,
-      after: humanize(input.type),
+      label: t("coach.tools.card.rows.type"),
+      before: workout ? workoutTypeLabel(t, workout.type) : null,
+      after: workoutTypeLabel(t, input.type),
     });
   }
   if (input.status !== undefined) {
     rows.push({
-      label: "Status",
-      before: workout ? humanize(workout.status) : null,
-      after: humanize(input.status),
+      label: t("coach.tools.card.rows.status"),
+      before: workout ? workoutStatusLabel(t, workout.status) : null,
+      after: workoutStatusLabel(t, input.status),
     });
   }
   if (input.planned?.date !== undefined) {
     rows.push({
-      label: "Planned date",
+      label: t("coach.tools.card.rows.plannedDate"),
       before: workout?.planned?.date ? formatDate(workout.planned.date) : null,
       after: formatDate(input.planned.date),
     });
   }
   if (input.planned?.distanceMeters !== undefined) {
     rows.push({
-      label: "Distance",
+      label: t("coach.tools.card.rows.distance"),
       before: formatDistance(workout?.planned?.distanceMeters),
       after: formatDistance(input.planned.distanceMeters),
     });
   }
   if (input.planned?.durationSeconds !== undefined) {
     rows.push({
-      label: "Duration",
+      label: t("coach.tools.card.rows.duration"),
       before: formatDuration(workout?.planned?.durationSeconds),
       after: formatDuration(input.planned.durationSeconds),
     });
   }
   if (input.planned?.avgPaceMps !== undefined) {
     rows.push({
-      label: "Avg pace",
+      label: t("coach.tools.card.rows.avgPace"),
       before: formatPace(workout?.planned?.avgPaceMps),
       after: formatPace(input.planned.avgPaceMps),
     });
   }
   if (input.planned?.avgHr !== undefined) {
     rows.push({
-      label: "Avg HR",
+      label: t("coach.tools.card.rows.avgHr"),
       before: formatHr(workout?.planned?.avgHr),
       after: formatHr(input.planned.avgHr),
     });
   }
   if (input.blockId !== undefined) {
     rows.push({
-      label: "Block",
+      label: t("coach.tools.card.rows.block"),
       before: workout?.blockId ?? "—",
       after: input.blockId ?? "—",
     });
@@ -118,7 +127,7 @@ export function UpdateWorkoutCard(props: ToolCardProps) {
 
   return (
     <ProposalCard
-      title="Update workout"
+      title={t("coach.tools.card.updateWorkoutTitle")}
       state={props.state}
       errorText={props.errorText}
       approvalId={props.approvalId}
@@ -131,11 +140,11 @@ export function UpdateWorkoutCard(props: ToolCardProps) {
           className="text-[14px] font-coach-semibold text-wText"
           style={{ lineHeight: 14 * 1.4 }}
         >
-          {workout?.name ?? "Workout"}
+          {workout?.name ?? t("coach.tools.card.workoutFallback")}
         </Text>
         {rows.length === 0 ? (
           <Text className="text-[12px] font-coach text-wMute">
-            No field changes detected.
+            {t("coach.tools.card.noFieldChanges")}
           </Text>
         ) : (
           <View className="gap-1.5">

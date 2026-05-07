@@ -1,15 +1,9 @@
 import { View, Image, Pressable } from "react-native";
+import { useTranslation } from "react-i18next";
 import { Text } from "@/components/ui/text";
 import Animated, { FadeIn } from "react-native-reanimated";
 
 const CADENCE_ICON = require("../../../../assets/icons/ios-icon.png");
-
-const SUGGESTIONS = [
-  "How's my training load looking?",
-  "Am I ready for race day?",
-  "Suggest a recovery plan",
-  "What should I focus on this week?",
-];
 
 interface CoachEmptyStateProps {
   onSuggestionPress: (text: string) => void;
@@ -20,6 +14,10 @@ export function CoachEmptyState({
   onSuggestionPress,
   disabled,
 }: CoachEmptyStateProps) {
+  const { t } = useTranslation();
+  const suggestions = t("coach.emptyState.suggestions", {
+    returnObjects: true,
+  }) as string[];
   return (
     <Animated.View
       entering={FadeIn.duration(400)}
@@ -44,17 +42,17 @@ export function CoachEmptyState({
         className="text-[20px] font-coach-bold text-wText mb-1.5"
         style={{ letterSpacing: -0.03 * 20 }}
       >
-        Your running coach
+        {t("coach.emptyState.heading")}
       </Text>
 
       {/* Subheading */}
       <Text className="text-[14px] font-coach text-wMute text-center mb-8 max-w-[260px]">
-        Ask me anything about your training, recovery, or race prep.
+        {t("coach.emptyState.subheading")}
       </Text>
 
       {/* Suggestion chips */}
       <View className="w-full gap-2">
-        {SUGGESTIONS.map((suggestion) => (
+        {suggestions.map((suggestion) => (
           <Pressable
             key={suggestion}
             onPress={() => onSuggestionPress(suggestion)}

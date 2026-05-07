@@ -1,9 +1,9 @@
 import {
   GOAL_RANK_COLORS,
-  GOAL_RANK_LABELS,
   GOAL_STATUS_COLORS,
-  GOAL_STATUS_LABELS,
-  GOAL_TYPE_LABELS,
+  useGoalRankLabels,
+  useGoalStatusLabels,
+  useGoalTypeLabels,
 } from "@/components/app/account/goal-display";
 import {
   GoalForm,
@@ -23,7 +23,9 @@ import type {
 import { useMutation, useQuery } from "convex/react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { Linking, Pressable, ScrollView, View } from "react-native";
+import type { TFunction } from "i18next";
 
 type RaceDoc = NonNullable<
   ReturnType<typeof useQuery<typeof api.agoge.races.getMyRace>>
@@ -52,33 +54,28 @@ const PRIORITY_TEXT_COLORS: Record<"A" | "B" | "C", string> = {
   C: LIGHT_THEME.wSub,
 };
 
-const STATUS_LABELS: Record<
-  "upcoming" | "completed" | "cancelled" | "dnf" | "dns",
-  string
-> = {
-  upcoming: "Upcoming",
-  completed: "Completed",
-  cancelled: "Cancelled",
-  dnf: "DNF",
-  dns: "DNS",
-};
+/**
+ * Lookups go through the `account.races.form.*` taxonomy that's already
+ * exhaustively translated. Falls back to the raw enum value if the schema
+ * gains a variant before the locale catches up.
+ */
+function statusLabel(t: TFunction, status: string): string {
+  const key = `account.races.form.statusLabels.${status}`;
+  const translated = t(key);
+  return translated && translated !== key ? translated : status;
+}
 
-const COURSE_TYPE_LABELS: Record<string, string> = {
-  loop: "Loop",
-  point_to_point: "Point to point",
-  out_and_back: "Out & back",
-  laps: "Laps",
-  other: "Other",
-};
+function courseTypeLabel(t: TFunction, kind: string): string {
+  const key = `account.races.form.courseTypes.${kind}`;
+  const translated = t(key);
+  return translated && translated !== key ? translated : kind;
+}
 
-const SURFACE_LABELS: Record<string, string> = {
-  pavement: "Pavement",
-  mixed: "Mixed",
-  trail: "Trail",
-  technical_trail: "Technical trail",
-  track: "Track",
-  other: "Other",
-};
+function surfaceLabel(t: TFunction, kind: string): string {
+  const key = `account.races.form.surfaces.${kind}`;
+  const translated = t(key);
+  return translated && translated !== key ? translated : kind;
+}
 
 function formatDate(iso: string): string {
   const [y, m, d] = iso.split("-");
@@ -103,6 +100,7 @@ function formatLocation(loc?: RaceDoc["location"]): string | null {
 }
 
 export default function RaceDetailScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const race = useQuery(api.agoge.races.getMyRace, { raceId: id });
@@ -173,7 +171,7 @@ export default function RaceDetailScreen() {
           className="font-coach-medium text-[15px]"
           style={{ color: LIGHT_THEME.wText }}
         >
-          Race not found
+          {t("account.races.notFound")}
         </Text>
       </View>
     );
@@ -224,7 +222,7 @@ export default function RaceDetailScreen() {
           className="flex-1 font-coach-bold text-lg"
           style={{ color: LIGHT_THEME.wText }}
         >
-          Race
+          {t("account.races.detail.header")}
         </Text>
         <Pressable
           onPress={() =>
@@ -285,7 +283,7 @@ export default function RaceDetailScreen() {
                   className="font-coach-semibold text-[10px]"
                   style={{ color: LIGHT_THEME.wSub }}
                 >
-                  {STATUS_LABELS[race.status]}
+                  {statusLabel(t, race.status)}
                 </Text>
               </View>
             </View>
@@ -298,40 +296,51 @@ export default function RaceDetailScreen() {
           />
 
           {(locationText || race.notes) && (
-            <DetailSection title="Event">
+            <DetailSection title={t("account.races.detail.eventSection")}>
               {locationText && (
-                <DetailRow label="Location" value={locationText} />
+                <DetailRow
+                  label={t("account.races.detail.rows.location")}
+                  value={locationText}
+                />
               )}
-              {race.notes && <DetailRow label="Notes" value={race.notes} />}
+              {race.notes && (
+                <DetailRow
+                  label={t("account.races.detail.rows.notes")}
+                  value={race.notes}
+                />
+              )}
             </DetailSection>
           )}
 
           {hasRaceDetails && (
-            <DetailSection title="Race details">
+            <DetailSection title={t("account.races.detail.raceDetailsSection")}>
               {race.courseType && (
                 <DetailRow
-                  label="Course"
-                  value={COURSE_TYPE_LABELS[race.courseType] ?? race.courseType}
+                  label={t("account.races.detail.rows.course")}
+                  value={courseTypeLabel(t, race.courseType)}
                 />
               )}
               {race.surface && (
                 <DetailRow
-                  label="Surface"
-                  value={SURFACE_LABELS[race.surface] ?? race.surface}
+                  label={t("account.races.detail.rows.surface")}
+                  value={surfaceLabel(t, race.surface)}
                 />
               )}
               {race.elevationGainMeters != null && (
                 <DetailRow
-                  label="Elevation gain"
+                  label={t("account.races.detail.rows.elevationGain")}
                   value={`${race.elevationGainMeters} m`}
                 />
               )}
               {race.bibNumber && (
-                <DetailRow label="Bib" value={race.bibNumber} />
+                <DetailRow
+                  label={t("account.races.detail.rows.bib")}
+                  value={race.bibNumber}
+                />
               )}
               {race.registrationUrl && (
                 <DetailRow
-                  label="Registration"
+                  label={t("account.races.detail.rows.registration")}
                   value={race.registrationUrl}
                   onPress={() =>
                     Linking.openURL(race.registrationUrl as string).catch(
@@ -344,21 +353,24 @@ export default function RaceDetailScreen() {
           )}
 
           {hasResult && race.result && (
-            <DetailSection title="Result">
+            <DetailSection title={t("account.races.detail.resultSection")}>
               {race.result.finishTime && (
                 <DetailRow
-                  label="Finish time"
+                  label={t("account.races.detail.rows.finishTime")}
                   value={race.result.finishTime}
                 />
               )}
               {race.result.placement != null && (
                 <DetailRow
-                  label="Placement"
+                  label={t("account.races.detail.rows.placement")}
                   value={`#${race.result.placement}`}
                 />
               )}
               {race.result.notes && (
-                <DetailRow label="Notes" value={race.result.notes} />
+                <DetailRow
+                  label={t("account.races.detail.rows.notes")}
+                  value={race.result.notes}
+                />
               )}
             </DetailSection>
           )}
@@ -387,6 +399,7 @@ function GoalsSection({
   onAdd: () => void;
   onTapGoal: (goal: GoalDoc) => void;
 }) {
+  const { t } = useTranslation();
   const items = goals ?? [];
   const hasGoals = items.length > 0;
 
@@ -396,7 +409,7 @@ function GoalsSection({
         className="px-1 font-coach-extrabold text-[11px] uppercase tracking-widest"
         style={{ color: LIGHT_THEME.wSub }}
       >
-        Goals
+        {t("account.races.detail.goalsSection")}
       </Text>
       <View
         className="rounded-2xl border"
@@ -427,7 +440,7 @@ function GoalsSection({
             className="font-coach-semibold text-[13px]"
             style={{ color: LIGHT_THEME.wSub }}
           >
-            Add a goal
+            {t("account.races.detail.addGoal")}
           </Text>
         </Pressable>
       </View>
@@ -444,6 +457,10 @@ function GoalRow({
   onPress: () => void;
   isLast: boolean;
 }) {
+  const { t } = useTranslation();
+  const goalTypeLabels = useGoalTypeLabels();
+  const goalRankLabels = useGoalRankLabels();
+  const goalStatusLabels = useGoalStatusLabels();
   const rankColor = goal.rank ? GOAL_RANK_COLORS[goal.rank] : LIGHT_THEME.w3;
   return (
     <Pressable
@@ -464,8 +481,8 @@ function GoalRow({
           className="font-coach-semibold text-[10px] uppercase tracking-wider"
           style={{ color: LIGHT_THEME.wMute }}
         >
-          {GOAL_TYPE_LABELS[goal.type]}
-          {goal.rank ? ` · ${GOAL_RANK_LABELS[goal.rank]}` : ""}
+          {goalTypeLabels[goal.type]}
+          {goal.rank ? ` · ${goalRankLabels[goal.rank]}` : ""}
         </Text>
         <Text
           className="font-coach-bold text-[14px]"
@@ -478,7 +495,7 @@ function GoalRow({
             className="font-coach text-[11px]"
             style={{ color: LIGHT_THEME.wMute }}
           >
-            by {formatDate(goal.targetDate)}
+            {t("account.goals.byDate", { date: formatDate(goal.targetDate) })}
           </Text>
         )}
         {goal.status !== "active" && (
@@ -490,7 +507,7 @@ function GoalRow({
               className="font-coach-semibold text-[10px]"
               style={{ color: GOAL_STATUS_COLORS[goal.status] }}
             >
-              {GOAL_STATUS_LABELS[goal.status]}
+              {goalStatusLabels[goal.status]}
             </Text>
           </View>
         )}
@@ -500,7 +517,9 @@ function GoalRow({
         style={{ color: LIGHT_THEME.wText }}
         numberOfLines={2}
       >
-        {goal.targetValue}
+        {goal.targetValue === "Finish"
+          ? t("account.goals.targetFinish")
+          : goal.targetValue}
       </Text>
     </Pressable>
   );

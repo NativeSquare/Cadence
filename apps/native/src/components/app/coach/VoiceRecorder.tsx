@@ -23,6 +23,7 @@
  */
 
 import { View, Pressable } from "react-native";
+import { useTranslation } from "react-i18next";
 import { Text } from "@/components/ui/text";
 import Animated, {
   useAnimatedStyle,
@@ -158,6 +159,7 @@ function Waveform() {
  * - Send button
  */
 export function VoiceRecorder({ transcript, onCancel, onSend }: VoiceRecorderProps) {
+  const { t } = useTranslation();
   return (
     <Animated.View
       entering={FadeIn.duration(200)}
@@ -171,7 +173,7 @@ export function VoiceRecorder({ transcript, onCancel, onSend }: VoiceRecorderPro
           <View className="flex-row items-center gap-1.5 mb-1.5">
             <RecordingDot />
             <Text className="text-[10px] font-coach-semibold text-wMute">
-              Live transcription
+              {t("coach.voice.liveTranscription")}
             </Text>
           </View>
 

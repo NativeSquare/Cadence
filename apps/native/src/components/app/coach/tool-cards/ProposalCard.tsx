@@ -11,6 +11,7 @@ import type { ReactNode } from "react";
 import { View, Pressable } from "react-native";
 import Animated, { FadeIn } from "react-native-reanimated";
 import { Check, X } from "lucide-react-native";
+import { useTranslation } from "react-i18next";
 import { Text } from "@/components/ui/text";
 import type { ToolCardState } from "./types";
 
@@ -35,6 +36,7 @@ export function ProposalCard({
   busy,
   children,
 }: ProposalCardProps) {
+  const { t } = useTranslation();
   const isAwaiting = state === "approval-requested" && !!approvalId;
   const isResolved =
     state === "approval-responded" ||
@@ -99,7 +101,7 @@ export function ProposalCard({
               >
                 <X size={13} color="#1a1a1a" />
                 <Text className="text-[13px] font-coach-medium text-wText">
-                  Deny
+                  {t("coach.tools.actions.deny")}
                 </Text>
               </Pressable>
               <Pressable
@@ -110,14 +112,16 @@ export function ProposalCard({
               >
                 <Check size={13} color="#ffffff" />
                 <Text className="text-[13px] font-coach-medium text-w1">
-                  Accept
+                  {t("coach.tools.actions.accept")}
                 </Text>
               </Pressable>
             </View>
           ) : isResolved ? (
             <View className="px-1 py-1">
               <Text className="text-[11px] font-coach-medium text-wMute">
-                {state === "output-error" ? "Error" : "Resolved"}
+                {state === "output-error"
+                  ? t("coach.tools.actions.error")
+                  : t("coach.tools.actions.resolved")}
               </Text>
             </View>
           ) : null}

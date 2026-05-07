@@ -5,8 +5,10 @@ import {
 import { api } from "@packages/backend/convex/_generated/api";
 import { useMutation } from "convex/react";
 import React from "react";
+import { useTranslation } from "react-i18next";
 
 export default function NewTemplateScreen() {
+  const { t } = useTranslation();
   const createTemplate = useMutation(
     api.agoge.workoutTemplates.createWorkoutTemplate,
   );
@@ -22,9 +24,9 @@ export default function NewTemplateScreen() {
 
   return (
     <WorkoutTemplateForm
-      title="New Template"
+      title={t("account.workoutTemplates.newTitle")}
       mode="create"
-      submitLabel="Create"
+      submitLabel={t("account.workoutTemplates.createSubmit")}
       onSubmit={handleSubmit}
     />
   );

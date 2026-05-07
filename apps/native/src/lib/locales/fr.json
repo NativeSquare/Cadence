@@ -3,7 +3,16 @@
     "submit": "Envoyer",
     "cancel": "Annuler",
     "back": "Retour",
-    "continue": "Continuer"
+    "continue": "Continuer",
+    "relativeShort": {
+      "justNow": "à l'instant",
+      "minutes": "il y a {{count}} min",
+      "hours": "il y a {{count}} h",
+      "days": "il y a {{count}} j",
+      "weeks": "il y a {{count}} sem",
+      "months": "il y a {{count}} mois",
+      "years": "il y a {{count}} an"
+    }
   },
   "auth": {
     "tagline": "Un coaching IA qui voit ce que vous ne voyez pas.",
@@ -77,6 +86,147 @@
   "onboarding": {
     "comingSoonTitle": "Onboarding — bientôt disponible",
     "comingSoonHelper": "Appuyez sur Continuer pour ignorer pour l'instant."
+  },
+  "calendar": {
+    "viewMode": {
+      "workouts": "Séances",
+      "blocks": "Blocs"
+    },
+    "types": {
+      "easy": "Facile",
+      "specific": "Spécifique",
+      "long": "Sortie longue",
+      "race": "Course"
+    }
+  },
+  "coach": {
+    "loadingConversation": "Chargement de la conversation...",
+    "unableToStart": "Impossible de démarrer la conversation. Veuillez réessayer.",
+    "title": "Coach",
+    "status": {
+      "online": "En ligne",
+      "thinking": "Réflexion...",
+      "offline": "Hors ligne",
+      "reconnecting": "Reconnexion...",
+      "errorTapRetry": "Erreur · appuyer pour réessayer"
+    },
+    "toggleVerbose": {
+      "show": "Afficher l'activité des outils",
+      "hide": "Masquer l'activité des outils"
+    },
+    "emptyState": {
+      "heading": "Votre coach de course",
+      "subheading": "Demandez-moi tout sur votre entraînement, votre récupération ou votre préparation de course.",
+      "suggestions": [
+        "Comment se présente ma charge d'entraînement ?",
+        "Suis-je prêt pour le jour de la course ?",
+        "Suggère-moi un plan de récupération",
+        "Sur quoi devrais-je me concentrer cette semaine ?"
+      ]
+    },
+    "errorCard": {
+      "badge": "Coach",
+      "retry": "Réessayer",
+      "connectionTrouble": "J'ai du mal à me connecter pour le moment. Veuillez réessayer plus tard.",
+      "somethingWentWrong": "Une erreur est survenue. Réessayons."
+    },
+    "input": {
+      "placeholder": "Demandez à votre coach...",
+      "attachmentLabel": "Ajouter une photo ou un fichier",
+      "attachmentHint": "Ouvre les options pour prendre une photo, choisir dans la galerie ou parcourir des fichiers",
+      "messageLabel": "Saisie du message",
+      "messageHint": "Écrivez un message à votre coach",
+      "removeAttachment": "Supprimer la pièce jointe",
+      "documentFallback": "Document"
+    },
+    "attachment": {
+      "openImage": "Ouvrir l'image",
+      "openFormat": "Ouvrir {{name}}",
+      "documentFallback": "Document"
+    },
+    "upload": {
+      "failedTitle": "Échec de l'envoi",
+      "failedImage": "Impossible d'envoyer l'image. Veuillez réessayer.",
+      "failedFile": "Impossible d'envoyer le fichier. Veuillez réessayer."
+    },
+    "fallbackPrompt": "Que voyez-vous ?",
+    "mockTranscript": "Peut-on échanger le repos de demain pour une sortie facile",
+    "voice": {
+      "liveTranscription": "Transcription en direct"
+    },
+    "tool": {
+      "couldNotSubmit": "Impossible d'envoyer la réponse"
+    },
+    "typing": {
+      "badge": "Coach"
+    },
+    "tools": {
+      "actions": {
+        "deny": "Refuser",
+        "accept": "Accepter",
+        "resolved": "Résolu",
+        "error": "Erreur"
+      },
+      "card": {
+        "createWorkoutTitle": "Créer une séance",
+        "updateWorkoutTitle": "Modifier la séance",
+        "rescheduleWorkoutTitle": "Replanifier la séance",
+        "deleteWorkoutTitle": "Supprimer la séance",
+        "createBlockTitle": "Créer un bloc",
+        "updateBlockTitle": "Modifier le bloc",
+        "deleteBlockTitle": "Supprimer le bloc",
+        "workoutFallback": "Séance",
+        "blockFallback": "Bloc",
+        "loading": "Chargement…",
+        "noFieldChanges": "Aucun changement détecté.",
+        "attachedWorkoutsDetached": "Les séances rattachées sont détachées, pas supprimées.",
+        "rows": {
+          "name": "Nom",
+          "type": "Type",
+          "status": "Statut",
+          "plannedDate": "Date prévue",
+          "distance": "Distance",
+          "duration": "Durée",
+          "avgPace": "Allure moy.",
+          "avgHr": "FC moy.",
+          "block": "Bloc",
+          "start": "Début",
+          "end": "Fin",
+          "focus": "Objectif",
+          "order": "Ordre"
+        }
+      },
+      "reading": {
+        "checkingFormat": "Vérification : {{label}}…",
+        "checkedFormat": "Vérifié : {{label}}",
+        "labels": {
+          "getAthlete": "profil athlète",
+          "getAthletePlan": "plan d'entraînement",
+          "listBlocks": "blocs d'entraînement",
+          "getBlock": "détails du bloc",
+          "listWorkouts": "séances",
+          "listWorkoutsByBlock": "séances du bloc",
+          "getWorkout": "détails de la séance",
+          "readSleep": "sommeil",
+          "readDailySummary": "métriques quotidiennes",
+          "readNutrition": "nutrition",
+          "readMenstruation": "cycle",
+          "readSomaProfile": "profil de l'appareil",
+          "readConnections": "connexions de données"
+        }
+      }
+    }
+  },
+  "feedback": {
+    "describeLabel": "Décrire le retour",
+    "describePlaceholder": "Décrivez votre retour...",
+    "typeLabel": "Type de retour",
+    "addPhotosLabel": "Ajouter des photos",
+    "types": {
+      "Bug Report": "Bug",
+      "Feature Request": "Demande de fonctionnalité",
+      "General Feedback": "Retour général"
+    }
   },
   "plan": {
     "greetingMorning": "Bonjour",
@@ -177,6 +327,12 @@
       "title": "Modifier la séance",
       "submit": "Enregistrer"
     },
+    "template": {
+      "section": "Modèle",
+      "structureSection": "Structure",
+      "deleteTitle": "Supprimer le modèle",
+      "tapToClear": "Appuyez à nouveau pour effacer"
+    },
     "markDone": {
       "titleFormat": "Marquer « {{name}} » comme terminée",
       "submit": "Marquer comme terminée",
@@ -198,8 +354,32 @@
     },
     "types": {
       "easy": "Facile",
+      "long": "Long",
       "tempo": "Tempo",
-      "long": "Long"
+      "threshold": "Seuil",
+      "intervals": "Intervalles",
+      "vo2max": "VO2 max",
+      "fartlek": "Fartlek",
+      "progression": "Progression",
+      "race_pace": "Allure de course",
+      "recovery": "Récupération",
+      "strides": "Lignes droites",
+      "hills": "Côtes",
+      "race": "Course",
+      "test": "Test",
+      "cross_training": "Cross-training",
+      "strength": "Renforcement",
+      "rest": "Repos",
+      "other": "Autre"
+    },
+    "blockTypes": {
+      "base": "Base",
+      "build": "Construction",
+      "peak": "Pic",
+      "taper": "Affûtage",
+      "recovery": "Récupération",
+      "maintenance": "Maintien",
+      "transition": "Transition"
     },
     "intents": {
       "warmup": {
@@ -411,6 +591,281 @@
       "english": "English",
       "french": "Français"
     },
+    "suspended": {
+      "title": "Compte suspendu",
+      "messageWithReason": "Votre compte a été suspendu : {{reason}}. Contactez le support si vous pensez qu'il s'agit d'une erreur.",
+      "messageDefault": "Votre compte a été suspendu. Contactez le support si vous pensez qu'il s'agit d'une erreur.",
+      "ok": "OK"
+    },
+    "subscription": {
+      "title": "Abonnement",
+      "comingSoon": "Bientôt disponible — formule, facturation, gestion."
+    },
+    "calendars": {
+      "title": "Calendriers",
+      "helper": "Connectez un calendrier pour voir vos séances aux côtés du reste de votre agenda. La synchronisation arrive bientôt.",
+      "notConnected": "Pas encore connecté",
+      "comingSoon": "Bientôt disponible",
+      "providers": {
+        "google": {
+          "name": "Google Calendar",
+          "description": "Synchroniser les séances avec Google Calendar"
+        },
+        "apple": {
+          "name": "Apple Calendar",
+          "description": "Synchroniser les séances avec Apple Calendar"
+        }
+      }
+    },
+    "workoutTemplates": {
+      "title": "Modèles de séance",
+      "noneYet": "Aucun modèle pour l'instant",
+      "helper": "Enregistrez les séances que vous voulez répéter — sorties faciles, fractionnés, votre plan de sortie longue.",
+      "createFirst": "Créer votre premier modèle",
+      "newTitle": "Nouveau modèle",
+      "createSubmit": "Créer",
+      "detailTitle": "Modèle",
+      "saveSubmit": "Enregistrer",
+      "notFound": "Modèle introuvable.",
+      "readOnlyReason": "Modèle partagé — lecture seule."
+    },
+    "races": {
+      "detail": {
+        "header": "Course",
+        "goalsSection": "Objectifs",
+        "addGoal": "Ajouter un objectif",
+        "eventSection": "Évènement",
+        "raceDetailsSection": "Détails de la course",
+        "resultSection": "Résultat",
+        "rows": {
+          "location": "Lieu",
+          "notes": "Notes",
+          "course": "Parcours",
+          "surface": "Surface",
+          "elevationGain": "Dénivelé positif",
+          "bib": "Dossard",
+          "registration": "Inscription",
+          "finishTime": "Temps final",
+          "placement": "Classement"
+        }
+      },
+      "title": "Courses",
+      "noneYet": "Aucune course pour l'instant",
+      "helper": "Ajoutez une course objectif pour orienter votre entraînement.",
+      "upcoming": "À venir",
+      "past": "Passées",
+      "newTitle": "Nouvelle course",
+      "createSubmit": "Créer la course",
+      "editTitle": "Modifier la course",
+      "saveSubmit": "Enregistrer",
+      "notFound": "Course introuvable",
+      "statusPills": {
+        "completed": "Terminée",
+        "cancelled": "Annulée",
+        "dnf": "DNF",
+        "dns": "DNS"
+      },
+      "form": {
+        "sections": {
+          "event": "Évènement",
+          "race": "Course",
+          "result": "Résultat"
+        },
+        "fields": {
+          "name": "Nom",
+          "namePlaceholder": "ex. Marathon de Paris",
+          "date": "Date",
+          "locationOptional": "Lieu (optionnel)",
+          "city": "Ville",
+          "country": "Pays",
+          "notesOptional": "Notes (optionnel)",
+          "notesPlaceholder": "Terrain, notes de parcours, attentes…",
+          "priority": "Priorité",
+          "format": "Format",
+          "distance": "Distance",
+          "distancePlaceholder": "—",
+          "discipline": "Discipline",
+          "status": "Statut",
+          "courseTypeOptional": "Type de parcours (optionnel)",
+          "surfaceOptional": "Surface (optionnel)",
+          "itraOptional": "Catégorie ITRA (optionnel)",
+          "elevationOptional": "Dénivelé (optionnel)",
+          "elevationGain": "D+",
+          "elevationLoss": "D-",
+          "finishTime": "Temps final (HH:MM:SS)",
+          "finishHours": "HH",
+          "finishMinutes": "MM",
+          "finishSeconds": "SS",
+          "placementOptional": "Classement (optionnel)",
+          "placementPlaceholder": "—",
+          "resultNotesOptional": "Notes de résultat (optionnel)",
+          "resultNotesPlaceholder": "Comment ça s'est passé ?"
+        },
+        "pastDatePrompt": {
+          "title": "Cette date est dans le passé",
+          "description": "Est-ce une course terminée que vous enregistrez ?",
+          "primaryAction": "Oui, enregistrer comme terminée",
+          "secondaryAction": "Non, corriger la date"
+        },
+        "deleteRace": "Supprimer la course",
+        "deleteDescription": "Cette action est irréversible.",
+        "tapToClear": "Appuyez à nouveau pour effacer",
+        "errors": {
+          "required": "Le nom, la date et le format sont requis",
+          "upcomingPast": "Une course à venir ne peut pas avoir une date passée.",
+          "completedFuture": "Une course terminée/DNF/DNS doit avoir une date passée ou d'aujourd'hui.",
+          "invalidDistance": "Distance invalide",
+          "distanceMin": "La distance doit être d'au moins {{min}} km",
+          "distanceMax": "La distance ne peut pas dépasser {{max}} km",
+          "invalidElevationGain": "Dénivelé positif invalide",
+          "invalidElevationLoss": "Dénivelé négatif invalide",
+          "invalidFinishTime": "Temps final invalide",
+          "invalidPlacement": "Classement invalide"
+        },
+        "priorityDescriptions": {
+          "A": "Objectif principal",
+          "B": "Secondaire",
+          "C": "Entraînement"
+        },
+        "statusLabels": {
+          "upcoming": "À venir",
+          "completed": "Terminée",
+          "dnf": "DNF",
+          "dns": "DNS",
+          "cancelled": "Annulée"
+        },
+        "courseTypes": {
+          "loop": "Boucle",
+          "point_to_point": "Point à point",
+          "out_and_back": "Aller-retour",
+          "laps": "Tours",
+          "stages": "Étapes",
+          "other": "Autre"
+        },
+        "surfaces": {
+          "road": "Route",
+          "mixed": "Mixte",
+          "trail": "Trail",
+          "technical_trail": "Trail technique",
+          "track": "Piste",
+          "other": "Autre"
+        },
+        "disciplines": {
+          "road": "Route",
+          "trail": "Trail",
+          "track": "Piste",
+          "cross_country": "Cross-country"
+        },
+        "formats": {
+          "5k": "5K",
+          "10k": "10K",
+          "15k": "15K",
+          "half_marathon": "Semi-marathon",
+          "marathon": "Marathon",
+          "custom": "Personnalisé"
+        }
+      }
+    },
+    "goals": {
+      "title": "Objectifs",
+      "noneYet": "Aucun objectif pour l'instant",
+      "helper": "Fixez des cibles pour orienter votre entraînement.",
+      "active": "Actifs",
+      "resolved": "Résolus",
+      "byDate": "pour le {{date}}",
+      "targetFinish": "Terminer",
+      "types": {
+        "performance": "Performance",
+        "completion": "Achèvement",
+        "process": "Processus",
+        "volume": "Volume",
+        "body": "Corps",
+        "other": "Autre"
+      },
+      "ranks": {
+        "primary": "Principal",
+        "stretch": "Ambitieux",
+        "minimum": "Minimum",
+        "process": "Processus"
+      },
+      "statuses": {
+        "active": "Actif",
+        "achieved": "Atteint",
+        "missed": "Manqué",
+        "abandoned": "Abandonné",
+        "paused": "En pause"
+      },
+      "form": {
+        "newGoal": "Nouvel objectif",
+        "editGoal": "Modifier l'objectif",
+        "goalSection": "Objectif",
+        "raceOptional": "Course (optionnel)",
+        "linkedToPrefix": "Lié à ",
+        "type": "Type",
+        "title": "Titre",
+        "titlePlaceholder": "ex. Marathon en moins de 3h",
+        "metric": "Métrique",
+        "performanceModes": {
+          "time": "Temps",
+          "pace": "Allure",
+          "place": "Classement"
+        },
+        "finishTime": "Temps final (HH:MM:SS)",
+        "finishHours": "HH",
+        "finishMinutes": "MM",
+        "finishSeconds": "SS",
+        "pacePerKm": "Allure (par km)",
+        "placement": "Classement",
+        "placementPlaceholder": "ex. 10",
+        "distance": "Distance",
+        "distancePlaceholder": "—",
+        "weight": "Poids",
+        "weightPlaceholder": "—",
+        "targetPrefix": "Cible : ",
+        "targetLabel": "Cible",
+        "targetPlaceholder": "ex. Tenir le plan nutrition",
+        "rankOptional": "Rang (optionnel)",
+        "targetDateOptional": "Date cible (optionnel)",
+        "descriptionOptional": "Description (optionnel)",
+        "descriptionPlaceholder": "Pourquoi cet objectif ? Contexte…",
+        "status": "Statut",
+        "addGoal": "Ajouter l'objectif",
+        "saveGoal": "Enregistrer",
+        "deleteGoal": "Supprimer l'objectif",
+        "deleteDescription": "Cette action est irréversible.",
+        "errorRequired": "Le titre et la cible sont requis.",
+        "tapToClear": "Appuyez à nouveau pour effacer",
+        "racePickerNone": "Aucune"
+      }
+    },
+    "zones": {
+      "title": "Zones",
+      "hrZones": "Zones FC",
+      "paceZones": "Zones d'allure",
+      "errorThresholdRequired": "Définissez un seuil avant de resynchroniser les zones."
+    },
+    "blocks": {
+      "newTitle": "Nouveau bloc",
+      "createSubmit": "Créer le bloc",
+      "editTitle": "Modifier le bloc",
+      "saveSubmit": "Enregistrer",
+      "notFound": "Bloc introuvable",
+      "section": "Bloc",
+      "datesSection": "Dates",
+      "orderSection": "Ordre",
+      "name": "Nom",
+      "namePlaceholder": "ex. Construction marathon 1",
+      "type": "Type",
+      "focusOptional": "Objectif (optionnel)",
+      "focusPlaceholder": "ex. Capacité aérobie, seuil",
+      "startDate": "Date de début",
+      "endDate": "Date de fin",
+      "positionInPlan": "Position dans le plan",
+      "deleteBlock": "Supprimer le bloc",
+      "deleteDescription": "Cela supprimera également toutes les séances du bloc. Cette action est irréversible.",
+      "errorEndBeforeStart": "La date de fin doit être identique ou postérieure à la date de début.",
+      "errorRequired": "Le nom, les dates et l'ordre sont requis."
+    },
     "notifications": {
       "title": "Notifications",
       "sectionTitle": "Notifications push",
@@ -425,6 +880,115 @@
       "submit": "Envoyer",
       "errors": {
         "notLoggedIn": "Vous devez être connecté pour envoyer un commentaire"
+      }
+    },
+    "profile": {
+      "title": "Profil",
+      "athleteSection": "Athlète",
+      "athleteSectionHelper": "Sert à personnaliser les zones d'entraînement et le coaching IA.",
+      "fields": {
+        "name": "Nom",
+        "namePlaceholder": "Jean Dupont",
+        "sex": "Sexe",
+        "dateOfBirth": "Date de naissance",
+        "dobDay": "JJ",
+        "dobMonth": "MM",
+        "dobYear": "AAAA",
+        "height": "Taille",
+        "weight": "Poids"
+      },
+      "sex": {
+        "male": "Homme",
+        "female": "Femme",
+        "other": "Autre"
+      },
+      "profilePhoto": "Photo de profil",
+      "guestFallback": "Invité",
+      "save": "Enregistrer",
+      "removePhoto": {
+        "label": "Supprimer la photo de profil",
+        "title": "Supprimer la photo",
+        "description": "Voulez-vous vraiment supprimer votre photo de profil ?",
+        "confirm": "Supprimer"
+      },
+      "changePhotoLabel": "Changer la photo de profil",
+      "errors": {
+        "notLoggedIn": "Vous devez être connecté pour mettre à jour votre profil",
+        "invalidDob": "Date de naissance invalide",
+        "invalidValues": "Valeurs invalides"
+      }
+    },
+    "connections": {
+      "title": "Apps & appareils",
+      "connected": "Connecté",
+      "notYetConnected": "Pas encore connecté",
+      "connect": "Connecter",
+      "comingSoon": "Bientôt disponible",
+      "syncing": "Synchronisation…",
+      "lastSync": "Dernière sync · {{time}}",
+      "providers": {
+        "strava": {
+          "description": "Synchroniser activités, parcours & entraînements"
+        },
+        "appleHealth": {
+          "description": "Fréquence cardiaque, sommeil & récupération"
+        },
+        "garmin": {
+          "description": "Données de montre GPS & wearables"
+        },
+        "coros": {
+          "description": "Données de montre GPS & entraînement"
+        }
+      },
+      "detail": {
+        "connectedOn": "Connecté le {{date}}",
+        "dataWeHave": "Données disponibles",
+        "noDataYet": "Aucune donnée synchronisée pour l'instant.",
+        "actions": "Actions",
+        "syncNow": "Synchroniser",
+        "checkingForData": "Recherche de nouvelles données…",
+        "syncedNewItems": "Synchronisé · {{count}} nouveaux éléments",
+        "upToDateJustNow": "À jour · à l'instant",
+        "tapToCheck": "Appuyez pour vérifier",
+        "disconnect": "Déconnecter {{name}}",
+        "confirmDisconnectTitle": "Déconnecter {{name}} ?",
+        "confirmDisconnectDescription": "Vos données synchronisées seront conservées, mais les nouvelles activités ne se synchroniseront plus jusqu'à reconnexion.",
+        "confirmDisconnect": "Déconnecter",
+        "since": "Depuis {{date}}",
+        "dataTypes": {
+          "activities": "Activités",
+          "body": "Mesures corporelles",
+          "daily": "Métriques quotidiennes",
+          "menstruation": "Menstruations",
+          "nutrition": "Nutrition",
+          "sleep": "Sommeil"
+        },
+        "counts": {
+          "sleep_one": "{{count}} nuit",
+          "sleep_other": "{{count}} nuits",
+          "daily_one": "{{count}} jour",
+          "daily_other": "{{count}} jours",
+          "entries_one": "{{count}} entrée",
+          "entries_other": "{{count}} entrées"
+        }
+      },
+      "permission": {
+        "title": "Connecter {{name}}",
+        "subtitle": "Encore une étape",
+        "continue": "Continuer",
+        "cancel": "Annuler",
+        "garmin": {
+          "intro": "Sur l'écran suivant, Garmin demande quelles données partager. L'historique est désactivé par défaut — activez-le pour qu'on puisse analyser vos entraînements passés.",
+          "caption": "Activez Historique des données, puis appuyez sur Enregistrer."
+        },
+        "appleHealth": {
+          "intro": "iOS va afficher une feuille d'autorisation. Appuyez sur Tout activer pour donner à votre coach toutes les données — fréquence cardiaque, sommeil, séances et plus.",
+          "caption": "Appuyez sur Tout activer en haut, puis sur Autoriser."
+        },
+        "strava": {
+          "intro": "Strava coche toutes les cases par défaut. Laissez les activités privées cochées pour importer tout votre historique — sinon on ne voit que les séances publiques.",
+          "caption": "Laissez les activités privées cochées, puis appuyez sur Autoriser."
+        }
       }
     }
   }

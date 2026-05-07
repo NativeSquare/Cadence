@@ -4,6 +4,7 @@ import { Text } from "@/components/ui/text";
 import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
+import { useTranslation } from "react-i18next";
 import { Image, Pressable, View } from "react-native";
 
 export type ImageUploaderFieldProps = {
@@ -16,13 +17,15 @@ export type ImageUploaderFieldProps = {
 };
 
 export function ImageUploaderField({
-  label = "Add Photos",
+  label,
   images,
   onImagesChange,
   maxImages = 3,
   uploadOptions = ["camera", "gallery"],
   error,
 }: ImageUploaderFieldProps) {
+  const { t } = useTranslation();
+  const resolvedLabel = label ?? t("feedback.addPhotosLabel");
   const handleImageSelected = (image: ImagePicker.ImagePickerAsset | SelectedImageAsset) => {
     if (images.length < maxImages) {
       onImagesChange([...images, image.uri]);
@@ -39,12 +42,12 @@ export function ImageUploaderField({
 
   return (
     <View className="gap-2">
-      {label && (
+      {resolvedLabel && (
         <Text
           className="font-coach-semibold text-[11px] uppercase tracking-wider"
           style={{ color: LIGHT_THEME.wMute }}
         >
-          {label}
+          {resolvedLabel}
         </Text>
       )}
 

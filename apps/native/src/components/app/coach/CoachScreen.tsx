@@ -9,11 +9,13 @@
 
 import { View, ActivityIndicator } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTranslation } from "react-i18next";
 import { Text } from "@/components/ui/text";
 import { useCoachAgentThread } from "@/hooks/use-coach-agent-thread";
 import { CoachChatView } from "./CoachChatView";
 
 export function CoachScreen({ initialPrompt }: { initialPrompt?: string }) {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { phase, threadId } = useCoachAgentThread();
 
@@ -25,7 +27,7 @@ export function CoachScreen({ initialPrompt }: { initialPrompt?: string }) {
       >
         <ActivityIndicator size="small" color="#A3E635" />
         <Text className="text-g3 text-sm mt-3 font-coach">
-          Loading conversation...
+          {t("coach.loadingConversation")}
         </Text>
       </View>
     );
@@ -38,7 +40,7 @@ export function CoachScreen({ initialPrompt }: { initialPrompt?: string }) {
         style={{ paddingTop: insets.top }}
       >
         <Text className="text-g3 text-sm font-coach">
-          Unable to start conversation. Please try again.
+          {t("coach.unableToStart")}
         </Text>
       </View>
     );

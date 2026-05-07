@@ -7,31 +7,21 @@ import { LIGHT_THEME } from "@/lib/design-tokens";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { Pressable, ScrollView, View } from "react-native";
 
 type CalendarProviderDef = {
   key: "google" | "apple";
-  name: string;
-  description: string;
   logo: (props: { size?: number; color?: string }) => React.ReactNode;
 };
 
 const COMING_SOON_CALENDARS: CalendarProviderDef[] = [
-  {
-    key: "google",
-    name: "Google Calendar",
-    description: "Sync sessions with your Google Calendar",
-    logo: GoogleCalendarLogo,
-  },
-  {
-    key: "apple",
-    name: "Apple Calendar",
-    description: "Sync sessions with your Apple Calendar",
-    logo: AppleCalendarLogo,
-  },
+  { key: "google", logo: GoogleCalendarLogo },
+  { key: "apple", logo: AppleCalendarLogo },
 ];
 
 export default function CalendarsScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
 
   return (
@@ -51,7 +41,7 @@ export default function CalendarsScreen() {
           className="flex-1 font-coach-bold text-lg"
           style={{ color: LIGHT_THEME.wText }}
         >
-          Calendars
+          {t("account.calendars.title")}
         </Text>
       </View>
 
@@ -64,8 +54,7 @@ export default function CalendarsScreen() {
             className="font-coach text-[13px]"
             style={{ color: LIGHT_THEME.wMute }}
           >
-            Connect a calendar to see your sessions alongside the rest of your
-            schedule. Calendar sync is coming soon.
+            {t("account.calendars.helper")}
           </Text>
 
           <View className="gap-3">
@@ -73,7 +62,7 @@ export default function CalendarsScreen() {
               className="font-coach-semibold text-[13px] uppercase tracking-wider"
               style={{ color: LIGHT_THEME.wMute }}
             >
-              Not yet connected
+              {t("account.calendars.notConnected")}
             </Text>
 
             <View
@@ -112,13 +101,13 @@ export default function CalendarsScreen() {
                         className="font-coach-medium text-[15px]"
                         style={{ color: LIGHT_THEME.wText }}
                       >
-                        {provider.name}
+                        {t(`account.calendars.providers.${provider.key}.name`)}
                       </Text>
                       <Text
                         className="mt-0.5 font-coach text-xs"
                         style={{ color: LIGHT_THEME.wMute }}
                       >
-                        {provider.description}
+                        {t(`account.calendars.providers.${provider.key}.description`)}
                       </Text>
                     </View>
 
@@ -130,7 +119,7 @@ export default function CalendarsScreen() {
                         className="font-coach-medium text-[12px]"
                         style={{ color: LIGHT_THEME.wMute }}
                       >
-                        Coming soon
+                        {t("account.calendars.comingSoon")}
                       </Text>
                     </View>
                   </View>

@@ -9,42 +9,47 @@
 
 import { View } from "react-native";
 import Animated, { FadeIn } from "react-native-reanimated";
+import { useTranslation } from "react-i18next";
 import { Text } from "@/components/ui/text";
 import { humanize } from "./format";
 import type { ToolCardProps } from "./types";
 
 /**
- * Friendly verbs for the resolved-state pill: "Checked sleep", "Read plan".
+ * Tool names known to have a friendly translation under
+ * `coach.tools.reading.labels.{toolName}`. Unknown tools fall back to a
+ * camelCase split via `humanize()`.
+ *
  * Read = retrieve a structured object the coach inspected.
  * Checked = retrieve a list/range the coach scanned.
  */
-const TOOL_LABELS: Record<string, string> = {
+const KNOWN_TOOL_LABELS = new Set([
   // Agoge
-  getAthlete: "athlete profile",
-  getAthletePlan: "training plan",
-  listBlocks: "training blocks",
-  getBlock: "block details",
-  listWorkouts: "workouts",
-  listWorkoutsByBlock: "block workouts",
-  getWorkout: "workout details",
+  "getAthlete",
+  "getAthletePlan",
+  "listBlocks",
+  "getBlock",
+  "listWorkouts",
+  "listWorkoutsByBlock",
+  "getWorkout",
   // Soma
-  readSleep: "sleep",
-  readDailySummary: "daily metrics",
-  readNutrition: "nutrition",
-  readMenstruation: "cycle",
-  readSomaProfile: "device profile",
-  readConnections: "data connections",
-};
-
-function labelFor(toolName: string): string {
-  return TOOL_LABELS[toolName] ?? humanize(toolName).toLowerCase();
-}
+  "readSleep",
+  "readDailySummary",
+  "readNutrition",
+  "readMenstruation",
+  "readSomaProfile",
+  "readConnections",
+]);
 
 export function ReadingToolPill({ toolName, state }: ToolCardProps) {
+  const { t } = useTranslation();
   const isRunning =
     state === "input-streaming" || state === "input-available";
-  const label = labelFor(toolName);
-  const text = isRunning ? `Checking ${label}…` : `Checked ${label}`;
+  const label = KNOWN_TOOL_LABELS.has(toolName)
+    ? t(`coach.tools.reading.labels.${toolName}`)
+    : humanize(toolName).toLowerCase();
+  const text = isRunning
+    ? t("coach.tools.reading.checkingFormat", { label })
+    : t("coach.tools.reading.checkedFormat", { label });
 
   return (
     <Animated.View

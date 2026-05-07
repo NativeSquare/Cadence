@@ -14,11 +14,13 @@ import { useGarmin } from "@/hooks/use-garmin";
 import { useHealthKit } from "@/hooks/use-healthkit";
 import { useHealthKitSyncProgress } from "@/hooks/use-healthkit-sync-store";
 import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
+import { formatRelativeShort } from "@/lib/format-relative";
 import { Ionicons } from "@expo/vector-icons";
 import { api } from "@packages/backend/convex/_generated/api";
 import { useQuery } from "convex/react";
 import { useRouter } from "expo-router";
 import React from "react";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Pressable,
@@ -26,12 +28,13 @@ import {
   View,
 } from "react-native";
 
+type ProviderKey = "strava" | "appleHealth" | "garmin";
+
 type ConnectionDef = {
-  key: "strava" | "appleHealth" | "garmin";
+  key: ProviderKey;
   slug: "strava" | "apple-health" | "garmin";
   provider: "STRAVA" | "HEALTHKIT" | "GARMIN";
   name: string;
-  description: string;
   logo: (props: { size?: number; color?: string }) => React.ReactNode;
 };
 
@@ -41,7 +44,6 @@ const CONNECTIONS: ConnectionDef[] = [
     slug: "strava",
     provider: "STRAVA",
     name: "Strava",
-    description: "Sync activities, routes & training",
     logo: StravaLogo,
   },
   {
@@ -49,7 +51,6 @@ const CONNECTIONS: ConnectionDef[] = [
     slug: "apple-health",
     provider: "HEALTHKIT",
     name: "Apple Health",
-    description: "Heart rate, sleep & recovery data",
     logo: AppleHealthLogo,
   },
   {
@@ -57,7 +58,6 @@ const CONNECTIONS: ConnectionDef[] = [
     slug: "garmin",
     provider: "GARMIN",
     name: "Garmin",
-    description: "GPS watch & wearable data",
     logo: GarminLogo,
   },
 ];
@@ -66,31 +66,12 @@ const COMING_SOON_PROVIDERS = [
   {
     key: "coros" as const,
     name: "COROS",
-    description: "GPS watch & training data",
     logo: CorosLogo,
   },
 ];
 
-function formatRelativeShort(iso: string | undefined): string | null {
-  if (!iso) return null;
-  const time = new Date(iso).getTime();
-  if (Number.isNaN(time)) return null;
-  const diff = Date.now() - time;
-  const mins = Math.floor(diff / 60_000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days < 7) return `${days}d ago`;
-  const weeks = Math.floor(days / 7);
-  if (weeks < 4) return `${weeks}w ago`;
-  const months = Math.floor(days / 30);
-  if (months < 12) return `${months}mo ago`;
-  return `${Math.floor(days / 365)}y ago`;
-}
-
 export default function ConnectionsScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const connections = useQuery(api.soma.index.listConnections);
   const {
@@ -180,7 +161,7 @@ export default function ConnectionsScreen() {
           className="flex-1 font-coach-bold text-lg"
           style={{ color: LIGHT_THEME.wText }}
         >
-          Apps & Devices
+          {t("account.connections.title")}
         </Text>
       </View>
 
@@ -196,7 +177,7 @@ export default function ConnectionsScreen() {
                 className="font-coach-semibold text-[13px] uppercase tracking-wider"
                 style={{ color: LIGHT_THEME.wMute }}
               >
-                Connected
+                {t("account.connections.connected")}
               </Text>
 
               <View
@@ -212,7 +193,7 @@ export default function ConnectionsScreen() {
                   const showSyncing =
                     conn.key === "appleHealth" && healthKitSyncing;
                   const connDoc = findConnection(conn);
-                  const lastSync = formatRelativeShort(connDoc?.lastDataUpdate);
+                  const lastSync = formatRelativeShort(t, connDoc?.lastDataUpdate);
                   return (
                     <Pressable
                       key={conn.key}
@@ -257,7 +238,7 @@ export default function ConnectionsScreen() {
                               className="font-coach text-xs"
                               style={{ color: LIGHT_THEME.wMute }}
                             >
-                              Syncing…
+                              {t("account.connections.syncing")}
                             </Text>
                           </View>
                         ) : (
@@ -266,8 +247,8 @@ export default function ConnectionsScreen() {
                             style={{ color: LIGHT_THEME.wMute }}
                           >
                             {lastSync
-                              ? `Last sync · ${lastSync}`
-                              : conn.description}
+                              ? t("account.connections.lastSync", { time: lastSync })
+                              : t(`account.connections.providers.${conn.key}.description`)}
                           </Text>
                         )}
                       </View>
@@ -292,7 +273,7 @@ export default function ConnectionsScreen() {
                 className="font-coach-semibold text-[13px] uppercase tracking-wider"
                 style={{ color: LIGHT_THEME.wMute }}
               >
-                Not yet connected
+                {t("account.connections.notYetConnected")}
               </Text>
 
               <View
@@ -352,7 +333,7 @@ export default function ConnectionsScreen() {
                           className="mt-0.5 font-coach text-xs"
                           style={{ color: LIGHT_THEME.wMute }}
                         >
-                          {conn.description}
+                          {t(`account.connections.providers.${conn.key}.description`)}
                         </Text>
                       </View>
 
@@ -371,7 +352,7 @@ export default function ConnectionsScreen() {
                             className="font-coach-semibold text-[13px]"
                             style={{ color: LIGHT_THEME.wText }}
                           >
-                            Connect
+                            {t("account.connections.connect")}
                           </Text>
                         </Pressable>
                       )}
@@ -414,7 +395,7 @@ export default function ConnectionsScreen() {
                           className="mt-0.5 font-coach text-xs"
                           style={{ color: LIGHT_THEME.wMute }}
                         >
-                          {provider.description}
+                          {t(`account.connections.providers.${provider.key}.description`)}
                         </Text>
                       </View>
 
@@ -426,7 +407,7 @@ export default function ConnectionsScreen() {
                           className="font-coach-medium text-[12px]"
                           style={{ color: LIGHT_THEME.wMute }}
                         >
-                          Coming soon
+                          {t("account.connections.comingSoon")}
                         </Text>
                       </View>
                     </View>

@@ -16,6 +16,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery } from "convex/react";
 import { useRouter } from "expo-router";
 import React from "react";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Keyboard,
@@ -48,12 +49,6 @@ const EMPTY_FORM: FormState = {
   dobYear: "",
   heightCm: "",
   weightKg: "",
-};
-
-const SEX_LABELS: Record<Sex, string> = {
-  male: "Male",
-  female: "Female",
-  other: "Other",
 };
 
 function isValidDate(d: string, m: string, y: string): boolean {
@@ -120,6 +115,7 @@ function isAthleteEqual(a: FormState, b: FormState): boolean {
 }
 
 export default function EditProfileScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const user = useQuery(api.table.users.currentUser);
   const athlete = useQuery(api.agoge.athletes.getAthlete);
@@ -156,7 +152,7 @@ export default function EditProfileScreen() {
     Keyboard.dismiss();
 
     if (!user?._id) {
-      setError("You must be logged in to update your profile");
+      setError(t("account.profile.errors.notLoggedIn"));
       return;
     }
 
@@ -165,7 +161,7 @@ export default function EditProfileScreen() {
       form.dobMonth.length > 0 ||
       form.dobYear.length > 0;
     if (dobProvided && !isValidDate(form.dobDay, form.dobMonth, form.dobYear)) {
-      setError("Invalid date of birth");
+      setError(t("account.profile.errors.invalidDob"));
       return;
     }
 
@@ -201,7 +197,7 @@ export default function EditProfileScreen() {
     const athleteParsed = AthleteProfileSchema.safeParse(athleteCandidate);
     if (!athleteParsed.success) {
       const tree = z.treeifyError(athleteParsed.error);
-      setError(tree.errors?.[0] ?? "Invalid values");
+      setError(tree.errors?.[0] ?? t("account.profile.errors.invalidValues"));
       return;
     }
 
@@ -252,7 +248,7 @@ export default function EditProfileScreen() {
           className="flex-1 font-coach-bold text-lg"
           style={{ color: LIGHT_THEME.wText }}
         >
-          Profile
+          {t("account.profile.title")}
         </Text>
       </View>
 
@@ -277,6 +273,8 @@ export default function EditProfileScreen() {
             />
 
             <NameField
+              label={t("account.profile.fields.name")}
+              placeholder={t("account.profile.fields.namePlaceholder")}
               value={form.name}
               onChange={(value) =>
                 setForm((prev) => ({ ...prev, name: value }))
@@ -290,18 +288,18 @@ export default function EditProfileScreen() {
               className="px-1 font-coach-bold text-[11px] uppercase tracking-wider"
               style={{ color: LIGHT_THEME.wSub }}
             >
-              Athlete
+              {t("account.profile.athleteSection")}
             </Text>
             <Text
               className="px-1 font-coach text-[12px]"
               style={{ color: LIGHT_THEME.wMute }}
             >
-              Used to personalize training zones and AI coaching.
+              {t("account.profile.athleteSectionHelper")}
             </Text>
           </View>
 
           <View className="gap-6">
-            <Field label="Sex">
+            <Field label={t("account.profile.fields.sex")}>
               <View className="flex-row gap-2">
                 {SEX_VALUES.map((value) => {
                   const selected = form.sex === value;
@@ -327,7 +325,7 @@ export default function EditProfileScreen() {
                           color: selected ? COLORS.black : LIGHT_THEME.wSub,
                         }}
                       >
-                        {SEX_LABELS[value]}
+                        {t(`account.profile.sex.${value}`)}
                       </Text>
                     </Pressable>
                   );
@@ -335,24 +333,24 @@ export default function EditProfileScreen() {
               </View>
             </Field>
 
-            <Field label="Date of birth">
+            <Field label={t("account.profile.fields.dateOfBirth")}>
               <View className="flex-row gap-2">
                 <DobInput
-                  placeholder="DD"
+                  placeholder={t("account.profile.fields.dobDay")}
                   value={form.dobDay}
                   maxLength={2}
                   onChange={(v) => setForm((f) => ({ ...f, dobDay: v }))}
                   widthClassName="w-[72px]"
                 />
                 <DobInput
-                  placeholder="MM"
+                  placeholder={t("account.profile.fields.dobMonth")}
                   value={form.dobMonth}
                   maxLength={2}
                   onChange={(v) => setForm((f) => ({ ...f, dobMonth: v }))}
                   widthClassName="w-[72px]"
                 />
                 <DobInput
-                  placeholder="YYYY"
+                  placeholder={t("account.profile.fields.dobYear")}
                   value={form.dobYear}
                   maxLength={4}
                   onChange={(v) => setForm((f) => ({ ...f, dobYear: v }))}
@@ -361,7 +359,7 @@ export default function EditProfileScreen() {
               </View>
             </Field>
 
-            <Field label="Height">
+            <Field label={t("account.profile.fields.height")}>
               <MeasureInput
                 placeholder="—"
                 value={form.heightCm}
@@ -371,7 +369,7 @@ export default function EditProfileScreen() {
               />
             </Field>
 
-            <Field label="Weight">
+            <Field label={t("account.profile.fields.weight")}>
               <MeasureInput
                 placeholder="—"
                 value={form.weightKg}
@@ -412,7 +410,7 @@ export default function EditProfileScreen() {
                 color: isBusy || !hasChanges ? LIGHT_THEME.wMute : "#FFFFFF",
               }}
             >
-              Save
+              {t("account.profile.save")}
             </Text>
           )}
         </Pressable>

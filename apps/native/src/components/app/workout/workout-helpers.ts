@@ -32,6 +32,41 @@ export function useWorkoutTypeLabels(): Record<WorkoutTypeOption, string> {
   };
 }
 
+/**
+ * Translate any agoge WorkoutType enum value (full 18-member set) to a
+ * locale-aware label. Falls back to capitalize-and-replace for values not
+ * covered by translations — useful if the schema gains a new variant before
+ * the locale file is updated.
+ */
+export function workoutTypeLabel(t: TFunction, type: string): string {
+  const key = `workout.types.${type}`;
+  const translated = t(key);
+  if (translated && translated !== key) return translated;
+  return type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+/**
+ * Translate an agoge BlockType enum value to a locale-aware label, with the
+ * same capitalize-and-replace fallback as `workoutTypeLabel`.
+ */
+export function blockTypeLabel(t: TFunction, type: string): string {
+  const key = `workout.blockTypes.${type}`;
+  const translated = t(key);
+  if (translated && translated !== key) return translated;
+  return type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+/**
+ * Translate an agoge WorkoutStatus enum value (planned/completed/missed/
+ * skipped) to a locale-aware label. Falls back to capitalize for safety.
+ */
+export function workoutStatusLabel(t: TFunction, status: string): string {
+  const key = `workout.status.${status}`;
+  const translated = t(key);
+  if (translated && translated !== key) return translated;
+  return status.charAt(0).toUpperCase() + status.slice(1);
+}
+
 export const WORKOUT_TYPE_COLORS: Record<WorkoutTypeOption, string> = {
   easy: WORKOUT_CATEGORY_COLORS.easy,
   tempo: WORKOUT_CATEGORY_COLORS.specific,

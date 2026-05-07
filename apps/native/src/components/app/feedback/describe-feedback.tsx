@@ -1,5 +1,6 @@
 import { Text } from "@/components/ui/text";
 import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
+import { useTranslation } from "react-i18next";
 import { TextInput, View } from "react-native";
 
 export type DescribeFeedbackFieldProps = {
@@ -11,12 +12,14 @@ export type DescribeFeedbackFieldProps = {
 };
 
 export function DescribeFeedbackField({
-  label = "Describe Feedback",
+  label,
   value,
   onChange,
   maxLength = 500,
   error,
 }: DescribeFeedbackFieldProps) {
+  const { t } = useTranslation();
+  const resolvedLabel = label ?? t("feedback.describeLabel");
   return (
     <View className="gap-2">
       <View className="flex-row items-center justify-between">
@@ -24,7 +27,7 @@ export function DescribeFeedbackField({
           className="font-coach-semibold text-[11px] uppercase tracking-wider"
           style={{ color: LIGHT_THEME.wMute }}
         >
-          {label}
+          {resolvedLabel}
         </Text>
         <Text
           className="font-coach text-[11px]"
@@ -34,7 +37,7 @@ export function DescribeFeedbackField({
         </Text>
       </View>
       <TextInput
-        placeholder="Describe your feedback..."
+        placeholder={t("feedback.describePlaceholder")}
         placeholderTextColor={LIGHT_THEME.wMute}
         value={value}
         onChangeText={onChange}

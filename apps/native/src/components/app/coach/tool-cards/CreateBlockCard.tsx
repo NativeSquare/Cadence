@@ -5,9 +5,11 @@
  */
 
 import { View } from "react-native";
+import { useTranslation } from "react-i18next";
 import { Text } from "@/components/ui/text";
+import { blockTypeLabel } from "@/components/app/workout/workout-helpers";
 import { ProposalCard } from "./ProposalCard";
-import { formatDateRange, humanize } from "./format";
+import { formatDateRange } from "./format";
 import type { ToolCardProps } from "./types";
 
 interface CreateBlockInput {
@@ -20,11 +22,12 @@ interface CreateBlockInput {
 }
 
 export function CreateBlockCard(props: ToolCardProps) {
+  const { t } = useTranslation();
   const input = (props.input ?? {}) as Partial<CreateBlockInput>;
 
   return (
     <ProposalCard
-      title="Create block"
+      title={t("coach.tools.card.createBlockTitle")}
       state={props.state}
       errorText={props.errorText}
       approvalId={props.approvalId}
@@ -37,10 +40,10 @@ export function CreateBlockCard(props: ToolCardProps) {
           className="text-[14px] font-coach-semibold text-wText"
           style={{ lineHeight: 14 * 1.4 }}
         >
-          {input.name ?? "Block"}
+          {input.name ?? t("coach.tools.card.blockFallback")}
         </Text>
         <Text className="text-[12px] font-coach text-wMute">
-          {input.type ? humanize(input.type) : "—"}
+          {input.type ? blockTypeLabel(t, input.type) : "—"}
           {input.startDate && input.endDate
             ? ` · ${formatDateRange(input.startDate, input.endDate)}`
             : ""}

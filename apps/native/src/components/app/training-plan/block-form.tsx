@@ -8,11 +8,13 @@ import { ConfirmationSheet } from "@/components/shared/confirmation-sheet";
 import { Text } from "@/components/ui/text";
 import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
 import { getConvexErrorMessage } from "@/utils/getConvexErrorMessage";
+import { blockTypeLabel } from "@/components/app/workout/workout-helpers";
 import { Ionicons } from "@expo/vector-icons";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import type { BlockType } from "@nativesquare/agoge/schema";
 import { useRouter } from "expo-router";
 import React from "react";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Keyboard,
@@ -23,11 +25,7 @@ import {
   TextInput,
   View,
 } from "react-native";
-import {
-  BLOCK_TYPES,
-  BLOCK_TYPE_COLORS,
-  BLOCK_TYPE_LABELS,
-} from "./constants";
+import { BLOCK_TYPES, BLOCK_TYPE_COLORS } from "./constants";
 
 export type BlockFormInitial = {
   name: string;
@@ -103,7 +101,16 @@ export function BlockForm({
   onSubmit: (values: BlockFormSubmit) => Promise<void>;
   onDelete?: () => Promise<void>;
 }) {
+  const { t } = useTranslation();
   const router = useRouter();
+  const blockTypeLabels: Record<BlockType, string> = React.useMemo(
+    () =>
+      BLOCK_TYPES.reduce(
+        (acc, kind) => ({ ...acc, [kind]: blockTypeLabel(t, kind) }),
+        {} as Record<BlockType, string>,
+      ),
+    [t],
+  );
   const [form, setForm] = React.useState<FormState>(() => {
     if (initial) return initialToForm(initial);
     return defaultOrder != null
@@ -134,9 +141,9 @@ export function BlockForm({
     Keyboard.dismiss();
     if (!canSave) {
       if (!datesOrdered) {
-        setError("End date must be on or after start date.");
+        setError(t("account.blocks.errorEndBeforeStart"));
       } else {
-        setError("Name, dates and order are required.");
+        setError(t("account.blocks.errorRequired"));
       }
       return;
     }
@@ -204,12 +211,12 @@ export function BlockForm({
         contentContainerClassName="px-4 py-6"
       >
         <View className="w-full max-w-md gap-8 self-center">
-          <FormSection title="Block">
-            <FormField label="Name">
+          <FormSection title={t("account.blocks.section")}>
+            <FormField label={t("account.blocks.name")}>
               <TextInput
                 className="h-12 rounded-xl border px-4 font-coach-medium text-[15px]"
                 style={inputStyle}
-                placeholder="e.g. Marathon Build 1"
+                placeholder={t("account.blocks.namePlaceholder")}
                 placeholderTextColor={LIGHT_THEME.wMute}
                 value={form.name}
                 onChangeText={(v) => setForm((f) => ({ ...f, name: v }))}
@@ -220,21 +227,21 @@ export function BlockForm({
               />
             </FormField>
 
-            <FormField label="Type">
+            <FormField label={t("account.blocks.type")}>
               <PillSelect
                 options={BLOCK_TYPES}
-                labels={BLOCK_TYPE_LABELS}
+                labels={blockTypeLabels}
                 value={form.type}
                 onChange={(v) => setForm((f) => ({ ...f, type: v }))}
                 colorByValue={BLOCK_TYPE_COLORS}
               />
             </FormField>
 
-            <FormField label="Focus (optional)">
+            <FormField label={t("account.blocks.focusOptional")}>
               <TextInput
                 className="h-12 rounded-xl border px-4 font-coach-medium text-[15px]"
                 style={inputStyle}
-                placeholder="e.g. Aerobic capacity, threshold"
+                placeholder={t("account.blocks.focusPlaceholder")}
                 placeholderTextColor={LIGHT_THEME.wMute}
                 value={form.focus}
                 onChangeText={(v) => setForm((f) => ({ ...f, focus: v }))}
@@ -245,22 +252,22 @@ export function BlockForm({
             </FormField>
           </FormSection>
 
-          <FormSection title="Dates">
+          <FormSection title={t("account.blocks.datesSection")}>
             <DateField
-              label="Start date"
+              label={t("account.blocks.startDate")}
               value={form.startDate || undefined}
               onChange={(v) => setForm((f) => ({ ...f, startDate: v }))}
             />
             <DateField
-              label="End date"
+              label={t("account.blocks.endDate")}
               value={form.endDate || undefined}
               onChange={(v) => setForm((f) => ({ ...f, endDate: v }))}
               minDate={form.startDate || undefined}
             />
           </FormSection>
 
-          <FormSection title="Order">
-            <FormField label="Position in plan">
+          <FormSection title={t("account.blocks.orderSection")}>
+            <FormField label={t("account.blocks.positionInPlan")}>
               <TextInput
                 className="h-12 rounded-xl border px-4 font-coach-medium text-[15px]"
                 style={inputStyle}
@@ -289,7 +296,7 @@ export function BlockForm({
                 className="font-coach text-[13px]"
                 style={{ color: COLORS.red }}
               >
-                Delete block
+                {t("account.blocks.deleteBlock")}
               </Text>
             </Pressable>
           )}
@@ -333,9 +340,9 @@ export function BlockForm({
         <ConfirmationSheet
           sheetRef={deleteSheetRef}
           icon="trash-outline"
-          title="Delete block"
-          description="This will also delete every workout in the block. This cannot be undone."
-          confirmLabel="Delete"
+          title={t("account.blocks.deleteBlock")}
+          description={t("account.blocks.deleteDescription")}
+          confirmLabel={t("workout.common.delete")}
           destructive
           loading={isDeleting}
           onConfirm={handleDelete}

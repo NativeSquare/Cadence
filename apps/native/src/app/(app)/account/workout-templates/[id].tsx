@@ -9,9 +9,11 @@ import type { WorkoutTemplate } from "@nativesquare/agoge/schema";
 import { useMutation, useQuery } from "convex/react";
 import { useLocalSearchParams } from "expo-router";
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { View } from "react-native";
 
 export default function TemplateDetailScreen() {
+  const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
   const template = useQuery(api.agoge.workoutTemplates.getMyWorkoutTemplate, {
     templateId: id,
@@ -42,7 +44,7 @@ export default function TemplateDetailScreen() {
           className="font-coach text-[14px]"
           style={{ color: LIGHT_THEME.wMute }}
         >
-          Template not found.
+          {t("account.workoutTemplates.notFound")}
         </Text>
       </View>
     );
@@ -66,14 +68,16 @@ export default function TemplateDetailScreen() {
 
   return (
     <WorkoutTemplateForm
-      title="Template"
+      title={t("account.workoutTemplates.detailTitle")}
       mode="edit"
       initial={template}
-      submitLabel="Save"
+      submitLabel={t("account.workoutTemplates.saveSubmit")}
       onSubmit={handleSubmit}
       onDelete={isGlobal ? undefined : handleDelete}
       readOnly={isGlobal}
-      readOnlyReason={isGlobal ? "Shared template — read-only." : undefined}
+      readOnlyReason={
+        isGlobal ? t("account.workoutTemplates.readOnlyReason") : undefined
+      }
     />
   );
 }

@@ -4,6 +4,7 @@ import { api } from "@packages/backend/convex/_generated/api";
 import { Ionicons } from "@expo/vector-icons";
 import type { FunctionReturnType } from "convex/server";
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { Pressable, View } from "react-native";
 
 export type RaceDoc = FunctionReturnType<
@@ -22,15 +23,7 @@ const PRIORITY_TEXT_COLORS: Record<"A" | "B" | "C", string> = {
   C: LIGHT_THEME.wSub,
 };
 
-const STATUS_PILL_LABEL: Record<
-  "completed" | "cancelled" | "dnf" | "dns",
-  string
-> = {
-  completed: "Done",
-  cancelled: "Cancelled",
-  dnf: "DNF",
-  dns: "DNS",
-};
+type RaceStatusKey = "completed" | "cancelled" | "dnf" | "dns";
 
 function formatDate(iso: string): string {
   const [y, m, d] = iso.split("-");
@@ -57,11 +50,12 @@ export function RaceRow({
   dimmed: boolean;
   onPress: () => void;
 }) {
+  const { t } = useTranslation();
   const priority = race.priority as "A" | "B" | "C";
   const distance = formatDistance(race.distanceMeters);
   const statusPill =
     race.status !== "upcoming"
-      ? STATUS_PILL_LABEL[race.status as keyof typeof STATUS_PILL_LABEL]
+      ? t(`account.races.statusPills.${race.status as RaceStatusKey}`)
       : null;
 
   return (

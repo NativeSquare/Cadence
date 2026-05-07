@@ -1,15 +1,17 @@
 import { RaceForm } from "@/components/app/account/race-form";
 import { api } from "@packages/backend/convex/_generated/api";
 import { useMutation } from "convex/react";
+import { useTranslation } from "react-i18next";
 
 export default function NewRaceScreen() {
+  const { t } = useTranslation();
   const createRace = useMutation(api.agoge.races.createMyRace);
 
   return (
     <RaceForm
-      title="New race"
+      title={t("account.races.newTitle")}
       mode="create"
-      submitLabel="Create race"
+      submitLabel={t("account.races.createSubmit")}
       onSubmit={async (values) => {
         await createRace({
           name: values.name,

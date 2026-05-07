@@ -3,10 +3,11 @@
  */
 
 import React, { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { View, Text, StyleSheet } from "react-native";
 import Animated, { FadeIn } from "react-native-reanimated";
 import { LIGHT_THEME } from "@/lib/design-tokens";
-import { WORKOUT_COLORS, WORKOUT_LABELS, PHASES } from "./constants";
+import { WORKOUT_COLORS, PHASES } from "./constants";
 import { blendWithBg, formatDateKey, getDaysInMonth } from "./helpers";
 import type { CalWorkoutType } from "./types";
 
@@ -18,6 +19,13 @@ interface LegendProps {
 const WORKOUT_TYPES: CalWorkoutType[] = ["easy", "specific", "long", "race"];
 
 export const Legend = React.memo(function Legend({ currentYear, currentMonth }: LegendProps) {
+  const { t } = useTranslation();
+  const workoutLabels: Record<CalWorkoutType, string> = {
+    easy: t("calendar.types.easy"),
+    specific: t("calendar.types.specific"),
+    long: t("calendar.types.long"),
+    race: t("calendar.types.race"),
+  };
   const visiblePhases = useMemo(() => {
     const monthStart = formatDateKey(currentYear, currentMonth, 1);
     const monthEnd = formatDateKey(currentYear, currentMonth, getDaysInMonth(currentYear, currentMonth));
@@ -30,7 +38,7 @@ export const Legend = React.memo(function Legend({ currentYear, currentMonth }: 
         {WORKOUT_TYPES.map((type) => (
           <View key={type} style={styles.item}>
             <View style={[styles.workoutDot, { backgroundColor: WORKOUT_COLORS[type] }]} />
-            <Text style={styles.workoutLabel}>{WORKOUT_LABELS[type]}</Text>
+            <Text style={styles.workoutLabel}>{workoutLabels[type]}</Text>
           </View>
         ))}
       </View>

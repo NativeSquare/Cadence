@@ -17,6 +17,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "expo-router";
 import React from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Keyboard,
@@ -75,6 +76,7 @@ export function WorkoutTemplateForm({
   readOnly?: boolean;
   readOnlyReason?: string;
 }) {
+  const { t } = useTranslation();
   const router = useRouter();
   const workoutTypeLabels = useWorkoutTypeLabels();
   const form = useForm<FormValues>({
@@ -202,16 +204,19 @@ export function WorkoutTemplateForm({
         contentContainerClassName="px-4 py-6"
       >
         <View className="w-full max-w-md gap-8 self-center">
-          <FormSection title="Template">
+          <FormSection title={t("workout.template.section")}>
             <Controller
               control={form.control}
               name="name"
               render={({ field, fieldState }) => (
-                <FormField label="Name" error={fieldState.error?.message}>
+                <FormField
+                  label={t("workout.fields.name")}
+                  error={fieldState.error?.message}
+                >
                   <TextInput
                     className="h-12 rounded-xl border px-4 font-coach-medium text-[15px]"
                     style={inputStyle}
-                    placeholder="e.g. Tuesday Tempo"
+                    placeholder={t("workout.fields.namePlaceholder")}
                     placeholderTextColor={LIGHT_THEME.wMute}
                     value={field.value}
                     onChangeText={field.onChange}
@@ -230,13 +235,13 @@ export function WorkoutTemplateForm({
               name="description"
               render={({ field, fieldState }) => (
                 <FormField
-                  label="Description (optional)"
+                  label={t("workout.fields.descriptionOptional")}
                   error={fieldState.error?.message}
                 >
                   <TextInput
                     className="min-h-[80px] rounded-xl border px-4 py-3 font-coach-medium text-[15px]"
                     style={inputStyle}
-                    placeholder="What this workout is for"
+                    placeholder={t("workout.fields.descriptionPlaceholder")}
                     placeholderTextColor={LIGHT_THEME.wMute}
                     value={field.value ?? ""}
                     onChangeText={field.onChange}
@@ -255,7 +260,10 @@ export function WorkoutTemplateForm({
               control={form.control}
               name="type"
               render={({ field, fieldState }) => (
-                <FormField label="Type" error={fieldState.error?.message}>
+                <FormField
+                  label={t("workout.fields.type")}
+                  error={fieldState.error?.message}
+                >
                   <PillSelect
                     options={WORKOUT_TYPES}
                     labels={workoutTypeLabels}
@@ -270,7 +278,7 @@ export function WorkoutTemplateForm({
 
           </FormSection>
 
-          <FormSection title="Structure">
+          <FormSection title={t("workout.template.structureSection")}>
             <Controller
               control={form.control}
               name="content.structure"
@@ -310,7 +318,7 @@ export function WorkoutTemplateForm({
                 className="font-coach text-[13px]"
                 style={{ color: COLORS.red }}
               >
-                Delete template
+                {t("workout.template.deleteTitle")}
               </Text>
             </Pressable>
           )}
@@ -353,9 +361,9 @@ export function WorkoutTemplateForm({
         <ConfirmationSheet
           sheetRef={deleteSheetRef}
           icon="trash-outline"
-          title="Delete template"
-          description="This cannot be undone."
-          confirmLabel="Delete"
+          title={t("workout.template.deleteTitle")}
+          description={t("workout.common.cannotUndo")}
+          confirmLabel={t("workout.common.delete")}
           destructive
           loading={isDeleting}
           onConfirm={handleDelete}
@@ -386,6 +394,7 @@ function PillSelect<T extends string>({
   allowClear?: boolean;
   colorByValue?: Partial<Record<T, string>>;
 }) {
+  const { t } = useTranslation();
   return (
     <View className="flex-row flex-wrap gap-2">
       {options.map((opt) => {
@@ -421,7 +430,7 @@ function PillSelect<T extends string>({
           className="px-2 py-2 font-coach text-[11px]"
           style={{ color: LIGHT_THEME.wMute }}
         >
-          Tap again to clear
+          {t("workout.template.tapToClear")}
         </Text>
       )}
     </View>

@@ -4,9 +4,11 @@ import { LIGHT_THEME } from "@/lib/design-tokens";
 import { api } from "@packages/backend/convex/_generated/api";
 import { useMutation, useQuery } from "convex/react";
 import { useLocalSearchParams } from "expo-router";
+import { useTranslation } from "react-i18next";
 import { View } from "react-native";
 
 export default function EditBlockScreen() {
+  const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
   const block = useQuery(api.agoge.blocks.getBlock, { blockId: id });
   const updateBlock = useMutation(api.agoge.blocks.updateBlock);
@@ -28,7 +30,7 @@ export default function EditBlockScreen() {
           className="font-coach-medium text-[15px]"
           style={{ color: LIGHT_THEME.wText }}
         >
-          Block not found
+          {t("account.blocks.notFound")}
         </Text>
       </View>
     );
@@ -36,8 +38,8 @@ export default function EditBlockScreen() {
 
   return (
     <BlockForm
-      title="Edit block"
-      submitLabel="Save"
+      title={t("account.blocks.editTitle")}
+      submitLabel={t("account.blocks.saveSubmit")}
       initial={{
         name: block.name,
         type: block.type,

@@ -1,4 +1,5 @@
 import { View, Image, Text, Pressable, Linking } from "react-native";
+import { useTranslation } from "react-i18next";
 import { FileText } from "lucide-react-native";
 import Animated, { FadeIn } from "react-native-reanimated";
 
@@ -19,6 +20,7 @@ export function ChatAttachmentBubble({
   filename,
   isUser,
 }: ChatAttachmentBubbleProps) {
+  const { t } = useTranslation();
   const isImage = mediaType.startsWith("image/");
 
   const wrapperClass = isUser ? "flex-row justify-end" : "flex-row justify-start";
@@ -26,7 +28,10 @@ export function ChatAttachmentBubble({
   return (
     <Animated.View entering={FadeIn.duration(200)} className={wrapperClass}>
       {isImage ? (
-        <Pressable onPress={() => Linking.openURL(url)} accessibilityLabel="Open image">
+        <Pressable
+          onPress={() => Linking.openURL(url)}
+          accessibilityLabel={t("coach.attachment.openImage")}
+        >
           <Image
             source={{ uri: url }}
             style={{
@@ -47,7 +52,9 @@ export function ChatAttachmentBubble({
             borderColor: "rgba(0,0,0,0.08)",
             maxWidth: 240,
           }}
-          accessibilityLabel={`Open ${filename ?? "document"}`}
+          accessibilityLabel={t("coach.attachment.openFormat", {
+            name: filename ?? t("coach.attachment.documentFallback"),
+          })}
         >
           <FileText size={20} color={LIGHT_THEME.wSub} strokeWidth={2} />
           <Text
@@ -59,7 +66,7 @@ export function ChatAttachmentBubble({
               maxWidth: 200,
             }}
           >
-            {filename ?? "Document"}
+            {filename ?? t("coach.attachment.documentFallback")}
           </Text>
         </Pressable>
       )}

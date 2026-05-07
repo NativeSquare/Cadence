@@ -1,8 +1,10 @@
 import { View } from "react-native";
+import { useTranslation } from "react-i18next";
 import { Text } from "@/components/ui/text";
 import { LIGHT_THEME } from "@/lib/design-tokens";
 
 export default function SubscriptionScreen() {
+  const { t } = useTranslation();
   return (
     <View
       style={{
@@ -14,12 +16,12 @@ export default function SubscriptionScreen() {
       }}
     >
       <Text style={{ color: LIGHT_THEME.wText, textAlign: "center", fontSize: 16 }}>
-        Subscription
+        {t("account.subscription.title")}
       </Text>
       <Text
         style={{ color: LIGHT_THEME.wMute, marginTop: 8, textAlign: "center", fontSize: 12 }}
       >
-        Coming soon — plan, billing, manage.
+        {t("account.subscription.comingSoon")}
       </Text>
     </View>
   );

@@ -12,6 +12,7 @@ import { BottomSheetModal as GorhomBottomSheetModal } from "@gorhom/bottom-sheet
 import { useMutation, useQuery } from "convex/react";
 import { useRouter } from "expo-router";
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { Pressable, ScrollView, View } from "react-native";
 
 const ACTIVE: GoalRowDoc["status"] = "active";
@@ -35,6 +36,7 @@ function partition(goals: GoalRowDoc[]) {
 }
 
 export default function GoalsListScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const goals = useQuery(api.agoge.goals.listMyGoals) as
     | GoalRowDoc[]
@@ -133,7 +135,7 @@ export default function GoalsListScreen() {
           className="flex-1 font-coach-bold text-lg"
           style={{ color: LIGHT_THEME.wText }}
         >
-          Goals
+          {t("account.goals.title")}
         </Text>
         <Pressable
           onPress={openCreate}
@@ -155,20 +157,20 @@ export default function GoalsListScreen() {
               className="font-coach-medium text-[15px]"
               style={{ color: LIGHT_THEME.wText }}
             >
-              No goals yet
+              {t("account.goals.noneYet")}
             </Text>
             <Text
               className="text-center font-coach text-[13px]"
               style={{ color: LIGHT_THEME.wMute }}
             >
-              Set targets to focus your training.
+              {t("account.goals.helper")}
             </Text>
           </View>
         ) : (
           <View className="w-full max-w-md gap-6 self-center">
             {active.length > 0 && (
               <GoalsSection
-                title="Active"
+                title={t("account.goals.active")}
                 goals={active}
                 racesById={racesById}
                 onTap={openEdit}
@@ -176,7 +178,7 @@ export default function GoalsListScreen() {
             )}
             {resolved.length > 0 && (
               <GoalsSection
-                title="Resolved"
+                title={t("account.goals.resolved")}
                 goals={resolved}
                 racesById={racesById}
                 dimmed

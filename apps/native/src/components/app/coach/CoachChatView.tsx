@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import {
   View,
   ScrollView,
@@ -26,7 +27,7 @@ import { useCoachAgent } from "@/hooks/use-coach-agent";
 import { useUploadImage } from "@/hooks/use-upload-image";
 import { useCoachVerbose, toggleCoachVerbose } from "@/hooks/use-coach-verbose";
 import { isWritingToolPart } from "@/lib/ai-stream";
-import type { PendingAttachment } from "./types";
+import type { ChatStatusKind, PendingAttachment } from "./types";
 
 export interface CoachChatViewProps {
   threadId: string;
@@ -34,6 +35,7 @@ export interface CoachChatViewProps {
 }
 
 export function CoachChatView({ threadId, initialPrompt }: CoachChatViewProps) {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const scrollViewRef = useRef<ScrollView>(null);
   const mediaSheetRef = useRef<GorhomBottomSheetModal>(null);
@@ -87,8 +89,8 @@ export function CoachChatView({ threadId, initialPrompt }: CoachChatViewProps) {
     setInputValue("");
     setPendingAttachments([]);
 
-    await sendMessage(text || "What do you see?", readyAttachments);
-  }, [inputValue, pendingAttachments, isStreaming, sendMessage]);
+    await sendMessage(text || t("coach.fallbackPrompt"), readyAttachments);
+  }, [inputValue, pendingAttachments, isStreaming, sendMessage, t]);
 
   const handleAttachmentPress = useCallback(() => {
     Keyboard.dismiss();
@@ -112,14 +114,14 @@ export function CoachChatView({ threadId, initialPrompt }: CoachChatViewProps) {
         console.error("[CoachChatView] Upload failed:", err);
         setPendingAttachments((prev) => prev.filter((a) => a.uri !== uri));
         Alert.alert(
-          "Upload failed",
+          t("coach.upload.failedTitle"),
           kind === "image"
-            ? "Could not upload the image. Please try again."
-            : "Could not upload the file. Please try again.",
+            ? t("coach.upload.failedImage")
+            : t("coach.upload.failedFile"),
         );
       }
     },
-    [uploadImage, uploadFile],
+    [uploadImage, uploadFile, t],
   );
 
   const handleRemoveAttachment = useCallback((index: number) => {
@@ -141,7 +143,7 @@ export function CoachChatView({ threadId, initialPrompt }: CoachChatViewProps) {
 
     // TODO: Replace with real speech-to-text integration
     let idx = 0;
-    const mockTranscript = "Can we swap tomorrow's rest for an easy run";
+    const mockTranscript = t("coach.mockTranscript");
     const interval = setInterval(() => {
       if (idx < mockTranscript.length) {
         idx = Math.min(
@@ -153,7 +155,7 @@ export function CoachChatView({ threadId, initialPrompt }: CoachChatViewProps) {
         clearInterval(interval);
       }
     }, 80);
-  }, []);
+  }, [t]);
 
   const handleVoiceCancel = useCallback(() => {
     setIsRecording(false);
@@ -173,13 +175,13 @@ export function CoachChatView({ threadId, initialPrompt }: CoachChatViewProps) {
     [isStreaming, sendMessage],
   );
 
-  const statusText = isOffline
-    ? "Offline"
+  const statusKind: ChatStatusKind = isOffline
+    ? "offline"
     : isReconnecting
-      ? "Reconnecting..."
+      ? "reconnecting"
       : error
-        ? "Error · tap retry"
-        : undefined;
+        ? "error"
+        : "online";
 
   return (
     <KeyboardAvoidingView
@@ -192,7 +194,7 @@ export function CoachChatView({ threadId, initialPrompt }: CoachChatViewProps) {
       >
         <ChatHeader
           isTyping={isStreaming}
-          statusText={statusText}
+          statusKind={statusKind}
           verbose={verbose}
           onToggleVerbose={toggleCoachVerbose}
         />
@@ -334,8 +336,8 @@ export function CoachChatView({ threadId, initialPrompt }: CoachChatViewProps) {
               <ChatErrorCard
                 message={
                   isRetriesExhausted
-                    ? "I'm having trouble connecting right now. Please try again later."
-                    : "Something went wrong. Let's try that again."
+                    ? t("coach.errorCard.connectionTrouble")
+                    : t("coach.errorCard.somethingWentWrong")
                 }
                 onRetry={!isRetriesExhausted ? retry : undefined}
                 retryCount={retryCount}

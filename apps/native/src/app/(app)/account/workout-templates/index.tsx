@@ -6,9 +6,11 @@ import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "convex/react";
 import { useRouter } from "expo-router";
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { Pressable, ScrollView, View } from "react-native";
 
 export default function WorkoutTemplatesListScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const templates = useQuery(api.agoge.workoutTemplates.listMyWorkoutTemplates);
 
@@ -32,7 +34,7 @@ export default function WorkoutTemplatesListScreen() {
           className="flex-1 font-coach-bold text-lg"
           style={{ color: LIGHT_THEME.wText }}
         >
-          Workout Templates
+          {t("account.workoutTemplates.title")}
         </Text>
         <Pressable
           onPress={() => router.push("/account/workout-templates/new")}
@@ -53,14 +55,13 @@ export default function WorkoutTemplatesListScreen() {
               className="font-coach-medium text-[15px]"
               style={{ color: LIGHT_THEME.wText }}
             >
-              No templates yet
+              {t("account.workoutTemplates.noneYet")}
             </Text>
             <Text
               className="px-6 text-center font-coach text-[13px]"
               style={{ color: LIGHT_THEME.wMute }}
             >
-              Save the workouts you want to repeat — easy runs, intervals, your
-              long-run plan.
+              {t("account.workoutTemplates.helper")}
             </Text>
             <Pressable
               onPress={() => router.push("/account/workout-templates/new")}
@@ -72,7 +73,7 @@ export default function WorkoutTemplatesListScreen() {
                 className="font-coach-bold text-[13px]"
                 style={{ color: "#FFFFFF" }}
               >
-                Create your first template
+                {t("account.workoutTemplates.createFirst")}
               </Text>
             </Pressable>
           </View>

@@ -1,10 +1,10 @@
 import {
   formatGoalDate,
   GOAL_RANK_COLORS,
-  GOAL_RANK_LABELS,
   GOAL_STATUS_COLORS,
-  GOAL_STATUS_LABELS,
-  GOAL_TYPE_LABELS,
+  useGoalRankLabels,
+  useGoalStatusLabels,
+  useGoalTypeLabels,
 } from "@/components/app/account/goal-display";
 import { Text } from "@/components/ui/text";
 import { LIGHT_THEME } from "@/lib/design-tokens";
@@ -14,6 +14,7 @@ import type {
   GoalStatus,
   GoalType,
 } from "@nativesquare/agoge/schema";
+import { useTranslation } from "react-i18next";
 import { Pressable, View } from "react-native";
 
 export type GoalRowDoc = {
@@ -41,6 +42,10 @@ export function GoalRow({
   isLast?: boolean;
   onPress: () => void;
 }) {
+  const { t } = useTranslation();
+  const goalTypeLabels = useGoalTypeLabels();
+  const goalRankLabels = useGoalRankLabels();
+  const goalStatusLabels = useGoalStatusLabels();
   const rankColor = goal.rank ? GOAL_RANK_COLORS[goal.rank] : LIGHT_THEME.w3;
   return (
     <Pressable
@@ -62,8 +67,8 @@ export function GoalRow({
           className="font-coach-semibold text-[10px] uppercase tracking-wider"
           style={{ color: LIGHT_THEME.wMute }}
         >
-          {GOAL_TYPE_LABELS[goal.type]}
-          {goal.rank ? ` · ${GOAL_RANK_LABELS[goal.rank]}` : ""}
+          {goalTypeLabels[goal.type]}
+          {goal.rank ? ` · ${goalRankLabels[goal.rank]}` : ""}
         </Text>
         <Text
           className="font-coach-bold text-[14px]"
@@ -76,7 +81,7 @@ export function GoalRow({
             className="font-coach text-[11px]"
             style={{ color: LIGHT_THEME.wMute }}
           >
-            by {formatGoalDate(goal.targetDate)}
+            {t("account.goals.byDate", { date: formatGoalDate(goal.targetDate) })}
           </Text>
         )}
         <View className="mt-1 flex-row flex-wrap items-center gap-1.5">
@@ -104,7 +109,7 @@ export function GoalRow({
                 className="font-coach-semibold text-[10px]"
                 style={{ color: GOAL_STATUS_COLORS[goal.status] }}
               >
-                {GOAL_STATUS_LABELS[goal.status]}
+                {goalStatusLabels[goal.status]}
               </Text>
             </View>
           )}
@@ -115,7 +120,9 @@ export function GoalRow({
         style={{ color: LIGHT_THEME.wText }}
         numberOfLines={2}
       >
-        {goal.targetValue}
+        {goal.targetValue === "Finish"
+          ? t("account.goals.targetFinish")
+          : goal.targetValue}
       </Text>
     </Pressable>
   );

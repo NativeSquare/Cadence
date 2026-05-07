@@ -10,9 +10,20 @@ export interface ChatMessage {
   isInterrupted?: boolean;
 }
 
+export type ChatStatusKind =
+  | "online"
+  | "offline"
+  | "reconnecting"
+  | "error";
+
 export interface ChatHeaderProps {
   isTyping: boolean;
-  statusText?: string;
+  /**
+   * Discriminated status from the agent state. The header maps this to a
+   * translated label and the dot color — passing a free string would prevent
+   * locale-aware copy and force English-prefix string-sniffing for color.
+   */
+  statusKind: ChatStatusKind;
   /** When true, the header's eye icon is filled; reading-tool pills show in chat. */
   verbose: boolean;
   onToggleVerbose: () => void;

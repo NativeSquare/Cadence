@@ -14,6 +14,7 @@
  */
 
 import { useState, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { Alert } from "react-native";
 import { extractToolName, type ToolMessagePart } from "@/lib/ai-stream";
 import { isKnownWritingTool, resolveToolCard } from "./tool-cards";
@@ -28,6 +29,7 @@ interface ChatToolPartProps {
 }
 
 export function ChatToolPart({ part, onRespond }: ChatToolPartProps) {
+  const { t } = useTranslation();
   const toolName = extractToolName(part);
   const isWriting =
     !!part.approval ||
@@ -54,12 +56,12 @@ export function ChatToolPart({ part, onRespond }: ChatToolPartProps) {
         await onRespond({ approvalId, approved });
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
-        Alert.alert("Could not submit response", message);
+        Alert.alert(t("coach.tool.couldNotSubmit"), message);
       } finally {
         setBusy(false);
       }
     },
-    [part.approval?.id, busy, onRespond],
+    [part.approval?.id, busy, onRespond, t],
   );
 
   return (

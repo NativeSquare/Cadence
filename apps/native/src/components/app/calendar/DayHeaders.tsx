@@ -3,16 +3,28 @@
  * Reference: cadence-calendar-final.jsx lines 471-480
  */
 
-import React from "react";
+import React, { useMemo } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { LIGHT_THEME } from "@/lib/design-tokens";
-import { DAY_HEADERS } from "./constants";
+import { formatDayLabelShort } from "@/lib/format";
+import { useLanguage } from "@/lib/i18n";
 
 export const DayHeaders = React.memo(function DayHeaders() {
+  const locale = useLanguage();
+  const labels = useMemo(() => {
+    // 2024-01-01 is a Monday — generate one Mon..Sun label per locale.
+    const ref = new Date(2024, 0, 1);
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(ref);
+      d.setDate(ref.getDate() + i);
+      return formatDayLabelShort(locale, d);
+    });
+  }, [locale]);
+
   return (
     <View style={styles.container}>
-      {DAY_HEADERS.map((d, i) => (
-        <View key={d} style={styles.cell}>
+      {labels.map((d, i) => (
+        <View key={i} style={styles.cell}>
           <Text
             style={[
               styles.label,

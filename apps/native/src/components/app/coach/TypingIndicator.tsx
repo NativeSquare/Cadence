@@ -18,6 +18,7 @@
  */
 
 import { View, Image } from "react-native";
+import { useTranslation } from "react-i18next";
 import { Text } from "@/components/ui/text";
 import Animated, {
   useAnimatedStyle,
@@ -101,6 +102,7 @@ function AnimatedDot({ delay }: { delay: number }) {
  * Uses staggered animation matching the prototype.
  */
 export function TypingIndicator({ visible }: TypingIndicatorProps) {
+  const { t } = useTranslation();
   if (!visible) return null;
 
   return (
@@ -134,7 +136,7 @@ export function TypingIndicator({ visible }: TypingIndicatorProps) {
         <View className="flex-row items-center gap-1.5 mb-4">
           <View className="w-[5px] h-[5px] rounded-full bg-lime" />
           <Text className="text-[10px] font-coach-semibold text-primary">
-            Coach
+            {t("coach.typing.badge")}
           </Text>
         </View>
 

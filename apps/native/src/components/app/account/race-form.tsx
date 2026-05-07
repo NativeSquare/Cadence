@@ -22,6 +22,7 @@ import type {
 } from "@nativesquare/agoge/schema";
 import { useRouter } from "expo-router";
 import React from "react";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Keyboard,
@@ -125,54 +126,7 @@ export const ITRA_CATEGORIES = [
   "XXL",
 ] as const satisfies readonly ItraCategory[];
 
-const PRIORITY_DESCRIPTIONS: Record<Priority, string> = {
-  A: "Primary goal",
-  B: "Secondary",
-  C: "Training",
-};
-
-const STATUS_LABELS: Record<RaceStatus, string> = {
-  upcoming: "Upcoming",
-  completed: "Completed",
-  dnf: "DNF",
-  dns: "DNS",
-  cancelled: "Cancelled",
-};
-
-const COURSE_TYPE_LABELS: Record<CourseType, string> = {
-  loop: "Loop",
-  point_to_point: "Point to point",
-  out_and_back: "Out & back",
-  laps: "Laps",
-  stages: "Stages",
-  other: "Other",
-};
-
-const SURFACE_LABELS: Record<Surface, string> = {
-  road: "Road",
-  mixed: "Mixed",
-  trail: "Trail",
-  technical_trail: "Technical trail",
-  track: "Track",
-  other: "Other",
-};
-
-const DISCIPLINE_LABELS: Record<Discipline, string> = {
-  road: "Road",
-  trail: "Trail",
-  track: "Track",
-  cross_country: "Cross-country",
-};
-
-const FORMAT_LABELS: Record<Format, string> = {
-  "5k": "5K",
-  "10k": "10K",
-  "15k": "15K",
-  half_marathon: "Half marathon",
-  marathon: "Marathon",
-  custom: "Custom",
-};
-
+// ITRA categories are universal abbreviations — same in every locale.
 const ITRA_CATEGORY_LABELS: Record<ItraCategory, string> = {
   XXS: "XXS",
   XS: "XS",
@@ -346,7 +300,54 @@ export function RaceForm({
   onSubmit: (values: RaceFormSubmit) => Promise<void>;
   onDelete?: () => Promise<void>;
 }) {
+  const { t } = useTranslation();
   const router = useRouter();
+
+  // Translated label maps for the PillSelect chips. Built per-render so they
+  // refresh when the user changes language without a full remount.
+  const priorityDescriptions: Record<Priority, string> = {
+    A: t("account.races.form.priorityDescriptions.A"),
+    B: t("account.races.form.priorityDescriptions.B"),
+    C: t("account.races.form.priorityDescriptions.C"),
+  };
+  const statusLabels: Record<RaceStatus, string> = {
+    upcoming: t("account.races.form.statusLabels.upcoming"),
+    completed: t("account.races.form.statusLabels.completed"),
+    dnf: t("account.races.form.statusLabels.dnf"),
+    dns: t("account.races.form.statusLabels.dns"),
+    cancelled: t("account.races.form.statusLabels.cancelled"),
+  };
+  const courseTypeLabels: Record<CourseType, string> = {
+    loop: t("account.races.form.courseTypes.loop"),
+    point_to_point: t("account.races.form.courseTypes.point_to_point"),
+    out_and_back: t("account.races.form.courseTypes.out_and_back"),
+    laps: t("account.races.form.courseTypes.laps"),
+    stages: t("account.races.form.courseTypes.stages"),
+    other: t("account.races.form.courseTypes.other"),
+  };
+  const surfaceLabels: Record<Surface, string> = {
+    road: t("account.races.form.surfaces.road"),
+    mixed: t("account.races.form.surfaces.mixed"),
+    trail: t("account.races.form.surfaces.trail"),
+    technical_trail: t("account.races.form.surfaces.technical_trail"),
+    track: t("account.races.form.surfaces.track"),
+    other: t("account.races.form.surfaces.other"),
+  };
+  const disciplineLabels: Record<Discipline, string> = {
+    road: t("account.races.form.disciplines.road"),
+    trail: t("account.races.form.disciplines.trail"),
+    track: t("account.races.form.disciplines.track"),
+    cross_country: t("account.races.form.disciplines.cross_country"),
+  };
+  const formatLabels: Record<Format, string> = {
+    "5k": t("account.races.form.formats.5k"),
+    "10k": t("account.races.form.formats.10k"),
+    "15k": t("account.races.form.formats.15k"),
+    half_marathon: t("account.races.form.formats.half_marathon"),
+    marathon: t("account.races.form.formats.marathon"),
+    custom: t("account.races.form.formats.custom"),
+  };
+
   const [form, setForm] = React.useState<FormState>(
     initial ? initialToForm(initial) : EMPTY_FORM,
   );
@@ -392,7 +393,7 @@ export function RaceForm({
     setError(null);
     Keyboard.dismiss();
     if (!canSave || form.format === "") {
-      setError("Name, date and format are required");
+      setError(t("account.races.form.errors.required"));
       return;
     }
     const format = form.format;
@@ -402,7 +403,7 @@ export function RaceForm({
     if (mode === "edit") {
       const today = todayDateString();
       if (form.status === "upcoming" && date < today) {
-        setError("An upcoming race cannot have a past date.");
+        setError(t("account.races.form.errors.upcomingPast"));
         return;
       }
       if (
@@ -411,7 +412,7 @@ export function RaceForm({
           form.status === "dns") &&
         date > today
       ) {
-        setError("A completed/DNF/DNS race must have a past or today's date.");
+        setError(t("account.races.form.errors.completedFuture"));
         return;
       }
     }
@@ -420,15 +421,23 @@ export function RaceForm({
     if (format === "custom") {
       const km = Number.parseFloat(form.distanceKm.trim());
       if (!Number.isFinite(km)) {
-        setError("Invalid distance");
+        setError(t("account.races.form.errors.invalidDistance"));
         return;
       }
       if (km < CUSTOM_DISTANCE_MIN_KM) {
-        setError(`Distance must be at least ${CUSTOM_DISTANCE_MIN_KM} km`);
+        setError(
+          t("account.races.form.errors.distanceMin", {
+            min: CUSTOM_DISTANCE_MIN_KM,
+          }),
+        );
         return;
       }
       if (km > CUSTOM_DISTANCE_MAX_KM) {
-        setError(`Distance can't exceed ${CUSTOM_DISTANCE_MAX_KM} km`);
+        setError(
+          t("account.races.form.errors.distanceMax", {
+            max: CUSTOM_DISTANCE_MAX_KM,
+          }),
+        );
         return;
       }
       distanceMeters = Math.round(km * 1000);
@@ -440,7 +449,7 @@ export function RaceForm({
     if (form.elevationGainM.trim().length > 0) {
       const e = Number.parseFloat(form.elevationGainM.trim());
       if (!Number.isFinite(e) || e < 0 || e > 20000) {
-        setError("Invalid elevation gain");
+        setError(t("account.races.form.errors.invalidElevationGain"));
         return;
       }
       elevationGainMeters = Math.round(e);
@@ -450,7 +459,7 @@ export function RaceForm({
     if (form.elevationLossM.trim().length > 0) {
       const e = Number.parseFloat(form.elevationLossM.trim());
       if (!Number.isFinite(e) || e < 0 || e > 20000) {
-        setError("Invalid elevation loss");
+        setError(t("account.races.form.errors.invalidElevationLoss"));
         return;
       }
       elevationLossMeters = Math.round(e);
@@ -483,7 +492,7 @@ export function RaceForm({
           m > 59 ||
           s > 59
         ) {
-          setError("Invalid finish time");
+          setError(t("account.races.form.errors.invalidFinishTime"));
           return;
         }
         finishTimeSec = h * 3600 + m * 60 + s;
@@ -496,7 +505,7 @@ export function RaceForm({
       if (form.placement.trim().length > 0) {
         const p = Number.parseInt(form.placement.trim(), 10);
         if (!Number.isFinite(p) || p < 1) {
-          setError("Invalid placement");
+          setError(t("account.races.form.errors.invalidPlacement"));
           return;
         }
         placement = p;
@@ -588,12 +597,12 @@ export function RaceForm({
         contentContainerClassName="px-4 py-6"
       >
         <View className="w-full max-w-md gap-8 self-center">
-          <FormSection title="Event">
-            <FormField label="Name">
+          <FormSection title={t("account.races.form.sections.event")}>
+            <FormField label={t("account.races.form.fields.name")}>
               <TextInput
                 className="h-12 rounded-xl border px-4 font-coach-medium text-[15px]"
                 style={inputStyle}
-                placeholder="e.g. Paris Marathon"
+                placeholder={t("account.races.form.fields.namePlaceholder")}
                 placeholderTextColor={LIGHT_THEME.wMute}
                 value={form.name}
                 onChangeText={(v) => setForm((f) => ({ ...f, name: v }))}
@@ -605,7 +614,7 @@ export function RaceForm({
             </FormField>
 
             <DateField
-              label="Date"
+              label={t("account.races.form.fields.date")}
               value={form.date || undefined}
               onChange={(v) => setForm((f) => ({ ...f, date: v }))}
               minDate={
@@ -625,25 +634,25 @@ export function RaceForm({
 
             {showPastDatePrompt && (
               <PromptCard
-                title="This date is in the past"
-                description="Is this a completed race you're logging?"
+                title={t("account.races.form.pastDatePrompt.title")}
+                description={t("account.races.form.pastDatePrompt.description")}
                 primary={{
-                  label: "Yes, log it as completed",
+                  label: t("account.races.form.pastDatePrompt.primaryAction"),
                   onPress: acknowledgePastDate,
                 }}
                 secondary={{
-                  label: "No, fix the date",
+                  label: t("account.races.form.pastDatePrompt.secondaryAction"),
                   onPress: clearPastDate,
                 }}
               />
             )}
 
-            <FormField label="Location (optional)">
+            <FormField label={t("account.races.form.fields.locationOptional")}>
               <View className="flex-row gap-2">
                 <TextInput
                   className="h-12 flex-1 rounded-xl border px-4 font-coach-medium text-[15px]"
                   style={inputStyle}
-                  placeholder="City"
+                  placeholder={t("account.races.form.fields.city")}
                   placeholderTextColor={LIGHT_THEME.wMute}
                   value={form.city}
                   onChangeText={(v) => setForm((f) => ({ ...f, city: v }))}
@@ -654,7 +663,7 @@ export function RaceForm({
                 <TextInput
                   className="h-12 flex-1 rounded-xl border px-4 font-coach-medium text-[15px]"
                   style={inputStyle}
-                  placeholder="Country"
+                  placeholder={t("account.races.form.fields.country")}
                   placeholderTextColor={LIGHT_THEME.wMute}
                   value={form.country}
                   onChangeText={(v) => setForm((f) => ({ ...f, country: v }))}
@@ -665,11 +674,11 @@ export function RaceForm({
               </View>
             </FormField>
 
-            <FormField label="Notes (optional)">
+            <FormField label={t("account.races.form.fields.notesOptional")}>
               <TextInput
                 className="min-h-[80px] rounded-xl border px-4 py-3 font-coach-medium text-[15px]"
                 style={inputStyle}
-                placeholder="Terrain, course notes, expectations…"
+                placeholder={t("account.races.form.fields.notesPlaceholder")}
                 placeholderTextColor={LIGHT_THEME.wMute}
                 value={form.notes}
                 onChangeText={(v) => setForm((f) => ({ ...f, notes: v }))}
@@ -681,8 +690,8 @@ export function RaceForm({
             </FormField>
           </FormSection>
 
-          <FormSection title="Race">
-            <FormField label="Priority">
+          <FormSection title={t("account.races.form.sections.race")}>
+            <FormField label={t("account.races.form.fields.priority")}>
               <View className="flex-row gap-2">
                 {PRIORITIES.map((value) => {
                   const selected = form.priority === value;
@@ -716,7 +725,7 @@ export function RaceForm({
                           color: selected ? COLORS.black : LIGHT_THEME.wMute,
                         }}
                       >
-                        {PRIORITY_DESCRIPTIONS[value]}
+                        {priorityDescriptions[value]}
                       </Text>
                     </Pressable>
                   );
@@ -724,22 +733,22 @@ export function RaceForm({
               </View>
             </FormField>
 
-            <FormField label="Format">
+            <FormField label={t("account.races.form.fields.format")}>
               <PillSelect
                 options={FORMATS}
-                labels={FORMAT_LABELS}
+                labels={formatLabels}
                 value={form.format}
                 onChange={(v) => setForm((f) => ({ ...f, format: v }))}
               />
             </FormField>
 
             {form.format === "custom" && (
-              <FormField label="Distance">
+              <FormField label={t("account.races.form.fields.distance")}>
                 <View className="flex-row items-center gap-3">
                   <TextInput
                     className="h-12 flex-1 rounded-xl border px-4 font-coach-medium text-[15px]"
                     style={inputStyle}
-                    placeholder="—"
+                    placeholder={t("account.races.form.fields.distancePlaceholder")}
                     placeholderTextColor={LIGHT_THEME.wMute}
                     keyboardType="decimal-pad"
                     value={form.distanceKm}
@@ -762,30 +771,30 @@ export function RaceForm({
               </FormField>
             )}
 
-            <FormField label="Discipline">
+            <FormField label={t("account.races.form.fields.discipline")}>
               <PillSelect
                 options={DISCIPLINES}
-                labels={DISCIPLINE_LABELS}
+                labels={disciplineLabels}
                 value={form.discipline}
                 onChange={(v) => setForm((f) => ({ ...f, discipline: v }))}
               />
             </FormField>
 
             {showStatusPill && (
-              <FormField label="Status">
+              <FormField label={t("account.races.form.fields.status")}>
                 <PillSelect
                   options={STATUSES}
-                  labels={STATUS_LABELS}
+                  labels={statusLabels}
                   value={form.status}
                   onChange={(v) => setForm((f) => ({ ...f, status: v }))}
                 />
               </FormField>
             )}
 
-            <FormField label="Course type (optional)">
+            <FormField label={t("account.races.form.fields.courseTypeOptional")}>
               <PillSelect
                 options={COURSE_TYPES}
-                labels={COURSE_TYPE_LABELS}
+                labels={courseTypeLabels}
                 value={form.courseType}
                 onChange={(v) =>
                   setForm((f) => ({
@@ -797,10 +806,10 @@ export function RaceForm({
               />
             </FormField>
 
-            <FormField label="Surface (optional)">
+            <FormField label={t("account.races.form.fields.surfaceOptional")}>
               <PillSelect
                 options={SURFACES}
-                labels={SURFACE_LABELS}
+                labels={surfaceLabels}
                 value={form.surface}
                 onChange={(v) =>
                   setForm((f) => ({ ...f, surface: f.surface === v ? "" : v }))
@@ -810,7 +819,7 @@ export function RaceForm({
             </FormField>
 
             {form.discipline === "trail" && (
-              <FormField label="ITRA category (optional)">
+              <FormField label={t("account.races.form.fields.itraOptional")}>
                 <PillSelect
                   options={ITRA_CATEGORIES}
                   labels={ITRA_CATEGORY_LABELS}
@@ -826,12 +835,12 @@ export function RaceForm({
               </FormField>
             )}
 
-            <FormField label="Elevation (optional)">
+            <FormField label={t("account.races.form.fields.elevationOptional")}>
               <View className="flex-row items-center gap-3">
                 <TextInput
                   className="h-12 flex-1 rounded-xl border px-4 font-coach-medium text-[15px]"
                   style={inputStyle}
-                  placeholder="Gain"
+                  placeholder={t("account.races.form.fields.elevationGain")}
                   placeholderTextColor={LIGHT_THEME.wMute}
                   keyboardType="number-pad"
                   value={form.elevationGainM}
@@ -847,7 +856,7 @@ export function RaceForm({
                 <TextInput
                   className="h-12 flex-1 rounded-xl border px-4 font-coach-medium text-[15px]"
                   style={inputStyle}
-                  placeholder="Loss"
+                  placeholder={t("account.races.form.fields.elevationLoss")}
                   placeholderTextColor={LIGHT_THEME.wMute}
                   keyboardType="number-pad"
                   value={form.elevationLossM}
@@ -872,18 +881,18 @@ export function RaceForm({
           </FormSection>
 
           {showResultSection && (
-            <FormSection title="Result">
-              <FormField label="Finish time (HH:MM:SS)">
+            <FormSection title={t("account.races.form.sections.result")}>
+              <FormField label={t("account.races.form.fields.finishTime")}>
                 <View className="flex-row gap-2">
                   <DatePart
-                    placeholder="HH"
+                    placeholder={t("account.races.form.fields.finishHours")}
                     value={form.finishHours}
                     maxLength={2}
                     onChange={(v) => setForm((f) => ({ ...f, finishHours: v }))}
                     widthClassName="flex-1"
                   />
                   <DatePart
-                    placeholder="MM"
+                    placeholder={t("account.races.form.fields.finishMinutes")}
                     value={form.finishMinutes}
                     maxLength={2}
                     onChange={(v) =>
@@ -892,7 +901,7 @@ export function RaceForm({
                     widthClassName="flex-1"
                   />
                   <DatePart
-                    placeholder="SS"
+                    placeholder={t("account.races.form.fields.finishSeconds")}
                     value={form.finishSeconds}
                     maxLength={2}
                     onChange={(v) =>
@@ -903,11 +912,11 @@ export function RaceForm({
                 </View>
               </FormField>
 
-              <FormField label="Placement (optional)">
+              <FormField label={t("account.races.form.fields.placementOptional")}>
                 <TextInput
                   className="h-12 rounded-xl border px-4 font-coach-medium text-[15px]"
                   style={inputStyle}
-                  placeholder="—"
+                  placeholder={t("account.races.form.fields.placementPlaceholder")}
                   placeholderTextColor={LIGHT_THEME.wMute}
                   keyboardType="number-pad"
                   value={form.placement}
@@ -922,11 +931,11 @@ export function RaceForm({
                 />
               </FormField>
 
-              <FormField label="Result notes (optional)">
+              <FormField label={t("account.races.form.fields.resultNotesOptional")}>
                 <TextInput
                   className="min-h-[80px] rounded-xl border px-4 py-3 font-coach-medium text-[15px]"
                   style={inputStyle}
-                  placeholder="How did it go?"
+                  placeholder={t("account.races.form.fields.resultNotesPlaceholder")}
                   placeholderTextColor={LIGHT_THEME.wMute}
                   value={form.resultNotes}
                   onChangeText={(v) =>
@@ -950,7 +959,7 @@ export function RaceForm({
                 className="font-coach text-[13px]"
                 style={{ color: COLORS.red }}
               >
-                Delete race
+                {t("account.races.form.deleteRace")}
               </Text>
             </Pressable>
           )}
@@ -994,9 +1003,9 @@ export function RaceForm({
         <ConfirmationSheet
           sheetRef={deleteSheetRef}
           icon="trash-outline"
-          title="Delete race"
-          description="This cannot be undone."
-          confirmLabel="Delete"
+          title={t("account.races.form.deleteRace")}
+          description={t("account.races.form.deleteDescription")}
+          confirmLabel={t("workout.common.delete")}
           destructive
           loading={isDeleting}
           onConfirm={handleDelete}
@@ -1091,6 +1100,7 @@ function PillSelect<T extends string>({
   onChange: (v: T) => void;
   allowClear?: boolean;
 }) {
+  const { t } = useTranslation();
   return (
     <View className="flex-row flex-wrap gap-2">
       {options.map((opt) => {
@@ -1124,7 +1134,7 @@ function PillSelect<T extends string>({
           className="px-2 py-2 font-coach text-[11px]"
           style={{ color: LIGHT_THEME.wMute }}
         >
-          Tap again to clear
+          {t("account.races.form.tapToClear")}
         </Text>
       )}
     </View>

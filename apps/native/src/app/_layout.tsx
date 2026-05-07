@@ -21,6 +21,7 @@ import * as SecureStore from "expo-secure-store";
 import * as SplashScreen from "expo-splash-screen";
 import { useColorScheme } from "nativewind";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ActivityIndicator, Alert, Platform, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
@@ -102,6 +103,7 @@ export default function RootLayout() {
 }
 
 function RootStack() {
+  const { t } = useTranslation();
   const { isAuthenticated, isLoading } = useConvexAuth();
   const { signOut } = useAuthActions();
   const user = useQuery(
@@ -166,13 +168,13 @@ function RootStack() {
   useEffect(() => {
     if (isAuthenticated && isBanned) {
       Alert.alert(
-        "Account Suspended",
+        t("account.suspended.title"),
         user?.banReason
-          ? `Your account has been suspended: ${user.banReason}. Contact support if you believe this is an error.`
-          : "Your account has been suspended. Contact support if you believe this is an error.",
+          ? t("account.suspended.messageWithReason", { reason: user.banReason })
+          : t("account.suspended.messageDefault"),
         [
           {
-            text: "OK",
+            text: t("account.suspended.ok"),
             onPress: async () => {
               await clearPushToken().catch(() => {});
               signOut();

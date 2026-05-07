@@ -8,6 +8,7 @@
 import { useQuery } from "convex/react";
 import { ArrowRight } from "lucide-react-native";
 import { View } from "react-native";
+import { useTranslation } from "react-i18next";
 import { api } from "@packages/backend/convex/_generated/api";
 import { Text } from "@/components/ui/text";
 import { ProposalCard } from "./ProposalCard";
@@ -20,19 +21,21 @@ interface RescheduleInput {
 }
 
 export function RescheduleWorkoutCard(props: ToolCardProps) {
+  const { t } = useTranslation();
   const input = props.input as RescheduleInput | undefined;
   const result = useQuery(
     api.agoge.workouts.getWorkout,
     input?.workoutId ? { workoutId: input.workoutId } : "skip",
   );
 
-  const workoutName = result?.workout?.name ?? "Workout";
+  const workoutName =
+    result?.workout?.name ?? t("coach.tools.card.workoutFallback");
   const currentDate = result?.workout?.planned?.date;
   const targetDate = input?.date;
 
   return (
     <ProposalCard
-      title="Reschedule workout"
+      title={t("coach.tools.card.rescheduleWorkoutTitle")}
       state={props.state}
       errorText={props.errorText}
       approvalId={props.approvalId}

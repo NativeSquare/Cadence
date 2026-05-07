@@ -34,6 +34,7 @@ import {
   formatDuration,
   formatTarget,
   intentLabel,
+  workoutTypeLabel,
 } from "@/components/app/workout/workout-helpers";
 import { type WorkoutData, type SyncStatus } from "./types";
 import { formatShortDate } from "@/lib/format";
@@ -377,15 +378,6 @@ function StructureTotal({ workout }: { workout: WorkoutData }) {
   );
 }
 
-// ─── Kind label ─────────────────────────────────────────────────────────────
-
-/** Format the agoge taxonomic type into a readable uppercase label.
- * e.g. "race_pace" → "RACE PACE", "vo2max" → "VO2 MAX". */
-function formatKind(kind: string): string {
-  if (kind === "vo2max") return "VO2 MAX";
-  return kind.replace(/_/g, " ").toUpperCase();
-}
-
 // ─── Header (shared) ────────────────────────────────────────────────────────
 
 function CardHeader({
@@ -395,7 +387,10 @@ function CardHeader({
   workout: WorkoutData;
   showSyncBadge: boolean;
 }) {
-  const kindLabel = workout.kind ? formatKind(workout.kind) : null;
+  const { t } = useTranslation();
+  // The label container has CSS uppercase, so the translated value can stay
+  // sentence-case ("VO2 max" → rendered as "VO2 MAX").
+  const kindLabel = workout.kind ? workoutTypeLabel(t, workout.kind) : null;
 
   return (
     <View className="px-5 pt-5 pb-3">

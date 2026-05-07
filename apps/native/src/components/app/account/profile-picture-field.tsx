@@ -5,6 +5,7 @@ import { Text } from "@/components/ui/text";
 import { Ionicons } from "@expo/vector-icons";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import * as React from "react";
+import { useTranslation } from "react-i18next";
 import { Pressable, View } from "react-native";
 
 export type ProfilePictureFieldProps = {
@@ -22,6 +23,7 @@ export function ProfilePictureField({
   onImageRemove,
   error,
 }: ProfilePictureFieldProps) {
+  const { t } = useTranslation();
   const bottomSheetModalRef = React.useRef<BottomSheetModal>(null);
   const confirmationSheetRef = React.useRef<BottomSheetModal>(null);
 
@@ -41,7 +43,7 @@ export function ProfilePictureField({
   return (
     <View className="items-center gap-3">
       <View className="relative">
-        <Avatar alt={name || "Guest"} className="size-32">
+        <Avatar alt={name || t("account.profile.guestFallback")} className="size-32">
           {image ? (
             <AvatarImage source={{ uri: image }} />
           ) : (
@@ -61,7 +63,7 @@ export function ProfilePictureField({
           <Pressable
             onPress={openRemoveConfirmation}
             className="absolute -top-1.5 -right-1.5 active:scale-95"
-            accessibilityLabel="Remove profile photo"
+            accessibilityLabel={t("account.profile.removePhoto.label")}
             hitSlop={8}
           >
             <View className="size-11 items-center justify-center rounded-full bg-background shadow-sm shadow-black/10 border border-border">
@@ -73,7 +75,7 @@ export function ProfilePictureField({
         <Pressable
           onPress={openPhotoActions}
           className="absolute -bottom-1.5 -right-1.5 active:scale-95"
-          accessibilityLabel="Change profile photo"
+          accessibilityLabel={t("account.profile.changePhotoLabel")}
           hitSlop={8}
         >
           <View className="size-11 items-center justify-center rounded-full bg-background shadow-sm shadow-black/10 border border-border">
@@ -81,7 +83,7 @@ export function ProfilePictureField({
           </View>
         </Pressable>
       </View>
-      <Text className="text-muted-foreground text-sm">Profile Photo</Text>
+      <Text className="text-muted-foreground text-sm">{t("account.profile.profilePhoto")}</Text>
       {error && <Text className="text-xs text-destructive">{error}</Text>}
 
       <UploadMediaBottomSheetModal
@@ -94,9 +96,9 @@ export function ProfilePictureField({
       <ConfirmationSheet
         sheetRef={confirmationSheetRef}
         icon="trash-outline"
-        title="Remove Photo"
-        description="Are you sure you want to remove your profile photo?"
-        confirmLabel="Remove"
+        title={t("account.profile.removePhoto.title")}
+        description={t("account.profile.removePhoto.description")}
+        confirmLabel={t("account.profile.removePhoto.confirm")}
         destructive
         onConfirm={handleRemoveConfirm}
       />

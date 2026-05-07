@@ -16,6 +16,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { useTranslation } from "react-i18next";
 import { Image, Pressable, View } from "react-native";
 import { BottomSheetModal as GorhomBottomSheetModal } from "@gorhom/bottom-sheet";
 
@@ -33,9 +34,7 @@ type ProviderKey = "strava" | "garmin" | "appleHealth";
 type ProviderConfig = {
   name: string;
   logo: (props: { size?: number; color?: string }) => React.ReactNode;
-  intro: string;
   image: number;
-  caption: string;
 };
 
 const IMAGE_ASPECT = 1179 / 2556;
@@ -46,26 +45,17 @@ const PROVIDER_CONTENT: Record<ProviderKey, ProviderConfig> = {
   garmin: {
     name: "Garmin",
     logo: GarminLogo,
-    intro:
-      "On the next screen, Garmin will ask what to share. Historical Data is off by default — turn it on so we can analyze your past training.",
     image: require("../../../../assets/images/connect-permissions/garmin-oauth.jpeg"),
-    caption: "Turn on Historical Data, then tap Save.",
   },
   appleHealth: {
     name: "Apple Health",
     logo: AppleHealthLogo,
-    intro:
-      "iOS will show a permission sheet next. Tap Turn On All so your coach gets the full picture — heart rate, sleep, workouts and more.",
     image: require("../../../../assets/images/connect-permissions/healthkit-permissions.jpeg"),
-    caption: "Tap Turn On All at the top, then Allow.",
   },
   strava: {
     name: "Strava",
     logo: StravaLogo,
-    intro:
-      "Strava defaults to checking all boxes. Keep private activities checked so your full history imports — otherwise we only see your public workouts.",
     image: require("../../../../assets/images/connect-permissions/strava-oauth.jpeg"),
-    caption: "Leave private activities checked, then tap Authorize.",
   },
 };
 
@@ -77,6 +67,7 @@ export interface ConnectPermissionSheetHandle {
 
 export const ConnectPermissionSheet = forwardRef<ConnectPermissionSheetHandle>(
   (_props, ref) => {
+  const { t } = useTranslation();
   const sheetRef = useRef<GorhomBottomSheetModal>(null);
   const [provider, setProvider] = useState<ProviderKey | null>(null);
   const continueRef = useRef<(() => void) | null>(null);
@@ -134,13 +125,13 @@ export const ConnectPermissionSheet = forwardRef<ConnectPermissionSheetHandle>(
                 className="font-coach-bold text-[17px]"
                 style={{ color: LIGHT_THEME.wText }}
               >
-                Connect {config.name}
+                {t("account.connections.permission.title", { name: config.name })}
               </Text>
               <Text
                 className="mt-0.5 font-coach text-[12px]"
                 style={{ color: LIGHT_THEME.wMute }}
               >
-                One more step
+                {t("account.connections.permission.subtitle")}
               </Text>
             </View>
           </View>
@@ -150,7 +141,7 @@ export const ConnectPermissionSheet = forwardRef<ConnectPermissionSheetHandle>(
             className="mt-4 font-coach text-[14px] leading-[20px]"
             style={{ color: LIGHT_THEME.wText }}
           >
-            {config.intro}
+            {t(`account.connections.permission.${provider}.intro`)}
           </Text>
 
           {/* Screenshot */}
@@ -173,7 +164,7 @@ export const ConnectPermissionSheet = forwardRef<ConnectPermissionSheetHandle>(
               className="mt-3 text-center font-coach-medium text-[13px]"
               style={{ color: LIGHT_THEME.wMute }}
             >
-              {config.caption}
+              {t(`account.connections.permission.${provider}.caption`)}
             </Text>
           </View>
 
@@ -187,7 +178,7 @@ export const ConnectPermissionSheet = forwardRef<ConnectPermissionSheetHandle>(
               className="font-coach-semibold text-[15px]"
               style={{ color: LIGHT_THEME.wText }}
             >
-              Continue
+              {t("account.connections.permission.continue")}
             </Text>
           </Pressable>
           <Pressable
@@ -198,7 +189,7 @@ export const ConnectPermissionSheet = forwardRef<ConnectPermissionSheetHandle>(
               className="font-coach-medium text-[14px]"
               style={{ color: LIGHT_THEME.wMute }}
             >
-              Cancel
+              {t("account.connections.permission.cancel")}
             </Text>
           </Pressable>
         </View>

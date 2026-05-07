@@ -6,6 +6,7 @@ import {
   Text,
   ScrollView,
 } from "react-native";
+import { useTranslation } from "react-i18next";
 import { Mic, ArrowUp, Plus, X, FileText } from "lucide-react-native";
 import { LIGHT_THEME } from "@/lib/design-tokens";
 import Animated, {
@@ -32,6 +33,7 @@ export function ChatInput({
   onRemoveAttachment,
   disabled,
 }: ChatInputProps) {
+  const { t } = useTranslation();
   const hasText = value.trim().length > 0;
   const hasAttachments = attachments.length > 0;
   const canSend = hasText || hasAttachments;
@@ -70,8 +72,8 @@ export function ChatInput({
           shadowRadius: 8,
           elevation: 2,
         }}
-        accessibilityLabel="Add photo or file"
-        accessibilityHint="Opens options to take a photo, choose from library, or browse files"
+        accessibilityLabel={t("coach.input.attachmentLabel")}
+        accessibilityHint={t("coach.input.attachmentHint")}
       >
         <Plus size={22} color={LIGHT_THEME.wSub} strokeWidth={2} />
       </Pressable>
@@ -122,7 +124,7 @@ export function ChatInput({
                           maxWidth: 150,
                         }}
                       >
-                        {att.name ?? "Document"}
+                        {att.name ?? t("coach.input.documentFallback")}
                       </Text>
                     </View>
                   ) : (
@@ -141,7 +143,7 @@ export function ChatInput({
                       onPress={() => onRemoveAttachment(index)}
                       className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-wText items-center justify-center"
                       hitSlop={6}
-                      accessibilityLabel="Remove attachment"
+                      accessibilityLabel={t("coach.input.removeAttachment")}
                     >
                       <X size={12} color="#C8FF00" strokeWidth={2.5} />
                     </Pressable>
@@ -155,7 +157,7 @@ export function ChatInput({
             value={value}
             onChangeText={onChange}
             onSubmitEditing={handleSubmitEditing}
-            placeholder="Ask your coach..."
+            placeholder={t("coach.input.placeholder")}
             placeholderTextColor={LIGHT_THEME.wMute}
             editable={!disabled}
             multiline
@@ -167,8 +169,8 @@ export function ChatInput({
             autoCorrect={true}
             autoComplete="off"
             textContentType="none"
-            accessibilityLabel="Message input"
-            accessibilityHint="Type a message to your coach"
+            accessibilityLabel={t("coach.input.messageLabel")}
+            accessibilityHint={t("coach.input.messageHint")}
           />
         </View>
 

@@ -9,6 +9,7 @@ import { computeZoneBoundaries } from "@nativesquare/agoge";
 import { useMutation, useQuery } from "convex/react";
 import { useRouter } from "expo-router";
 import React from "react";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -31,6 +32,7 @@ function findZone<T extends { kind: ZoneKind }>(
 }
 
 export default function ZonesScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const zones = useQuery(api.agoge.zones.listAthleteZones);
   const createZone = useMutation(api.agoge.zones.createZone);
@@ -110,7 +112,7 @@ export default function ZonesScreen() {
     async ({ kind }: { kind: ZoneKind }) => {
       const existing = findZone(zones, kind);
       if (!existing?.threshold) {
-        throw new Error("Set a threshold before re-syncing zones.");
+        throw new Error(t("account.zones.errorThresholdRequired"));
       }
       const boundaries = computeZoneBoundaries(
         kind,
@@ -126,7 +128,7 @@ export default function ZonesScreen() {
         source: "system",
       });
     },
-    [zones, saveZone],
+    [zones, saveZone, t],
   );
 
   const loading = zones === undefined;
@@ -152,7 +154,7 @@ export default function ZonesScreen() {
           className="flex-1 font-coach-bold text-lg"
           style={{ color: LIGHT_THEME.wText }}
         >
-          Zones
+          {t("account.zones.title")}
         </Text>
       </View>
 
@@ -177,7 +179,7 @@ export default function ZonesScreen() {
 
               <ZoneBoundaryBlock
                 kind="hr"
-                title="HR Zones"
+                title={t("account.zones.hrZones")}
                 zone={findZone(zones, "hr")}
                 onUpdateBoundaries={handleUpdateBoundaries}
                 onResync={handleResync}
@@ -185,7 +187,7 @@ export default function ZonesScreen() {
 
               <ZoneBoundaryBlock
                 kind="pace"
-                title="Pace Zones"
+                title={t("account.zones.paceZones")}
                 zone={findZone(zones, "pace")}
                 onUpdateBoundaries={handleUpdateBoundaries}
                 onResync={handleResync}

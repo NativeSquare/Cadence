@@ -18,8 +18,14 @@ import type {
   GoalStatus,
   GoalType,
 } from "@nativesquare/agoge/schema";
+import {
+  useGoalRankLabels,
+  useGoalStatusLabels,
+  useGoalTypeLabels,
+} from "@/components/app/account/goal-display";
 import { useQuery } from "convex/react";
 import React from "react";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Pressable,
@@ -36,28 +42,12 @@ const GOAL_TYPES = [
   "other",
 ] as const satisfies readonly GoalType[];
 
-const GOAL_TYPE_LABELS: Record<GoalType, string> = {
-  performance: "Performance",
-  completion: "Completion",
-  process: "Process",
-  volume: "Volume",
-  body: "Body",
-  other: "Other",
-};
-
 const GOAL_RANKS = [
   "primary",
   "stretch",
   "minimum",
   "process",
 ] as const satisfies readonly GoalRank[];
-
-const GOAL_RANK_LABELS: Record<GoalRank, string> = {
-  primary: "Primary",
-  stretch: "Stretch",
-  minimum: "Minimum",
-  process: "Process",
-};
 
 const GOAL_STATUSES = [
   "active",
@@ -67,21 +57,8 @@ const GOAL_STATUSES = [
   "paused",
 ] as const satisfies readonly GoalStatus[];
 
-const GOAL_STATUS_LABELS: Record<GoalStatus, string> = {
-  active: "Active",
-  achieved: "Achieved",
-  missed: "Missed",
-  abandoned: "Abandoned",
-  paused: "Paused",
-};
-
 const PERFORMANCE_MODES = ["time", "pace", "place"] as const;
 type PerformanceMode = (typeof PERFORMANCE_MODES)[number];
-const PERFORMANCE_MODE_LABELS: Record<PerformanceMode, string> = {
-  time: "Time",
-  pace: "Pace",
-  place: "Placement",
-};
 
 export type GoalFormValues = {
   type: GoalType;
@@ -274,6 +251,16 @@ export function GoalForm({
   onDelete?: () => Promise<void>;
   onDismiss?: () => void;
 }) {
+  const { t } = useTranslation();
+  const goalTypeLabels = useGoalTypeLabels();
+  const goalRankLabels = useGoalRankLabels();
+  const goalStatusLabels = useGoalStatusLabels();
+  const performanceModeLabels: Record<PerformanceMode, string> = {
+    time: t("account.goals.form.performanceModes.time"),
+    pace: t("account.goals.form.performanceModes.pace"),
+    place: t("account.goals.form.performanceModes.place"),
+  };
+
   const [form, setForm] = React.useState<FormState>(
     initial ? initialToForm(initial) : emptyForm(),
   );
@@ -308,7 +295,7 @@ export function GoalForm({
   const handleSave = async () => {
     setError(null);
     if (!canSave) {
-      setError("Title and target are required.");
+      setError(t("account.goals.form.errorRequired"));
       return;
     }
     setIsSaving(true);
@@ -358,7 +345,9 @@ export function GoalForm({
               className="font-coach-bold text-lg"
               style={{ color: LIGHT_THEME.wText }}
             >
-              {mode === "create" ? "New goal" : "Edit goal"}
+              {mode === "create"
+                ? t("account.goals.form.newGoal")
+                : t("account.goals.form.editGoal")}
             </Text>
             <Pressable
               onPress={() => sheetRef.current?.dismiss()}
@@ -369,9 +358,9 @@ export function GoalForm({
             </Pressable>
           </View>
 
-          <FormSection title="Goal">
+          <FormSection title={t("account.goals.form.goalSection")}>
             {showRacePicker && races && races.length > 0 && (
-              <FormField label="Race (optional)">
+              <FormField label={t("account.goals.form.raceOptional")}>
                 <RacePicker
                   races={races}
                   value={form.raceId}
@@ -398,7 +387,7 @@ export function GoalForm({
                   style={{ color: LIGHT_THEME.wSub }}
                   numberOfLines={1}
                 >
-                  Linked to{" "}
+                  {t("account.goals.form.linkedToPrefix")}
                   <Text
                     className="font-coach-bold"
                     style={{ color: LIGHT_THEME.wText }}
@@ -409,10 +398,10 @@ export function GoalForm({
               </View>
             )}
 
-            <FormField label="Type">
+            <FormField label={t("account.goals.form.type")}>
               <PillSelect
                 options={GOAL_TYPES}
-                labels={GOAL_TYPE_LABELS}
+                labels={goalTypeLabels}
                 value={form.type}
                 onChange={(v) =>
                   setForm((f) => ({
@@ -424,11 +413,11 @@ export function GoalForm({
               />
             </FormField>
 
-            <FormField label="Title">
+            <FormField label={t("account.goals.form.title")}>
               <TextInput
                 className="h-12 rounded-xl border px-4 font-coach-medium text-[15px]"
                 style={inputStyle}
-                placeholder="e.g. Sub-3 marathon"
+                placeholder={t("account.goals.form.titlePlaceholder")}
                 placeholderTextColor={LIGHT_THEME.wMute}
                 value={form.title}
                 onChangeText={(v) => setForm((f) => ({ ...f, title: v }))}
@@ -439,33 +428,33 @@ export function GoalForm({
 
             {form.type === "performance" && !form.freeTextOverride && (
               <>
-                <FormField label="Metric">
+                <FormField label={t("account.goals.form.metric")}>
                   <PillSelect
                     options={PERFORMANCE_MODES}
-                    labels={PERFORMANCE_MODE_LABELS}
+                    labels={performanceModeLabels}
                     value={form.perfMode}
                     onChange={(v) => setForm((f) => ({ ...f, perfMode: v }))}
                   />
                 </FormField>
                 {form.perfMode === "time" && (
-                  <FormField label="Finish time (HH:MM:SS)">
+                  <FormField label={t("account.goals.form.finishTime")}>
                     <View className="flex-row gap-2">
                       <DatePart
-                        placeholder="HH"
+                        placeholder={t("account.goals.form.finishHours")}
                         value={form.hours}
                         maxLength={2}
                         onChange={(v) => setForm((f) => ({ ...f, hours: v }))}
                         widthClassName="flex-1"
                       />
                       <DatePart
-                        placeholder="MM"
+                        placeholder={t("account.goals.form.finishMinutes")}
                         value={form.minutes}
                         maxLength={2}
                         onChange={(v) => setForm((f) => ({ ...f, minutes: v }))}
                         widthClassName="flex-1"
                       />
                       <DatePart
-                        placeholder="SS"
+                        placeholder={t("account.goals.form.finishSeconds")}
                         value={form.seconds}
                         maxLength={2}
                         onChange={(v) => setForm((f) => ({ ...f, seconds: v }))}
@@ -475,17 +464,17 @@ export function GoalForm({
                   </FormField>
                 )}
                 {form.perfMode === "pace" && (
-                  <FormField label="Pace (per km)">
+                  <FormField label={t("account.goals.form.pacePerKm")}>
                     <View className="flex-row items-center gap-2">
                       <DatePart
-                        placeholder="MM"
+                        placeholder={t("account.goals.form.finishMinutes")}
                         value={form.paceMin}
                         maxLength={2}
                         onChange={(v) => setForm((f) => ({ ...f, paceMin: v }))}
                         widthClassName="flex-1"
                       />
                       <DatePart
-                        placeholder="SS"
+                        placeholder={t("account.goals.form.finishSeconds")}
                         value={form.paceSec}
                         maxLength={2}
                         onChange={(v) => setForm((f) => ({ ...f, paceSec: v }))}
@@ -501,11 +490,11 @@ export function GoalForm({
                   </FormField>
                 )}
                 {form.perfMode === "place" && (
-                  <FormField label="Placement">
+                  <FormField label={t("account.goals.form.placement")}>
                     <TextInput
                       className="h-12 rounded-xl border px-4 font-coach-medium text-[15px]"
                       style={inputStyle}
-                      placeholder="e.g. 10"
+                      placeholder={t("account.goals.form.placementPlaceholder")}
                       placeholderTextColor={LIGHT_THEME.wMute}
                       keyboardType="number-pad"
                       value={form.placement}
@@ -524,12 +513,12 @@ export function GoalForm({
             )}
 
             {form.type === "volume" && !form.freeTextOverride && (
-              <FormField label="Distance">
+              <FormField label={t("account.goals.form.distance")}>
                 <View className="flex-row items-center gap-3">
                   <TextInput
                     className="h-12 flex-1 rounded-xl border px-4 font-coach-medium text-[15px]"
                     style={inputStyle}
-                    placeholder="—"
+                    placeholder={t("account.goals.form.distancePlaceholder")}
                     placeholderTextColor={LIGHT_THEME.wMute}
                     keyboardType="decimal-pad"
                     value={form.volumeKm}
@@ -553,12 +542,12 @@ export function GoalForm({
             )}
 
             {form.type === "body" && !form.freeTextOverride && (
-              <FormField label="Weight">
+              <FormField label={t("account.goals.form.weight")}>
                 <View className="flex-row items-center gap-3">
                   <TextInput
                     className="h-12 flex-1 rounded-xl border px-4 font-coach-medium text-[15px]"
                     style={inputStyle}
-                    placeholder="—"
+                    placeholder={t("account.goals.form.weightPlaceholder")}
                     placeholderTextColor={LIGHT_THEME.wMute}
                     keyboardType="decimal-pad"
                     value={form.bodyKg}
@@ -593,12 +582,12 @@ export function GoalForm({
                   className="font-coach-medium text-[13px]"
                   style={{ color: LIGHT_THEME.wMute }}
                 >
-                  Target:{" "}
+                  {t("account.goals.form.targetPrefix")}
                   <Text
                     className="font-coach-bold"
                     style={{ color: LIGHT_THEME.wText }}
                   >
-                    Finish
+                    {t("account.goals.targetFinish")}
                   </Text>
                 </Text>
               </View>
@@ -607,11 +596,11 @@ export function GoalForm({
             {(form.type === "process" ||
               form.type === "other" ||
               form.freeTextOverride) && (
-              <FormField label="Target">
+              <FormField label={t("account.goals.form.targetLabel")}>
                 <TextInput
                   className="h-12 rounded-xl border px-4 font-coach-medium text-[15px]"
                   style={inputStyle}
-                  placeholder="e.g. Hit fueling plan"
+                  placeholder={t("account.goals.form.targetPlaceholder")}
                   placeholderTextColor={LIGHT_THEME.wMute}
                   value={form.freeText}
                   onChangeText={(v) =>
@@ -623,10 +612,10 @@ export function GoalForm({
               </FormField>
             )}
 
-            <FormField label="Rank (optional)">
+            <FormField label={t("account.goals.form.rankOptional")}>
               <PillSelect
                 options={GOAL_RANKS}
-                labels={GOAL_RANK_LABELS}
+                labels={goalRankLabels}
                 value={form.rank}
                 onChange={(v) =>
                   setForm((f) => ({ ...f, rank: f.rank === v ? "" : v }))
@@ -636,16 +625,16 @@ export function GoalForm({
             </FormField>
 
             <DateField
-              label="Target date (optional)"
+              label={t("account.goals.form.targetDateOptional")}
               value={form.targetDate || undefined}
               onChange={(v) => setForm((f) => ({ ...f, targetDate: v }))}
             />
 
-            <FormField label="Description (optional)">
+            <FormField label={t("account.goals.form.descriptionOptional")}>
               <TextInput
                 className="min-h-[80px] rounded-xl border px-4 py-3 font-coach-medium text-[15px]"
                 style={inputStyle}
-                placeholder="Why this goal? Any context…"
+                placeholder={t("account.goals.form.descriptionPlaceholder")}
                 placeholderTextColor={LIGHT_THEME.wMute}
                 value={form.description}
                 onChangeText={(v) =>
@@ -659,10 +648,10 @@ export function GoalForm({
             </FormField>
 
             {mode === "edit" && (
-              <FormField label="Status">
+              <FormField label={t("account.goals.form.status")}>
                 <PillSelect
                   options={GOAL_STATUSES}
-                  labels={GOAL_STATUS_LABELS}
+                  labels={goalStatusLabels}
                   value={form.status}
                   onChange={(v) => setForm((f) => ({ ...f, status: v }))}
                 />
@@ -695,7 +684,9 @@ export function GoalForm({
                   className="font-coach-bold text-sm"
                   style={{ color: !canSave ? LIGHT_THEME.wMute : "#FFFFFF" }}
                 >
-                  {mode === "create" ? "Add goal" : "Save goal"}
+                  {mode === "create"
+                    ? t("account.goals.form.addGoal")
+                    : t("account.goals.form.saveGoal")}
                 </Text>
               )}
             </Pressable>
@@ -712,7 +703,7 @@ export function GoalForm({
                   className="font-coach text-[13px]"
                   style={{ color: COLORS.red }}
                 >
-                  Delete goal
+                  {t("account.goals.form.deleteGoal")}
                 </Text>
               </Pressable>
             )}
@@ -724,9 +715,9 @@ export function GoalForm({
         <ConfirmationSheet
           sheetRef={deleteSheetRef}
           icon="trash-outline"
-          title="Delete goal"
-          description="This cannot be undone."
-          confirmLabel="Delete"
+          title={t("account.goals.form.deleteGoal")}
+          description={t("account.goals.form.deleteDescription")}
+          confirmLabel={t("workout.common.delete")}
           destructive
           loading={isDeleting}
           onConfirm={handleDelete}
@@ -755,6 +746,7 @@ function PillSelect<T extends string>({
   onChange: (v: T) => void;
   allowClear?: boolean;
 }) {
+  const { t } = useTranslation();
   return (
     <View className="flex-row flex-wrap gap-2">
       {options.map((opt) => {
@@ -786,7 +778,7 @@ function PillSelect<T extends string>({
           className="px-2 py-2 font-coach text-[11px]"
           style={{ color: LIGHT_THEME.wMute }}
         >
-          Tap again to clear
+          {t("account.goals.form.tapToClear")}
         </Text>
       )}
     </View>
@@ -804,6 +796,7 @@ function RacePicker({
   value: string;
   onChange: (v: string) => void;
 }) {
+  const { t } = useTranslation();
   const sorted = React.useMemo(
     () => [...races].sort((a, b) => b.date.localeCompare(a.date)),
     [races],
@@ -825,7 +818,7 @@ function RacePicker({
           className="font-coach-semibold text-[14px]"
           style={{ color: value === "" ? "#FFFFFF" : LIGHT_THEME.wText }}
         >
-          None
+          {t("account.goals.form.racePickerNone")}
         </Text>
       </Pressable>
       {sorted.map((race) => {

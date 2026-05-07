@@ -10,9 +10,11 @@ import { LIGHT_THEME } from "@/lib/design-tokens";
 import { api } from "@packages/backend/convex/_generated/api";
 import { useMutation, useQuery } from "convex/react";
 import { useLocalSearchParams } from "expo-router";
+import { useTranslation } from "react-i18next";
 import { View } from "react-native";
 
 export default function EditRaceScreen() {
+  const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
   const race = useQuery(api.agoge.races.getMyRace, { raceId: id });
   const updateRace = useMutation(api.agoge.races.updateMyRace);
@@ -32,7 +34,7 @@ export default function EditRaceScreen() {
           className="font-coach-medium text-[15px]"
           style={{ color: LIGHT_THEME.wText }}
         >
-          Race not found
+          {t("account.races.notFound")}
         </Text>
       </View>
     );
@@ -40,9 +42,9 @@ export default function EditRaceScreen() {
 
   return (
     <RaceForm
-      title="Edit race"
+      title={t("account.races.editTitle")}
       mode="edit"
-      submitLabel="Save"
+      submitLabel={t("account.races.saveSubmit")}
       initial={{
         name: race.name,
         date: race.date,

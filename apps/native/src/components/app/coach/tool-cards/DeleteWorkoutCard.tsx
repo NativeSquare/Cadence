@@ -8,10 +8,12 @@
 import { useQuery } from "convex/react";
 import { Trash2 } from "lucide-react-native";
 import { View } from "react-native";
+import { useTranslation } from "react-i18next";
 import { api } from "@packages/backend/convex/_generated/api";
 import { Text } from "@/components/ui/text";
+import { workoutTypeLabel } from "@/components/app/workout/workout-helpers";
 import { ProposalCard } from "./ProposalCard";
-import { formatDate, humanize } from "./format";
+import { formatDate } from "./format";
 import type { ToolCardProps } from "./types";
 
 interface DeleteInput {
@@ -19,6 +21,7 @@ interface DeleteInput {
 }
 
 export function DeleteWorkoutCard(props: ToolCardProps) {
+  const { t } = useTranslation();
   const input = props.input as DeleteInput | undefined;
   const result = useQuery(
     api.agoge.workouts.getWorkout,
@@ -30,7 +33,7 @@ export function DeleteWorkoutCard(props: ToolCardProps) {
 
   return (
     <ProposalCard
-      title="Delete workout"
+      title={t("coach.tools.card.deleteWorkoutTitle")}
       state={props.state}
       errorText={props.errorText}
       approvalId={props.approvalId}
@@ -47,10 +50,12 @@ export function DeleteWorkoutCard(props: ToolCardProps) {
             className="text-[14px] font-coach-semibold text-wText"
             style={{ lineHeight: 14 * 1.4 }}
           >
-            {workout?.name ?? "Workout"}
+            {workout?.name ?? t("coach.tools.card.workoutFallback")}
           </Text>
           <Text className="text-[12px] font-coach text-wMute">
-            {workout ? humanize(workout.type) : "Loading…"}
+            {workout
+              ? workoutTypeLabel(t, workout.type)
+              : t("coach.tools.card.loading")}
             {date ? ` · ${formatDate(date)}` : ""}
           </Text>
         </View>

@@ -7,6 +7,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "convex/react";
 import { useRouter } from "expo-router";
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { Pressable, ScrollView, View } from "react-native";
 
 const PRIORITY_RANK: Record<"A" | "B" | "C", number> = { A: 0, B: 1, C: 2 };
@@ -30,6 +31,7 @@ function partitionAndSort(races: RaceDoc[]) {
 }
 
 export default function RacesListScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const races = useQuery(api.agoge.races.listMyRaces);
 
@@ -58,7 +60,7 @@ export default function RacesListScreen() {
           className="flex-1 font-coach-bold text-lg"
           style={{ color: LIGHT_THEME.wText }}
         >
-          Races
+          {t("account.races.title")}
         </Text>
         <Pressable
           onPress={() => router.push("/(app)/account/races/new")}
@@ -80,22 +82,22 @@ export default function RacesListScreen() {
               className="font-coach-medium text-[15px]"
               style={{ color: LIGHT_THEME.wText }}
             >
-              No races yet
+              {t("account.races.noneYet")}
             </Text>
             <Text
               className="text-center font-coach text-[13px]"
               style={{ color: LIGHT_THEME.wMute }}
             >
-              Add a target race to focus your training.
+              {t("account.races.helper")}
             </Text>
           </View>
         ) : (
           <View className="w-full max-w-md gap-6 self-center">
             {upcoming.length > 0 && (
-              <RaceSection title="Upcoming" races={upcoming} />
+              <RaceSection title={t("account.races.upcoming")} races={upcoming} />
             )}
             {past.length > 0 && (
-              <RaceSection title="Past" races={past} dimmed />
+              <RaceSection title={t("account.races.past")} races={past} dimmed />
             )}
           </View>
         )}

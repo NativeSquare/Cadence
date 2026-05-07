@@ -7,7 +7,12 @@
  */
 
 import { View } from "react-native";
+import { useTranslation } from "react-i18next";
 import { Text } from "@/components/ui/text";
+import {
+  workoutStatusLabel,
+  workoutTypeLabel,
+} from "@/components/app/workout/workout-helpers";
 import { ProposalCard } from "./ProposalCard";
 import {
   formatDate,
@@ -15,7 +20,6 @@ import {
   formatDuration,
   formatHr,
   formatPace,
-  humanize,
 } from "./format";
 import type { ToolCardProps } from "./types";
 
@@ -38,6 +42,7 @@ interface CreateInput {
 }
 
 export function CreateWorkoutCard(props: ToolCardProps) {
+  const { t } = useTranslation();
   const input = (props.input ?? {}) as Partial<CreateInput>;
   const face = input.planned ?? input.actual;
 
@@ -52,7 +57,7 @@ export function CreateWorkoutCard(props: ToolCardProps) {
 
   return (
     <ProposalCard
-      title="Create workout"
+      title={t("coach.tools.card.createWorkoutTitle")}
       state={props.state}
       errorText={props.errorText}
       approvalId={props.approvalId}
@@ -65,11 +70,11 @@ export function CreateWorkoutCard(props: ToolCardProps) {
           className="text-[14px] font-coach-semibold text-wText"
           style={{ lineHeight: 14 * 1.4 }}
         >
-          {input.name ?? "Workout"}
+          {input.name ?? t("coach.tools.card.workoutFallback")}
         </Text>
         <Text className="text-[12px] font-coach text-wMute">
-          {input.type ? humanize(input.type) : "—"}
-          {input.status ? ` · ${humanize(input.status)}` : ""}
+          {input.type ? workoutTypeLabel(t, input.type) : "—"}
+          {input.status ? ` · ${workoutStatusLabel(t, input.status)}` : ""}
           {face?.date ? ` · ${formatDate(face.date)}` : ""}
         </Text>
         {metrics.length > 0 && (

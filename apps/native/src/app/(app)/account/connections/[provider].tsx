@@ -16,12 +16,15 @@ import {
 import { Text } from "@/components/ui/text";
 import { useHealthKitSyncProgress } from "@/hooks/use-healthkit-sync-store";
 import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
+import { formatRelativeShort } from "@/lib/format-relative";
 import { getConvexErrorMessage } from "@/utils/getConvexErrorMessage";
 import { Ionicons } from "@expo/vector-icons";
 import { api } from "@packages/backend/convex/_generated/api";
 import { useAction, useMutation, useQuery } from "convex/react";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import type { TFunction } from "i18next";
 import React from "react";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Pressable,
@@ -76,64 +79,40 @@ const DATA_TYPE_ORDER: DataTypeKey[] = [
   "menstruation",
 ];
 
-const DATA_TYPE_LABELS: Record<DataTypeKey, string> = {
-  activities: "Activities",
-  body: "Body measurements",
-  daily: "Daily metrics",
-  menstruation: "Menstruation",
-  nutrition: "Nutrition",
-  sleep: "Sleep",
-};
-
-function formatCount(key: DataTypeKey, count: number): string {
-  const n = count.toLocaleString();
+function formatCount(t: TFunction, key: DataTypeKey, count: number): string {
   switch (key) {
     case "sleep":
-      return `${n} ${count === 1 ? "night" : "nights"}`;
+      return t("account.connections.detail.counts.sleep", { count });
     case "daily":
-      return `${n} ${count === 1 ? "day" : "days"}`;
+      return t("account.connections.detail.counts.daily", { count });
     case "body":
     case "nutrition":
     case "menstruation":
-      return `${n} ${count === 1 ? "entry" : "entries"}`;
+      return t("account.connections.detail.counts.entries", { count });
     case "activities":
     default:
-      return n;
+      return count.toLocaleString();
   }
 }
 
-function formatOldest(iso: string | null | undefined): string | null {
+function formatOldest(
+  t: TFunction,
+  locale: string,
+  iso: string | null | undefined,
+): string | null {
   if (!iso) return null;
   const time = new Date(iso).getTime();
   if (Number.isNaN(time)) return null;
-  return `Since ${new Date(time).toLocaleDateString("en-US", {
+  const date = new Date(time).toLocaleDateString(locale, {
     month: "short",
     year: "numeric",
-  })}`;
+  });
+  return t("account.connections.detail.since", { date });
 }
 
-function formatRelativeShort(iso: string | undefined): string | null {
-  if (!iso) return null;
-  const time = new Date(iso).getTime();
-  if (Number.isNaN(time)) return null;
-  const diff = Date.now() - time;
-  const mins = Math.floor(diff / 60_000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days < 7) return `${days}d ago`;
-  const weeks = Math.floor(days / 7);
-  if (weeks < 4) return `${weeks}w ago`;
-  const months = Math.floor(days / 30);
-  if (months < 12) return `${months}mo ago`;
-  return `${Math.floor(days / 365)}y ago`;
-}
-
-function formatConnectedOn(ms: number | undefined): string | null {
+function formatConnectedOn(locale: string, ms: number | undefined): string | null {
   if (!ms) return null;
-  return new Date(ms).toLocaleDateString("en-US", {
+  return new Date(ms).toLocaleDateString(locale, {
     month: "short",
     day: "numeric",
     year: "numeric",
@@ -147,6 +126,8 @@ type SyncState =
   | { status: "up-to-date" };
 
 export default function ProviderDetailScreen() {
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language;
   const router = useRouter();
   const { provider: slugParam } = useLocalSearchParams<{ provider: string }>();
 
@@ -204,8 +185,8 @@ export default function ProviderDetailScreen() {
 
   if (!config) return null;
 
-  const connectedOn = formatConnectedOn(connDoc?._creationTime);
-  const lastSync = formatRelativeShort(connDoc?.lastDataUpdate);
+  const connectedOn = formatConnectedOn(locale, connDoc?._creationTime);
+  const lastSync = formatRelativeShort(t, connDoc?.lastDataUpdate);
 
   const dataRows = React.useMemo(() => {
     const stats = connDoc?.stats;
@@ -216,13 +197,13 @@ export default function ProviderDetailScreen() {
       return [
         {
           key,
-          label: DATA_TYPE_LABELS[key],
-          count: formatCount(key, entry.count),
-          meta: formatOldest(entry.oldest) ?? "",
+          label: t(`account.connections.detail.dataTypes.${key}`),
+          count: formatCount(t, key, entry.count),
+          meta: formatOldest(t, locale, entry.oldest) ?? "",
         },
       ];
     });
-  }, [connDoc]);
+  }, [connDoc, t, locale]);
 
   const handleMockSync = () => {
     setSyncState({ status: "syncing" });
@@ -303,7 +284,11 @@ export default function ProviderDetailScreen() {
                 className="font-coach-medium text-[12px]"
                 style={{ color: LIGHT_THEME.wMute }}
               >
-                {connectedOn ? `Connected on ${connectedOn}` : "Connected"}
+                {connectedOn
+                  ? t("account.connections.detail.connectedOn", {
+                      date: connectedOn,
+                    })
+                  : t("account.connections.connected")}
               </Text>
             </View>
           </View>
@@ -314,7 +299,7 @@ export default function ProviderDetailScreen() {
               className="font-coach-semibold text-[13px] uppercase tracking-wider"
               style={{ color: LIGHT_THEME.wMute }}
             >
-              Data we have
+              {t("account.connections.detail.dataWeHave")}
             </Text>
 
             <View
@@ -331,7 +316,7 @@ export default function ProviderDetailScreen() {
                     className="text-center font-coach text-sm"
                     style={{ color: LIGHT_THEME.wMute }}
                   >
-                    No data synced yet.
+                    {t("account.connections.detail.noDataYet")}
                   </Text>
                 </View>
               ) : (
@@ -385,7 +370,7 @@ export default function ProviderDetailScreen() {
               className="font-coach-semibold text-[13px] uppercase tracking-wider"
               style={{ color: LIGHT_THEME.wMute }}
             >
-              Actions
+              {t("account.connections.detail.actions")}
             </Text>
 
             <View
@@ -425,7 +410,7 @@ export default function ProviderDetailScreen() {
                     className="font-coach-medium text-[15px]"
                     style={{ color: LIGHT_THEME.wText }}
                   >
-                    Sync now
+                    {t("account.connections.detail.syncNow")}
                   </Text>
                   {isHealthKitSyncing ? (
                     <View className="mt-0.5 flex-row items-center gap-1">
@@ -438,7 +423,7 @@ export default function ProviderDetailScreen() {
                         className="font-coach text-xs"
                         style={{ color: LIGHT_THEME.wMute }}
                       >
-                        Syncing…
+                        {t("account.connections.syncing")}
                       </Text>
                     </View>
                   ) : (
@@ -452,14 +437,16 @@ export default function ProviderDetailScreen() {
                       }}
                     >
                       {syncState.status === "syncing"
-                        ? "Checking for new data…"
+                        ? t("account.connections.detail.checkingForData")
                         : syncState.status === "synced"
-                          ? `Synced · ${syncState.newItems} new items`
+                          ? t("account.connections.detail.syncedNewItems", {
+                              count: syncState.newItems,
+                            })
                           : syncState.status === "up-to-date"
-                            ? "Up to date · just now"
+                            ? t("account.connections.detail.upToDateJustNow")
                             : lastSync
-                              ? `Last sync · ${lastSync}`
-                              : "Tap to check for new data"}
+                              ? t("account.connections.lastSync", { time: lastSync })
+                              : t("account.connections.detail.tapToCheck")}
                     </Text>
                   )}
                 </View>
@@ -484,7 +471,7 @@ export default function ProviderDetailScreen() {
                   className="flex-1 font-coach-medium text-[15px]"
                   style={{ color: COLORS.red }}
                 >
-                  Disconnect {config.name}
+                  {t("account.connections.detail.disconnect", { name: config.name })}
                 </Text>
                 {disconnecting && (
                   <ActivityIndicator size="small" color={LIGHT_THEME.wMute} />
@@ -512,15 +499,18 @@ export default function ProviderDetailScreen() {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Disconnect {config.name}?</AlertDialogTitle>
+            <AlertDialogTitle>
+              {t("account.connections.detail.confirmDisconnectTitle", {
+                name: config.name,
+              })}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              Your synced data will be kept, but new activities won't sync until
-              you reconnect.
+              {t("account.connections.detail.confirmDisconnectDescription")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>
-              <Text>Cancel</Text>
+              <Text>{t("common.cancel")}</Text>
             </AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive"
@@ -529,7 +519,7 @@ export default function ProviderDetailScreen() {
                 handleDisconnect();
               }}
             >
-              <Text>Disconnect</Text>
+              <Text>{t("account.connections.detail.confirmDisconnect")}</Text>
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

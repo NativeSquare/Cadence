@@ -1,8 +1,10 @@
 import { BlockForm } from "@/components/app/training-plan/block-form";
 import { api } from "@packages/backend/convex/_generated/api";
 import { useMutation, useQuery } from "convex/react";
+import { useTranslation } from "react-i18next";
 
 export default function NewBlockScreen() {
+  const { t } = useTranslation();
   const blocks = useQuery(api.agoge.blocks.listBlocksForActiveAthletePlan);
   const createBlock = useMutation(api.agoge.blocks.createBlock);
 
@@ -13,8 +15,8 @@ export default function NewBlockScreen() {
 
   return (
     <BlockForm
-      title="New block"
-      submitLabel="Create block"
+      title={t("account.blocks.newTitle")}
+      submitLabel={t("account.blocks.createSubmit")}
       defaultOrder={defaultOrder}
       onSubmit={async (values) => {
         await createBlock({

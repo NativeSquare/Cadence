@@ -4,18 +4,18 @@ import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
 import { View } from "react-native";
 
 export type NameFieldProps = {
-  label?: string;
+  label: string;
   value: string;
   onChange: (value: string) => void;
-  placeholder?: string;
+  placeholder: string;
   error?: string;
 };
 
 export function NameField({
-  label = "Name",
+  label,
   value,
   onChange,
-  placeholder = "John Smith",
+  placeholder,
   error,
 }: NameFieldProps) {
   return (

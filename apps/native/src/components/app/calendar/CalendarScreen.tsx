@@ -11,6 +11,7 @@
  */
 
 import React, { useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   View,
   Text,
@@ -39,12 +40,9 @@ import {
   LIGHT_THEME,
   WORKOUT_CATEGORY_COLORS,
 } from "@/lib/design-tokens";
-import {
-  MONTH_NAMES,
-  DAY_HEADERS,
-  WORKOUT_LABELS,
-  TODAY_KEY,
-} from "./constants";
+import { formatDayLabelShort, formatMonthName } from "@/lib/format";
+import { useLanguage } from "@/lib/i18n";
+import { TODAY_KEY } from "./constants";
 import {
   buildWeeks,
   buildPhaseLookup,
@@ -81,6 +79,7 @@ function ViewToggle({
   value: ViewMode;
   onChange: (v: ViewMode) => void;
 }) {
+  const { t } = useTranslation();
   const indicatorX = useSharedValue(value === "workouts" ? 0 : 1);
 
   const handlePress = useCallback(
@@ -113,7 +112,7 @@ function ViewToggle({
             value === "workouts" && toggleStyles.labelActive,
           ]}
         >
-          Workouts
+          {t("calendar.viewMode.workouts")}
         </Text>
       </Pressable>
       <Pressable
@@ -127,7 +126,7 @@ function ViewToggle({
             value === "blocks" && toggleStyles.labelActive,
           ]}
         >
-          Blocks
+          {t("calendar.viewMode.blocks")}
         </Text>
       </Pressable>
     </View>
@@ -135,10 +134,29 @@ function ViewToggle({
 }
 
 export function CalendarScreen() {
+  const { t } = useTranslation();
+  const locale = useLanguage();
   const insets = useSafeAreaInsets();
   const { width: screenWidth } = useWindowDimensions();
   const router = useRouter();
   const todayDate = useMemo(() => new Date(TODAY_KEY + "T00:00:00"), []);
+
+  const dayHeaderLabels = useMemo(() => {
+    // Mondays-Sundays of any week — use ISO week starting on Monday.
+    const ref = new Date(2024, 0, 1); // 2024-01-01 was a Monday
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(ref);
+      d.setDate(ref.getDate() + i);
+      return formatDayLabelShort(locale, d);
+    });
+  }, [locale]);
+
+  const workoutTypeLabels: Record<CalWorkoutType, string> = {
+    easy: t("calendar.types.easy"),
+    specific: t("calendar.types.specific"),
+    long: t("calendar.types.long"),
+    race: t("calendar.types.race"),
+  };
 
   const tileSize = useMemo(
     () => Math.floor((screenWidth - GRID_PADDING * 2 - GRID_GAP * 6) / 7),
@@ -286,7 +304,9 @@ export function CalendarScreen() {
           </Pressable>
           <Pressable onPress={handleReturnToToday} hitSlop={8}>
             <View style={st.monthRow}>
-              <Text style={st.monthText}>{MONTH_NAMES[currentMonth]}</Text>
+              <Text style={st.monthText}>
+                {formatMonthName(locale, currentMonth, currentYear)}
+              </Text>
               <Text style={st.yearText}>{currentYear}</Text>
               {!isCurrentMonth && <View style={st.returnDot} />}
             </View>
@@ -318,8 +338,8 @@ export function CalendarScreen() {
         <Animated.View style={contentAnimStyle}>
           {/* Day-of-week headers */}
           <View style={st.dayHeaders}>
-            {DAY_HEADERS.map((label) => (
-              <View key={label} style={st.dayHeaderCell}>
+            {dayHeaderLabels.map((label, i) => (
+              <View key={i} style={st.dayHeaderCell}>
                 <Text style={st.dayHeaderText}>{label}</Text>
               </View>
             ))}
@@ -434,7 +454,7 @@ export function CalendarScreen() {
             <View style={st.legendCard}>
               {viewMode === "workouts"
                 ? (
-                    Object.entries(WORKOUT_LABELS) as [
+                    Object.entries(workoutTypeLabels) as [
                       CalWorkoutType,
                       string,
                     ][]
