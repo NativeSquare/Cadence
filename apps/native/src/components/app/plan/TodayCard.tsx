@@ -31,9 +31,9 @@ import type { Repeat, Step } from "@nativesquare/agoge";
 import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
 import {
   INTENT_COLORS,
-  INTENT_LABELS,
   formatDuration,
   formatTarget,
+  intentLabel,
 } from "@/components/app/workout/workout-helpers";
 import { type WorkoutData, type SyncStatus } from "./types";
 import { formatShortDate } from "@/lib/format";
@@ -272,9 +272,12 @@ function SyncBadge({ workout }: { workout: WorkoutData }) {
 
 const MAX_STRUCTURE_LINES = 4;
 
-function formatBlockLine(block: Step | Repeat): { label: string; dot: string } {
+function formatBlockLine(
+  block: Step | Repeat,
+  t: TFunction,
+): { label: string; dot: string } {
   if (block.kind === "step") {
-    const dur = formatDuration(block.duration);
+    const dur = formatDuration(t, block.duration);
     const target = formatTarget(block.target);
     const dot = INTENT_COLORS[block.intent];
 
@@ -284,7 +287,7 @@ function formatBlockLine(block: Step | Repeat): { label: string; dot: string } {
         dot,
       };
     }
-    const head = block.name ?? INTENT_LABELS[block.intent];
+    const head = block.name ?? intentLabel(t, block.intent);
     const tail = target ? ` @ ${target}` : "";
     return { label: `${head} · ${dur}${tail}`, dot };
   }
@@ -295,10 +298,10 @@ function formatBlockLine(block: Step | Repeat): { label: string; dot: string } {
   );
   if (!work) return { label: `${block.count}× repeat`, dot: INTENT_COLORS.work };
 
-  const workDur = formatDuration(work.duration);
+  const workDur = formatDuration(t, work.duration);
   const workTarget = formatTarget(work.target);
   const workStr = workTarget ? `${workDur} @ ${workTarget}` : workDur;
-  const recStr = rec ? ` · rec ${formatDuration(rec.duration)}` : "";
+  const recStr = rec ? ` · rec ${formatDuration(t, rec.duration)}` : "";
   return {
     label: `${block.count}× ${workStr}${recStr}`,
     dot: INTENT_COLORS.work,
@@ -316,7 +319,7 @@ function StructurePreview({ workout }: { workout: WorkoutData }) {
   return (
     <View className="px-5 pb-3 gap-2">
       {visible.map((block, i) => {
-        const line = formatBlockLine(block);
+        const line = formatBlockLine(block, t);
         return (
           <View key={i} className="flex-row items-center gap-2.5">
             <View

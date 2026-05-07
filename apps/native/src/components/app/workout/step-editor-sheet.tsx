@@ -6,21 +6,21 @@ import { selectionFeedback } from "@/lib/haptics";
 import {
   ALLOWED_DURATIONS_FOR_RUN,
   ALLOWED_TARGETS_FOR_RUN,
-  DURATION_DESCRIPTIONS,
-  DURATION_LABELS,
   type DurationKindOption,
   emptyDurationOf,
   emptyTargetOf,
   INTENT_COLORS,
-  INTENT_DESCRIPTIONS,
-  INTENT_LABELS,
   INTENTS,
   type IntentKindOption,
   mpsToPaceString,
   paceStringToMps,
-  TARGET_DESCRIPTIONS,
   type TargetKindOption,
-  TARGET_LABELS,
+  useDurationDescriptions,
+  useDurationLabels,
+  useIntentDescriptions,
+  useIntentLabels,
+  useTargetDescriptions,
+  useTargetLabels,
 } from "@/components/app/workout/workout-helpers";
 import type { Step } from "@nativesquare/agoge";
 import { api } from "@packages/backend/convex/_generated/api";
@@ -124,6 +124,8 @@ function StepEditorBody({
   onCancel: () => void;
   onDelete?: () => void;
 }) {
+  const intentLabels = useIntentLabels();
+  const intentDescriptions = useIntentDescriptions();
   const [step, setStep] = React.useState<Step>(
     initial ?? {
       kind: "step",
@@ -229,7 +231,7 @@ function StepEditorBody({
                     className="font-coach-semibold text-[13px]"
                     style={{ color: selected ? "#FFFFFF" : LIGHT_THEME.wText }}
                   >
-                    {INTENT_LABELS[intent]}
+                    {intentLabels[intent]}
                   </Text>
                 </Pressable>
               );
@@ -239,7 +241,7 @@ function StepEditorBody({
             className="font-coach text-[12px]"
             style={{ color: LIGHT_THEME.wMute }}
           >
-            {INTENT_DESCRIPTIONS[step.intent]}
+            {intentDescriptions[step.intent]}
           </Text>
         </View>
       </FormField>
@@ -378,6 +380,8 @@ function DurationField({
   targetKind: NonNullable<Step["target"]>["type"];
   onChange: (d: Step["duration"]) => void;
 }) {
+  const durationLabels = useDurationLabels();
+  const durationDescriptions = useDurationDescriptions();
   // Only the four run-allowed kinds have descriptions; older imported steps
   // (calories, power_gate) get a blank line rather than crashing the lookup.
   const description =
@@ -385,7 +389,7 @@ function DurationField({
     value.type === "distance" ||
     value.type === "open" ||
     value.type === "hr_gate"
-      ? DURATION_DESCRIPTIONS[value.type]
+      ? durationDescriptions[value.type]
       : null;
 
   return (
@@ -414,7 +418,7 @@ function DurationField({
                   className="font-coach-semibold text-[13px]"
                   style={{ color: selected ? "#FFFFFF" : LIGHT_THEME.wText }}
                 >
-                  {DURATION_LABELS[kind]}
+                  {durationLabels[kind]}
                 </Text>
               </Pressable>
             );
@@ -530,6 +534,8 @@ function TargetField({
   hasHrZones: boolean;
   onChange: (t: NonNullable<Step["target"]>) => void;
 }) {
+  const targetLabels = useTargetLabels();
+  const targetDescriptions = useTargetDescriptions();
   // Only the six run-allowed kinds have descriptions; older imported steps
   // (power_range, power_zone) get no helper text rather than crashing.
   const description =
@@ -539,7 +545,7 @@ function TargetField({
     value.type === "hr_zone" ||
     value.type === "cadence_range" ||
     value.type === "rpe"
-      ? TARGET_DESCRIPTIONS[value.type]
+      ? targetDescriptions[value.type]
       : null;
 
   return (
@@ -573,7 +579,7 @@ function TargetField({
                   className="font-coach-semibold text-[13px]"
                   style={{ color: selected ? "#FFFFFF" : LIGHT_THEME.wText }}
                 >
-                  {TARGET_LABELS[kind]}
+                  {targetLabels[kind]}
                 </Text>
               </Pressable>
             );

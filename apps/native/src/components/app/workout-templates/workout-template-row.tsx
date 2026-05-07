@@ -9,7 +9,7 @@ import type { WorkoutTemplateDoc } from "@nativesquare/agoge/schema";
 import { Ionicons } from "@expo/vector-icons";
 import { Pressable, View } from "react-native";
 import {
-  WORKOUT_TYPE_LABELS,
+  useWorkoutTypeLabels,
   type WorkoutTypeOption,
 } from "../workout/workout-helpers";
 
@@ -20,10 +20,11 @@ export function WorkoutTemplateRow({
   template: Pick<WorkoutTemplateDoc, "name" | "type">;
   onPress: () => void;
 }) {
+  const workoutTypeLabels = useWorkoutTypeLabels();
   // The schema accepts 18 types but the app only creates the curated subset;
   // fall back to the raw enum if older data slips through.
   const typeLabel =
-    WORKOUT_TYPE_LABELS[template.type as WorkoutTypeOption] ?? template.type;
+    workoutTypeLabels[template.type as WorkoutTypeOption] ?? template.type;
   const category = getWorkoutCategory(template.type);
   const typeColor = WORKOUT_CATEGORY_COLORS[category];
   const typeColorDim = WORKOUT_CATEGORY_COLORS_DIM[category];

@@ -25,6 +25,7 @@ import type * as auth_ResendOTPPasswordReset from "../auth/ResendOTPPasswordRese
 import type * as broadcastSend from "../broadcastSend.js";
 import type * as broadcasts from "../broadcasts.js";
 import type * as coach_agent from "../coach/agent.js";
+import type * as coach_instructions from "../coach/instructions.js";
 import type * as coach_messages from "../coach/messages.js";
 import type * as coach_philosophy_aggregates from "../coach/philosophy/aggregates.js";
 import type * as coach_philosophy_context from "../coach/philosophy/context.js";
@@ -89,6 +90,7 @@ declare const fullApi: ApiFromModules<{
   broadcastSend: typeof broadcastSend;
   broadcasts: typeof broadcasts;
   "coach/agent": typeof coach_agent;
+  "coach/instructions": typeof coach_instructions;
   "coach/messages": typeof coach_messages;
   "coach/philosophy/aggregates": typeof coach_philosophy_aggregates;
   "coach/philosophy/context": typeof coach_philosophy_context;

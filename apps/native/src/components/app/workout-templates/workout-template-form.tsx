@@ -31,8 +31,8 @@ import { z } from "zod";
 import {
   EMPTY_STRUCTURE,
   WORKOUT_TYPE_COLORS,
-  WORKOUT_TYPE_LABELS,
   WORKOUT_TYPES,
+  useWorkoutTypeLabels,
 } from "../workout/workout-helpers";
 
 const templateWorkoutFaceSchema = z.object({
@@ -76,6 +76,7 @@ export function WorkoutTemplateForm({
   readOnlyReason?: string;
 }) {
   const router = useRouter();
+  const workoutTypeLabels = useWorkoutTypeLabels();
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     mode: "onSubmit",
@@ -257,7 +258,7 @@ export function WorkoutTemplateForm({
                 <FormField label="Type" error={fieldState.error?.message}>
                   <PillSelect
                     options={WORKOUT_TYPES}
-                    labels={WORKOUT_TYPE_LABELS}
+                    labels={workoutTypeLabels}
                     value={field.value}
                     onChange={field.onChange}
                     disabled={readOnly}

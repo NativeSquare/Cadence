@@ -1,3 +1,5 @@
+import type { TFunction } from "i18next";
+import { useTranslation } from "react-i18next";
 import { WORKOUT_CATEGORY_COLORS } from "@/lib/design-tokens";
 import type {
   Duration,
@@ -21,11 +23,14 @@ export const WORKOUT_TYPES = [
 ] as const satisfies readonly WorkoutType[];
 export type WorkoutTypeOption = (typeof WORKOUT_TYPES)[number];
 
-export const WORKOUT_TYPE_LABELS: Record<WorkoutTypeOption, string> = {
-  easy: "Easy",
-  tempo: "Tempo",
-  long: "Long",
-};
+export function useWorkoutTypeLabels(): Record<WorkoutTypeOption, string> {
+  const { t } = useTranslation();
+  return {
+    easy: t("workout.types.easy"),
+    tempo: t("workout.types.tempo"),
+    long: t("workout.types.long"),
+  };
+}
 
 export const WORKOUT_TYPE_COLORS: Record<WorkoutTypeOption, string> = {
   easy: WORKOUT_CATEGORY_COLORS.easy,
@@ -46,14 +51,21 @@ export const INTENTS = [
 ] as const satisfies readonly IntentKind[];
 export type IntentKindOption = (typeof INTENTS)[number];
 
-export const INTENT_LABELS: Record<IntentKindOption, string> = {
-  warmup: "Warmup",
-  work: "Work",
-  recovery: "Recovery",
-  cooldown: "Cooldown",
-  rest: "Rest",
-  active: "Active",
-};
+export function useIntentLabels(): Record<IntentKindOption, string> {
+  const { t } = useTranslation();
+  return {
+    warmup: t("workout.intents.warmup.label"),
+    work: t("workout.intents.work.label"),
+    recovery: t("workout.intents.recovery.label"),
+    cooldown: t("workout.intents.cooldown.label"),
+    rest: t("workout.intents.rest.label"),
+    active: t("workout.intents.active.label"),
+  };
+}
+
+export function intentLabel(t: TFunction, kind: IntentKindOption): string {
+  return t(`workout.intents.${kind}.label`);
+}
 
 export const INTENT_COLORS: Record<IntentKindOption, string> = {
   warmup: "#5B9EFF",
@@ -64,15 +76,18 @@ export const INTENT_COLORS: Record<IntentKindOption, string> = {
   active: "#C8FF00",
 };
 
-// https://forums.garmin.com/developer/fit-sdk/f/discussion/244073
-export const INTENT_DESCRIPTIONS: Record<IntentKindOption, string> = {
-  warmup: "Easy start. Watch labels this as warm-up.",
-  work: "Main prescribed effort. Watch enforces your target.",
-  recovery: "Active recovery between work efforts.",
-  cooldown: "Easy finish. Watch labels this as cool-down.",
-  rest: "Stop and stand still. Watch may pause tracking.",
-  active: "Generic effort. Use when nothing else fits.",
-};
+// Watch behavior context: https://forums.garmin.com/developer/fit-sdk/f/discussion/244073
+export function useIntentDescriptions(): Record<IntentKindOption, string> {
+  const { t } = useTranslation();
+  return {
+    warmup: t("workout.intents.warmup.description"),
+    work: t("workout.intents.work.description"),
+    recovery: t("workout.intents.recovery.description"),
+    cooldown: t("workout.intents.cooldown.description"),
+    rest: t("workout.intents.rest.description"),
+    active: t("workout.intents.active.description"),
+  };
+}
 
 // ── Step duration ───────────────────────────────────────────────────────────
 
@@ -86,22 +101,27 @@ export const ALLOWED_DURATIONS_FOR_RUN = [
 ] as const satisfies readonly DurationKind[];
 export type DurationKindOption = (typeof ALLOWED_DURATIONS_FOR_RUN)[number];
 
-export const DURATION_LABELS: Record<DurationKindOption, string> = {
-  time: "Time",
-  distance: "Distance",
-  open: "Open",
-  hr_gate: "HR gate",
-};
+export function useDurationLabels(): Record<DurationKindOption, string> {
+  const { t } = useTranslation();
+  return {
+    time: t("workout.durations.time.label"),
+    distance: t("workout.durations.distance.label"),
+    open: t("workout.durations.open.label"),
+    hr_gate: t("workout.durations.hr_gate.label"),
+  };
+}
 
 // Live helper text for the picker. The hr_gate copy doubles as a hint about
 // when to use "above" vs "below" so we can keep those toggle labels terse.
-export const DURATION_DESCRIPTIONS: Record<DurationKindOption, string> = {
-  time: "Step ends after a fixed duration.",
-  distance: "Step ends after a fixed distance.",
-  open: "Step ends when you press the lap button on your watch.",
-  hr_gate:
-    "Step ends when HR crosses the threshold. Use 'above' for warmups, 'below' for recoveries.",
-};
+export function useDurationDescriptions(): Record<DurationKindOption, string> {
+  const { t } = useTranslation();
+  return {
+    time: t("workout.durations.time.description"),
+    distance: t("workout.durations.distance.description"),
+    open: t("workout.durations.open.description"),
+    hr_gate: t("workout.durations.hr_gate.description"),
+  };
+}
 
 // Returns a "blank" duration of the given kind. Time/distance use 0 as the
 // "user hasn't filled this in yet" sentinel — the schema requires positive
@@ -121,7 +141,12 @@ export function emptyDurationOf(kind: DurationKindOption): Duration {
   }
 }
 
-export function formatDuration(d: Duration): string {
+/**
+ * Locale-aware duration formatter. Pass `t` from `useTranslation()` so the
+ * verbose outputs ("open", "until HR > X") render in the active language.
+ * Numeric/symbolic outputs (`5 min`, `1.2 km`, `300 kcal`) are universal.
+ */
+export function formatDuration(t: TFunction, d: Duration): string {
   switch (d.type) {
     case "time": {
       const m = Math.floor(d.seconds / 60);
@@ -137,11 +162,15 @@ export function formatDuration(d: Duration): string {
     case "calories":
       return `${d.kcal} kcal`;
     case "open":
-      return "open";
+      return t("workout.formatDuration.open");
     case "hr_gate":
-      return `until HR ${d.comparator === "above" ? ">" : "<"} ${d.bpm}`;
+      return d.comparator === "above"
+        ? t("workout.formatDuration.untilHrAbove", { bpm: d.bpm })
+        : t("workout.formatDuration.untilHrBelow", { bpm: d.bpm });
     case "power_gate":
-      return `until ${d.comparator === "above" ? ">" : "<"} ${d.watts}W`;
+      return d.comparator === "above"
+        ? t("workout.formatDuration.untilPowerAbove", { watts: d.watts })
+        : t("workout.formatDuration.untilPowerBelow", { watts: d.watts });
   }
 }
 
@@ -158,26 +187,32 @@ export const ALLOWED_TARGETS_FOR_RUN = [
 ] as const satisfies readonly TargetKind[];
 export type TargetKindOption = (typeof ALLOWED_TARGETS_FOR_RUN)[number];
 
-export const TARGET_LABELS: Record<TargetKindOption, string> = {
-  none: "None",
-  pace_range: "Pace",
-  hr_range: "HR range",
-  hr_zone: "HR zone",
-  cadence_range: "Cadence",
-  rpe: "RPE",
-};
+export function useTargetLabels(): Record<TargetKindOption, string> {
+  const { t } = useTranslation();
+  return {
+    none: t("workout.targets.none.label"),
+    pace_range: t("workout.targets.pace_range.label"),
+    hr_range: t("workout.targets.hr_range.label"),
+    hr_zone: t("workout.targets.hr_zone.label"),
+    cadence_range: t("workout.targets.cadence_range.label"),
+    rpe: t("workout.targets.rpe.label"),
+  };
+}
 
 // Live helper text for the picker. Tells the athlete what each target does
 // during the step (intensity guidance, NOT the end condition — that's the
 // duration's job).
-export const TARGET_DESCRIPTIONS: Record<TargetKindOption, string> = {
-  none: "No target — just run the duration.",
-  pace_range: "Hold a pace inside this window.",
-  hr_range: "Keep heart rate in this range.",
-  hr_zone: "Hit an HR zone, computed from your threshold.",
-  cadence_range: "Step rate window — useful for form drills.",
-  rpe: "Subjective effort. 1 = easy, 10 = max.",
-};
+export function useTargetDescriptions(): Record<TargetKindOption, string> {
+  const { t } = useTranslation();
+  return {
+    none: t("workout.targets.none.description"),
+    pace_range: t("workout.targets.pace_range.description"),
+    hr_range: t("workout.targets.hr_range.description"),
+    hr_zone: t("workout.targets.hr_zone.description"),
+    cadence_range: t("workout.targets.cadence_range.description"),
+    rpe: t("workout.targets.rpe.description"),
+  };
+}
 
 export function emptyTargetOf(kind: TargetKindOption): Target {
   switch (kind) {

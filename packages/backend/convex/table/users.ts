@@ -4,6 +4,17 @@ import { v } from "convex/values";
 import { mutation, query } from "../_generated/server";
 import { generateFunctions } from "../utils/generateFunctions";
 
+const coachTone = v.union(
+  v.literal("mentor"),
+  v.literal("drillSergeant"),
+  v.literal("pragmatic"),
+);
+const coachVerbosity = v.union(v.literal("concise"), v.literal("detailed"));
+const coachPrefs = v.object({
+  tone: v.optional(coachTone),
+  verbosity: v.optional(coachVerbosity),
+});
+
 const documentSchema = {
   // DO NOT REMOVE THESE FIELDS : https://labs.convex.dev/auth/setup/schema#customizing-the-users-table
   name: v.optional(v.string()),
@@ -20,6 +31,7 @@ const documentSchema = {
   hasCompletedOnboarding: v.optional(v.boolean()),
   role: v.optional(v.union(v.literal("user"), v.literal("admin"))),
   locale: v.optional(v.union(v.literal("en"), v.literal("fr"))),
+  coachPrefs: v.optional(coachPrefs),
 
   // Ban fields
   banned: v.optional(v.boolean()),
@@ -43,6 +55,7 @@ const partialSchema = {
   hasCompletedOnboarding: v.optional(v.boolean()),
   role: v.optional(v.union(v.literal("user"), v.literal("admin"))),
   locale: v.optional(v.union(v.literal("en"), v.literal("fr"))),
+  coachPrefs: v.optional(coachPrefs),
 
   // Ban fields
   banned: v.optional(v.boolean()),
@@ -91,6 +104,19 @@ export const setLocale = mutation({
       throw new Error("Not authenticated");
     }
     await ctx.db.patch(userId, { locale: args.locale });
+  },
+});
+
+export const setCoachPrefs = mutation({
+  args: {
+    prefs: coachPrefs,
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) {
+      throw new Error("Not authenticated");
+    }
+    await ctx.db.patch(userId, { coachPrefs: args.prefs });
   },
 });
 

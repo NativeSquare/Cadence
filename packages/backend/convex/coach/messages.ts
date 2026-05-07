@@ -7,7 +7,7 @@ import {
 } from "@convex-dev/agent";
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
-import { components, internal } from "../_generated/api";
+import { api, components, internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import {
   type ActionCtx,
@@ -17,6 +17,18 @@ import {
   query,
 } from "../_generated/server";
 import { coach } from "./agent";
+import { composeCoachSystem } from "./instructions";
+
+async function buildSystemForUser(
+  ctx: ActionCtx,
+  userId: Id<"users">,
+): Promise<string> {
+  const user = await ctx.runQuery(api.table.users.get, { id: userId });
+  return composeCoachSystem({
+    locale: user?.locale ?? null,
+    prefs: user?.coachPrefs ?? null,
+  });
+}
 
 export const list = query({
   args: {
@@ -51,6 +63,8 @@ export const send = action({
       throw new ConvexError({ code: "UNAUTHORIZED", message: "Not authenticated" });
     }
 
+    const system = await buildSystemForUser(ctx, userId);
+
     if (attachments && attachments.length > 0) {
       // Multimodal: build a user message with text + image/file content parts.
       // AI SDK v5 uses `mediaType` (not `mimeType`) on ImagePart/FilePart.
@@ -71,7 +85,7 @@ export const send = action({
       const result = await coach.streamText(
         ctx,
         { threadId, userId: userId as string },
-        { messages: [{ role: "user", content }] },
+        { messages: [{ role: "user", content }], system },
         { saveStreamDeltas: true },
       );
       await notifyCoachReply(ctx, { userId: userId as string, threadId, result });
@@ -81,7 +95,7 @@ export const send = action({
     const result = await coach.streamText(
       ctx,
       { threadId, userId: userId as string },
-      { prompt: text },
+      { prompt: text, system },
       { saveStreamDeltas: true },
     );
     await notifyCoachReply(ctx, { userId: userId as string, threadId, result });
@@ -151,10 +165,11 @@ export const continueAfterApproval = internalAction({
     userId: v.string(),
   },
   handler: async (ctx, { threadId, promptMessageId, userId }) => {
+    const system = await buildSystemForUser(ctx, userId as Id<"users">);
     const result = await coach.streamText(
       ctx,
       { threadId, userId },
-      { promptMessageId },
+      { promptMessageId, system },
       { saveStreamDeltas: true },
     );
     await notifyCoachReply(ctx, { userId, threadId, result });

@@ -257,6 +257,11 @@ export default function Profile() {
               title={t("profile.sections.preferences")}
               items={[
                 {
+                  label: t("profile.items.coach"),
+                  icon: "sparkles-outline",
+                  onPress: () => router.push("/account/coach"),
+                },
+                {
                   label: t("profile.items.notifications"),
                   icon: "notifications-outline",
                   onPress: () => router.push("/account/notifications"),

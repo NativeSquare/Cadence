@@ -200,6 +200,127 @@
       "easy": "Facile",
       "tempo": "Tempo",
       "long": "Long"
+    },
+    "intents": {
+      "warmup": {
+        "label": "Échauffement",
+        "description": "Début facile. La montre l'étiquette comme warm-up."
+      },
+      "work": {
+        "label": "Travail",
+        "description": "Effort principal prescrit. La montre suit votre cible."
+      },
+      "recovery": {
+        "label": "Récupération",
+        "description": "Récupération active entre les efforts."
+      },
+      "cooldown": {
+        "label": "Retour au calme",
+        "description": "Fin facile. La montre l'étiquette comme cool-down."
+      },
+      "rest": {
+        "label": "Repos",
+        "description": "Arrêt complet. La montre peut mettre en pause."
+      },
+      "active": {
+        "label": "Actif",
+        "description": "Effort générique. À utiliser quand rien d'autre ne convient."
+      }
+    },
+    "durations": {
+      "time": {
+        "label": "Temps",
+        "description": "L'étape se termine après une durée fixe."
+      },
+      "distance": {
+        "label": "Distance",
+        "description": "L'étape se termine après une distance fixe."
+      },
+      "open": {
+        "label": "Libre",
+        "description": "L'étape se termine quand vous appuyez sur le bouton lap de votre montre."
+      },
+      "hr_gate": {
+        "label": "Seuil FC",
+        "description": "L'étape se termine quand la FC franchit le seuil. Utilisez « au-dessus » pour l'échauffement, « en dessous » pour la récupération."
+      }
+    },
+    "targets": {
+      "none": {
+        "label": "Aucune",
+        "description": "Pas de cible — simplement courir la durée."
+      },
+      "pace_range": {
+        "label": "Allure",
+        "description": "Tenir une allure dans cette fenêtre."
+      },
+      "hr_range": {
+        "label": "Plage FC",
+        "description": "Garder la fréquence cardiaque dans cette plage."
+      },
+      "hr_zone": {
+        "label": "Zone FC",
+        "description": "Atteindre une zone FC, calculée à partir de votre seuil."
+      },
+      "cadence_range": {
+        "label": "Cadence",
+        "description": "Plage de cadence — utile pour le travail technique."
+      },
+      "rpe": {
+        "label": "RPE",
+        "description": "Effort perçu. 1 = facile, 10 = max."
+      }
+    },
+    "formatDuration": {
+      "open": "libre",
+      "untilHrAbove": "jusqu'à FC > {{bpm}}",
+      "untilHrBelow": "jusqu'à FC < {{bpm}}",
+      "untilPowerAbove": "jusqu'à > {{watts}} W",
+      "untilPowerBelow": "jusqu'à < {{watts}} W"
+    },
+    "structure": {
+      "repeat": "Répéter"
+    },
+    "status": {
+      "planned": "Planifiée",
+      "completed": "Terminée",
+      "missed": "Manquée",
+      "skipped": "Sautée"
+    },
+    "relativeDate": {
+      "today": "Aujourd'hui",
+      "tomorrow": "Demain",
+      "yesterday": "Hier",
+      "inDays": "Dans {{count}} jours",
+      "daysAgo": "Il y a {{count}} jours"
+    },
+    "detail": {
+      "header": "Séance",
+      "description": "Description",
+      "notes": "Notes",
+      "structure": "Structure",
+      "adherence": "Conformité",
+      "weekOfBlock": "{{type}} · Semaine {{week}} sur {{total}}",
+      "actions": {
+        "markAsDone": "Marquer comme terminée",
+        "edit": "Modifier la séance"
+      },
+      "metrics": {
+        "distance": "Distance",
+        "duration": "Durée",
+        "avgPace": "Allure moy.",
+        "avgHr": "FC moy.",
+        "maxHr": "FC max",
+        "elevationGain": "Dénivelé positif",
+        "rpe": "RPE",
+        "load": "Charge"
+      },
+      "adherenceBars": {
+        "duration": "Durée",
+        "distance": "Distance",
+        "intensity": "Intensité",
+        "structure": "Structure"
+      }
     }
   },
   "tabs": {
@@ -234,6 +355,7 @@
       "workoutTemplates": "Modèles de séance",
       "appsAndDevices": "Apps et appareils",
       "calendars": "Calendriers",
+      "coach": "Coach",
       "notifications": "Notifications",
       "language": "Langue",
       "sendFeedback": "Envoyer un commentaire",
@@ -254,6 +376,35 @@
     }
   },
   "account": {
+    "coach": {
+      "title": "Coach",
+      "toneSection": "Ton",
+      "verbositySection": "Style des réponses",
+      "tones": {
+        "mentor": {
+          "label": "Mentor",
+          "description": "Chaleureux et pédagogue. Explique le pourquoi."
+        },
+        "drillSergeant": {
+          "label": "Sergent instructeur",
+          "description": "Direct et exigeant. Pas de complaisance."
+        },
+        "pragmatic": {
+          "label": "Pragmatique",
+          "description": "Concis et opérationnel. Que les faits."
+        }
+      },
+      "verbosities": {
+        "concise": {
+          "label": "Concis",
+          "description": "Réponses d'une à deux phrases par défaut."
+        },
+        "detailed": {
+          "label": "Détaillé",
+          "description": "Explique brièvement le raisonnement des suggestions."
+        }
+      }
+    },
     "language": {
       "title": "Langue",
       "sectionTitle": "Langue",

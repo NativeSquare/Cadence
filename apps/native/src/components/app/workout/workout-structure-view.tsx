@@ -4,10 +4,11 @@ import {
   formatDuration,
   formatTarget,
   INTENT_COLORS,
-  INTENT_LABELS,
+  useIntentLabels,
 } from "@/components/app/workout/workout-helpers";
 import type { Repeat, Step, Workout } from "@nativesquare/agoge";
 import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { View } from "react-native";
 
 export function WorkoutStructureView({
@@ -30,6 +31,8 @@ export function WorkoutStructureView({
 }
 
 function ReadStepCard({ step }: { step: Step }) {
+  const { t } = useTranslation();
+  const intentLabels = useIntentLabels();
   const target = formatTarget(step.target);
   return (
     <View
@@ -49,14 +52,14 @@ function ReadStepCard({ step }: { step: Step }) {
           style={{ color: LIGHT_THEME.wText }}
           numberOfLines={1}
         >
-          {step.name ?? INTENT_LABELS[step.intent]}
+          {step.name ?? intentLabels[step.intent]}
         </Text>
         <Text
           className="mt-0.5 font-coach text-[12px]"
           style={{ color: LIGHT_THEME.wSub }}
           numberOfLines={1}
         >
-          {formatDuration(step.duration)}
+          {formatDuration(t, step.duration)}
           {target ? ` · ${target}` : ""}
         </Text>
       </View>
@@ -65,6 +68,7 @@ function ReadStepCard({ step }: { step: Step }) {
 }
 
 function ReadRepeatCard({ repeat }: { repeat: Repeat }) {
+  const { t } = useTranslation();
   return (
     <View
       className="gap-3 rounded-2xl border px-3 py-3"
@@ -79,7 +83,7 @@ function ReadRepeatCard({ repeat }: { repeat: Repeat }) {
           className="font-coach-semibold text-[13px]"
           style={{ color: LIGHT_THEME.wText }}
         >
-          {repeat.count}× Repeat
+          {repeat.count}× {t("workout.structure.repeat")}
         </Text>
       </View>
       <View className="gap-2 pl-3">

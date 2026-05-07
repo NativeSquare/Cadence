@@ -18,6 +18,7 @@ import {
   LIGHT_THEME,
   WORKOUT_CATEGORY_COLORS,
 } from "@/lib/design-tokens";
+import { useLanguage, type Language } from "@/lib/i18n";
 import { selectionFeedback } from "@/lib/haptics";
 import { getConvexErrorMessage } from "@/utils/getConvexErrorMessage";
 import {
@@ -27,11 +28,13 @@ import {
 import { WorkoutStructureView } from "@/components/app/workout/workout-structure-view";
 import { Ionicons } from "@expo/vector-icons";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
+import type { TFunction } from "i18next";
 import type { Workout as WorkoutStructure } from "@nativesquare/agoge";
 import { api } from "@packages/backend/convex/_generated/api";
 import { useMutation, useQuery } from "convex/react";
 import { useRouter } from "expo-router";
 import React from "react";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Pressable,
@@ -44,12 +47,17 @@ export interface WorkoutDetailPageProps {
   workoutId: string;
 }
 
-const STATUS_LABEL: Record<string, string> = {
-  planned: "Planned",
-  completed: "Completed",
-  missed: "Missed",
-  skipped: "Skipped",
-};
+function statusLabel(t: TFunction, status: string): string {
+  switch (status) {
+    case "planned":
+    case "completed":
+    case "missed":
+    case "skipped":
+      return t(`workout.status.${status}`);
+    default:
+      return status;
+  }
+}
 
 const STATUS_COLOR: Record<string, string> = {
   planned: COLORS.blu,
@@ -63,13 +71,13 @@ function parseIsoDate(iso: string): Date {
   return new Date(y, m - 1, d);
 }
 
-function formatDate(iso: string): string {
-  return parseIsoDate(iso).toLocaleDateString(undefined, {
+function formatDate(locale: Language, iso: string): string {
+  return new Intl.DateTimeFormat(locale, {
     weekday: "long",
     month: "long",
     day: "numeric",
     year: "numeric",
-  });
+  }).format(parseIsoDate(iso));
 }
 
 function isFutureDay(iso: string): boolean {
@@ -80,7 +88,7 @@ function isFutureDay(iso: string): boolean {
   return target.getTime() > today.getTime();
 }
 
-function formatRelativeDate(iso: string): string | null {
+function formatRelativeDate(t: TFunction, iso: string): string | null {
   const target = parseIsoDate(iso);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -88,11 +96,11 @@ function formatRelativeDate(iso: string): string | null {
   const diffDays = Math.round(
     (target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
   );
-  if (diffDays === 0) return "Today";
-  if (diffDays === 1) return "Tomorrow";
-  if (diffDays === -1) return "Yesterday";
-  if (diffDays > 0) return `In ${diffDays} days`;
-  return `${Math.abs(diffDays)} days ago`;
+  if (diffDays === 0) return t("workout.relativeDate.today");
+  if (diffDays === 1) return t("workout.relativeDate.tomorrow");
+  if (diffDays === -1) return t("workout.relativeDate.yesterday");
+  if (diffDays > 0) return t("workout.relativeDate.inDays", { count: diffDays });
+  return t("workout.relativeDate.daysAgo", { count: Math.abs(diffDays) });
 }
 
 function formatDistance(m?: number): string | null {
@@ -162,6 +170,8 @@ function computeBlockProgress(
 }
 
 export function WorkoutDetailPage({ workoutId }: WorkoutDetailPageProps) {
+  const { t } = useTranslation();
+  const locale = useLanguage();
   const router = useRouter();
   const result = useQuery(api.agoge.workouts.getWorkout, {
     workoutId,
@@ -192,7 +202,7 @@ export function WorkoutDetailPage({ workoutId }: WorkoutDetailPageProps) {
           className="text-center font-coach text-sm"
           style={{ color: LIGHT_THEME.wMute }}
         >
-          Workout not found
+          {t("workout.errors.notFound")}
         </Text>
         <Pressable
           onPress={() => router.back()}
@@ -203,7 +213,7 @@ export function WorkoutDetailPage({ workoutId }: WorkoutDetailPageProps) {
             className="font-coach-semibold text-[13px]"
             style={{ color: LIGHT_THEME.wText }}
           >
-            Go back
+            {t("workout.common.goBack")}
           </Text>
         </Pressable>
       </View>
@@ -275,7 +285,7 @@ export function WorkoutDetailPage({ workoutId }: WorkoutDetailPageProps) {
           className="flex-1 font-coach-bold text-lg"
           style={{ color: LIGHT_THEME.wText }}
         >
-          Workout
+          {t("workout.detail.header")}
         </Text>
       </View>
 
@@ -310,7 +320,7 @@ export function WorkoutDetailPage({ workoutId }: WorkoutDetailPageProps) {
                     color: STATUS_COLOR[workout.status] ?? COLORS.blu,
                   }}
                 >
-                  {STATUS_LABEL[workout.status] ?? workout.status}
+                  {statusLabel(t, workout.status)}
                 </Text>
               </View>
               {heroDate && (
@@ -325,10 +335,10 @@ export function WorkoutDetailPage({ workoutId }: WorkoutDetailPageProps) {
                     className="font-coach text-sm"
                     style={{ color: LIGHT_THEME.wMute }}
                   >
-                    {formatDate(heroDate)}
+                    {formatDate(locale, heroDate)}
                   </Text>
                   {(() => {
-                    const rel = formatRelativeDate(heroDate);
+                    const rel = formatRelativeDate(t, heroDate);
                     return rel ? (
                       <Text
                         className="font-coach-semibold text-sm"
@@ -344,8 +354,11 @@ export function WorkoutDetailPage({ workoutId }: WorkoutDetailPageProps) {
             {block && blockProgress && (
               <View className="mt-1 flex-row flex-wrap gap-2">
                 <Chip>
-                  {formatType(block.type)} · Week {blockProgress.week} of{" "}
-                  {blockProgress.total}
+                  {t("workout.detail.weekOfBlock", {
+                    type: formatType(block.type),
+                    week: blockProgress.week,
+                    total: blockProgress.total,
+                  })}
                 </Chip>
               </View>
             )}
@@ -353,7 +366,7 @@ export function WorkoutDetailPage({ workoutId }: WorkoutDetailPageProps) {
 
           {workout.description && workout.description.trim().length > 0 && (
             <Card>
-              <SectionLabel>Description</SectionLabel>
+              <SectionLabel>{t("workout.detail.description")}</SectionLabel>
               <Text
                 className="font-coach text-[14px] leading-6"
                 style={{ color: LIGHT_THEME.wText }}
@@ -365,7 +378,7 @@ export function WorkoutDetailPage({ workoutId }: WorkoutDetailPageProps) {
 
           {workout.planned && (
             <FaceCard
-              title="Planned"
+              title={t("workout.fields.plannedSection")}
               face={workout.planned}
               extended={false}
             />
@@ -373,11 +386,13 @@ export function WorkoutDetailPage({ workoutId }: WorkoutDetailPageProps) {
 
           {workout.actual && (
             <FaceCard
-              title="Actual"
+              title={t("workout.fields.actualSection")}
               face={workout.actual}
               extended
               dateLabel={
-                showActualDate ? formatDate(workout.actual.date) : undefined
+                showActualDate
+                  ? formatDate(locale, workout.actual.date)
+                  : undefined
               }
             />
           )}
@@ -406,7 +421,7 @@ export function WorkoutDetailPage({ workoutId }: WorkoutDetailPageProps) {
               className="font-coach-bold text-sm"
               style={{ color: "#FFFFFF" }}
             >
-              Mark as done
+              {t("workout.detail.actions.markAsDone")}
             </Text>
           </Pressable>
         )}
@@ -427,7 +442,7 @@ export function WorkoutDetailPage({ workoutId }: WorkoutDetailPageProps) {
             className="font-coach-bold text-sm"
             style={{ color: canMarkAsDone ? LIGHT_THEME.wText : "#FFFFFF" }}
           >
-            Edit workout
+            {t("workout.detail.actions.edit")}
           </Text>
         </Pressable>
         <Pressable
@@ -445,7 +460,7 @@ export function WorkoutDetailPage({ workoutId }: WorkoutDetailPageProps) {
             className="font-coach-semibold text-sm"
             style={{ color: COLORS.red }}
           >
-            Delete
+            {t("workout.common.delete")}
           </Text>
         </Pressable>
       </View>
@@ -453,9 +468,9 @@ export function WorkoutDetailPage({ workoutId }: WorkoutDetailPageProps) {
       <ConfirmationSheet
         sheetRef={deleteSheetRef}
         icon="trash-outline"
-        title="Delete workout"
-        description="This cannot be undone."
-        confirmLabel="Delete"
+        title={t("workout.common.deleteWorkout")}
+        description={t("workout.common.cannotUndo")}
+        confirmLabel={t("workout.common.delete")}
         destructive
         loading={isDeleting}
         onConfirm={handleDelete}
@@ -489,24 +504,36 @@ function FaceCard({
   extended: boolean;
   dateLabel?: string;
 }) {
+  const { t } = useTranslation();
   const rows: { label: string; value: string }[] = [];
   const distance = formatDistance(face.distanceMeters);
-  if (distance) rows.push({ label: "Distance", value: distance });
+  if (distance)
+    rows.push({ label: t("workout.detail.metrics.distance"), value: distance });
   const duration = formatDurationSec(face.durationSeconds);
-  if (duration) rows.push({ label: "Duration", value: duration });
+  if (duration)
+    rows.push({ label: t("workout.detail.metrics.duration"), value: duration });
   if (extended) {
     const pace = formatPace(face.avgPaceMps);
-    if (pace) rows.push({ label: "Avg pace", value: pace });
+    if (pace)
+      rows.push({ label: t("workout.detail.metrics.avgPace"), value: pace });
     const avgHr = formatHr(face.avgHr);
-    if (avgHr) rows.push({ label: "Avg HR", value: avgHr });
+    if (avgHr)
+      rows.push({ label: t("workout.detail.metrics.avgHr"), value: avgHr });
     const maxHr = formatHr(face.maxHr);
-    if (maxHr) rows.push({ label: "Max HR", value: maxHr });
+    if (maxHr)
+      rows.push({ label: t("workout.detail.metrics.maxHr"), value: maxHr });
     const elev = formatElevation(face.elevationGainMeters);
-    if (elev) rows.push({ label: "Elevation gain", value: elev });
+    if (elev)
+      rows.push({
+        label: t("workout.detail.metrics.elevationGain"),
+        value: elev,
+      });
     const rpe = formatRpe(face.rpe);
-    if (rpe) rows.push({ label: "RPE", value: rpe });
+    if (rpe)
+      rows.push({ label: t("workout.detail.metrics.rpe"), value: rpe });
     const load = formatLoad(face.load);
-    if (load) rows.push({ label: "Load", value: load });
+    if (load)
+      rows.push({ label: t("workout.detail.metrics.load"), value: load });
   }
 
   const structure = face.structure as WorkoutStructure | undefined;
@@ -537,13 +564,13 @@ function FaceCard({
       )}
       {hasStructure && structure && (
         <View className="gap-2">
-          <SubLabel>Structure</SubLabel>
+          <SubLabel>{t("workout.detail.structure")}</SubLabel>
           <WorkoutStructureView structure={structure} />
         </View>
       )}
       {face.notes && face.notes.trim().length > 0 && (
         <View className="gap-1">
-          <SubLabel>Notes</SubLabel>
+          <SubLabel>{t("workout.detail.notes")}</SubLabel>
           <Text
             className="font-coach text-[14px] leading-6"
             style={{ color: LIGHT_THEME.wText }}
@@ -565,20 +592,33 @@ type AdherenceLike = {
 };
 
 function AdherenceCard({ adherence }: { adherence: AdherenceLike }) {
+  const { t } = useTranslation();
   const bars: { label: string; value: number }[] = [];
   if (adherence.durationMatch != null)
-    bars.push({ label: "Duration", value: adherence.durationMatch });
+    bars.push({
+      label: t("workout.detail.adherenceBars.duration"),
+      value: adherence.durationMatch,
+    });
   if (adherence.distanceMatch != null)
-    bars.push({ label: "Distance", value: adherence.distanceMatch });
+    bars.push({
+      label: t("workout.detail.adherenceBars.distance"),
+      value: adherence.distanceMatch,
+    });
   if (adherence.intensityMatch != null)
-    bars.push({ label: "Intensity", value: adherence.intensityMatch });
+    bars.push({
+      label: t("workout.detail.adherenceBars.intensity"),
+      value: adherence.intensityMatch,
+    });
   if (adherence.structureMatch != null)
-    bars.push({ label: "Structure", value: adherence.structureMatch });
+    bars.push({
+      label: t("workout.detail.adherenceBars.structure"),
+      value: adherence.structureMatch,
+    });
 
   return (
     <Card>
       <View className="flex-row items-baseline justify-between">
-        <SectionLabel>Adherence</SectionLabel>
+        <SectionLabel>{t("workout.detail.adherence")}</SectionLabel>
         <Text
           className="font-coach-bold text-[20px]"
           style={{ color: LIGHT_THEME.wText }}

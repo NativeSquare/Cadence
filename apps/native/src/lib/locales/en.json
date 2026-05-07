@@ -200,6 +200,127 @@
       "easy": "Easy",
       "tempo": "Tempo",
       "long": "Long"
+    },
+    "intents": {
+      "warmup": {
+        "label": "Warmup",
+        "description": "Easy start. Watch labels this as warm-up."
+      },
+      "work": {
+        "label": "Work",
+        "description": "Main prescribed effort. Watch enforces your target."
+      },
+      "recovery": {
+        "label": "Recovery",
+        "description": "Active recovery between work efforts."
+      },
+      "cooldown": {
+        "label": "Cooldown",
+        "description": "Easy finish. Watch labels this as cool-down."
+      },
+      "rest": {
+        "label": "Rest",
+        "description": "Stop and stand still. Watch may pause tracking."
+      },
+      "active": {
+        "label": "Active",
+        "description": "Generic effort. Use when nothing else fits."
+      }
+    },
+    "durations": {
+      "time": {
+        "label": "Time",
+        "description": "Step ends after a fixed duration."
+      },
+      "distance": {
+        "label": "Distance",
+        "description": "Step ends after a fixed distance."
+      },
+      "open": {
+        "label": "Open",
+        "description": "Step ends when you press the lap button on your watch."
+      },
+      "hr_gate": {
+        "label": "HR gate",
+        "description": "Step ends when HR crosses the threshold. Use 'above' for warmups, 'below' for recoveries."
+      }
+    },
+    "targets": {
+      "none": {
+        "label": "None",
+        "description": "No target — just run the duration."
+      },
+      "pace_range": {
+        "label": "Pace",
+        "description": "Hold a pace inside this window."
+      },
+      "hr_range": {
+        "label": "HR range",
+        "description": "Keep heart rate in this range."
+      },
+      "hr_zone": {
+        "label": "HR zone",
+        "description": "Hit an HR zone, computed from your threshold."
+      },
+      "cadence_range": {
+        "label": "Cadence",
+        "description": "Step rate window — useful for form drills."
+      },
+      "rpe": {
+        "label": "RPE",
+        "description": "Subjective effort. 1 = easy, 10 = max."
+      }
+    },
+    "formatDuration": {
+      "open": "open",
+      "untilHrAbove": "until HR > {{bpm}}",
+      "untilHrBelow": "until HR < {{bpm}}",
+      "untilPowerAbove": "until > {{watts}}W",
+      "untilPowerBelow": "until < {{watts}}W"
+    },
+    "structure": {
+      "repeat": "Repeat"
+    },
+    "status": {
+      "planned": "Planned",
+      "completed": "Completed",
+      "missed": "Missed",
+      "skipped": "Skipped"
+    },
+    "relativeDate": {
+      "today": "Today",
+      "tomorrow": "Tomorrow",
+      "yesterday": "Yesterday",
+      "inDays": "In {{count}} days",
+      "daysAgo": "{{count}} days ago"
+    },
+    "detail": {
+      "header": "Workout",
+      "description": "Description",
+      "notes": "Notes",
+      "structure": "Structure",
+      "adherence": "Adherence",
+      "weekOfBlock": "{{type}} · Week {{week}} of {{total}}",
+      "actions": {
+        "markAsDone": "Mark as done",
+        "edit": "Edit workout"
+      },
+      "metrics": {
+        "distance": "Distance",
+        "duration": "Duration",
+        "avgPace": "Avg pace",
+        "avgHr": "Avg HR",
+        "maxHr": "Max HR",
+        "elevationGain": "Elevation gain",
+        "rpe": "RPE",
+        "load": "Load"
+      },
+      "adherenceBars": {
+        "duration": "Duration",
+        "distance": "Distance",
+        "intensity": "Intensity",
+        "structure": "Structure"
+      }
     }
   },
   "tabs": {
@@ -234,6 +355,7 @@
       "workoutTemplates": "Workout Templates",
       "appsAndDevices": "Apps & Devices",
       "calendars": "Calendars",
+      "coach": "Coach",
       "notifications": "Notifications",
       "language": "Language",
       "sendFeedback": "Send Feedback",
@@ -254,6 +376,35 @@
     }
   },
   "account": {
+    "coach": {
+      "title": "Coach",
+      "toneSection": "Tone",
+      "verbositySection": "Response style",
+      "tones": {
+        "mentor": {
+          "label": "Mentor",
+          "description": "Warm and contextual. Explains the why."
+        },
+        "drillSergeant": {
+          "label": "Drill Sergeant",
+          "description": "Direct and demanding. No soft-pedaling."
+        },
+        "pragmatic": {
+          "label": "Pragmatic",
+          "description": "Terse and operational. Just the facts."
+        }
+      },
+      "verbosities": {
+        "concise": {
+          "label": "Concise",
+          "description": "One- or two-sentence replies by default."
+        },
+        "detailed": {
+          "label": "Detailed",
+          "description": "Briefly explains the reasoning behind suggestions."
+        }
+      }
+    },
     "language": {
       "title": "Language",
       "sectionTitle": "Language",

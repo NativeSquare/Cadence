@@ -6,12 +6,13 @@ import {
   formatDuration,
   formatTarget,
   INTENT_COLORS,
-  INTENT_LABELS,
+  useIntentLabels,
 } from "@/components/app/workout/workout-helpers";
 import type { Block, Repeat, Step, Workout } from "@nativesquare/agoge";
 import { Ionicons } from "@expo/vector-icons";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { Pressable, TextInput, View } from "react-native";
 
 type Props = {
@@ -284,6 +285,8 @@ function StepCard({
   onMoveUp?: () => void;
   onMoveDown?: () => void;
 }) {
+  const { t } = useTranslation();
+  const intentLabels = useIntentLabels();
   const target = formatTarget(step.target);
   return (
     <View
@@ -303,14 +306,14 @@ function StepCard({
           style={{ color: LIGHT_THEME.wText }}
           numberOfLines={1}
         >
-          {step.name ?? INTENT_LABELS[step.intent]}
+          {step.name ?? intentLabels[step.intent]}
         </Text>
         <Text
           className="mt-0.5 font-coach text-[12px]"
           style={{ color: LIGHT_THEME.wSub }}
           numberOfLines={1}
         >
-          {formatDuration(step.duration)}
+          {formatDuration(t, step.duration)}
           {target ? ` · ${target}` : ""}
         </Text>
         {error && (
