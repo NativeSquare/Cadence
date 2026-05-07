@@ -1,32 +1,22 @@
 /**
  * Push Notification Infrastructure
  *
- * - Token registration (called from the native app on launch)
- * - Workout completion notification (called from the Soma webhook handler)
- *
- * Uses the Expo Push API to deliver notifications to iOS/Android devices.
+ * Backed by @convex-dev/expo-push-notifications. The component handles
+ * batching, retries with exponential backoff, Expo receipts, and pruning of
+ * DeviceNotRegistered tokens. We just record one token per user and call
+ * sendPushNotification.
  */
 
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { PushNotifications } from "@convex-dev/expo-push-notifications";
 import { ConvexError, v } from "convex/values";
-import { internal } from "./_generated/api";
-import {
-  internalAction,
-  internalQuery,
-  mutation,
-} from "./_generated/server";
+import { components } from "./_generated/api";
+import { internalAction, mutation } from "./_generated/server";
 
-// ─── Token Registration ──────────────────────────────────────────────────────
+const pushNotifications = new PushNotifications(components.pushNotifications);
 
-/**
- * Register or update an Expo push token for the current user.
- * Called from the native app on each launch.
- */
-export const registerPushToken = mutation({
-  args: {
-    token: v.string(),
-    platform: v.string(),
-  },
+export const recordPushNotificationToken = mutation({
+  args: { token: v.string() },
   returns: v.null(),
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
@@ -36,53 +26,42 @@ export const registerPushToken = mutation({
         message: "Not authenticated",
       });
     }
-
-    // Upsert by token — a given device token belongs to exactly one user
-    const existing = await ctx.db
-      .query("pushTokens")
-      .withIndex("by_token", (q) => q.eq("token", args.token))
-      .first();
-
-    if (existing) {
-      // Token already registered — update userId/platform if changed
-      if (existing.userId !== userId || existing.platform !== args.platform) {
-        await ctx.db.patch(existing._id, {
-          userId,
-          platform: args.platform,
-        });
-      }
-    } else {
-      await ctx.db.insert("pushTokens", {
-        userId,
-        token: args.token,
-        platform: args.platform,
-      });
-    }
-
+    await pushNotifications.recordToken(ctx, {
+      userId,
+      pushToken: args.token,
+    });
     return null;
   },
 });
 
-// ─── Internal Helpers ─────────────────────────────────────────────────────────
-
-export const getTokensForUser = internalQuery({
-  args: { userId: v.id("users") },
-  returns: v.array(v.string()),
+/**
+ * Generic helper — call from any backend code that needs to push to one user.
+ */
+export const sendToUser = internalAction({
+  args: {
+    userId: v.id("users"),
+    title: v.string(),
+    body: v.optional(v.string()),
+    data: v.optional(v.any()),
+  },
+  returns: v.null(),
   handler: async (ctx, args) => {
-    const tokens = await ctx.db
-      .query("pushTokens")
-      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
-      .collect();
-
-    return tokens.map((t) => t.token);
+    await pushNotifications.sendPushNotification(ctx, {
+      userId: args.userId,
+      notification: {
+        title: args.title,
+        body: args.body,
+        data: args.data,
+        sound: "default",
+      },
+    });
+    return null;
   },
 });
 
-// ─── Send Notification ────────────────────────────────────────────────────────
-
 /**
- * Send a push notification congratulating the user on completing a workout.
- * Includes deep-link data so tapping opens the workout detail screen.
+ * Workout-completion push, scheduled from the Soma webhook when an activity
+ * matches a planned session. Tap deep-links to the workout detail screen.
  */
 export const sendWorkoutCompleteNotification = internalAction({
   args: {
@@ -92,66 +71,15 @@ export const sendWorkoutCompleteNotification = internalAction({
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const TAG = "[Notification]";
-
-    console.log(
-      `\n${TAG} ── Sending push notification ──\n` +
-        `    User: ${args.userId}\n` +
-        `    Workout: ${args.workoutType} (${args.workoutId})\n` +
-        `    Deep link: screen=workout`,
-    );
-
-    const tokens = await ctx.runQuery(
-      internal.notifications.getTokensForUser,
-      { userId: args.userId },
-    );
-
-    if (tokens.length === 0) {
-      console.log(`${TAG} ✗ No push tokens registered for this user. Notification skipped.`);
-      return null;
-    }
-
-    console.log(`${TAG} Found ${tokens.length} device token${tokens.length === 1 ? "" : "s"}`);
-
-    const messages = tokens.map((token) => ({
-      to: token,
-      title: "Run Complete!",
-      body: `Your ${args.workoutType} workout is logged. Tap to view.`,
-      data: {
-        workoutId: args.workoutId,
-        screen: "workout",
+    await pushNotifications.sendPushNotification(ctx, {
+      userId: args.userId,
+      notification: {
+        title: "Run Complete!",
+        body: `Your ${args.workoutType} workout is logged. Tap to view.`,
+        data: { workoutId: args.workoutId, screen: "workout" },
+        sound: "default",
       },
-      sound: "default" as const,
-    }));
-
-    try {
-      const response = await fetch(
-        "https://exp.host/--/api/v2/push/send",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(messages),
-        },
-      );
-
-      if (!response.ok) {
-        const body = await response.text();
-        console.error(
-          `${TAG} ✗ Expo Push API returned ${response.status}: ${body}`,
-        );
-      } else {
-        console.log(
-          `${TAG} ✓ Push sent! Title: "Run Complete!" Body: "Your ${args.workoutType} workout is logged. Tap to view."`,
-        );
-      }
-    } catch (err) {
-      console.error(
-        `${TAG} ✗ Failed to send: ${err instanceof Error ? err.message : err}`,
-      );
-    }
-
+    });
     return null;
   },
 });

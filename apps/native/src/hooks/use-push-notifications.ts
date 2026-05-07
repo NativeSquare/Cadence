@@ -8,7 +8,6 @@
  */
 
 import { useEffect, useRef } from "react";
-import { Platform } from "react-native";
 import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
 import Constants from "expo-constants";
@@ -29,7 +28,7 @@ Notifications.setNotificationHandler({
 
 export function usePushNotifications(enabled = true) {
   const router = useRouter();
-  const registerToken = useMutation(api.notifications.registerPushToken);
+  const recordToken = useMutation(api.notifications.recordPushNotificationToken);
   const registeredRef = useRef(false);
 
   // Register push token when enabled (authenticated + onboarded)
@@ -71,10 +70,7 @@ export function usePushNotifications(enabled = true) {
           projectId,
         });
 
-        await registerToken({
-          token,
-          platform: Platform.OS,
-        });
+        await recordToken({ token });
 
         registeredRef.current = true;
         console.log("[push] Token registered:", token);
@@ -84,7 +80,7 @@ export function usePushNotifications(enabled = true) {
     }
 
     register();
-  }, [enabled, registerToken]);
+  }, [enabled, recordToken]);
 
   // Listen for notification taps (response = user interacted with notification)
   useEffect(() => {

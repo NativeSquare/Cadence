@@ -255,9 +255,9 @@ export default function Profile() {
                   onPress: () => router.push("/account/notifications"),
                 },
                 {
-                  label: "Units & Language",
+                  label: "Language",
                   icon: "globe-outline",
-                  onPress: () => router.push("/account/units"),
+                  onPress: () => router.push("/account/language"),
                 },
               ]}
             />

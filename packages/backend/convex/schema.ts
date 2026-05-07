@@ -7,7 +7,6 @@ import { broadcastRecipients } from "./table/broadcastRecipients";
 import { broadcasts } from "./table/broadcasts";
 import { contacts } from "./table/contacts";
 import { feedback } from "./table/feedback";
-import { pushTokens } from "./table/pushTokens";
 import { users } from "./table/users";
 
 // NOTE: Training-domain tables (athletes, zones, events, races, goals, plans,
@@ -28,6 +27,5 @@ export default defineSchema({
   broadcasts,
   contacts,
   feedback,
-  pushTokens,
   users,
 });

@@ -1,0 +1,23 @@
+{
+  "common": {
+    "submit": "Envoyer",
+    "cancel": "Annuler",
+    "back": "Retour"
+  },
+  "account": {
+    "language": {
+      "title": "Langue",
+      "sectionTitle": "Langue",
+      "english": "English",
+      "french": "Français"
+    },
+    "sendFeedback": {
+      "title": "Envoyer un commentaire",
+      "helper": "Dites-nous ce que vous en pensez. Vos retours nous aident à améliorer l'application.",
+      "submit": "Envoyer",
+      "errors": {
+        "notLoggedIn": "Vous devez être connecté pour envoyer un commentaire"
+      }
+    }
+  }
+}

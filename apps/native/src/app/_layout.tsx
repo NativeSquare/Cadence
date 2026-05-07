@@ -1,5 +1,6 @@
 import "@/lib/nativewind-interop";
 import { fontAssets } from "@/lib/fonts";
+import { initI18n } from "@/lib/i18n";
 import { ThemeStatusBar } from "@/lib/theme-status-bar";
 import { usePushNotifications } from "@/hooks/use-push-notifications";
 import { checkForUpdates } from "@/utils/expo/check-for-updates";
@@ -19,7 +20,7 @@ import { Stack } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import * as SplashScreen from "expo-splash-screen";
 import { useColorScheme } from "nativewind";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Alert, Platform, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
@@ -41,17 +42,24 @@ const secureStorage = {
 export default function RootLayout() {
   const { setColorScheme } = useColorScheme();
   const [fontsLoaded, fontError] = useFonts(fontAssets);
+  const [i18nReady, setI18nReady] = useState(false);
 
   // Force light mode globally
   useEffect(() => {
     setColorScheme("light");
   }, [setColorScheme]);
 
+  useEffect(() => {
+    initI18n()
+      .catch((err) => console.warn("[i18n] init failed", err))
+      .finally(() => setI18nReady(true));
+  }, []);
+
   const onLayoutRootView = useCallback(async () => {
-    if (fontsLoaded || fontError) {
+    if ((fontsLoaded || fontError) && i18nReady) {
       await SplashScreen.hideAsync();
     }
-  }, [fontsLoaded, fontError]);
+  }, [fontsLoaded, fontError, i18nReady]);
 
   useEffect(() => {
     if (!__DEV__) {
@@ -63,7 +71,7 @@ export default function RootLayout() {
     onLayoutRootView();
   }, [onLayoutRootView]);
 
-  if (!fontsLoaded && !fontError) {
+  if ((!fontsLoaded && !fontError) || !i18nReady) {
     return null;
   }
 

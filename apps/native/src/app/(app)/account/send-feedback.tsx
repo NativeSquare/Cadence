@@ -11,6 +11,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery } from "convex/react";
 import { useRouter } from "expo-router";
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { ActivityIndicator, Pressable, ScrollView, View } from "react-native";
 import z from "zod";
 
@@ -22,6 +23,7 @@ export type FeedbackFormData = {
 
 export default function SendFeedback() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [formData, setFormData] = React.useState<FeedbackFormData>();
   const [isLoading, setIsLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
@@ -55,7 +57,7 @@ export default function SendFeedback() {
     }
 
     if (!currentUser?._id) {
-      setError("You must be logged in to submit feedback");
+      setError(t("account.sendFeedback.errors.notLoggedIn"));
       return;
     }
 
@@ -105,7 +107,7 @@ export default function SendFeedback() {
           className="flex-1 font-coach-bold text-lg"
           style={{ color: LIGHT_THEME.wText }}
         >
-          Send Feedback
+          {t("account.sendFeedback.title")}
         </Text>
       </View>
 
@@ -120,7 +122,7 @@ export default function SendFeedback() {
             className="font-coach text-[13px]"
             style={{ color: LIGHT_THEME.wMute }}
           >
-            Tell us what you think. Your feedback helps improve the app.
+            {t("account.sendFeedback.helper")}
           </Text>
 
           <FeedbackTypeField
@@ -180,7 +182,7 @@ export default function SendFeedback() {
                 color: isLoading ? LIGHT_THEME.wMute : "#FFFFFF",
               }}
             >
-              Submit
+              {t("account.sendFeedback.submit")}
             </Text>
           )}
         </Pressable>

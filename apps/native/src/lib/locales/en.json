@@ -1,0 +1,23 @@
+{
+  "common": {
+    "submit": "Submit",
+    "cancel": "Cancel",
+    "back": "Back"
+  },
+  "account": {
+    "language": {
+      "title": "Language",
+      "sectionTitle": "Language",
+      "english": "English",
+      "french": "Français"
+    },
+    "sendFeedback": {
+      "title": "Send Feedback",
+      "helper": "Tell us what you think. Your feedback helps improve the app.",
+      "submit": "Submit",
+      "errors": {
+        "notLoggedIn": "You must be logged in to submit feedback"
+      }
+    }
+  }
+}
