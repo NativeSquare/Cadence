@@ -19,6 +19,7 @@ const documentSchema = {
   birthDate: v.optional(v.string()),
   hasCompletedOnboarding: v.optional(v.boolean()),
   role: v.optional(v.union(v.literal("user"), v.literal("admin"))),
+  locale: v.optional(v.union(v.literal("en"), v.literal("fr"))),
 
   // Ban fields
   banned: v.optional(v.boolean()),
@@ -41,6 +42,7 @@ const partialSchema = {
   birthDate: v.optional(v.string()),
   hasCompletedOnboarding: v.optional(v.boolean()),
   role: v.optional(v.union(v.literal("user"), v.literal("admin"))),
+  locale: v.optional(v.union(v.literal("en"), v.literal("fr"))),
 
   // Ban fields
   banned: v.optional(v.boolean()),
@@ -76,6 +78,19 @@ export const getUserByEmail = query({
       .query("users")
       .filter((q) => q.eq(q.field("email"), args.email))
       .first();
+  },
+});
+
+export const setLocale = mutation({
+  args: {
+    locale: v.union(v.literal("en"), v.literal("fr")),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) {
+      throw new Error("Not authenticated");
+    }
+    await ctx.db.patch(userId, { locale: args.locale });
   },
 });
 

@@ -1,6 +1,6 @@
 import "@/lib/nativewind-interop";
 import { fontAssets } from "@/lib/fonts";
-import { initI18n } from "@/lib/i18n";
+import { initI18n, setLanguage, useLanguage } from "@/lib/i18n";
 import { ThemeStatusBar } from "@/lib/theme-status-bar";
 import { usePushNotifications } from "@/hooks/use-push-notifications";
 import { checkForUpdates } from "@/utils/expo/check-for-updates";
@@ -113,8 +113,25 @@ function RootStack() {
     isAuthenticated ? {} : "skip",
   );
   const upsertAthlete = useMutation(api.agoge.athletes.upsertAthlete);
+  const setUserLocale = useMutation(api.table.users.setLocale);
+  const currentLocale = useLanguage();
   const hasCompletedOnboarding = user?.hasCompletedOnboarding ?? false;
   const athleteCreationAttempted = useRef(false);
+
+  // Keep server <-> local language in sync. Server wins when it has a value;
+  // otherwise push the locally-detected language up so it persists across devices.
+  useEffect(() => {
+    if (!user) return;
+    if (!user.locale) {
+      setUserLocale({ locale: currentLocale }).catch((err) =>
+        console.warn("[i18n] setLocale failed", err),
+      );
+      return;
+    }
+    if (user.locale !== currentLocale) {
+      setLanguage(user.locale);
+    }
+  }, [user, currentLocale, setUserLocale]);
 
   // Auto-create agoge athlete for new users
   useEffect(() => {

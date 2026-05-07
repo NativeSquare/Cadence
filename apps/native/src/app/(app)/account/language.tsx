@@ -2,6 +2,8 @@ import { Pressable, ScrollView, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
+import { useMutation } from "convex/react";
+import { api } from "@packages/backend/convex/_generated/api";
 
 import { SettingsGroup } from "@/components/app/account/settings-group";
 import { Text } from "@/components/ui/text";
@@ -17,6 +19,15 @@ export default function LanguageScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const current = useLanguage();
+  const setUserLocale = useMutation(api.table.users.setLocale);
+
+  const onSelect = (code: Language) => {
+    if (code === current) return;
+    setLanguage(code);
+    setUserLocale({ locale: code }).catch((err) =>
+      console.warn("[i18n] setLocale failed", err),
+    );
+  };
 
   return (
     <View className="pt-safe flex-1" style={{ backgroundColor: LIGHT_THEME.w2 }}>
@@ -52,6 +63,7 @@ export default function LanguageScreen() {
                 label={t(`account.language.${code === "en" ? "english" : "french"}`)}
                 isActive={current === code}
                 isLast={index === SUPPORTED_LANGUAGES.length - 1}
+                onPress={() => onSelect(code)}
               />
             ))}
           </SettingsGroup>
@@ -71,15 +83,17 @@ function LanguageRow({
   label,
   isActive,
   isLast,
+  onPress,
 }: {
   code: Language;
   label: string;
   isActive: boolean;
   isLast: boolean;
+  onPress: () => void;
 }) {
   return (
     <Pressable
-      onPress={() => setLanguage(code)}
+      onPress={onPress}
       className="flex-row items-center gap-4 px-5 py-5 active:opacity-70"
       style={
         isLast
