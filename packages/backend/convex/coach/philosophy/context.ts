@@ -1,3 +1,4 @@
+import { components } from "../../_generated/api";
 import type { QueryCtx } from "../../_generated/server";
 import {
   loadActiveAthletePlan,
@@ -26,11 +27,20 @@ export async function loadPhilosophyContext(
     currentBlock = owned?.block ?? null;
   }
 
+  let goalRace: PhilosophyContext["goalRace"] = null;
+  if (activePlan?.targetRaceId) {
+    const race = await ctx.runQuery(components.agoge.public.getRace, {
+      raceId: activePlan.targetRaceId,
+    });
+    goalRace = race ?? null;
+  }
+
   return {
     athleteId: auth.athlete._id,
     athlete: auth.athlete,
     activePlan,
     currentBlock,
+    goalRace,
     adjacentWorkouts: [],
   };
 }
