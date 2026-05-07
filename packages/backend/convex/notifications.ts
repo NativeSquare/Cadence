@@ -104,6 +104,31 @@ export const sendToUser = internalAction({
 });
 
 /**
+ * Coach-reply push, scheduled from coach/messages.ts after the assistant
+ * finishes streaming. Tap deep-links to the coach tab.
+ */
+export const sendCoachMessageNotification = internalAction({
+  args: {
+    userId: v.id("users"),
+    threadId: v.string(),
+    preview: v.string(),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    await pushNotifications.sendPushNotification(ctx, {
+      userId: args.userId,
+      notification: {
+        title: "Cadence",
+        body: args.preview,
+        data: { screen: "chat", threadId: args.threadId },
+        sound: "default",
+      },
+    });
+    return null;
+  },
+});
+
+/**
  * Workout-completion push, scheduled from the Soma webhook when an activity
  * matches a planned session. Tap deep-links to the workout detail screen.
  */

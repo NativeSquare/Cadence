@@ -18,5 +18,5 @@ export type { WorkoutData, PlanData, RaceGoalData, WorkoutIntensity } from "./ty
 export { DAYS } from "./types";
 
 // Utilities
-export { getWorkoutColor, getGreeting, formatDate, formatShortDate } from "./utils";
+export { getWorkoutColor } from "./utils";
 

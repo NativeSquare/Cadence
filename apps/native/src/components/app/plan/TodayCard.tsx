@@ -24,6 +24,8 @@ import Animated, {
   Easing,
 } from "react-native-reanimated";
 import { useEffect, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import Svg, { Path, Circle } from "react-native-svg";
 import type { Repeat, Step } from "@nativesquare/agoge";
 import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
@@ -34,7 +36,8 @@ import {
   formatTarget,
 } from "@/components/app/workout/workout-helpers";
 import { type WorkoutData, type SyncStatus } from "./types";
-import { formatShortDate } from "./utils";
+import { formatShortDate } from "@/lib/format";
+import { useLanguage } from "@/lib/i18n";
 import { useStream } from "./use-stream";
 
 interface TodayCardProps {
@@ -204,7 +207,11 @@ interface SyncBadgeContent {
   color: string;
 }
 
-function syncBadgeContent(status: SyncStatus, syncSource?: string): SyncBadgeContent | null {
+function syncBadgeContent(
+  status: SyncStatus,
+  t: TFunction,
+  syncSource?: string,
+): SyncBadgeContent | null {
   const provider = providerShort(syncSource);
   switch (status) {
     case "exported":
@@ -216,7 +223,7 @@ function syncBadgeContent(status: SyncStatus, syncSource?: string): SyncBadgeCon
     case "syncing":
       return {
         icon: <SpinningSyncIcon color={COLORS.ora} />,
-        label: "Syncing",
+        label: t("plan.todayCard.syncing"),
         color: COLORS.ora,
       };
     case "synced":
@@ -228,7 +235,7 @@ function syncBadgeContent(status: SyncStatus, syncSource?: string): SyncBadgeCon
     case "failed":
       return {
         icon: <AlertIcon color={COLORS.red} />,
-        label: "Sync failed",
+        label: t("plan.todayCard.syncFailed"),
         color: COLORS.red,
       };
     default:
@@ -237,8 +244,9 @@ function syncBadgeContent(status: SyncStatus, syncSource?: string): SyncBadgeCon
 }
 
 function SyncBadge({ workout }: { workout: WorkoutData }) {
+  const { t } = useTranslation();
   if (!workout.syncStatus || workout.syncStatus === "planned") return null;
-  const content = syncBadgeContent(workout.syncStatus, workout.syncSource);
+  const content = syncBadgeContent(workout.syncStatus, t, workout.syncSource);
   if (!content) return null;
   return (
     <View
@@ -298,6 +306,7 @@ function formatBlockLine(block: Step | Repeat): { label: string; dot: string } {
 }
 
 function StructurePreview({ workout }: { workout: WorkoutData }) {
+  const { t } = useTranslation();
   const blocks = workout.structure?.blocks;
   if (!blocks || blocks.length === 0) return null;
 
@@ -332,7 +341,7 @@ function StructurePreview({ workout }: { workout: WorkoutData }) {
           className="text-[12px] font-coach-medium pl-[14px]"
           style={{ color: "rgba(255,255,255,0.45)" }}
         >
-          + {overflow} more
+          {t("plan.todayCard.moreItems", { count: overflow })}
         </Text>
       )}
     </View>
@@ -350,6 +359,7 @@ function volumeSummary(workout: WorkoutData): string | null {
 }
 
 function StructureTotal({ workout }: { workout: WorkoutData }) {
+  const { t } = useTranslation();
   const total = volumeSummary(workout);
   if (!total) return null;
   return (
@@ -358,7 +368,7 @@ function StructureTotal({ workout }: { workout: WorkoutData }) {
         className="text-[12px] font-coach-medium"
         style={{ color: "rgba(255,255,255,0.45)" }}
       >
-        Total · {total}
+        {t("plan.todayCard.totalSuffix", { total })}
       </Text>
     </View>
   );
@@ -421,6 +431,7 @@ function CoachQuote({
 }: {
   displayed: string; done: boolean; started: boolean;
 }) {
+  const { t } = useTranslation();
   return (
     <View
       className="mx-3.5 mb-3 p-4 rounded-2xl bg-lime"
@@ -431,7 +442,7 @@ function CoachQuote({
       <View className="flex-row items-center gap-1.5 mb-2.5" style={{ position: "relative", zIndex: 2 }}>
         <CoachPulsingDot isStreaming={!done && started} />
         <Text className="text-[11px] font-coach-semibold" style={{ color: "rgba(0,0,0,0.4)" }}>
-          Coach
+          {t("plan.coachLabel")}
         </Text>
       </View>
       <View className="flex-row flex-wrap items-end" style={{ position: "relative", zIndex: 2 }}>
@@ -447,6 +458,7 @@ function CoachQuote({
 // ─── Completed banner + metrics ─────────────────────────────────────────────
 
 function CompletedHeaderBanner({ workout }: { workout: WorkoutData }) {
+  const { t } = useTranslation();
   const provider = workout.syncSource ? providerShort(workout.syncSource) : null;
   return (
     <View
@@ -464,7 +476,7 @@ function CompletedHeaderBanner({ workout }: { workout: WorkoutData }) {
           <CheckIcon color="#1A1A1A" size={11} />
         </View>
         <Text className="text-[13px] font-coach-bold" style={{ color: COLORS.lime }}>
-          Workout Complete
+          {t("plan.todayCard.workoutComplete")}
         </Text>
       </View>
       {provider && (
@@ -474,7 +486,7 @@ function CompletedHeaderBanner({ workout }: { workout: WorkoutData }) {
             className="text-[11px] font-coach-semibold"
             style={{ color: "rgba(200,255,0,0.85)" }}
           >
-            via {provider}
+            {t("plan.todayCard.viaProvider", { provider })}
           </Text>
         </View>
       )}
@@ -499,20 +511,24 @@ function computeActualPace(workout: WorkoutData): string | null {
 }
 
 function CompletedMetrics({ workout }: { workout: WorkoutData }) {
+  const { t } = useTranslation();
   const actualPace = computeActualPace(workout);
   const cells: { label: string; value: string; accent?: boolean }[] = [];
   if (workout.actualDur != null) {
-    cells.push({ label: "Time", value: workout.actualDur });
+    cells.push({ label: t("plan.todayCard.time"), value: workout.actualDur });
   }
   if (workout.actualKm != null) {
-    cells.push({ label: "Distance", value: `${workout.actualKm} km` });
+    cells.push({
+      label: t("plan.todayCard.distance"),
+      value: `${workout.actualKm} km`,
+    });
   }
   if (actualPace != null) {
-    cells.push({ label: "Pace", value: actualPace });
+    cells.push({ label: t("plan.todayCard.pace"), value: actualPace });
   }
   if (workout.adherenceScore != null) {
     cells.push({
-      label: "Adherence",
+      label: t("plan.todayCard.adherence"),
       value: `${Math.round(workout.adherenceScore * 100)}%`,
       accent: true,
     });
@@ -544,6 +560,7 @@ function CompletedMetrics({ workout }: { workout: WorkoutData }) {
 // ─── CTA ────────────────────────────────────────────────────────────────────
 
 function ExportToWatchCTA({ onPress }: { onPress?: () => void }) {
+  const { t } = useTranslation();
   return (
     <View className="px-4 pb-4">
       <Pressable
@@ -556,7 +573,7 @@ function ExportToWatchCTA({ onPress }: { onPress?: () => void }) {
       >
         <WatchIcon />
         <Text className="text-[15px] font-coach-semibold" style={{ color: "#1A1A1A" }}>
-          Export to Watch
+          {t("plan.todayCard.exportToWatch")}
         </Text>
       </Pressable>
     </View>
@@ -622,6 +639,7 @@ function RestDayCard({
   onCardPress?: () => void;
   onAddPress?: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <View>
       <Text
@@ -653,7 +671,7 @@ function RestDayCard({
               className="text-xs font-coach-medium uppercase"
               style={{ letterSpacing: 0.05 * 12, color: LIGHT_THEME.wMute }}
             >
-              Rest Day
+              {t("plan.todayCard.restDay")}
             </Text>
           </View>
 
@@ -665,7 +683,7 @@ function RestDayCard({
               color: LIGHT_THEME.wSub,
             }}
           >
-            No workout scheduled
+            {t("plan.todayCard.noWorkoutScheduled")}
           </Text>
 
           {onAddPress && (
@@ -680,7 +698,7 @@ function RestDayCard({
                 className="font-coach-bold text-[13px]"
                 style={{ color: "#FFFFFF" }}
               >
-                + Add a workout
+                {t("plan.todayCard.addWorkout")}
               </Text>
             </Pressable>
           )}
@@ -701,7 +719,11 @@ export function TodayCard({
   onCardPress,
   onAddPress,
 }: TodayCardProps) {
-  const dateLabel = isToday ? "Today" : formatShortDate(selectedDate ?? new Date());
+  const { t } = useTranslation();
+  const locale = useLanguage();
+  const dateLabel = isToday
+    ? t("plan.today")
+    : formatShortDate(locale, selectedDate ?? new Date());
   const isRest = workout.intensity === "rest";
   const isCompleted = workout.done;
 

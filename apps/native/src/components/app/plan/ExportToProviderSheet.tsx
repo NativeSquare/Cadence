@@ -12,6 +12,7 @@
  */
 
 import React, { useState, useCallback, useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { View, Pressable } from "react-native";
 import { BottomSheetModal as GorhomBottomSheetModal } from "@gorhom/bottom-sheet";
 import Animated, {
@@ -151,6 +152,7 @@ function ProviderCard({
   disabled?: boolean;
   onPress: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <Pressable
       onPress={disabled ? undefined : onPress}
@@ -187,7 +189,7 @@ function ProviderCard({
           className="text-[13px] font-coach"
           style={{ color: LIGHT_THEME.wMute }}
         >
-          {subtitle ?? `Send workout to ${name}`}
+          {subtitle ?? t("plan.exportSheet.sendToProvider", { name })}
         </Text>
       </View>
       <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
@@ -210,28 +212,31 @@ function SelectStep({
   garminConnected: boolean;
   onSelectProvider: (p: ExportProvider) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <View className="px-5 pb-2">
       <Text
         className="text-[20px] font-coach-bold mb-1"
         style={{ color: LIGHT_THEME.wText, letterSpacing: -0.4 }}
       >
-        Send Workout
+        {t("plan.exportSheet.title")}
       </Text>
       <Text
         className="text-[14px] font-coach mb-5"
         style={{ color: LIGHT_THEME.wMute }}
       >
-        Choose a provider to send your workout to
+        {t("plan.exportSheet.subtitle")}
       </Text>
       <View className="gap-3">
         <ProviderCard
-          name="Garmin Connect"
+          name={t("plan.exportSheet.garminConnect")}
           logo={<GarminLogo />}
           subtitle={
             garminConnected
-              ? "Send workout to Garmin Connect"
-              : "Connect Garmin in Settings first"
+              ? t("plan.exportSheet.sendToProvider", {
+                  name: t("plan.exportSheet.garminConnect"),
+                })
+              : t("plan.exportSheet.garminConnectFirst")
           }
           disabled={!garminConnected}
           onPress={() => onSelectProvider("garmin")}
@@ -239,7 +244,7 @@ function SelectStep({
         <ProviderCard
           name="Coros"
           logo={<CorosLogo />}
-          subtitle="Coming soon"
+          subtitle={t("plan.exportSheet.comingSoon")}
           disabled
           onPress={() => onSelectProvider("coros")}
         />
@@ -255,6 +260,7 @@ function ExportingStep({
   provider: ExportProvider;
   workoutType: string;
 }) {
+  const { t } = useTranslation();
   const providerName = PROVIDER_NAMES[provider];
   const opacity = useSharedValue(0.4);
   useEffect(() => {
@@ -274,20 +280,21 @@ function ExportingStep({
           className="text-[16px] font-coach-semibold mt-5"
           style={{ color: LIGHT_THEME.wText }}
         >
-          Sending to {providerName}…
+          {t("plan.exportSheet.sendingToProvider", { provider: providerName })}
         </Text>
       </Animated.View>
       <Text
         className="text-[13px] font-coach mt-2"
         style={{ color: LIGHT_THEME.wMute }}
       >
-        Sending {workoutType} workout
+        {t("plan.exportSheet.sendingWorkoutType", { workoutType })}
       </Text>
     </View>
   );
 }
 
 function SuccessStep({ provider }: { provider: ExportProvider }) {
+  const { t } = useTranslation();
   const providerName = PROVIDER_NAMES[provider];
 
   return (
@@ -297,13 +304,13 @@ function SuccessStep({ provider }: { provider: ExportProvider }) {
         className="text-[16px] font-coach-semibold mt-5"
         style={{ color: LIGHT_THEME.wText }}
       >
-        Sent to {providerName}
+        {t("plan.exportSheet.sentToProvider", { provider: providerName })}
       </Text>
       <Text
         className="text-[13px] font-coach mt-2 text-center"
         style={{ color: LIGHT_THEME.wMute }}
       >
-        Sync your watch with {providerName} to load it on-device
+        {t("plan.exportSheet.syncWatchHelper", { provider: providerName })}
       </Text>
     </View>
   );
@@ -316,6 +323,7 @@ function ErrorStep({
   message: string;
   onRetry: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <View className="px-5 pb-2 items-center py-6">
       <View
@@ -347,7 +355,7 @@ function ErrorStep({
         className="text-[16px] font-coach-semibold mt-5"
         style={{ color: LIGHT_THEME.wText }}
       >
-        Send failed
+        {t("plan.exportSheet.sendFailed")}
       </Text>
       <Text
         className="text-[13px] font-coach mt-2 text-center"
@@ -364,7 +372,7 @@ function ErrorStep({
           className="text-[14px] font-coach-semibold"
           style={{ color: LIGHT_THEME.wText }}
         >
-          Try again
+          {t("plan.exportSheet.tryAgain")}
         </Text>
       </Pressable>
     </View>
@@ -378,6 +386,7 @@ export function ExportToProviderSheet({
   workoutType,
   workoutId,
 }: ExportToProviderSheetProps) {
+  const { t } = useTranslation();
   const [step, setStep] = useState<ExportStep>("select");
   const [selectedProvider, setSelectedProvider] =
     useState<ExportProvider | null>(null);
@@ -420,16 +429,18 @@ export function ExportToProviderSheet({
           }, SUCCESS_DISMISS_MS);
         } catch (err) {
           const msg =
-            err instanceof Error ? err.message : "Something went wrong";
+            err instanceof Error
+              ? err.message
+              : t("plan.exportSheet.somethingWentWrong");
           setErrorMessage(msg);
           setStep("error");
         }
       } else {
-        setErrorMessage("No workout available to send");
+        setErrorMessage(t("plan.exportSheet.noWorkoutAvailable"));
         setStep("error");
       }
     },
-    [exportToGarmin, workoutId, sheetRef, resetState],
+    [exportToGarmin, workoutId, sheetRef, resetState, t],
   );
 
   return (

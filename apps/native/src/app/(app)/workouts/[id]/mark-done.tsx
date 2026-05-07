@@ -7,6 +7,7 @@ import { api } from "@packages/backend/convex/_generated/api";
 import { useMutation, useQuery } from "convex/react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { ActivityIndicator, Pressable, View } from "react-native";
 
 export default function MarkWorkoutAsDoneScreen() {
@@ -18,6 +19,7 @@ export default function MarkWorkoutAsDoneScreen() {
 }
 
 function MarkWorkoutAsDoneContent() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const result = useQuery(
@@ -48,8 +50,8 @@ function MarkWorkoutAsDoneContent() {
           style={{ color: LIGHT_THEME.wMute }}
         >
           {result === null
-            ? "Workout not found"
-            : "This workout has no planned version to complete."}
+            ? t("workout.errors.notFound")
+            : t("workout.errors.noPlannedVersion")}
         </Text>
         <Pressable
           onPress={() => router.back()}
@@ -60,7 +62,7 @@ function MarkWorkoutAsDoneContent() {
             className="font-coach-semibold text-[13px]"
             style={{ color: LIGHT_THEME.wText }}
           >
-            Go back
+            {t("workout.common.goBack")}
           </Text>
         </Pressable>
       </View>

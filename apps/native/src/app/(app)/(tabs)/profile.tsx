@@ -14,6 +14,7 @@ import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import * as WebBrowser from "expo-web-browser";
 import React, { useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import {
   Pressable,
@@ -32,6 +33,7 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function Profile() {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const isFocused = useIsFocused();
@@ -46,13 +48,13 @@ export default function Profile() {
   const deleteAccountSheetRef = React.useRef<BottomSheetModal>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const displayName = user?.name || "Guest";
+  const displayName = user?.name || t("profile.guest");
   const avatarInitial = React.useMemo(() => {
     const fromName = displayName?.trim()?.[0];
     return (fromName || "?").toUpperCase();
   }, [displayName]);
 
-  const planPhase = "No active plan";
+  const planPhase = t("profile.noActivePlan");
 
   // Scroll-driven status bar transition (dark -> light)
   const scrollY = useSharedValue(0);
@@ -186,15 +188,15 @@ export default function Profile() {
           <View className="w-full max-w-2xl gap-5 self-center">
             {/* Account */}
             <SettingsGroup
-              title="Account"
+              title={t("profile.sections.account")}
               items={[
                 {
-                  label: "Profile",
+                  label: t("profile.items.profile"),
                   icon: "person-outline",
                   onPress: () => router.push("/account/edit"),
                 },
                 {
-                  label: "Subscription",
+                  label: t("profile.items.subscription"),
                   icon: "lock-closed-outline",
                   onPress: () => router.push("/account/subscription"),
                 },
@@ -203,30 +205,30 @@ export default function Profile() {
 
             {/* Training */}
             <SettingsGroup
-              title="Training"
+              title={t("profile.sections.training")}
               items={[
                 {
-                  label: "Training Plan",
+                  label: t("profile.items.trainingPlan"),
                   icon: "walk-outline",
                   onPress: () => router.push("/account/training-plan"),
                 },
                 {
-                  label: "Races",
+                  label: t("profile.items.races"),
                   icon: "flag-outline",
                   onPress: () => router.push("/account/races"),
                 },
                 {
-                  label: "Goals",
+                  label: t("profile.items.goals"),
                   icon: "trophy-outline",
                   onPress: () => router.push("/account/goals"),
                 },
                 {
-                  label: "Zones",
+                  label: t("profile.items.zones"),
                   icon: "pulse-outline",
                   onPress: () => router.push("/account/zones"),
                 },
                 {
-                  label: "Workout Templates",
+                  label: t("profile.items.workoutTemplates"),
                   icon: "barbell-outline",
                   onPress: () => router.push("/account/workout-templates"),
                 },
@@ -235,15 +237,15 @@ export default function Profile() {
 
             {/* Integrations */}
             <SettingsGroup
-              title="Integrations"
+              title={t("profile.sections.integrations")}
               items={[
                 {
-                  label: "Apps & Devices",
+                  label: t("profile.items.appsAndDevices"),
                   icon: "apps-outline",
                   onPress: () => router.push("/account/connections"),
                 },
                 {
-                  label: "Calendars",
+                  label: t("profile.items.calendars"),
                   icon: "calendar-outline",
                   onPress: () => router.push("/account/calendars"),
                 },
@@ -252,15 +254,15 @@ export default function Profile() {
 
             {/* Preferences */}
             <SettingsGroup
-              title="Preferences"
+              title={t("profile.sections.preferences")}
               items={[
                 {
-                  label: "Notifications",
+                  label: t("profile.items.notifications"),
                   icon: "notifications-outline",
                   onPress: () => router.push("/account/notifications"),
                 },
                 {
-                  label: "Language",
+                  label: t("profile.items.language"),
                   icon: "globe-outline",
                   onPress: () => router.push("/account/language"),
                 },
@@ -269,22 +271,22 @@ export default function Profile() {
 
             {/* About */}
             <SettingsGroup
-              title="About"
+              title={t("profile.sections.about")}
               items={[
                 {
-                  label: "Send Feedback",
+                  label: t("profile.items.sendFeedback"),
                   icon: "chatbox-outline",
                   onPress: () => router.push("/account/send-feedback"),
                 },
                 {
-                  label: "Privacy Policy",
+                  label: t("profile.items.privacyPolicy"),
                   icon: "shield-checkmark-outline",
                   showChevron: false,
                   onPress: () =>
                     WebBrowser.openBrowserAsync(LEGAL_URLS.privacy),
                 },
                 {
-                  label: "Terms of Service",
+                  label: t("profile.items.termsOfService"),
                   icon: "document-text-outline",
                   showChevron: false,
                   onPress: () => WebBrowser.openBrowserAsync(LEGAL_URLS.terms),
@@ -311,7 +313,7 @@ export default function Profile() {
                 className="font-coach-medium text-sm"
                 style={{ color: LIGHT_THEME.wSub }}
               >
-                Sign Out
+                {t("profile.signOut")}
               </Text>
             </Pressable>
 
@@ -324,7 +326,7 @@ export default function Profile() {
                 className="font-coach text-[13px]"
                 style={{ color: COLORS.red }}
               >
-                Delete Account
+                {t("profile.deleteAccount")}
               </Text>
             </Pressable>
 
@@ -360,18 +362,18 @@ export default function Profile() {
       <ConfirmationSheet
         sheetRef={logoutSheetRef}
         icon="log-out-outline"
-        title="Sign out"
-        description="Are you sure you want to sign out? You'll need to sign in again to access your account."
-        confirmLabel="Sign Out"
+        title={t("profile.signOutSheet.title")}
+        description={t("profile.signOutSheet.description")}
+        confirmLabel={t("profile.signOutSheet.confirm")}
         onConfirm={handleLogout}
       />
 
       <ConfirmationSheet
         sheetRef={deleteAccountSheetRef}
         icon="trash-outline"
-        title="Delete Account"
-        description="This action is permanent and cannot be undone. All your data will be permanently deleted."
-        confirmLabel="Delete Account"
+        title={t("profile.deleteAccountSheet.title")}
+        description={t("profile.deleteAccountSheet.description")}
+        confirmLabel={t("profile.deleteAccountSheet.confirm")}
         destructive
         loading={isDeleting}
         onConfirm={handleDeleteAccount}

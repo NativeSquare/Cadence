@@ -6,6 +6,7 @@ import type { WorkoutDoc } from "@nativesquare/agoge/schema";
 import { api } from "@packages/backend/convex/_generated/api";
 import { useMutation, useQuery } from "convex/react";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { useTranslation } from "react-i18next";
 import { ActivityIndicator, Pressable, View } from "react-native";
 
 export default function EditWorkoutScreen() {
@@ -17,6 +18,7 @@ export default function EditWorkoutScreen() {
 }
 
 function EditWorkoutContent() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const result = useQuery(
@@ -48,7 +50,7 @@ function EditWorkoutContent() {
           className="text-center font-coach text-sm"
           style={{ color: LIGHT_THEME.wMute }}
         >
-          Workout not found
+          {t("workout.errors.notFound")}
         </Text>
         <Pressable
           onPress={() => router.back()}
@@ -59,7 +61,7 @@ function EditWorkoutContent() {
             className="font-coach-semibold text-[13px]"
             style={{ color: LIGHT_THEME.wText }}
           >
-            Go back
+            {t("workout.common.goBack")}
           </Text>
         </Pressable>
       </View>

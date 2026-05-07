@@ -1,4 +1,5 @@
 import { Component, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { View, Pressable } from "react-native";
 import { Text } from "@/components/ui/text";
 import { AnalyticsScreen } from "@/components/app/analytics/AnalyticsScreen";
@@ -33,27 +34,43 @@ class AnalyticsErrorBoundary extends Component<
   render() {
     if (this.state.error) {
       return (
-        <View className="flex-1 bg-w2 items-center justify-center p-6">
-          <Text className="text-red text-center text-[16px] font-coach-semibold mb-2">
-            Unable to load analytics
-          </Text>
-          <Text className="text-wMute text-center text-[13px] font-coach mb-6">
-            {this.state.error.message || "Something went wrong"}
-          </Text>
-          <Pressable
-            onPress={this.handleRetry}
-            className="px-6 py-3 rounded-xl bg-black"
-          >
-            <Text className="text-white text-[14px] font-coach-semibold">
-              Try Again
-            </Text>
-          </Pressable>
-        </View>
+        <AnalyticsErrorFallback
+          message={this.state.error.message}
+          onRetry={this.handleRetry}
+        />
       );
     }
 
     return this.props.children;
   }
+}
+
+function AnalyticsErrorFallback({
+  message,
+  onRetry,
+}: {
+  message?: string;
+  onRetry: () => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <View className="flex-1 bg-w2 items-center justify-center p-6">
+      <Text className="text-red text-center text-[16px] font-coach-semibold mb-2">
+        {t("analytics.errorTitle")}
+      </Text>
+      <Text className="text-wMute text-center text-[13px] font-coach mb-6">
+        {message || t("analytics.errorFallback")}
+      </Text>
+      <Pressable
+        onPress={onRetry}
+        className="px-6 py-3 rounded-xl bg-black"
+      >
+        <Text className="text-white text-[14px] font-coach-semibold">
+          {t("analytics.tryAgain")}
+        </Text>
+      </Pressable>
+    </View>
+  );
 }
 
 export default function Analytics() {

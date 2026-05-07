@@ -78,6 +78,181 @@
     "comingSoonTitle": "Onboarding — bientôt disponible",
     "comingSoonHelper": "Appuyez sur Continuer pour ignorer pour l'instant."
   },
+  "plan": {
+    "greetingMorning": "Bonjour",
+    "greetingAfternoon": "Bon après-midi",
+    "greetingEvening": "Bonsoir",
+    "today": "Aujourd'hui",
+    "weekN": "Semaine {{week}}",
+    "defaultName": "à toi",
+    "coachPreparingPlan": "Votre coach prépare votre plan...",
+    "coachLabel": "Coach",
+    "noWorkoutToday": "Aucune séance prévue aujourd'hui.",
+    "yourRace": "Votre course",
+    "noGoalYet": "Pas encore d'objectif",
+    "setYourARace": "Choisissez votre course A",
+    "setYourARaceHelper": "Fixez un objectif pour que le plan s'y prépare.",
+    "addRace": "Ajouter une course",
+    "raceFallback": "Course",
+    "days": "jours",
+    "weekOfCurrent": "Semaine {{current}}",
+    "weekOfTotal": "sur {{total}}",
+    "phaseSuffix": "phase {{phase}}",
+    "percentComplete": "{{percent}}% terminé",
+    "goalLabel": "Objectif",
+    "weekInsights": {
+      "thisWeek": "Cette semaine",
+      "volume": "Volume",
+      "kmSuffix": "/ {{planned}} km",
+      "ranSuffix": "{{time}} couru",
+      "workouts": "Séances",
+      "done": "faites",
+      "kmAvg": "/km moy."
+    },
+    "quickActions": {
+      "title": "Actions rapides",
+      "schedule": "Planifier",
+      "scheduleHelper": "Planifier une séance",
+      "log": "Enregistrer",
+      "logHelper": "Saisir une sortie"
+    },
+    "todayCard": {
+      "workoutComplete": "Séance terminée",
+      "viaProvider": "via {{provider}}",
+      "time": "Temps",
+      "distance": "Distance",
+      "pace": "Allure",
+      "adherence": "Conformité",
+      "exportToWatch": "Envoyer à la montre",
+      "restDay": "Jour de repos",
+      "noWorkoutScheduled": "Aucune séance prévue",
+      "addWorkout": "+ Ajouter une séance",
+      "totalSuffix": "Total · {{total}}",
+      "moreItems": "+ {{count}} de plus",
+      "syncing": "Synchronisation",
+      "syncFailed": "Échec de la synchronisation"
+    },
+    "exportSheet": {
+      "title": "Envoyer la séance",
+      "subtitle": "Choisissez un service pour envoyer votre séance",
+      "garminConnect": "Garmin Connect",
+      "sendToProvider": "Envoyer la séance à {{name}}",
+      "garminConnectFirst": "Connectez d'abord Garmin dans les réglages",
+      "comingSoon": "Bientôt disponible",
+      "sendingToProvider": "Envoi à {{provider}}…",
+      "sendingWorkoutType": "Envoi de la séance {{workoutType}}",
+      "sentToProvider": "Envoyée à {{provider}}",
+      "syncWatchHelper": "Synchronisez votre montre avec {{provider}} pour la charger",
+      "sendFailed": "Échec de l'envoi",
+      "tryAgain": "Réessayer",
+      "somethingWentWrong": "Une erreur est survenue",
+      "noWorkoutAvailable": "Aucune séance à envoyer"
+    }
+  },
+  "workout": {
+    "errors": {
+      "nameRequired": "Le nom est requis",
+      "fixHighlighted": "Veuillez corriger les champs en surbrillance.",
+      "notFound": "Séance introuvable",
+      "noPlannedVersion": "Cette séance n'a pas de version planifiée à compléter."
+    },
+    "common": {
+      "goBack": "Retour",
+      "delete": "Supprimer",
+      "deleteWorkout": "Supprimer la séance",
+      "cannotUndo": "Cette action est irréversible."
+    },
+    "log": {
+      "title": "Enregistrer une séance",
+      "submit": "Enregistrer la séance",
+      "addPlanned": "Ajouter une version planifiée",
+      "removePlanned": "Retirer la version planifiée",
+      "plannedSectionOptional": "Planifiée (optionnel)"
+    },
+    "schedule": {
+      "title": "Planifier une séance",
+      "submit": "Planifier"
+    },
+    "modify": {
+      "title": "Modifier la séance",
+      "submit": "Enregistrer"
+    },
+    "markDone": {
+      "titleFormat": "Marquer « {{name}} » comme terminée",
+      "submit": "Marquer comme terminée",
+      "helper": "Enregistrez ce que vous avez réellement fait. Le plan reste tel quel — utilisez Modifier pour ajuster le nom, le type ou la version planifiée."
+    },
+    "fields": {
+      "workoutSection": "Séance",
+      "plannedSection": "Planifiée",
+      "actualSection": "Réalisée",
+      "useTemplate": "Utiliser un modèle",
+      "name": "Nom",
+      "namePlaceholder": "ex. Tempo du mardi",
+      "descriptionOptional": "Description (optionnel)",
+      "descriptionPlaceholder": "À quoi sert cette séance",
+      "type": "Type",
+      "blockOptional": "Bloc (optionnel)",
+      "blockNone": "Aucun",
+      "dateAndStartTime": "Date et heure de début"
+    },
+    "types": {
+      "easy": "Facile",
+      "tempo": "Tempo",
+      "long": "Long"
+    }
+  },
+  "tabs": {
+    "today": "Aujourd'hui",
+    "calendar": "Calendrier",
+    "coach": "Coach",
+    "analytics": "Analyses",
+    "profile": "Profil"
+  },
+  "analytics": {
+    "errorTitle": "Impossible de charger les analyses",
+    "errorFallback": "Une erreur est survenue",
+    "tryAgain": "Réessayer"
+  },
+  "profile": {
+    "guest": "Invité",
+    "noActivePlan": "Aucun plan actif",
+    "sections": {
+      "account": "Compte",
+      "training": "Entraînement",
+      "integrations": "Intégrations",
+      "preferences": "Préférences",
+      "about": "À propos"
+    },
+    "items": {
+      "profile": "Profil",
+      "subscription": "Abonnement",
+      "trainingPlan": "Plan d'entraînement",
+      "races": "Courses",
+      "goals": "Objectifs",
+      "zones": "Zones",
+      "workoutTemplates": "Modèles de séance",
+      "appsAndDevices": "Apps et appareils",
+      "calendars": "Calendriers",
+      "notifications": "Notifications",
+      "language": "Langue",
+      "sendFeedback": "Envoyer un commentaire",
+      "privacyPolicy": "Politique de confidentialité",
+      "termsOfService": "Conditions d'utilisation"
+    },
+    "signOut": "Se déconnecter",
+    "deleteAccount": "Supprimer le compte",
+    "signOutSheet": {
+      "title": "Se déconnecter",
+      "description": "Voulez-vous vraiment vous déconnecter ? Vous devrez vous reconnecter pour accéder à votre compte.",
+      "confirm": "Se déconnecter"
+    },
+    "deleteAccountSheet": {
+      "title": "Supprimer le compte",
+      "description": "Cette action est définitive et irréversible. Toutes vos données seront supprimées définitivement.",
+      "confirm": "Supprimer le compte"
+    }
+  },
   "account": {
     "language": {
       "title": "Langue",

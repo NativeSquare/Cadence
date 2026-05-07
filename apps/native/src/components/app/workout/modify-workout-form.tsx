@@ -19,6 +19,7 @@ import type {
   WorkoutStatus,
 } from "@nativesquare/agoge/schema";
 import { useForm, useWatch } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "expo-router";
 import React from "react";
@@ -87,6 +88,7 @@ export function ModifyWorkoutForm({
   onSubmit: (values: ModifyWorkoutFormValues) => Promise<void>;
   onDelete?: () => Promise<void>;
 }) {
+  const { t } = useTranslation();
   const router = useRouter();
   const fallbackDate = workout.planned?.date ?? workout.actual?.date ?? nowIso();
 
@@ -171,21 +173,23 @@ export function ModifyWorkoutForm({
       const first = Object.values(errors).find(
         (e): e is { message?: string } => e != null && typeof e === "object",
       );
-      setSubmitError(first?.message ?? "Please fix the highlighted fields.");
+      setSubmitError(
+        first?.message ?? t("workout.errors.fixHighlighted"),
+      );
     },
   );
 
   return (
     <WorkoutFormShell
-      title="Edit workout"
-      submitLabel="Save changes"
+      title={t("workout.modify.title")}
+      submitLabel={t("workout.modify.submit")}
       canSave={canSave}
       isSubmitting={isSubmitting}
       submitError={submitError}
       onSubmit={() => handleSave()}
       onDelete={onDelete}
     >
-      <FormSection title="Workout">
+      <FormSection title={t("workout.fields.workoutSection")}>
         <WorkoutMetadataFields
           control={form.control}
           templateId={null}
@@ -196,7 +200,7 @@ export function ModifyWorkoutForm({
         <WorkoutBlockField control={form.control} blocks={blocks} />
       </FormSection>
 
-      <FormSection title="Planned">
+      <FormSection title={t("workout.fields.plannedSection")}>
         <WorkoutFaceFields
           control={form.control}
           faceName="planned"
@@ -205,7 +209,7 @@ export function ModifyWorkoutForm({
         />
       </FormSection>
 
-      <FormSection title="Actual">
+      <FormSection title={t("workout.fields.actualSection")}>
         <WorkoutFaceFields
           control={form.control}
           faceName="actual"

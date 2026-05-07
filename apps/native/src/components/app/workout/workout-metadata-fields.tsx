@@ -2,8 +2,8 @@ import { FormField, PillSelect } from "@/components/app/form";
 import { TemplatePickerSheet } from "@/components/app/workout/template-picker-sheet";
 import {
   WORKOUT_TYPE_COLORS,
-  WORKOUT_TYPE_LABELS,
   WORKOUT_TYPES,
+  type WorkoutTypeOption,
 } from "@/components/app/workout/workout-helpers";
 import { Text } from "@/components/ui/text";
 import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
@@ -17,6 +17,7 @@ import {
   type Control,
   type FieldValues,
 } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { Pressable, TextInput, View } from "react-native";
 
 const inputStyle = {
@@ -45,9 +46,16 @@ export function WorkoutMetadataFields<T extends FieldValues>({
   onClearTemplate: () => void;
   hideType?: boolean;
 }) {
+  const { t } = useTranslation();
   const c = control as unknown as Control<FieldValues>;
   const sheetRef = React.useRef<BottomSheetModal>(null);
   const showTemplateAffordance = onPickTemplate != null;
+
+  const workoutTypeLabels: Record<WorkoutTypeOption, string> = {
+    easy: t("workout.types.easy"),
+    tempo: t("workout.types.tempo"),
+    long: t("workout.types.long"),
+  };
 
   return (
     <View className="gap-5">
@@ -74,7 +82,7 @@ export function WorkoutMetadataFields<T extends FieldValues>({
                 className="font-coach-semibold text-[13px]"
                 style={{ color: LIGHT_THEME.wText }}
               >
-                Use a template
+                {t("workout.fields.useTemplate")}
               </Text>
             </Pressable>
           ) : (
@@ -105,11 +113,11 @@ export function WorkoutMetadataFields<T extends FieldValues>({
         control={c}
         name="name"
         render={({ field, fieldState }) => (
-          <FormField label="Name" error={fieldState.error?.message}>
+          <FormField label={t("workout.fields.name")} error={fieldState.error?.message}>
             <TextInput
               className="h-12 rounded-xl border px-4 font-coach-medium text-[15px]"
               style={inputStyle}
-              placeholder="e.g. Tuesday Tempo"
+              placeholder={t("workout.fields.namePlaceholder")}
               placeholderTextColor={LIGHT_THEME.wMute}
               value={field.value ?? ""}
               onChangeText={field.onChange}
@@ -127,13 +135,13 @@ export function WorkoutMetadataFields<T extends FieldValues>({
         name="description"
         render={({ field, fieldState }) => (
           <FormField
-            label="Description (optional)"
+            label={t("workout.fields.descriptionOptional")}
             error={fieldState.error?.message}
           >
             <TextInput
               className="min-h-[80px] rounded-xl border px-4 py-3 font-coach-medium text-[15px]"
               style={inputStyle}
-              placeholder="What this workout is for"
+              placeholder={t("workout.fields.descriptionPlaceholder")}
               placeholderTextColor={LIGHT_THEME.wMute}
               value={field.value ?? ""}
               onChangeText={field.onChange}
@@ -152,10 +160,10 @@ export function WorkoutMetadataFields<T extends FieldValues>({
           control={c}
           name="type"
           render={({ field, fieldState }) => (
-            <FormField label="Type" error={fieldState.error?.message}>
+            <FormField label={t("workout.fields.type")} error={fieldState.error?.message}>
               <PillSelect
                 options={WORKOUT_TYPES}
-                labels={WORKOUT_TYPE_LABELS}
+                labels={workoutTypeLabels}
                 value={field.value}
                 onChange={field.onChange}
                 colorByValue={WORKOUT_TYPE_COLORS}

@@ -8,6 +8,7 @@
  */
 
 import { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { View } from "react-native";
 import Animated, {
   cancelAnimation,
@@ -43,6 +44,7 @@ function VolumeInsight({
   planned: number;
   timeCompleted: string;
 }) {
+  const { t } = useTranslation();
   const targetPercent = planned > 0 ? Math.min((completed / planned) * 100, 100) : 0;
   const progressWidth = useSharedValue(0);
 
@@ -70,7 +72,7 @@ function VolumeInsight({
         className="text-[11px] font-coach-semibold text-wSub mb-1.5 uppercase"
         style={{ letterSpacing: 0.05 * 11 }}
       >
-        Volume
+        {t("plan.weekInsights.volume")}
       </Text>
 
       <View className="flex-row items-baseline gap-1">
@@ -78,7 +80,7 @@ function VolumeInsight({
           {completed}
         </Text>
         <Text className="text-[12px] font-coach text-wSub">
-          / {planned} km
+          {t("plan.weekInsights.kmSuffix", { planned })}
         </Text>
       </View>
 
@@ -90,7 +92,7 @@ function VolumeInsight({
       </View>
 
       <Text className="text-[13px] font-coach-medium text-wSub mt-2">
-        {timeCompleted} ran
+        {t("plan.weekInsights.ranSuffix", { time: timeCompleted })}
       </Text>
     </View>
   );
@@ -114,6 +116,7 @@ function WorkoutCheckDot({ done }: { done: boolean }) {
 }
 
 function WorkoutsInsight({ workouts }: { workouts: WorkoutData[] }) {
+  const { t } = useTranslation();
   const trainingWorkouts = workouts.filter((w) => w.intensity !== "rest");
   const completed = trainingWorkouts.filter((w) => w.done).length;
 
@@ -126,7 +129,7 @@ function WorkoutsInsight({ workouts }: { workouts: WorkoutData[] }) {
         className="text-[11px] font-coach-semibold text-wSub uppercase"
         style={{ letterSpacing: 0.05 * 11 }}
       >
-        Workouts
+        {t("plan.weekInsights.workouts")}
       </Text>
 
       <View className="items-center mt-2">
@@ -139,7 +142,7 @@ function WorkoutsInsight({ workouts }: { workouts: WorkoutData[] }) {
           </Text>
         </View>
         <Text className="text-[11px] font-coach-medium text-wSub mt-0.5">
-          done
+          {t("plan.weekInsights.done")}
         </Text>
       </View>
 
@@ -155,6 +158,7 @@ function WorkoutsInsight({ workouts }: { workouts: WorkoutData[] }) {
 // ─── Avg Pace Card ────────────────────────────────────────────────────────────
 
 function AvgPaceInsight({ avgPace }: { avgPace: string }) {
+  const { t } = useTranslation();
   const numberOpacity = useSharedValue(0);
   const numberTranslateY = useSharedValue(8);
 
@@ -198,7 +202,7 @@ function AvgPaceInsight({ avgPace }: { avgPace: string }) {
         className="text-[10px] font-coach-medium mt-1 uppercase"
         style={{ color: "rgba(255,255,255,0.5)", letterSpacing: 0.05 * 10 }}
       >
-        /km avg
+        {t("plan.weekInsights.kmAvg")}
       </Text>
     </View>
   );
@@ -221,13 +225,14 @@ export function WeekInsights({
   avgPace,
   workouts,
 }: WeekInsightsProps) {
+  const { t } = useTranslation();
   return (
     <View>
       <Text
         className="text-[11px] font-coach-semibold text-wSub px-1 mb-2 uppercase"
         style={{ letterSpacing: 0.05 * 11 }}
       >
-        This Week
+        {t("plan.weekInsights.thisWeek")}
       </Text>
 
       <VolumeInsight

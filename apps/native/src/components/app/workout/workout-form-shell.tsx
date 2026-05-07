@@ -6,6 +6,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { useRouter } from "expo-router";
 import React from "react";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -24,8 +25,8 @@ export function WorkoutFormShell({
   submitError,
   onSubmit,
   onDelete,
-  deleteLabel = "Delete workout",
-  deleteDescription = "This cannot be undone.",
+  deleteLabel,
+  deleteDescription,
   children,
 }: {
   title: string;
@@ -39,10 +40,15 @@ export function WorkoutFormShell({
   deleteDescription?: string;
   children: React.ReactNode;
 }) {
+  const { t } = useTranslation();
   const router = useRouter();
   const deleteSheetRef = React.useRef<BottomSheetModal>(null);
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [deleteError, setDeleteError] = React.useState<string | null>(null);
+
+  const resolvedDeleteLabel = deleteLabel ?? t("workout.common.deleteWorkout");
+  const resolvedDeleteDescription =
+    deleteDescription ?? t("workout.common.cannotUndo");
 
   const handleDelete = async () => {
     if (!onDelete) return;
@@ -101,7 +107,7 @@ export function WorkoutFormShell({
                 className="font-coach text-[13px]"
                 style={{ color: COLORS.red }}
               >
-                {deleteLabel}
+                {resolvedDeleteLabel}
               </Text>
             </Pressable>
           )}
@@ -150,9 +156,9 @@ export function WorkoutFormShell({
         <ConfirmationSheet
           sheetRef={deleteSheetRef}
           icon="trash-outline"
-          title={deleteLabel}
-          description={deleteDescription}
-          confirmLabel="Delete"
+          title={resolvedDeleteLabel}
+          description={resolvedDeleteDescription}
+          confirmLabel={t("workout.common.delete")}
           destructive
           loading={isDeleting}
           onConfirm={handleDelete}

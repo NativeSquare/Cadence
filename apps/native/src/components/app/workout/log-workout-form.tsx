@@ -27,6 +27,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "expo-router";
 import React from "react";
 import { useForm, useWatch } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { Keyboard, Pressable, View } from "react-native";
 import { z } from "zod";
 
@@ -56,6 +57,7 @@ export function LogWorkoutForm({
   templates?: WorkoutTemplateDoc[];
   onSubmit: (values: LogWorkoutFormValues) => Promise<void>;
 }) {
+  const { t } = useTranslation();
   const router = useRouter();
   const initialFaceDate = initialDate ?? nowIso();
 
@@ -175,20 +177,22 @@ export function LogWorkoutForm({
       const first = Object.values(errors).find(
         (e): e is { message?: string } => e != null && typeof e === "object",
       );
-      setSubmitError(first?.message ?? "Please fix the highlighted fields.");
+      setSubmitError(
+        first?.message ?? t("workout.errors.fixHighlighted"),
+      );
     },
   );
 
   return (
     <WorkoutFormShell
-      title="Log a workout"
-      submitLabel="Save workout"
+      title={t("workout.log.title")}
+      submitLabel={t("workout.log.submit")}
       canSave={canSave}
       isSubmitting={isSubmitting}
       submitError={submitError}
       onSubmit={() => handleSave()}
     >
-      <FormSection title="Workout">
+      <FormSection title={t("workout.fields.workoutSection")}>
         <WorkoutMetadataFields
           control={form.control}
           templates={templates}
@@ -199,7 +203,7 @@ export function LogWorkoutForm({
         />
       </FormSection>
 
-      <FormSection title="Actual">
+      <FormSection title={t("workout.fields.actualSection")}>
         <WorkoutFaceFields
           control={form.control}
           faceName="actual"
@@ -210,7 +214,7 @@ export function LogWorkoutForm({
       </FormSection>
 
       {showPlanned && (
-        <FormSection title="Planned (optional)">
+        <FormSection title={t("workout.log.plannedSectionOptional")}>
           <WorkoutFaceFields
             control={form.control}
             faceName="planned"
@@ -239,7 +243,9 @@ export function LogWorkoutForm({
             className="font-coach-semibold text-[13px]"
             style={{ color: LIGHT_THEME.wText }}
           >
-            {showPlanned ? "Remove planned version" : "Add planned version"}
+            {showPlanned
+              ? t("workout.log.removePlanned")
+              : t("workout.log.addPlanned")}
           </Text>
         </Pressable>
       </View>

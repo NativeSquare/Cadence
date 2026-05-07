@@ -18,6 +18,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "expo-router";
 import React from "react";
 import { useForm, useWatch } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { Keyboard, View } from "react-native";
 import { z } from "zod";
 
@@ -41,6 +42,7 @@ export function MarkWorkoutAsDoneForm({
   workout: WorkoutDoc;
   onSubmit: (values: MarkWorkoutAsDoneFormValues) => Promise<void>;
 }) {
+  const { t } = useTranslation();
   const router = useRouter();
 
   const form = useForm<MarkWorkoutAsDoneFormValues>({
@@ -91,14 +93,16 @@ export function MarkWorkoutAsDoneForm({
       const first = Object.values(errors).find(
         (e): e is { message?: string } => e != null && typeof e === "object",
       );
-      setSubmitError(first?.message ?? "Please fix the highlighted fields.");
+      setSubmitError(
+        first?.message ?? t("workout.errors.fixHighlighted"),
+      );
     },
   );
 
   return (
     <WorkoutFormShell
-      title={`Mark "${workout.name}" as done`}
-      submitLabel="Mark as done"
+      title={t("workout.markDone.titleFormat", { name: workout.name })}
+      submitLabel={t("workout.markDone.submit")}
       canSave={canSave}
       isSubmitting={isSubmitting}
       submitError={submitError}
@@ -109,12 +113,11 @@ export function MarkWorkoutAsDoneForm({
           className="font-coach text-[13px]"
           style={{ color: LIGHT_THEME.wMute }}
         >
-          Recording what you actually did. The plan stays as-is — use Edit to
-          tweak name, type, or the planned version.
+          {t("workout.markDone.helper")}
         </Text>
       </View>
 
-      <FormSection title="Actual">
+      <FormSection title={t("workout.fields.actualSection")}>
         <WorkoutFaceFields
           control={form.control}
           faceName="actual"

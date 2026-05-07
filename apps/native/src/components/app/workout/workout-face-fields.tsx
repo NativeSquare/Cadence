@@ -8,12 +8,13 @@ import {
   type Control,
   type FieldValues,
 } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { View } from "react-native";
 
 export function WorkoutFaceFields<T extends FieldValues>({
   control,
   faceName,
-  dateLabel = "Date & start time",
+  dateLabel,
   minDate,
   maxDate,
   errorByPath,
@@ -27,7 +28,9 @@ export function WorkoutFaceFields<T extends FieldValues>({
   errorByPath?: Record<string, string>;
   structureError?: string | null;
 }) {
+  const { t } = useTranslation();
   const c = control as unknown as Control<FieldValues>;
+  const resolvedDateLabel = dateLabel ?? t("workout.fields.dateAndStartTime");
   return (
     <View className="gap-5">
       <Controller
@@ -35,7 +38,7 @@ export function WorkoutFaceFields<T extends FieldValues>({
         name={`${faceName}.date`}
         render={({ field }) => (
           <DateField
-            label={dateLabel}
+            label={resolvedDateLabel}
             mode="datetime"
             value={field.value || undefined}
             onChange={field.onChange}

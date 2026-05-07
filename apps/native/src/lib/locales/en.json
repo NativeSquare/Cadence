@@ -78,6 +78,181 @@
     "comingSoonTitle": "Onboarding — coming soon",
     "comingSoonHelper": "Tap continue to skip for now."
   },
+  "plan": {
+    "greetingMorning": "Morning",
+    "greetingAfternoon": "Afternoon",
+    "greetingEvening": "Evening",
+    "today": "Today",
+    "weekN": "Week {{week}}",
+    "defaultName": "there",
+    "coachPreparingPlan": "Your coach is preparing your plan...",
+    "coachLabel": "Coach",
+    "noWorkoutToday": "No workout scheduled for today.",
+    "yourRace": "Your Race",
+    "noGoalYet": "No goal yet",
+    "setYourARace": "Set your A race",
+    "setYourARaceHelper": "Pin a goal so the plan can build toward it.",
+    "addRace": "Add a race",
+    "raceFallback": "Race",
+    "days": "days",
+    "weekOfCurrent": "Week {{current}}",
+    "weekOfTotal": "of {{total}}",
+    "phaseSuffix": "{{phase}} phase",
+    "percentComplete": "{{percent}}% complete",
+    "goalLabel": "Goal",
+    "weekInsights": {
+      "thisWeek": "This Week",
+      "volume": "Volume",
+      "kmSuffix": "/ {{planned}} km",
+      "ranSuffix": "{{time}} ran",
+      "workouts": "Workouts",
+      "done": "done",
+      "kmAvg": "/km avg"
+    },
+    "quickActions": {
+      "title": "Quick Actions",
+      "schedule": "Schedule",
+      "scheduleHelper": "Plan a workout",
+      "log": "Log",
+      "logHelper": "Record a run"
+    },
+    "todayCard": {
+      "workoutComplete": "Workout Complete",
+      "viaProvider": "via {{provider}}",
+      "time": "Time",
+      "distance": "Distance",
+      "pace": "Pace",
+      "adherence": "Adherence",
+      "exportToWatch": "Export to Watch",
+      "restDay": "Rest Day",
+      "noWorkoutScheduled": "No workout scheduled",
+      "addWorkout": "+ Add a workout",
+      "totalSuffix": "Total · {{total}}",
+      "moreItems": "+ {{count}} more",
+      "syncing": "Syncing",
+      "syncFailed": "Sync failed"
+    },
+    "exportSheet": {
+      "title": "Send Workout",
+      "subtitle": "Choose a provider to send your workout to",
+      "garminConnect": "Garmin Connect",
+      "sendToProvider": "Send workout to {{name}}",
+      "garminConnectFirst": "Connect Garmin in Settings first",
+      "comingSoon": "Coming soon",
+      "sendingToProvider": "Sending to {{provider}}…",
+      "sendingWorkoutType": "Sending {{workoutType}} workout",
+      "sentToProvider": "Sent to {{provider}}",
+      "syncWatchHelper": "Sync your watch with {{provider}} to load it on-device",
+      "sendFailed": "Send failed",
+      "tryAgain": "Try again",
+      "somethingWentWrong": "Something went wrong",
+      "noWorkoutAvailable": "No workout available to send"
+    }
+  },
+  "workout": {
+    "errors": {
+      "nameRequired": "Name is required",
+      "fixHighlighted": "Please fix the highlighted fields.",
+      "notFound": "Workout not found",
+      "noPlannedVersion": "This workout has no planned version to complete."
+    },
+    "common": {
+      "goBack": "Go back",
+      "delete": "Delete",
+      "deleteWorkout": "Delete workout",
+      "cannotUndo": "This cannot be undone."
+    },
+    "log": {
+      "title": "Log a workout",
+      "submit": "Save workout",
+      "addPlanned": "Add planned version",
+      "removePlanned": "Remove planned version",
+      "plannedSectionOptional": "Planned (optional)"
+    },
+    "schedule": {
+      "title": "Schedule a workout",
+      "submit": "Schedule"
+    },
+    "modify": {
+      "title": "Edit workout",
+      "submit": "Save changes"
+    },
+    "markDone": {
+      "titleFormat": "Mark \"{{name}}\" as done",
+      "submit": "Mark as done",
+      "helper": "Recording what you actually did. The plan stays as-is — use Edit to tweak name, type, or the planned version."
+    },
+    "fields": {
+      "workoutSection": "Workout",
+      "plannedSection": "Planned",
+      "actualSection": "Actual",
+      "useTemplate": "Use a template",
+      "name": "Name",
+      "namePlaceholder": "e.g. Tuesday Tempo",
+      "descriptionOptional": "Description (optional)",
+      "descriptionPlaceholder": "What this workout is for",
+      "type": "Type",
+      "blockOptional": "Block (optional)",
+      "blockNone": "None",
+      "dateAndStartTime": "Date & start time"
+    },
+    "types": {
+      "easy": "Easy",
+      "tempo": "Tempo",
+      "long": "Long"
+    }
+  },
+  "tabs": {
+    "today": "Today",
+    "calendar": "Calendar",
+    "coach": "Coach",
+    "analytics": "Analytics",
+    "profile": "Profile"
+  },
+  "analytics": {
+    "errorTitle": "Unable to load analytics",
+    "errorFallback": "Something went wrong",
+    "tryAgain": "Try Again"
+  },
+  "profile": {
+    "guest": "Guest",
+    "noActivePlan": "No active plan",
+    "sections": {
+      "account": "Account",
+      "training": "Training",
+      "integrations": "Integrations",
+      "preferences": "Preferences",
+      "about": "About"
+    },
+    "items": {
+      "profile": "Profile",
+      "subscription": "Subscription",
+      "trainingPlan": "Training Plan",
+      "races": "Races",
+      "goals": "Goals",
+      "zones": "Zones",
+      "workoutTemplates": "Workout Templates",
+      "appsAndDevices": "Apps & Devices",
+      "calendars": "Calendars",
+      "notifications": "Notifications",
+      "language": "Language",
+      "sendFeedback": "Send Feedback",
+      "privacyPolicy": "Privacy Policy",
+      "termsOfService": "Terms of Service"
+    },
+    "signOut": "Sign Out",
+    "deleteAccount": "Delete Account",
+    "signOutSheet": {
+      "title": "Sign out",
+      "description": "Are you sure you want to sign out? You'll need to sign in again to access your account.",
+      "confirm": "Sign Out"
+    },
+    "deleteAccountSheet": {
+      "title": "Delete Account",
+      "description": "This action is permanent and cannot be undone. All your data will be permanently deleted.",
+      "confirm": "Delete Account"
+    }
+  },
   "account": {
     "language": {
       "title": "Language",

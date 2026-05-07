@@ -8,7 +8,9 @@ import {
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
 import { components, internal } from "../_generated/api";
+import type { Id } from "../_generated/dataModel";
 import {
+  type ActionCtx,
   action,
   internalAction,
   mutation,
@@ -66,23 +68,39 @@ export const send = action({
         }
       }
 
-      await coach.streamText(
+      const result = await coach.streamText(
         ctx,
         { threadId, userId: userId as string },
         { messages: [{ role: "user", content }] },
         { saveStreamDeltas: true },
       );
+      await notifyCoachReply(ctx, { userId: userId as string, threadId, result });
       return;
     }
 
-    await coach.streamText(
+    const result = await coach.streamText(
       ctx,
       { threadId, userId: userId as string },
       { prompt: text },
       { saveStreamDeltas: true },
     );
+    await notifyCoachReply(ctx, { userId: userId as string, threadId, result });
   },
 });
+
+// Skip the push when the assistant emitted no text (tool-only step with no follow-up).
+async function notifyCoachReply(
+  ctx: ActionCtx,
+  args: { userId: string; threadId: string; result: { text: PromiseLike<string> } },
+) {
+  const preview = (await args.result.text).trim().slice(0, 140);
+  if (!preview) return;
+  await ctx.scheduler.runAfter(0, internal.notifications.sendCoachMessageNotification, {
+    userId: args.userId as Id<"users">,
+    threadId: args.threadId,
+    preview,
+  });
+}
 
 /**
  * Resolve a pending tool-approval-request from the chat UI.
@@ -133,11 +151,12 @@ export const continueAfterApproval = internalAction({
     userId: v.string(),
   },
   handler: async (ctx, { threadId, promptMessageId, userId }) => {
-    await coach.streamText(
+    const result = await coach.streamText(
       ctx,
       { threadId, userId },
       { promptMessageId },
       { saveStreamDeltas: true },
     );
+    await notifyCoachReply(ctx, { userId, threadId, result });
   },
 });

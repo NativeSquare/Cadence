@@ -1,4 +1,5 @@
 import { Tabs } from "expo-router";
+import { useTranslation } from "react-i18next";
 import { View, Text, Pressable } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Home, CalendarDays, MessageSquare, Activity, User } from "lucide-react-native";
@@ -28,11 +29,11 @@ import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 
 // Tab configuration matching prototype (lines 701-706)
 const TAB_CONFIG = [
-  { name: "index", label: "Today", Icon: Home },
-  { name: "calendar", label: "Calendar", Icon: CalendarDays },
-  { name: "coach", label: "Coach", Icon: MessageSquare },
-  { name: "analytics", label: "Analytics", Icon: Activity },
-  { name: "profile", label: "Profile", Icon: User },
+  { name: "index", labelKey: "tabs.today", Icon: Home },
+  { name: "calendar", labelKey: "tabs.calendar", Icon: CalendarDays },
+  { name: "coach", labelKey: "tabs.coach", Icon: MessageSquare },
+  { name: "analytics", labelKey: "tabs.analytics", Icon: Activity },
+  { name: "profile", labelKey: "tabs.profile", Icon: User },
 ] as const;
 
 /**
@@ -40,6 +41,7 @@ const TAB_CONFIG = [
  * Reference: cadence-full-v9.jsx BottomNav (lines 707-721)
  */
 function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   // Prototype uses 30px bottom padding for home indicator area
   const bottomPadding = Math.max(insets.bottom, 30);
@@ -65,7 +67,8 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
 
         if (!config) return null;
 
-        const { Icon, label } = config;
+        const { Icon, labelKey } = config;
+        const label = t(labelKey);
         const color = isFocused ? LIGHT_THEME.wText : LIGHT_THEME.wMute;
 
         const onPress = () => {

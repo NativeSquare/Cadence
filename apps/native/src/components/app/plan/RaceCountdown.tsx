@@ -10,6 +10,7 @@
  */
 
 import { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { View, Pressable } from "react-native";
 import Animated, {
   cancelAnimation,
@@ -22,6 +23,8 @@ import Animated, {
 import Svg, { Path } from "react-native-svg";
 import { Text } from "@/components/ui/text";
 import { LIGHT_THEME, WORKOUT_CATEGORY_COLORS } from "@/lib/design-tokens";
+import { formatShortDate } from "@/lib/format";
+import { useLanguage } from "@/lib/i18n";
 import type { RaceGoalData } from "./types";
 
 interface RaceCountdownProps {
@@ -40,13 +43,6 @@ function daysUntil(timestamp: number): number {
   const target = new Date(timestamp);
   target.setHours(0, 0, 0, 0);
   return Math.max(0, Math.ceil((target.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
-}
-
-function formatRaceDate(timestamp: number): string {
-  const d = new Date(timestamp);
-  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-  return `${days[d.getDay()]}, ${months[d.getMonth()]} ${d.getDate()}`;
 }
 
 function FlagIcon({ size = 14, color = RACE_ACCENT }: { size?: number; color?: string }) {
@@ -113,13 +109,14 @@ function ProgressBar({ current, total }: { current: number; total: number }) {
 }
 
 export function EmptyRaceCard({ onAddPress }: EmptyRaceCardProps) {
+  const { t } = useTranslation();
   return (
     <View>
       <Text
         className="text-[11px] font-coach-semibold text-wSub px-1 mb-2 uppercase"
         style={{ letterSpacing: 0.05 * 11 }}
       >
-        Your Race
+        {t("plan.yourRace")}
       </Text>
 
       <Pressable
@@ -142,20 +139,20 @@ export function EmptyRaceCard({ onAddPress }: EmptyRaceCardProps) {
               className="text-[10px] font-coach-semibold uppercase"
               style={{ color: RACE_ACCENT, letterSpacing: 0.05 * 10 }}
             >
-              No goal yet
+              {t("plan.noGoalYet")}
             </Text>
           </View>
           <Text
             className="text-[18px] font-coach-bold text-wText"
             style={{ letterSpacing: -0.02 * 18, lineHeight: 24 }}
           >
-            Set your A race
+            {t("plan.setYourARace")}
           </Text>
           <Text
             className="text-[13px] font-coach-medium text-wSub mt-1"
             style={{ lineHeight: 18 }}
           >
-            Pin a goal so the plan can build toward it.
+            {t("plan.setYourARaceHelper")}
           </Text>
 
           <View
@@ -167,7 +164,7 @@ export function EmptyRaceCard({ onAddPress }: EmptyRaceCardProps) {
               className="font-coach-bold text-[13px]"
               style={{ color: "#FFFFFF" }}
             >
-              Add a race
+              {t("plan.addRace")}
             </Text>
           </View>
         </View>
@@ -177,8 +174,10 @@ export function EmptyRaceCard({ onAddPress }: EmptyRaceCardProps) {
 }
 
 export function RaceCountdown({ race }: RaceCountdownProps) {
+  const { t } = useTranslation();
+  const locale = useLanguage();
   const days = daysUntil(race.raceDate);
-  const dateLabel = formatRaceDate(race.raceDate);
+  const dateLabel = formatShortDate(locale, new Date(race.raceDate));
   const hasPlanProgress =
     race.currentWeek != null && race.totalWeeks != null && race.totalWeeks > 0;
   const progressPercent = hasPlanProgress
@@ -191,7 +190,7 @@ export function RaceCountdown({ race }: RaceCountdownProps) {
         className="text-[11px] font-coach-semibold text-wSub px-1 mb-2 uppercase"
         style={{ letterSpacing: 0.05 * 11 }}
       >
-        Your Race
+        {t("plan.yourRace")}
       </Text>
 
       <View
@@ -240,7 +239,7 @@ export function RaceCountdown({ race }: RaceCountdownProps) {
                 {days}
               </Text>
               <Text className="text-[12px] font-coach-medium text-wSub">
-                days
+                {t("plan.days")}
               </Text>
             </View>
           </View>
@@ -257,10 +256,10 @@ export function RaceCountdown({ race }: RaceCountdownProps) {
               <View className="flex-1 justify-center">
                 <View className="flex-row items-baseline gap-1">
                   <Text className="text-[16px] font-coach-bold text-wText">
-                    Week {race.currentWeek}
+                    {t("plan.weekOfCurrent", { current: race.currentWeek })}
                   </Text>
                   <Text className="text-[12px] font-coach text-wSub">
-                    of {race.totalWeeks}
+                    {t("plan.weekOfTotal", { total: race.totalWeeks })}
                   </Text>
                 </View>
                 {race.phase && (
@@ -270,7 +269,7 @@ export function RaceCountdown({ race }: RaceCountdownProps) {
                       style={{ backgroundColor: RACE_ACCENT }}
                     />
                     <Text className="text-[12px] font-coach-medium text-wText">
-                      {race.phase} phase
+                      {t("plan.phaseSuffix", { phase: race.phase })}
                     </Text>
                   </View>
                 )}
@@ -291,14 +290,14 @@ export function RaceCountdown({ race }: RaceCountdownProps) {
             >
               {hasPlanProgress ? (
                 <Text className="text-[10px] font-coach-medium text-wSub">
-                  {progressPercent}% complete
+                  {t("plan.percentComplete", { percent: progressPercent })}
                 </Text>
               ) : (
                 <View />
               )}
               {race.targetTime && (
                 <Text className="text-[10px] font-coach-medium text-wSub">
-                  Goal{" "}
+                  {t("plan.goalLabel")}{" "}
                   <Text className="text-[10px] font-coach-semibold text-wText">
                     {race.targetTime}
                   </Text>

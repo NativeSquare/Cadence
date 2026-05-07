@@ -9,6 +9,7 @@ import {
   type Control,
   type FieldValues,
 } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { Pressable, View } from "react-native";
 
 export function WorkoutBlockField<T extends FieldValues>({
@@ -18,6 +19,7 @@ export function WorkoutBlockField<T extends FieldValues>({
   control: Control<T>;
   blocks: BlockDoc[];
 }) {
+  const { t } = useTranslation();
   const c = control as unknown as Control<FieldValues>;
 
   return (
@@ -28,12 +30,12 @@ export function WorkoutBlockField<T extends FieldValues>({
         const selected: string | null = field.value ?? null;
         return (
           <FormField
-            label="Block (optional)"
+            label={t("workout.fields.blockOptional")}
             error={fieldState.error?.message}
           >
             <View className="flex-row flex-wrap gap-2">
               <BlockPill
-                label="None"
+                label={t("workout.fields.blockNone")}
                 isSelected={selected === null}
                 onPress={() => {
                   selectionFeedback();

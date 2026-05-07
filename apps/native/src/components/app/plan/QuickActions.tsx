@@ -9,6 +9,7 @@
  * form, not on the home page.
  */
 
+import { useTranslation } from "react-i18next";
 import { View, Pressable } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import { Text } from "@/components/ui/text";
@@ -106,25 +107,26 @@ export function QuickActions({
   onSchedule,
   onLog,
 }: QuickActionsProps) {
+  const { t } = useTranslation();
   return (
     <View>
       <Text
         className="text-[11px] font-coach-semibold text-wMute px-1 mb-2.5 uppercase"
         style={{ letterSpacing: 0.05 * 11 }}
       >
-        Quick Actions
+        {t("plan.quickActions.title")}
       </Text>
       <View className="flex-row gap-2.5">
         <ActionButton
-          label="Schedule"
-          description="Plan a workout"
+          label={t("plan.quickActions.schedule")}
+          description={t("plan.quickActions.scheduleHelper")}
           icon={<PlusIcon color="#FFFFFF" />}
           variant="primary"
           onPress={() => onSchedule(selectedDateIso)}
         />
         <ActionButton
-          label="Log"
-          description="Record a run"
+          label={t("plan.quickActions.log")}
+          description={t("plan.quickActions.logHelper")}
           icon={<CheckIcon color={LIGHT_THEME.wText} />}
           variant="secondary"
           onPress={() => onLog(selectedDateIso)}

@@ -26,6 +26,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "expo-router";
 import React from "react";
 import { useForm, useWatch } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { Keyboard } from "react-native";
 import { z } from "zod";
 
@@ -51,6 +52,7 @@ export function ScheduleWorkoutForm({
   blocks: BlockDoc[];
   onSubmit: (values: ScheduleWorkoutFormValues) => Promise<void>;
 }) {
+  const { t } = useTranslation();
   const router = useRouter();
 
   const form = useForm<ScheduleWorkoutFormValues>({
@@ -133,20 +135,22 @@ export function ScheduleWorkoutForm({
       const first = Object.values(errors).find(
         (e): e is { message?: string } => e != null && typeof e === "object",
       );
-      setSubmitError(first?.message ?? "Please fix the highlighted fields.");
+      setSubmitError(
+        first?.message ?? t("workout.errors.fixHighlighted"),
+      );
     },
   );
 
   return (
     <WorkoutFormShell
-      title="Schedule a workout"
-      submitLabel="Schedule"
+      title={t("workout.schedule.title")}
+      submitLabel={t("workout.schedule.submit")}
       canSave={canSave}
       isSubmitting={isSubmitting}
       submitError={submitError}
       onSubmit={() => handleSave()}
     >
-      <FormSection title="Workout">
+      <FormSection title={t("workout.fields.workoutSection")}>
         <WorkoutMetadataFields
           control={form.control}
           templates={templates}
@@ -158,7 +162,7 @@ export function ScheduleWorkoutForm({
         <WorkoutBlockField control={form.control} blocks={blocks} />
       </FormSection>
 
-      <FormSection title="Planned">
+      <FormSection title={t("workout.fields.plannedSection")}>
         <WorkoutFaceFields
           control={form.control}
           faceName="planned"

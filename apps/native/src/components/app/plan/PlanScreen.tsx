@@ -10,6 +10,7 @@
  */
 
 import { useState, useCallback, useMemo, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { View, StatusBar, ActivityIndicator, type LayoutChangeEvent } from "react-native";
 import Animated, {
   useAnimatedStyle,
@@ -75,6 +76,7 @@ function computeWeekNumber(planStartDate: string, today: Date): number {
 }
 
 export function PlanScreen() {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const [selectedDate, setSelectedDate] = useState(() => new Date());
@@ -82,7 +84,7 @@ export function PlanScreen() {
   const headerHeight = useSharedValue(0);
 
   const athlete = useQuery(api.agoge.athletes.getAthlete);
-  const userName = athlete?.name || "there";
+  const userName = athlete?.name || t("plan.defaultName");
 
   const today = useMemo(() => new Date(), []);
 
@@ -124,7 +126,7 @@ export function PlanScreen() {
   const raceGoal = useMemo(() => selectPrimaryRace(races), [races]);
 
   const weekNumber = activePlan ? computeWeekNumber(activePlan.startDate, today) : 0;
-  const coachMessage = "Your coach is preparing your plan...";
+  const coachMessage = t("plan.coachPreparingPlan");
 
   const exportSheetRef = useRef<BottomSheetModal>(null);
 

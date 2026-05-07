@@ -17,14 +17,19 @@ import { useRouter } from "expo-router";
 import { useMutation } from "convex/react";
 import { api } from "@packages/backend/convex/_generated/api";
 
-// Configure how notifications are presented when the app is in the foreground
+// Configure how notifications are presented when the app is in the foreground.
+// Chat pushes are suppressed in foreground — the live UI already shows the message.
 Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
+  handleNotification: async (notification) => {
+    const data = notification.request.content.data as { screen?: string } | undefined;
+    const isChat = data?.screen === "chat";
+    return {
+      shouldPlaySound: !isChat,
+      shouldSetBadge: false,
+      shouldShowBanner: !isChat,
+      shouldShowList: !isChat,
+    };
+  },
 });
 
 export function usePushNotifications(enabled = true) {
@@ -92,6 +97,8 @@ export function usePushNotifications(enabled = true) {
 
         if (data?.screen === "workout" && data.workoutId) {
           router.push(`/(app)/workouts/${data.workoutId}`);
+        } else if (data?.screen === "chat") {
+          router.push("/(app)/(tabs)/coach");
         }
       });
 

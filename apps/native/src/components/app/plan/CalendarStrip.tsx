@@ -11,22 +11,8 @@ import { Text } from "@/components/ui/text";
 import type { WorkoutData } from "./types";
 import { getWorkoutColor } from "./utils";
 import { LIGHT_THEME } from "@/lib/design-tokens";
-
-const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-const MONTH_NAMES = [
-  "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December",
-];
+import { formatDayLabelShort, formatMonthName } from "@/lib/format";
+import { useLanguage } from "@/lib/i18n";
 
 const WEEKS_BUFFER = 12;
 const INITIAL_INDEX = WEEKS_BUFFER;
@@ -78,7 +64,7 @@ function toDateKey(d: Date): string {
   return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
 }
 
-function generateWeeks(): WeekData[] {
+function generateWeeks(locale: "en" | "fr"): WeekData[] {
   const today = new Date();
   const currentMonday = getMonday(today);
   const weeks: WeekData[] = [];
@@ -93,7 +79,7 @@ function generateWeeks(): WeekData[] {
       date.setDate(monday.getDate() + d);
       days.push({
         date,
-        dayLabel: DAY_LABELS[d],
+        dayLabel: formatDayLabelShort(locale, date),
         dateNum: date.getDate(),
       });
     }
@@ -179,8 +165,9 @@ export function CalendarStrip({
   selectedDate,
   onDateSelect,
 }: CalendarStripProps) {
+  const locale = useLanguage();
   const today = useMemo(() => new Date(), []);
-  const weeks = useMemo(generateWeeks, []);
+  const weeks = useMemo(() => generateWeeks(locale), [locale]);
   const [containerWidth, setContainerWidth] = useState(0);
   const scrollRef = useRef<ScrollView>(null);
   const didInitialScroll = useRef(false);
@@ -227,7 +214,7 @@ export function CalendarStrip({
     <View>
       <View className="flex-row items-baseline gap-2 px-1 mb-1">
         <Text className="text-xl font-coach-bold text-wText">
-          {MONTH_NAMES[displayMonth.month]}
+          {formatMonthName(locale, displayMonth.month, displayMonth.year)}
         </Text>
         <Text className="text-xl font-coach-light text-wMute">
           {displayMonth.year}
