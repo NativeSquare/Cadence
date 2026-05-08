@@ -127,10 +127,42 @@ export function useUploadImage() {
     [convex, generateUploadUrl]
   );
 
+  /**
+   * Uploads an arbitrary file and returns the raw `storageId`. Use this when
+   * the consumer is a Convex action that will read the blob directly via
+   * `ctx.storage.get(storageId)` — skips the `getImageUrl` round-trip.
+   */
+  const uploadFileToStorage = React.useCallback(
+    async (uri: string, mimeType: string): Promise<Id<"_storage">> => {
+      setIsUploading(true);
+      try {
+        const response = await fetch(uri);
+        const blob = await response.blob();
+
+        const uploadUrl = await generateUploadUrl();
+        const uploadResult = await fetch(uploadUrl, {
+          method: "POST",
+          headers: { "Content-Type": mimeType || "application/octet-stream" },
+          body: blob,
+        });
+
+        const { storageId } = (await uploadResult.json()) as {
+          storageId: Id<"_storage">;
+        };
+
+        return storageId;
+      } finally {
+        setIsUploading(false);
+      }
+    },
+    [generateUploadUrl]
+  );
+
   return {
     uploadImage,
     uploadImages,
     uploadFile,
+    uploadFileToStorage,
     isUploading,
   };
 }

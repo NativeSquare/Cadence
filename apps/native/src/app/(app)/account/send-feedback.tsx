@@ -5,7 +5,7 @@ import { Text } from "@/components/ui/text";
 import { useUploadImage } from "@/hooks/use-upload-image";
 import { getConvexErrorMessage } from "@/utils/getConvexErrorMessage";
 import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
-import { FeedbackSchema } from "@/validation/feedback";
+import { makeFeedbackSchema } from "@/validation/feedback";
 import { api } from "@packages/backend/convex/_generated/api";
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery } from "convex/react";
@@ -39,7 +39,7 @@ export default function SendFeedback() {
     setError(null);
     setFieldErrors({});
 
-    const result = FeedbackSchema.safeParse({
+    const result = makeFeedbackSchema(t).safeParse({
       type: formData?.type ?? "",
       feedbackText: formData?.feedbackText ?? "",
       feedbackImages: formData?.feedbackImages,

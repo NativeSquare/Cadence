@@ -1,7 +1,7 @@
 import { Text } from "@/components/ui/text";
 import { COLORS, GRAYS, SURFACES } from "@/lib/design-tokens";
 import { getConvexErrorMessage } from "@/utils/getConvexErrorMessage";
-import { ResetPasswordSchema } from "@/validation/auth";
+import { makeResetPasswordSchema } from "@/validation/auth";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useRouter } from "expo-router";
@@ -47,7 +47,7 @@ export function ResetPasswordForm({ email }: { email: string }) {
     setFormError(null);
     setFieldErrors({});
 
-    const result = ResetPasswordSchema.safeParse({
+    const result = makeResetPasswordSchema(t).safeParse({
       newPassword,
       code: value,
     });

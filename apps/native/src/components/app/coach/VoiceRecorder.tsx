@@ -158,7 +158,12 @@ function Waveform() {
  * - Waveform visualization
  * - Send button
  */
-export function VoiceRecorder({ transcript, onCancel, onSend }: VoiceRecorderProps) {
+export function VoiceRecorder({
+  transcript,
+  onCancel,
+  onSend,
+  isBusy = false,
+}: VoiceRecorderProps) {
   const { t } = useTranslation();
   return (
     <Animated.View
@@ -215,7 +220,9 @@ export function VoiceRecorder({ transcript, onCancel, onSend }: VoiceRecorderPro
         {/* Send button */}
         <Pressable
           onPress={() => onSend(transcript)}
+          disabled={isBusy}
           className="w-[42px] h-[42px] rounded-[14px] bg-wText items-center justify-center active:opacity-80"
+          style={{ opacity: isBusy ? 0.5 : 1 }}
         >
           <Send size={16} color={COLORS.lime} strokeWidth={2} />
         </Pressable>

@@ -1,3 +1,4 @@
+import type { TFunction } from "i18next";
 import type { ComponentType } from "react";
 import {
   Activity,
@@ -56,25 +57,27 @@ export type WindowKey =
   | "currentPlan"
   | "na";
 
-export const WINDOW_LABEL: Record<WindowKey, string> = {
-  today: "Today",
-  yesterday: "Yesterday",
-  "7d": "7d",
-  "14d": "14d",
-  "30d": "30d",
-  "90d": "90d",
-  "365d": "365d",
-  all: "All",
-  "4w": "4w",
-  "12w": "12w",
-  "26w": "26w",
-  "52w": "52w",
-  "1y": "1y",
-  "2y": "2y",
-  currentBlock: "Block",
-  currentPlan: "Plan",
-  na: "—",
-};
+// Translation-aware version of the window label. Numeric/duration codes
+// (7d, 14d, 4w, 12w, 1y, etc.) stay literal across locales since they're
+// unit abbreviations; only the named keys go through `t`.
+export function getWindowLabel(t: TFunction, key: WindowKey): string {
+  switch (key) {
+    case "today":
+      return t("analytics.timeWindow.today");
+    case "yesterday":
+      return t("analytics.timeWindow.yesterday");
+    case "all":
+      return t("analytics.timeWindow.all");
+    case "currentBlock":
+      return t("analytics.timeWindow.block");
+    case "currentPlan":
+      return t("analytics.timeWindow.plan");
+    case "na":
+      return t("analytics.timeWindow.na");
+    default:
+      return key;
+  }
+}
 
 export type ChartKind =
   | "stackedBar"

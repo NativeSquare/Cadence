@@ -1,19 +1,25 @@
 import {
   BLOCK_TYPE_COLORS,
-  BLOCK_TYPE_LABELS,
-  WORKOUT_TYPE_LABELS,
   workoutTypeColor,
   workoutTypeColorDim,
 } from "@/components/app/training-plan/constants";
+import {
+  blockTypeLabel,
+  workoutStatusLabel,
+  workoutTypeLabel,
+} from "@/components/app/workout/workout-helpers";
 import { Text } from "@/components/ui/text";
 import { LIGHT_THEME } from "@/lib/design-tokens";
 import { selectionFeedback } from "@/lib/haptics";
+import { useLanguage, type Language } from "@/lib/i18n";
 import { Ionicons } from "@expo/vector-icons";
+import type { TFunction } from "i18next";
 import type { BlockDoc, WorkoutDoc } from "@nativesquare/agoge/schema";
 import { api } from "@packages/backend/convex/_generated/api";
 import { useQuery } from "convex/react";
 import { useRouter } from "expo-router";
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { Pressable, ScrollView, View } from "react-native";
 
 type WorkoutWithRefs = WorkoutDoc & {
@@ -38,25 +44,35 @@ function weekIndex(blockStartYmd: string, isoDate: string): number {
   return Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24) / 7));
 }
 
-function formatBlockRange(startYmd: string, endYmd: string): string {
+function formatBlockRange(
+  locale: Language,
+  startYmd: string,
+  endYmd: string,
+): string {
   const s = parseYmd(startYmd);
   const e = parseYmd(endYmd);
   const sameYear = s.getFullYear() === e.getFullYear();
   const sOpts: Intl.DateTimeFormatOptions = sameYear
     ? { month: "short", day: "numeric" }
     : { month: "short", day: "numeric", year: "numeric" };
-  return `${s.toLocaleDateString(undefined, sOpts)} → ${e.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`;
+  const start = new Intl.DateTimeFormat(locale, sOpts).format(s);
+  const end = new Intl.DateTimeFormat(locale, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(e);
+  return `${start} → ${end}`;
 }
 
-function formatWorkoutDay(iso: string): {
-  weekday: string;
-  day: string;
-} {
+function formatWorkoutDay(
+  locale: Language,
+  iso: string,
+): { weekday: string; day: string } {
   const d = new Date(iso);
-  return {
-    weekday: d.toLocaleDateString(undefined, { weekday: "short" }).slice(0, 3),
-    day: String(d.getDate()),
-  };
+  const weekday = new Intl.DateTimeFormat(locale, { weekday: "short" })
+    .format(d)
+    .slice(0, 3);
+  return { weekday, day: String(d.getDate()) };
 }
 
 function formatDuration(seconds?: number): string | null {
@@ -76,6 +92,8 @@ function formatDistance(meters?: number): string | null {
 
 export default function TrainingPlanScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
+  const locale = useLanguage();
   const plan = useQuery(api.agoge.plans.getAthletePlan);
   const blocks = useQuery(api.agoge.blocks.listBlocksForActiveAthletePlan);
   const workouts = useQuery(api.agoge.workouts.listWorkouts, {});
@@ -129,7 +147,7 @@ export default function TrainingPlanScreen() {
           className="flex-1 font-coach-bold text-lg"
           style={{ color: LIGHT_THEME.wText }}
         >
-          Training Plan
+          {t("account.trainingPlan.title")}
         </Text>
         {!hasNoPlan && !isLoading && (
           <Pressable
@@ -147,15 +165,15 @@ export default function TrainingPlanScreen() {
 
       {isLoading ? null : hasNoPlan ? (
         <EmptyState
-          title="No active training plan"
-          description="Your coach builds the plan once you set a target. Talk to your coach to get started."
+          title={t("account.trainingPlan.empty.noPlan.title")}
+          description={t("account.trainingPlan.empty.noPlan.description")}
         />
       ) : hasNoBlocks ? (
         <EmptyState
-          title="No blocks yet"
-          description="Blocks group consecutive weeks of training. Workouts go inside blocks."
+          title={t("account.trainingPlan.empty.noBlocks.title")}
+          description={t("account.trainingPlan.empty.noBlocks.description")}
           action={{
-            label: "Add your first block",
+            label: t("account.trainingPlan.empty.noBlocks.addFirst"),
             onPress: () => {
               selectionFeedback();
               router.push("/(app)/account/training-plan/blocks/new");
@@ -171,6 +189,8 @@ export default function TrainingPlanScreen() {
             {sortedBlocks.map((block) => (
               <BlockSection
                 key={block._id}
+                t={t}
+                locale={locale}
                 block={block}
                 workouts={workoutsByBlock.get(block._id) ?? []}
                 onEditBlock={() =>
@@ -248,12 +268,16 @@ function EmptyState({
 }
 
 function BlockSection({
+  t,
+  locale,
   block,
   workouts,
   onEditBlock,
   onAddWorkout,
   onEditWorkout,
 }: {
+  t: TFunction;
+  locale: Language;
   block: BlockDoc;
   workouts: WorkoutWithRefs[];
   onEditBlock: () => void;
@@ -295,13 +319,13 @@ function BlockSection({
             className="font-coach-extrabold text-[11px] uppercase"
             style={{ color: LIGHT_THEME.wSub, letterSpacing: 1.2 }}
           >
-            {BLOCK_TYPE_LABELS[block.type]} · {block.name}
+            {blockTypeLabel(t, block.type)} · {block.name}
           </Text>
           <Text
             className="mt-0.5 font-coach text-[11px]"
             style={{ color: LIGHT_THEME.wMute }}
           >
-            {formatBlockRange(block.startDate, block.endDate)}
+            {formatBlockRange(locale, block.startDate, block.endDate)}
             {block.focus ? ` · ${block.focus}` : ""}
           </Text>
         </View>
@@ -321,12 +345,14 @@ function BlockSection({
                   className="px-1 font-coach-semibold text-[10px] uppercase"
                   style={{ color: LIGHT_THEME.wMute, letterSpacing: 1 }}
                 >
-                  Week {week + 1}
+                  {t("account.trainingPlan.week", { number: week + 1 })}
                 </Text>
               )}
               {items.map((w) => (
                 <WorkoutCard
                   key={w._id}
+                  t={t}
+                  locale={locale}
                   workout={w}
                   onPress={() => onEditWorkout(w._id)}
                 />
@@ -350,7 +376,7 @@ function BlockSection({
           className="font-coach-semibold text-[12px]"
           style={{ color: LIGHT_THEME.wMute }}
         >
-          Add workout
+          {t("account.trainingPlan.addWorkout")}
         </Text>
       </Pressable>
     </View>
@@ -358,27 +384,34 @@ function BlockSection({
 }
 
 function WorkoutCard({
+  t,
+  locale,
   workout,
   onPress,
 }: {
+  t: TFunction;
+  locale: Language;
   workout: WorkoutWithRefs;
   onPress: () => void;
 }) {
   const date = workoutDate(workout);
-  const day = date ? formatWorkoutDay(date) : null;
+  const day = date ? formatWorkoutDay(locale, date) : null;
   const duration = formatDuration(workout.planned?.durationSeconds);
   const distance = formatDistance(workout.planned?.distanceMeters);
   const typeColor = workoutTypeColor(workout.type);
   const typeColorDim = workoutTypeColorDim(workout.type);
   const dimmed = workout.status === "skipped" || workout.status === "missed";
-  const completed = workout.status === "completed";
 
-  const subtitleParts = [WORKOUT_TYPE_LABELS[workout.type]];
+  const subtitleParts = [workoutTypeLabel(t, workout.type)];
   const meta = [duration, distance].filter(Boolean).join(" · ");
   if (meta) subtitleParts.push(meta);
-  if (completed) subtitleParts.push("Done");
-  else if (workout.status === "skipped") subtitleParts.push("Skipped");
-  else if (workout.status === "missed") subtitleParts.push("Missed");
+  if (
+    workout.status === "completed" ||
+    workout.status === "skipped" ||
+    workout.status === "missed"
+  ) {
+    subtitleParts.push(workoutStatusLabel(t, workout.status));
+  }
 
   return (
     <Pressable

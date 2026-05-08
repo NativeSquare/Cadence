@@ -7,14 +7,12 @@ import {
   ScrollView,
 } from "react-native";
 import { useTranslation } from "react-i18next";
-import { Mic, ArrowUp, Plus, X, FileText } from "lucide-react-native";
+import { ArrowUp, Plus, X, FileText } from "lucide-react-native";
 import { LIGHT_THEME } from "@/lib/design-tokens";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSpring,
-  FadeIn,
-  FadeOut,
 } from "react-native-reanimated";
 
 import type { ChatInputProps } from "./types";
@@ -174,39 +172,20 @@ export function ChatInput({
           />
         </View>
 
-        {/* Right action: Mic (empty) or Send (has text or attachments) */}
-        {canSend ? (
-          <Animated.View
-            key="send"
-            entering={FadeIn.duration(150)}
-            exiting={FadeOut.duration(100)}
-          >
-            <AnimatedPressable
-              onPress={onSend}
-              onPressIn={handleSendPressIn}
-              onPressOut={handleSendPressOut}
-              disabled={disabled}
-              style={[sendAnimStyle, { opacity: disabled ? 0.5 : 1 }]}
-              className="w-9 h-9 rounded-full bg-wText items-center justify-center mb-[1px]"
-            >
-              <ArrowUp size={18} color="#C8FF00" strokeWidth={2.5} />
-            </AnimatedPressable>
-          </Animated.View>
-        ) : (
-          <Animated.View
-            key="mic"
-            entering={FadeIn.duration(150)}
-            exiting={FadeOut.duration(100)}
-          >
-            <Pressable
-              onPress={onMicPress}
-              disabled={disabled}
-              className="w-9 h-9 rounded-full items-center justify-center mb-[1px] active:opacity-60"
-            >
-              <Mic size={18} color={LIGHT_THEME.wMute} strokeWidth={1.8} />
-            </Pressable>
-          </Animated.View>
-        )}
+        {/* Right action: Send button (mic input hidden for now) */}
+        <AnimatedPressable
+          onPress={onSend}
+          onPressIn={handleSendPressIn}
+          onPressOut={handleSendPressOut}
+          disabled={disabled || !canSend}
+          style={[
+            sendAnimStyle,
+            { opacity: disabled || !canSend ? 0.5 : 1 },
+          ]}
+          className="w-9 h-9 rounded-full bg-wText items-center justify-center mb-[1px]"
+        >
+          <ArrowUp size={18} color="#C8FF00" strokeWidth={2.5} />
+        </AnimatedPressable>
       </View>
     </View>
   );

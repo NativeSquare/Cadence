@@ -3,6 +3,7 @@ import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
 import { getConvexErrorMessage } from "@/utils/getConvexErrorMessage";
 import { ZoneKind } from "@nativesquare/agoge/schema";
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { ActivityIndicator, Pressable, View } from "react-native";
 
 export type ZoneResyncAlertProps = {
@@ -16,6 +17,7 @@ export function ZoneResyncAlert({
   canResync,
   onResync,
 }: ZoneResyncAlertProps) {
+  const { t } = useTranslation();
   const [confirming, setConfirming] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
@@ -45,7 +47,7 @@ export function ZoneResyncAlert({
         className="font-coach text-[14px] leading-5"
         style={{ color: LIGHT_THEME.wText }}
       >
-        These zones use custom boundaries — they won't recompute when your threshold changes. Re-sync to recalculate them from your current threshold.
+        {t("account.zones.resync.message")}
       </Text>
       {error && (
         <Text
@@ -71,7 +73,7 @@ export function ZoneResyncAlert({
                 className="font-coach-medium text-[13px]"
                 style={{ color: LIGHT_THEME.wMute }}
               >
-                Cancel
+                {t("common.cancel")}
               </Text>
             </Pressable>
             <Pressable
@@ -91,7 +93,7 @@ export function ZoneResyncAlert({
                   className="font-coach-bold text-[13px]"
                   style={{ color: "#FFFFFF" }}
                 >
-                  Confirm
+                  {t("common.confirm")}
                 </Text>
               )}
             </Pressable>
@@ -111,7 +113,7 @@ export function ZoneResyncAlert({
               className="font-coach-bold text-[13px]"
               style={{ color: "#FFFFFF" }}
             >
-              Re-sync from threshold
+              {t("account.zones.resync.cta")}
             </Text>
           </Pressable>
         )}

@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Pressable, View } from "react-native";
 import { Text } from "@/components/ui/text";
 import type { SectionId } from "../inventory";
@@ -7,20 +8,18 @@ type Props = {
   onChange: (next: SectionId) => void;
 };
 
-const TABS: { id: SectionId; label: string }[] = [
-  { id: "training", label: "Training" },
-  { id: "health", label: "Health" },
-];
+const TAB_IDS: SectionId[] = ["training", "health"];
 
 export function SectionToggle({ value, onChange }: Props) {
+  const { t } = useTranslation();
   return (
     <View className="flex-row bg-w3 rounded-full p-1 self-stretch">
-      {TABS.map((tab) => {
-        const active = tab.id === value;
+      {TAB_IDS.map((id) => {
+        const active = id === value;
         return (
           <Pressable
-            key={tab.id}
-            onPress={() => onChange(tab.id)}
+            key={id}
+            onPress={() => onChange(id)}
             className={`flex-1 items-center justify-center py-3 rounded-full ${
               active ? "bg-w1" : ""
             }`}
@@ -43,7 +42,7 @@ export function SectionToggle({ value, onChange }: Props) {
                   : "font-coach text-wMute"
               }`}
             >
-              {tab.label}
+              {t(`analytics.sections.${id}`)}
             </Text>
           </Pressable>
         );

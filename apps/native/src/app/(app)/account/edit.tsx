@@ -5,9 +5,9 @@ import { useUploadImage } from "@/hooks/use-upload-image";
 import { getConvexErrorMessage } from "@/utils/getConvexErrorMessage";
 import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
 import { selectionFeedback } from "@/lib/haptics";
-import { UserProfileSchema } from "@/validation/account";
+import { makeUserProfileSchema } from "@/validation/account";
 import {
-  AthleteProfileSchema,
+  makeAthleteProfileSchema,
   SEX_VALUES,
   type Sex,
 } from "@/validation/athlete";
@@ -175,7 +175,7 @@ export default function EditProfileScreen() {
       name: form.name.trim(),
       image: form.image ?? undefined,
     };
-    const userParsed = UserProfileSchema.safeParse(userCandidate);
+    const userParsed = makeUserProfileSchema(t).safeParse(userCandidate);
     if (!userParsed.success) {
       const tree = z.treeifyError(userParsed.error);
       setFieldErrors({
@@ -194,7 +194,7 @@ export default function EditProfileScreen() {
       heightCm: parseNumber(form.heightCm),
       weightKg: parseNumber(form.weightKg),
     };
-    const athleteParsed = AthleteProfileSchema.safeParse(athleteCandidate);
+    const athleteParsed = makeAthleteProfileSchema(t).safeParse(athleteCandidate);
     if (!athleteParsed.success) {
       const tree = z.treeifyError(athleteParsed.error);
       setError(tree.errors?.[0] ?? t("account.profile.errors.invalidValues"));

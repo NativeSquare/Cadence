@@ -1,9 +1,10 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Modal, Pressable, View } from "react-native";
 import { ChevronDown } from "lucide-react-native";
 import { Text } from "@/components/ui/text";
 import { LIGHT_THEME } from "@/lib/design-tokens";
-import { WINDOW_LABEL, type WindowKey } from "../inventory";
+import { getWindowLabel, type WindowKey } from "../inventory";
 
 type Props = {
   value: WindowKey;
@@ -12,6 +13,7 @@ type Props = {
 };
 
 export function TimeWindowPill({ value, options, onChange }: Props) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const interactive = options.length > 1;
 
@@ -24,7 +26,7 @@ export function TimeWindowPill({ value, options, onChange }: Props) {
         className="flex-row items-center gap-1.5 px-3.5 py-2 rounded-full bg-w3"
       >
         <Text className="text-[13px] font-coach-medium text-wSub">
-          {WINDOW_LABEL[value]}
+          {getWindowLabel(t, value)}
         </Text>
         {interactive ? (
           <ChevronDown size={14} color={LIGHT_THEME.wMute} strokeWidth={2.5} />
@@ -47,7 +49,7 @@ export function TimeWindowPill({ value, options, onChange }: Props) {
           >
             <View className="self-center w-10 h-1 rounded-full bg-w3 mb-4" />
             <Text className="text-[13px] font-coach-semibold text-wMute uppercase tracking-wider mb-3">
-              Time window
+              {t("analytics.timeWindow.title")}
             </Text>
             {options.map((opt) => {
               const active = opt === value;
@@ -67,7 +69,7 @@ export function TimeWindowPill({ value, options, onChange }: Props) {
                         : "font-coach text-wText"
                     }`}
                   >
-                    {WINDOW_LABEL[opt]}
+                    {getWindowLabel(t, opt)}
                   </Text>
                 </Pressable>
               );

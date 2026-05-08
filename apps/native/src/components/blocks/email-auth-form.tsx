@@ -1,7 +1,7 @@
 import { Text } from "@/components/ui/text";
 import { COLORS, GRAYS, SURFACES } from "@/lib/design-tokens";
 import { getConvexErrorMessage } from "@/utils/getConvexErrorMessage";
-import { SignInSchema, SignUpSchema } from "@/validation/auth";
+import { makeSignInSchema, makeSignUpSchema } from "@/validation/auth";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -86,7 +86,7 @@ export function EmailAuthForm() {
     resetErrors();
 
     if (!isSignUp) {
-      const result = SignInSchema.safeParse({ email, password });
+      const result = makeSignInSchema(t).safeParse({ email, password });
       if (!result.success) {
         const tree = z.treeifyError(result.error);
         setFieldErrors({
@@ -105,7 +105,7 @@ export function EmailAuthForm() {
         setIsLoading(false);
       }
     } else {
-      const result = SignUpSchema.safeParse({
+      const result = makeSignUpSchema(t).safeParse({
         name,
         email,
         password,

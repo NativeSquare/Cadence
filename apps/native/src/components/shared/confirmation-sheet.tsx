@@ -4,6 +4,7 @@ import { Text } from "@/components/ui/text";
 import { Ionicons } from "@expo/vector-icons";
 import { BottomSheetModal as GorhomBottomSheetModal } from "@gorhom/bottom-sheet";
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { View } from "react-native";
 
 export type ConfirmationSheetProps = {
@@ -25,12 +26,14 @@ export function ConfirmationSheet({
   title,
   description,
   confirmLabel,
-  cancelLabel = "Cancel",
+  cancelLabel,
   destructive = false,
   loading = false,
   onConfirm,
   onCancel,
 }: ConfirmationSheetProps) {
+  const { t } = useTranslation();
+  const resolvedCancelLabel = cancelLabel ?? t("common.cancel");
   const handleCancel = () => {
     onCancel?.();
     sheetRef.current?.dismiss();
@@ -74,10 +77,10 @@ export function ConfirmationSheet({
             disabled={loading}
             className="h-12"
           >
-            <Text className="font-coach-semibold">{loading ? "Please wait..." : confirmLabel}</Text>
+            <Text className="font-coach-semibold">{loading ? t("common.pleaseWait") : confirmLabel}</Text>
           </Button>
           <Button variant="outline" onPress={handleCancel} className="h-12">
-            <Text className="font-coach-medium">{cancelLabel}</Text>
+            <Text className="font-coach-medium">{resolvedCancelLabel}</Text>
           </Button>
         </View>
       </View>

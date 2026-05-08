@@ -9,6 +9,7 @@ import { BottomSheetModal as GorhomBottomSheetModal } from "@gorhom/bottom-sheet
 import * as ImagePicker from "expo-image-picker";
 import { Upload } from "lucide-react-native";
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { Pressable, View } from "react-native";
 
 export type ImageUploaderProps = {
@@ -22,6 +23,7 @@ export function ImageUploader({
   uploadOptions = ["camera", "gallery"],
   disabled = false,
 }: ImageUploaderProps) {
+  const { t } = useTranslation();
   const bottomSheetModalRef = React.useRef<GorhomBottomSheetModal>(null);
 
   const handleOpenUploadModal = () => {
@@ -42,7 +44,7 @@ export function ImageUploader({
           <Icon as={Upload} size={28} className="text-muted-foreground" />
         </View>
         <Text className="text-muted-foreground text-sm">
-          Upload your image here
+          {t("imageUploader.prompt")}
         </Text>
         <Button
           variant="outline"
@@ -51,7 +53,7 @@ export function ImageUploader({
           disabled={disabled}
           className="rounded-full px-6"
         >
-          <Text className="text-sm">Browse</Text>
+          <Text className="text-sm">{t("imageUploader.browse")}</Text>
         </Button>
       </Pressable>
 

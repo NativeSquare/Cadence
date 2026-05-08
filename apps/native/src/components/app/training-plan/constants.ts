@@ -10,16 +10,6 @@ export const BLOCK_TYPES = [
   "transition",
 ] as const satisfies readonly BlockType[];
 
-export const BLOCK_TYPE_LABELS: Record<BlockType, string> = {
-  base: "Base",
-  build: "Build",
-  peak: "Peak",
-  taper: "Taper",
-  recovery: "Recovery",
-  maintenance: "Maintenance",
-  transition: "Transition",
-};
-
 export const BLOCK_TYPE_COLORS: Record<BlockType, string> = {
   base: "#6B9E3A",
   build: "#E8A030",
@@ -51,27 +41,6 @@ export const WORKOUT_TYPES = [
   "other",
 ] as const satisfies readonly WorkoutType[];
 
-export const WORKOUT_TYPE_LABELS: Record<WorkoutType, string> = {
-  easy: "Easy",
-  long: "Long",
-  tempo: "Tempo",
-  threshold: "Threshold",
-  intervals: "Intervals",
-  vo2max: "VO2max",
-  fartlek: "Fartlek",
-  progression: "Progression",
-  race_pace: "Race pace",
-  recovery: "Recovery",
-  strides: "Strides",
-  hills: "Hills",
-  race: "Race",
-  test: "Test",
-  cross_training: "Cross-training",
-  strength: "Strength",
-  rest: "Rest",
-  other: "Other",
-};
-
 const EASY_LIKE: ReadonlySet<WorkoutType> = new Set([
   "easy",
   "recovery",
@@ -94,20 +63,3 @@ export function workoutTypeColorDim(type: WorkoutType): string {
   if (RACE_LIKE.has(type)) return "rgba(255, 0, 64, 0.15)";
   return "rgba(255, 109, 0, 0.15)";
 }
-
-export const WORKOUT_STATUSES = [
-  "planned",
-  "completed",
-  "missed",
-  "skipped",
-] as const;
-
-export const WORKOUT_STATUS_LABELS: Record<
-  (typeof WORKOUT_STATUSES)[number],
-  string
-> = {
-  planned: "Planned",
-  completed: "Completed",
-  missed: "Missed",
-  skipped: "Skipped",
-};

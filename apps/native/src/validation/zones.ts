@@ -1,36 +1,6 @@
 import { parsePaceInput } from "@/lib/format-pace";
+import type { TFunction } from "i18next";
 import { z } from "zod";
-
-const NonNegativeIntegerString = z
-  .string()
-  .trim()
-  .refine((s) => /^\d+$/.test(s), { message: "Enter a whole number" })
-  .transform((s) => Number.parseInt(s, 10));
-
-const PaceMpsString = z
-  .string()
-  .trim()
-  .transform((s, ctx) => {
-    const p = parsePaceInput(s);
-    if (p === null || !Number.isFinite(p) || p <= 0) {
-      ctx.addIssue({
-        code: "custom",
-        message: "Use min:sec per km (e.g. 3:45)",
-      });
-      return z.NEVER;
-    }
-    return p;
-  });
-
-export const HrThresholdField = NonNegativeIntegerString.refine(
-  (n) => n >= 61 && n <= 250,
-  { message: "Enter a value between 61 and 250 bpm" },
-);
-
-export const PaceThresholdField = PaceMpsString;
-
-const HrBoundaryField = NonNegativeIntegerString;
-const PaceBoundaryField = PaceMpsString;
 
 export type ZoneKind = "hr" | "pace";
 
@@ -40,25 +10,69 @@ export const ZONE_CAP: Record<ZoneKind, number> = {
   pace: 1609.34,
 };
 
-export const ZONE_ORDERING_MESSAGES: Record<ZoneKind, string> = {
-  hr: "Each zone must be higher than the one below",
-  pace: "Each zone must be faster than the one below",
-};
+function makeNonNegativeIntegerString(t: TFunction) {
+  return z
+    .string()
+    .trim()
+    .refine((s) => /^\d+$/.test(s), {
+      message: t("account.zones.validation.wholeNumber"),
+    })
+    .transform((s) => Number.parseInt(s, 10));
+}
 
-export const ZONE_FORMAT_MESSAGES: Record<ZoneKind, string> = {
-  hr: "Enter whole numbers in bpm",
-  pace: "Use min:sec per km (e.g. 3:45)",
-};
+function makePaceMpsString(t: TFunction) {
+  return z
+    .string()
+    .trim()
+    .transform((s, ctx) => {
+      const p = parsePaceInput(s);
+      if (p === null || !Number.isFinite(p) || p <= 0) {
+        ctx.addIssue({
+          code: "custom",
+          message: t("account.zones.validation.paceFormat"),
+        });
+        return z.NEVER;
+      }
+      return p;
+    });
+}
 
-export const ZONE_CAP_MESSAGES: Record<ZoneKind, string> = {
-  hr: `Must be below ${ZONE_CAP.hr} bpm`,
-  pace: "Pace is implausibly fast",
-};
+export function makeHrThresholdField(t: TFunction) {
+  return makeNonNegativeIntegerString(t).refine(
+    (n) => n >= 61 && n <= 250,
+    { message: t("account.zones.validation.hrThresholdRange") },
+  );
+}
 
-export function makeZonesFormSchema(kind: ZoneKind) {
-  const field = kind === "hr" ? HrBoundaryField : PaceBoundaryField;
-  const orderingMessage = ZONE_ORDERING_MESSAGES[kind];
-  const capMessage = ZONE_CAP_MESSAGES[kind];
+export function makePaceThresholdField(t: TFunction) {
+  return makePaceMpsString(t);
+}
+
+export function getZoneOrderingMessage(t: TFunction, kind: ZoneKind): string {
+  return kind === "hr"
+    ? t("account.zones.validation.hrOrdering")
+    : t("account.zones.validation.paceOrdering");
+}
+
+export function getZoneFormatMessage(t: TFunction, kind: ZoneKind): string {
+  return kind === "hr"
+    ? t("account.zones.validation.hrFormat")
+    : t("account.zones.validation.paceFormat");
+}
+
+function getZoneCapMessage(t: TFunction, kind: ZoneKind): string {
+  return kind === "hr"
+    ? t("account.zones.validation.hrCap", { cap: ZONE_CAP.hr })
+    : t("account.zones.validation.paceCap");
+}
+
+export function makeZonesFormSchema(t: TFunction, kind: ZoneKind) {
+  const field =
+    kind === "hr"
+      ? makeNonNegativeIntegerString(t)
+      : makePaceMpsString(t);
+  const orderingMessage = getZoneOrderingMessage(t, kind);
+  const capMessage = getZoneCapMessage(t, kind);
   const cap = ZONE_CAP[kind];
   return z
     .object({ b1: field, b2: field, b3: field, b4: field })

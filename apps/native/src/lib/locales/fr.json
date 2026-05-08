@@ -4,6 +4,11 @@
     "cancel": "Annuler",
     "back": "Retour",
     "continue": "Continuer",
+    "tryAgain": "Réessayer",
+    "pleaseWait": "Veuillez patienter…",
+    "save": "Enregistrer",
+    "edit": "Modifier",
+    "confirm": "Confirmer",
     "relativeShort": {
       "justNow": "à l'instant",
       "minutes": "il y a {{count}} min",
@@ -12,6 +17,49 @@
       "weeks": "il y a {{count}} sem",
       "months": "il y a {{count}} mois",
       "years": "il y a {{count}} an"
+    }
+  },
+  "validation": {
+    "nameRequired": "Le nom est requis",
+    "emailRequired": "L'e-mail est requis",
+    "emailInvalid": "Veuillez saisir une adresse e-mail valide",
+    "passwordRequired": "Le mot de passe est requis",
+    "passwordMin": "Le mot de passe doit contenir au moins {{count}} caractères",
+    "confirmPasswordRequired": "La confirmation du mot de passe est requise",
+    "confirmPasswordMin": "La confirmation doit contenir au moins {{count}} caractères",
+    "passwordsDoNotMatch": "Les mots de passe ne correspondent pas",
+    "acceptTerms": "Vous devez accepter les conditions d'utilisation",
+    "newPasswordRequired": "Le nouveau mot de passe est requis",
+    "newPasswordMin": "Le nouveau mot de passe doit contenir au moins {{count}} caractères",
+    "codeRequired": "Le code est requis",
+    "codeIncomplete": "Code incomplet",
+    "feedbackTypeRequired": "Le type de retour est requis",
+    "feedbackTextRequired": "Le texte du retour est requis",
+    "invalidDate": "Date invalide",
+    "invalidWeight": "Poids invalide",
+    "invalidHeight": "Taille invalide"
+  },
+  "imageUploader": {
+    "prompt": "Téléversez votre image ici",
+    "browse": "Parcourir"
+  },
+  "connection": {
+    "reconnecting": "Reconnexion…",
+    "stillTrying": "Tentative de reconnexion…",
+    "takingLonger": "Cela prend plus de temps que prévu",
+    "issues": "Problèmes de connexion. Vous pouvez réessayer.",
+    "backOnline": "De retour en ligne"
+  },
+  "updates": {
+    "available": {
+      "title": "Mise à jour disponible",
+      "message": "Une nouvelle version de l'application est disponible. Voulez-vous la télécharger et l'installer maintenant ?",
+      "later": "Plus tard",
+      "updateNow": "Mettre à jour"
+    },
+    "failed": {
+      "title": "Échec de la mise à jour",
+      "message": "Impossible d'installer la mise à jour : {{error}}"
     }
   },
   "auth": {
@@ -150,9 +198,17 @@
       "failedFile": "Impossible d'envoyer le fichier. Veuillez réessayer."
     },
     "fallbackPrompt": "Que voyez-vous ?",
-    "mockTranscript": "Peut-on échanger le repos de demain pour une sortie facile",
     "voice": {
-      "liveTranscription": "Transcription en direct"
+      "liveTranscription": "Transcription en direct",
+      "listening": "À l'écoute…",
+      "transcribing": "Transcription…",
+      "transcriptionFailedTitle": "Transcription impossible",
+      "transcriptionFailedMessage": "Nous n'avons pas pu transcrire votre audio. Réessayer ?",
+      "permissionDeniedTitle": "Accès au microphone requis",
+      "permissionDeniedMessage": "Activez l'accès au microphone dans Réglages pour dicter des messages.",
+      "openSettings": "Ouvrir les Réglages",
+      "retry": "Réessayer",
+      "discard": "Annuler"
     },
     "tool": {
       "couldNotSubmit": "Impossible d'envoyer la réponse"
@@ -461,6 +517,30 @@
     "structure": {
       "repeat": "Répéter"
     },
+    "stepEditor": {
+      "titleEdit": "Modifier l'étape",
+      "titleAdd": "Ajouter une étape",
+      "intent": "Intention",
+      "duration": "Durée",
+      "target": "Cible",
+      "nameOptional": "Nom (optionnel)",
+      "namePlaceholder": "ex. Cruise",
+      "notesOptional": "Notes (optionnel)",
+      "notesPlaceholder": "Conseils, points d'attention…",
+      "submitSave": "Enregistrer",
+      "submitAdd": "Ajouter l'étape",
+      "deleteStep": "Supprimer l'étape",
+      "delete": {
+        "title": "Supprimer cette étape ?",
+        "message": "Cette action est irréversible. Si c'est la seule étape d'une Répétition, la Répétition est aussi supprimée.",
+        "confirm": "Supprimer"
+      },
+      "untilAbove": "Jusqu'à au-dessus",
+      "untilBelow": "Jusqu'à en-dessous",
+      "hrZonesHint": "Configurez les zones de FC dans Compte → Zones pour utiliser des cibles par zone.",
+      "to": "à",
+      "pacePerKm": "min/km"
+    },
     "status": {
       "planned": "Planifiée",
       "completed": "Terminée",
@@ -513,7 +593,22 @@
   "analytics": {
     "errorTitle": "Impossible de charger les analyses",
     "errorFallback": "Une erreur est survenue",
-    "tryAgain": "Réessayer"
+    "tryAgain": "Réessayer",
+    "title": "Analyses",
+    "subtitle": "Tout ce que nous suivons, organisé par source",
+    "sections": {
+      "training": "Entraînement",
+      "health": "Santé"
+    },
+    "timeWindow": {
+      "title": "Période",
+      "today": "Aujourd'hui",
+      "yesterday": "Hier",
+      "all": "Tout",
+      "block": "Bloc",
+      "plan": "Plan",
+      "na": "—"
+    }
   },
   "profile": {
     "guest": "Invité",
@@ -842,7 +937,44 @@
       "title": "Zones",
       "hrZones": "Zones FC",
       "paceZones": "Zones d'allure",
-      "errorThresholdRequired": "Définissez un seuil avant de resynchroniser les zones."
+      "errorThresholdRequired": "Définissez un seuil avant de resynchroniser les zones.",
+      "yourThresholds": "Vos seuils",
+      "hrThresholdLabel": "Seuil de fréquence cardiaque (LTHR)",
+      "paceThresholdLabel": "Seuil d'allure",
+      "unitBpm": "bpm",
+      "unitPerKm": "/km",
+      "fillAllBoundaries": "Renseignez les quatre limites pour enregistrer.",
+      "invalidBoundaries": "Limites de zones invalides",
+      "resync": {
+        "message": "Ces zones utilisent des limites personnalisées — elles ne seront pas recalculées si votre seuil change. Resynchronisez pour les recalculer depuis votre seuil actuel.",
+        "cta": "Resynchroniser depuis le seuil"
+      },
+      "validation": {
+        "wholeNumber": "Saisissez un nombre entier",
+        "paceFormat": "Utilisez min:sec par km (ex. 3:45)",
+        "hrThresholdRange": "Saisissez une valeur entre 61 et 250 bpm",
+        "hrOrdering": "Chaque zone doit être supérieure à la précédente",
+        "paceOrdering": "Chaque zone doit être plus rapide que la précédente",
+        "hrFormat": "Saisissez des nombres entiers en bpm",
+        "hrCap": "Doit être inférieur à {{cap}} bpm",
+        "paceCap": "Allure invraisemblablement rapide"
+      }
+    },
+    "trainingPlan": {
+      "title": "Plan d'entraînement",
+      "addWorkout": "Ajouter une séance",
+      "week": "Semaine {{number}}",
+      "empty": {
+        "noPlan": {
+          "title": "Aucun plan d'entraînement actif",
+          "description": "Votre coach construit le plan une fois votre objectif défini. Discutez avec lui pour commencer."
+        },
+        "noBlocks": {
+          "title": "Aucun bloc pour le moment",
+          "description": "Les blocs regroupent des semaines d'entraînement consécutives. Les séances vont à l'intérieur des blocs.",
+          "addFirst": "Ajoutez votre premier bloc"
+        }
+      }
     },
     "blocks": {
       "newTitle": "Nouveau bloc",

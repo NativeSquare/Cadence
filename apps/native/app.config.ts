@@ -79,7 +79,13 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     bundler: "metro",
   },
   plugins: [
-    "expo-audio",
+    [
+      "expo-audio",
+      {
+        microphonePermission:
+          "Cadence uses your microphone to transcribe what you say to your coach.",
+      },
+    ],
     "expo-camera",
     "expo-image-picker",
     "expo-media-library",

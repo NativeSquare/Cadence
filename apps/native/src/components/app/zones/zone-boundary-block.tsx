@@ -4,13 +4,14 @@ import { paceMpsToMinPerKm, parsePaceInput } from "@/lib/format-pace";
 import { getConvexErrorMessage } from "@/utils/getConvexErrorMessage";
 import {
   ZONE_CAP,
-  ZONE_FORMAT_MESSAGES,
-  ZONE_ORDERING_MESSAGES,
+  getZoneFormatMessage,
+  getZoneOrderingMessage,
   makeZonesFormSchema,
 } from "@/validation/zones";
 import { computeZoneBoundaries } from "@nativesquare/agoge";
 import { ZoneKind } from "@nativesquare/agoge/schema";
 import React from "react";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Keyboard,
@@ -70,6 +71,7 @@ export function ZoneBoundaryBlock({
   onUpdateBoundaries,
   onResync,
 }: ZoneBoundaryBlockProps) {
+  const { t } = useTranslation();
   const { labels } = computeZoneBoundaries(kind, 100, METHOD_FOR[kind]);
   const isManual = zone?.source === "manual";
 
@@ -158,17 +160,17 @@ export function ZoneBoundaryBlock({
   // Don't surface the "fill in all four" helper while every field is still
   // blank — that would scold the user the moment they tap Edit.
   const helperText = anyFormatInvalid
-    ? `${ZONE_FORMAT_MESSAGES[kind]}.`
+    ? `${getZoneFormatMessage(t, kind)}.`
     : anyInvalid
-      ? `${ZONE_ORDERING_MESSAGES[kind]}.`
+      ? `${getZoneOrderingMessage(t, kind)}.`
       : someFilled && anyEmpty
-        ? "Fill in all four boundaries to save."
+        ? t("account.zones.fillAllBoundaries")
         : null;
 
   const saveEdit = async () => {
     setFormError(null);
     Keyboard.dismiss();
-    const result = makeZonesFormSchema(kind).safeParse({
+    const result = makeZonesFormSchema(t, kind).safeParse({
       b1: draft[1],
       b2: draft[2],
       b3: draft[3],
@@ -182,7 +184,9 @@ export function ZoneBoundaryBlock({
         tree.properties?.b3?.errors?.[0] ??
         tree.properties?.b4?.errors?.[0];
       setFormError(
-        firstFieldError ?? tree.errors?.[0] ?? "Invalid zone boundaries",
+        firstFieldError ??
+          tree.errors?.[0] ??
+          t("account.zones.invalidBoundaries"),
       );
       return;
     }
@@ -228,7 +232,7 @@ export function ZoneBoundaryBlock({
           className="font-coach-medium text-[13px]"
           style={{ color: LIGHT_THEME.wMute }}
         >
-          Cancel
+          {t("common.cancel")}
         </Text>
       </Pressable>
       <Pressable
@@ -248,7 +252,7 @@ export function ZoneBoundaryBlock({
             className="font-coach-bold text-[13px]"
             style={{ color: "#FFFFFF" }}
           >
-            Save
+            {t("common.save")}
           </Text>
         )}
       </Pressable>
@@ -264,7 +268,7 @@ export function ZoneBoundaryBlock({
         className="font-coach-medium text-[13px]"
         style={{ color: LIGHT_THEME.wText }}
       >
-        Edit
+        {t("common.edit")}
       </Text>
     </Pressable>
   );
@@ -348,7 +352,9 @@ export function ZoneBoundaryBlock({
                 className="font-coach text-[12px]"
                 style={{ color: LIGHT_THEME.wMute }}
               >
-                {kind === "hr" ? "bpm" : "/km"}
+                {kind === "hr"
+                  ? t("account.zones.unitBpm")
+                  : t("account.zones.unitPerKm")}
               </Text>
             </View>
           );

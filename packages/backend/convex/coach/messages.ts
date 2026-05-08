@@ -7,28 +7,11 @@ import {
 } from "@convex-dev/agent";
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
-import { api, components, internal } from "../_generated/api";
+import { components, internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
-import {
-  type ActionCtx,
-  action,
-  internalAction,
-  mutation,
-  query,
-} from "../_generated/server";
+import { action, mutation, query } from "../_generated/server";
 import { coach } from "./agent";
-import { composeCoachSystem } from "./instructions";
-
-async function buildSystemForUser(
-  ctx: ActionCtx,
-  userId: Id<"users">,
-): Promise<string> {
-  const user = await ctx.runQuery(api.table.users.get, { id: userId });
-  return composeCoachSystem({
-    locale: user?.locale ?? null,
-    prefs: user?.coachPrefs ?? null,
-  });
-}
+import { type TurnSeed, runCoachTurn } from "./turns";
 
 export const list = query({
   args: {
@@ -63,58 +46,13 @@ export const send = action({
       throw new ConvexError({ code: "UNAUTHORIZED", message: "Not authenticated" });
     }
 
-    const system = await buildSystemForUser(ctx, userId);
+    const seed: TurnSeed = attachments && attachments.length > 0
+      ? { kind: "multimodal", text, attachments }
+      : { kind: "text", text };
 
-    if (attachments && attachments.length > 0) {
-      // Multimodal: build a user message with text + image/file content parts.
-      // AI SDK v5 uses `mediaType` (not `mimeType`) on ImagePart/FilePart.
-      const content: Array<
-        | { type: "text"; text: string }
-        | { type: "image"; image: string; mediaType?: string }
-        | { type: "file"; data: string; mediaType: string }
-      > = [{ type: "text", text }];
-
-      for (const a of attachments) {
-        if (a.kind === "image") {
-          content.push({ type: "image", image: a.url, mediaType: a.mimeType });
-        } else {
-          content.push({ type: "file", data: a.url, mediaType: a.mimeType });
-        }
-      }
-
-      const result = await coach.streamText(
-        ctx,
-        { threadId, userId: userId as string },
-        { messages: [{ role: "user", content }], system },
-        { saveStreamDeltas: true },
-      );
-      await notifyCoachReply(ctx, { userId: userId as string, threadId, result });
-      return;
-    }
-
-    const result = await coach.streamText(
-      ctx,
-      { threadId, userId: userId as string },
-      { prompt: text, system },
-      { saveStreamDeltas: true },
-    );
-    await notifyCoachReply(ctx, { userId: userId as string, threadId, result });
+    await runCoachTurn(ctx, { userId: userId as Id<"users">, threadId, seed });
   },
 });
-
-// Skip the push when the assistant emitted no text (tool-only step with no follow-up).
-async function notifyCoachReply(
-  ctx: ActionCtx,
-  args: { userId: string; threadId: string; result: { text: PromiseLike<string> } },
-) {
-  const preview = (await args.result.text).trim().slice(0, 140);
-  if (!preview) return;
-  await ctx.scheduler.runAfter(0, internal.notifications.sendCoachMessageNotification, {
-    userId: args.userId as Id<"users">,
-    threadId: args.threadId,
-    preview,
-  });
-}
 
 /**
  * Resolve a pending tool-approval-request from the chat UI.
@@ -122,8 +60,7 @@ async function notifyCoachReply(
  * - approved=true  → framework runs the tool's `execute()` (the real DB write).
  * - approved=false → framework injects an `execution-denied` result; no write.
  *
- * After saving the response, schedules `continueAfterApproval` to re-enter
- * generation so the model can react to the result.
+ * After saving the response, schedules a coach turn to react to the result.
  */
 export const respondToToolApproval = mutation({
   args: {
@@ -150,28 +87,10 @@ export const respondToToolApproval = mutation({
       ? await coach.approveToolCall(ctx, { threadId, approvalId, reason })
       : await coach.denyToolCall(ctx, { threadId, approvalId, reason });
 
-    await ctx.scheduler.runAfter(0, internal.coach.messages.continueAfterApproval, {
+    await ctx.scheduler.runAfter(0, internal.coach.turns.run, {
+      userId: userId as Id<"users">,
       threadId,
-      promptMessageId: messageId,
-      userId: userId as string,
+      seed: { kind: "continue", promptMessageId: messageId },
     });
-  },
-});
-
-export const continueAfterApproval = internalAction({
-  args: {
-    threadId: v.string(),
-    promptMessageId: v.string(),
-    userId: v.string(),
-  },
-  handler: async (ctx, { threadId, promptMessageId, userId }) => {
-    const system = await buildSystemForUser(ctx, userId as Id<"users">);
-    const result = await coach.streamText(
-      ctx,
-      { threadId, userId },
-      { promptMessageId, system },
-      { saveStreamDeltas: true },
-    );
-    await notifyCoachReply(ctx, { userId, threadId, result });
   },
 });

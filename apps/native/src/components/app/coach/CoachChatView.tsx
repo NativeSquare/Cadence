@@ -7,9 +7,13 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  Linking,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BottomSheetModal as GorhomBottomSheetModal } from "@gorhom/bottom-sheet";
+import { useAction } from "convex/react";
+import { api } from "@packages/backend/convex/_generated/api";
+import type { Id } from "@packages/backend/convex/_generated/dataModel";
 import { ChatHeader } from "./ChatHeader";
 import { ChatMessage as ChatMessageBubble } from "./ChatMessage";
 import { ChatAttachmentBubble } from "./ChatAttachmentBubble";
@@ -26,8 +30,13 @@ import {
 import { useCoachAgent } from "@/hooks/use-coach-agent";
 import { useUploadImage } from "@/hooks/use-upload-image";
 import { useCoachVerbose, toggleCoachVerbose } from "@/hooks/use-coach-verbose";
+import { useMicrophonePermission } from "@/hooks/use-microphone-permission";
+import { useVoiceRecording } from "@/hooks/use-voice-recording";
+import { useLanguage } from "@/lib/i18n";
 import { isWritingToolPart } from "@/lib/ai-stream";
 import type { ChatStatusKind, PendingAttachment } from "./types";
+
+const MAX_RECORDING_MS = 60_000;
 
 export interface CoachChatViewProps {
   threadId: string;
@@ -39,7 +48,12 @@ export function CoachChatView({ threadId, initialPrompt }: CoachChatViewProps) {
   const insets = useSafeAreaInsets();
   const scrollViewRef = useRef<ScrollView>(null);
   const mediaSheetRef = useRef<GorhomBottomSheetModal>(null);
-  const { uploadImage, uploadFile, isUploading } = useUploadImage();
+  const { uploadImage, uploadFile, uploadFileToStorage, isUploading } =
+    useUploadImage();
+  const language = useLanguage();
+  const micPermission = useMicrophonePermission();
+  const voiceRecording = useVoiceRecording();
+  const transcribeAction = useAction(api.coach.voice.transcribe);
 
   const [pendingAttachments, setPendingAttachments] = useState<
     PendingAttachment[]
@@ -63,6 +77,9 @@ export function CoachChatView({ threadId, initialPrompt }: CoachChatViewProps) {
   const [inputValue, setInputValue] = useState(initialPrompt ?? "");
   const [isRecording, setIsRecording] = useState(false);
   const [transcript, setTranscript] = useState("");
+  const [isVoiceBusy, setIsVoiceBusy] = useState(false);
+  const isVoiceBusyRef = useRef(false);
+  const recordingDiscardedRef = useRef(false);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -137,43 +154,189 @@ export function CoachChatView({ threadId, initialPrompt }: CoachChatViewProps) {
     [isStreaming, sendMessage],
   );
 
-  const handleMicPress = useCallback(() => {
+  const animateTranscript = useCallback(
+    (text: string): Promise<void> =>
+      new Promise((resolve) => {
+        let idx = 0;
+        setTranscript("");
+        const interval = setInterval(() => {
+          if (idx >= text.length) {
+            clearInterval(interval);
+            resolve();
+            return;
+          }
+          idx = Math.min(
+            idx + Math.floor(Math.random() * 3) + 1,
+            text.length,
+          );
+          setTranscript(text.slice(0, idx));
+        }, 30);
+      }),
+    [],
+  );
+
+  const transcribeAndSend = useCallback(
+    async (storageId: Id<"_storage">) => {
+      try {
+        const { text } = await transcribeAction({
+          storageId,
+          locale: language === "fr" ? "fr" : "en",
+        });
+        if (recordingDiscardedRef.current) return;
+
+        const trimmed = text.trim();
+        if (!trimmed) {
+          setIsRecording(false);
+          setTranscript("");
+          return;
+        }
+
+        await animateTranscript(trimmed);
+        if (recordingDiscardedRef.current) return;
+
+        setIsRecording(false);
+        setTranscript("");
+        if (!isStreaming) {
+          await sendMessage(trimmed);
+        }
+      } catch (err) {
+        if (recordingDiscardedRef.current) return;
+        console.error("[CoachChatView] Transcribe failed", err);
+        Alert.alert(
+          t("coach.voice.transcriptionFailedTitle"),
+          t("coach.voice.transcriptionFailedMessage"),
+          [
+            {
+              text: t("coach.voice.discard"),
+              style: "cancel",
+              onPress: () => {
+                recordingDiscardedRef.current = true;
+                setIsRecording(false);
+                setTranscript("");
+              },
+            },
+            {
+              text: t("coach.voice.retry"),
+              onPress: () => {
+                isVoiceBusyRef.current = true;
+                setIsVoiceBusy(true);
+                void transcribeAndSend(storageId).finally(() => {
+                  isVoiceBusyRef.current = false;
+                  setIsVoiceBusy(false);
+                });
+              },
+            },
+          ],
+        );
+      }
+    },
+    [transcribeAction, language, animateTranscript, isStreaming, sendMessage, t],
+  );
+
+  const handleMicPress = useCallback(async () => {
+    let granted = micPermission.status === "granted";
+    if (!granted) {
+      granted = await micPermission.request();
+    }
+    if (!granted) {
+      Alert.alert(
+        t("coach.voice.permissionDeniedTitle"),
+        t("coach.voice.permissionDeniedMessage"),
+        [
+          { text: t("common.cancel"), style: "cancel" },
+          {
+            text: t("coach.voice.openSettings"),
+            onPress: () => {
+              void Linking.openSettings();
+            },
+          },
+        ],
+      );
+      return;
+    }
+
+    recordingDiscardedRef.current = false;
     setIsRecording(true);
     setTranscript("");
 
-    // TODO: Replace with real speech-to-text integration
-    let idx = 0;
-    const mockTranscript = t("coach.mockTranscript");
-    const interval = setInterval(() => {
-      if (idx < mockTranscript.length) {
-        idx = Math.min(
-          idx + Math.floor(Math.random() * 3) + 1,
-          mockTranscript.length,
-        );
-        setTranscript(mockTranscript.slice(0, idx));
-      } else {
-        clearInterval(interval);
-      }
-    }, 80);
-  }, [t]);
+    try {
+      await voiceRecording.start();
+    } catch (err) {
+      console.error("[CoachChatView] Recording start failed", err);
+      setIsRecording(false);
+    }
+  }, [micPermission, voiceRecording, t]);
 
-  const handleVoiceCancel = useCallback(() => {
+  const handleVoiceCancel = useCallback(async () => {
+    recordingDiscardedRef.current = true;
     setIsRecording(false);
     setTranscript("");
-  }, []);
+    if (voiceRecording.isRecording) {
+      try {
+        await voiceRecording.stop();
+      } catch (err) {
+        console.warn("[CoachChatView] Stop on cancel failed", err);
+      }
+    }
+  }, [voiceRecording]);
 
   const handleVoiceSend = useCallback(
-    async (text: string) => {
-      setIsRecording(false);
-      setTranscript("");
+    async (_text: string) => {
+      if (isVoiceBusyRef.current) return;
+      isVoiceBusyRef.current = true;
+      setIsVoiceBusy(true);
 
-      const trimmed = text.trim();
-      if (!trimmed || isStreaming) return;
+      try {
+        let uri: string | null = null;
+        try {
+          uri = await voiceRecording.stop();
+        } catch (err) {
+          console.error("[CoachChatView] Stop failed", err);
+        }
 
-      await sendMessage(trimmed);
+        if (!uri || recordingDiscardedRef.current) {
+          setIsRecording(false);
+          setTranscript("");
+          return;
+        }
+
+        const storageId = await uploadFileToStorage(uri, "audio/m4a");
+        if (recordingDiscardedRef.current) return;
+
+        await transcribeAndSend(storageId);
+      } catch (err) {
+        if (recordingDiscardedRef.current) return;
+        console.error("[CoachChatView] Voice send failed", err);
+        Alert.alert(
+          t("coach.voice.transcriptionFailedTitle"),
+          t("coach.voice.transcriptionFailedMessage"),
+          [{ text: t("common.cancel"), style: "cancel" }],
+        );
+        setIsRecording(false);
+        setTranscript("");
+      } finally {
+        isVoiceBusyRef.current = false;
+        setIsVoiceBusy(false);
+      }
     },
-    [isStreaming, sendMessage],
+    [voiceRecording, uploadFileToStorage, transcribeAndSend, t],
   );
+
+  // Hard-cap recordings at MAX_RECORDING_MS — auto-trigger the send flow.
+  useEffect(() => {
+    if (
+      isRecording &&
+      !isVoiceBusy &&
+      voiceRecording.durationMs >= MAX_RECORDING_MS
+    ) {
+      void handleVoiceSend("");
+    }
+  }, [
+    isRecording,
+    isVoiceBusy,
+    voiceRecording.durationMs,
+    handleVoiceSend,
+  ]);
 
   const statusKind: ChatStatusKind = isOffline
     ? "offline"
@@ -353,6 +516,7 @@ export function CoachChatView({ threadId, initialPrompt }: CoachChatViewProps) {
               transcript={transcript}
               onCancel={handleVoiceCancel}
               onSend={handleVoiceSend}
+              isBusy={isVoiceBusy}
             />
           ) : (
             <>

@@ -4,6 +4,11 @@
     "cancel": "Cancel",
     "back": "Back",
     "continue": "Continue",
+    "tryAgain": "Try again",
+    "pleaseWait": "Please wait…",
+    "save": "Save",
+    "edit": "Edit",
+    "confirm": "Confirm",
     "relativeShort": {
       "justNow": "just now",
       "minutes": "{{count}}m ago",
@@ -12,6 +17,49 @@
       "weeks": "{{count}}w ago",
       "months": "{{count}}mo ago",
       "years": "{{count}}y ago"
+    }
+  },
+  "validation": {
+    "nameRequired": "Name is required",
+    "emailRequired": "Email is required",
+    "emailInvalid": "Please enter a valid email address",
+    "passwordRequired": "Password is required",
+    "passwordMin": "Password must be at least {{count}} characters long",
+    "confirmPasswordRequired": "Confirm password is required",
+    "confirmPasswordMin": "Confirm password must be at least {{count}} characters long",
+    "passwordsDoNotMatch": "Passwords do not match",
+    "acceptTerms": "You must accept the terms and conditions",
+    "newPasswordRequired": "New password is required",
+    "newPasswordMin": "New password must be at least {{count}} characters long",
+    "codeRequired": "Code is required",
+    "codeIncomplete": "Code is incomplete",
+    "feedbackTypeRequired": "Feedback type is required",
+    "feedbackTextRequired": "Feedback text is required",
+    "invalidDate": "Invalid date",
+    "invalidWeight": "Invalid weight",
+    "invalidHeight": "Invalid height"
+  },
+  "imageUploader": {
+    "prompt": "Upload your image here",
+    "browse": "Browse"
+  },
+  "connection": {
+    "reconnecting": "Reconnecting…",
+    "stillTrying": "Still trying to reconnect…",
+    "takingLonger": "This is taking longer than expected",
+    "issues": "Connection issues. You can try again.",
+    "backOnline": "Back online"
+  },
+  "updates": {
+    "available": {
+      "title": "Update available",
+      "message": "A new version of the app is available. Would you like to download and install it now?",
+      "later": "Later",
+      "updateNow": "Update now"
+    },
+    "failed": {
+      "title": "Update failed",
+      "message": "Failed to install update: {{error}}"
     }
   },
   "auth": {
@@ -150,9 +198,17 @@
       "failedFile": "Could not upload the file. Please try again."
     },
     "fallbackPrompt": "What do you see?",
-    "mockTranscript": "Can we swap tomorrow's rest for an easy run",
     "voice": {
-      "liveTranscription": "Live transcription"
+      "liveTranscription": "Live transcription",
+      "listening": "Listening…",
+      "transcribing": "Transcribing…",
+      "transcriptionFailedTitle": "Couldn't transcribe",
+      "transcriptionFailedMessage": "We couldn't transcribe your audio. Try again?",
+      "permissionDeniedTitle": "Microphone access needed",
+      "permissionDeniedMessage": "Enable microphone access in Settings to dictate messages.",
+      "openSettings": "Open Settings",
+      "retry": "Retry",
+      "discard": "Discard"
     },
     "tool": {
       "couldNotSubmit": "Could not submit response"
@@ -461,6 +517,30 @@
     "structure": {
       "repeat": "Repeat"
     },
+    "stepEditor": {
+      "titleEdit": "Edit step",
+      "titleAdd": "Add step",
+      "intent": "Intent",
+      "duration": "Duration",
+      "target": "Target",
+      "nameOptional": "Name (optional)",
+      "namePlaceholder": "e.g. Cruise",
+      "notesOptional": "Notes (optional)",
+      "notesPlaceholder": "Cues, focus points…",
+      "submitSave": "Save changes",
+      "submitAdd": "Add step",
+      "deleteStep": "Delete step",
+      "delete": {
+        "title": "Delete this step?",
+        "message": "This can't be undone. If it's the only step inside a Repeat, the Repeat is removed too.",
+        "confirm": "Delete"
+      },
+      "untilAbove": "Until above",
+      "untilBelow": "Until below",
+      "hrZonesHint": "Set up HR zones in Account → Zones to use HR zone targets.",
+      "to": "to",
+      "pacePerKm": "min/km"
+    },
     "status": {
       "planned": "Planned",
       "completed": "Completed",
@@ -513,7 +593,22 @@
   "analytics": {
     "errorTitle": "Unable to load analytics",
     "errorFallback": "Something went wrong",
-    "tryAgain": "Try Again"
+    "tryAgain": "Try Again",
+    "title": "Analytics",
+    "subtitle": "Everything we track, organized by source",
+    "sections": {
+      "training": "Training",
+      "health": "Health"
+    },
+    "timeWindow": {
+      "title": "Time window",
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "all": "All",
+      "block": "Block",
+      "plan": "Plan",
+      "na": "—"
+    }
   },
   "profile": {
     "guest": "Guest",
@@ -842,7 +937,44 @@
       "title": "Zones",
       "hrZones": "HR Zones",
       "paceZones": "Pace Zones",
-      "errorThresholdRequired": "Set a threshold before re-syncing zones."
+      "errorThresholdRequired": "Set a threshold before re-syncing zones.",
+      "yourThresholds": "Your Thresholds",
+      "hrThresholdLabel": "Heart Rate Threshold (LTHR)",
+      "paceThresholdLabel": "Pace Threshold",
+      "unitBpm": "bpm",
+      "unitPerKm": "/km",
+      "fillAllBoundaries": "Fill in all four boundaries to save.",
+      "invalidBoundaries": "Invalid zone boundaries",
+      "resync": {
+        "message": "These zones use custom boundaries — they won't recompute when your threshold changes. Re-sync to recalculate them from your current threshold.",
+        "cta": "Re-sync from threshold"
+      },
+      "validation": {
+        "wholeNumber": "Enter a whole number",
+        "paceFormat": "Use min:sec per km (e.g. 3:45)",
+        "hrThresholdRange": "Enter a value between 61 and 250 bpm",
+        "hrOrdering": "Each zone must be higher than the one below",
+        "paceOrdering": "Each zone must be faster than the one below",
+        "hrFormat": "Enter whole numbers in bpm",
+        "hrCap": "Must be below {{cap}} bpm",
+        "paceCap": "Pace is implausibly fast"
+      }
+    },
+    "trainingPlan": {
+      "title": "Training Plan",
+      "addWorkout": "Add workout",
+      "week": "Week {{number}}",
+      "empty": {
+        "noPlan": {
+          "title": "No active training plan",
+          "description": "Your coach builds the plan once you set a target. Talk to your coach to get started."
+        },
+        "noBlocks": {
+          "title": "No blocks yet",
+          "description": "Blocks group consecutive weeks of training. Workouts go inside blocks.",
+          "addFirst": "Add your first block"
+        }
+      }
     },
     "blocks": {
       "newTitle": "New block",

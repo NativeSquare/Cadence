@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text } from "@/components/ui/text";
@@ -11,6 +12,7 @@ import { SectionToggle } from "./parts/SectionToggle";
 import { InventorySection } from "./sections/InventorySection";
 
 export function AnalyticsScreen() {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const [section, setSection] = useState<SectionId>("training");
 
@@ -27,10 +29,10 @@ export function AnalyticsScreen() {
             className="text-[28px] font-coach-bold text-g1"
             style={{ letterSpacing: -0.03 * 28 }}
           >
-            Analytics
+            {t("analytics.title")}
           </Text>
           <Text className="text-[13px] font-coach text-g3 mt-1">
-            Everything we track, organized by source
+            {t("analytics.subtitle")}
           </Text>
         </View>
         <View

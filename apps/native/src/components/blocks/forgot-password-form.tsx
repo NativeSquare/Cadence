@@ -1,7 +1,7 @@
 import { Text } from "@/components/ui/text";
 import { COLORS, GRAYS, SURFACES } from "@/lib/design-tokens";
 import { getConvexErrorMessage } from "@/utils/getConvexErrorMessage";
-import { ForgotPasswordSchema } from "@/validation/auth";
+import { makeForgotPasswordSchema } from "@/validation/auth";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useConvex } from "convex/react";
@@ -43,7 +43,7 @@ export function ForgotPasswordForm() {
     setFormError(null);
     setFieldErrors({});
 
-    const result = ForgotPasswordSchema.safeParse({ email });
+    const result = makeForgotPasswordSchema(t).safeParse({ email });
     if (!result.success) {
       const tree = z.treeifyError(result.error);
       setFieldErrors({ email: tree.properties?.email?.errors?.[0] });

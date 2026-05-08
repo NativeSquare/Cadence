@@ -1,6 +1,6 @@
 import { Text } from "@/components/ui/text";
 import { COLORS, GRAYS, SURFACES } from "@/lib/design-tokens";
-import { VerifyEmailSchema } from "@/validation/auth";
+import { makeVerifyEmailSchema } from "@/validation/auth";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useRouter } from "expo-router";
@@ -39,7 +39,7 @@ export function VerifyEmailForm({ email, name }: { email: string; name?: string 
     setFormError(null);
     setFieldErrors({});
 
-    const result = VerifyEmailSchema.safeParse({ code: value });
+    const result = makeVerifyEmailSchema(t).safeParse({ code: value });
     if (!result.success) {
       const tree = z.treeifyError(result.error);
       setFieldErrors({ code: tree.properties?.code?.errors?.[0] });

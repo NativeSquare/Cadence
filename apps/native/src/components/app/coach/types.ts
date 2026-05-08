@@ -62,4 +62,5 @@ export interface VoiceRecorderProps {
   onCancel: () => void;
   onSend: (text: string) => void;
   transcript: string;
+  isBusy?: boolean;
 }

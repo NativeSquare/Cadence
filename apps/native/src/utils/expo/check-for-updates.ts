@@ -1,4 +1,5 @@
 import * as Updates from "expo-updates";
+import i18n from "i18next";
 import { Alert } from "react-native";
 
 export async function checkForUpdates() {
@@ -12,23 +13,23 @@ export async function checkForUpdates() {
 
     if (update.isAvailable) {
       Alert.alert(
-        "Update Available",
-        "A new version of the app is available. Would you like to download and install it now?",
+        i18n.t("updates.available.title"),
+        i18n.t("updates.available.message"),
         [
           {
-            text: "Later",
+            text: i18n.t("updates.available.later"),
             style: "cancel",
           },
           {
-            text: "Update Now",
+            text: i18n.t("updates.available.updateNow"),
             onPress: async () => {
               try {
                 await Updates.fetchUpdateAsync();
                 await Updates.reloadAsync();
               } catch (error) {
                 Alert.alert(
-                  "Update Failed",
-                  `Failed to install update: ${error}`
+                  i18n.t("updates.failed.title"),
+                  i18n.t("updates.failed.message", { error: String(error) })
                 );
               }
             },

@@ -2,9 +2,13 @@ import { Text } from "@/components/ui/text";
 import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
 import { paceMpsToMinPerKm } from "@/lib/format-pace";
 import { getConvexErrorMessage } from "@/utils/getConvexErrorMessage";
-import { HrThresholdField, PaceThresholdField } from "@/validation/zones";
+import {
+  makeHrThresholdField,
+  makePaceThresholdField,
+} from "@/validation/zones";
 import { ZoneKind } from "@nativesquare/agoge/schema";
 import React from "react";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Keyboard,
@@ -36,6 +40,12 @@ export function ZoneThresholdBlock({
   paceZone,
   onUpsert,
 }: ZoneThresholdBlockProps) {
+  const { t } = useTranslation();
+  const HrThresholdField = React.useMemo(() => makeHrThresholdField(t), [t]);
+  const PaceThresholdField = React.useMemo(
+    () => makePaceThresholdField(t),
+    [t],
+  );
   const [editing, setEditing] = React.useState(false);
   const [hrDraft, setHrDraft] = React.useState<string>(() =>
     thresholdToInput("hr", hrZone?.threshold),
@@ -145,7 +155,7 @@ export function ZoneThresholdBlock({
           className="font-coach-medium text-[13px]"
           style={{ color: LIGHT_THEME.wMute }}
         >
-          Cancel
+          {t("common.cancel")}
         </Text>
       </Pressable>
       <Pressable
@@ -165,7 +175,7 @@ export function ZoneThresholdBlock({
             className="font-coach-bold text-[13px]"
             style={{ color: "#FFFFFF" }}
           >
-            Save
+            {t("common.save")}
           </Text>
         )}
       </Pressable>
@@ -181,7 +191,7 @@ export function ZoneThresholdBlock({
         className="font-coach-medium text-[13px]"
         style={{ color: LIGHT_THEME.wText }}
       >
-        Edit
+        {t("common.edit")}
       </Text>
     </Pressable>
   );
@@ -195,15 +205,15 @@ export function ZoneThresholdBlock({
   }[] = [
     {
       kind: "hr",
-      label: "Heart Rate Threshold (LTHR)",
-      unit: "bpm",
+      label: t("account.zones.hrThresholdLabel"),
+      unit: t("account.zones.unitBpm"),
       draft: hrDraft,
       setDraft: setHrDraft,
     },
     {
       kind: "pace",
-      label: "Pace Threshold",
-      unit: "/km",
+      label: t("account.zones.paceThresholdLabel"),
+      unit: t("account.zones.unitPerKm"),
       draft: paceDraft,
       setDraft: setPaceDraft,
     },
@@ -212,7 +222,10 @@ export function ZoneThresholdBlock({
   const showFormError = formError !== null;
 
   return (
-    <ZoneSection title="Your Thresholds" headerRight={headerRight}>
+    <ZoneSection
+      title={t("account.zones.yourThresholds")}
+      headerRight={headerRight}
+    >
       {rows.map((row, i) => {
         const fieldError = fieldErrors[row.kind];
         const isLastRow = i === rows.length - 1;

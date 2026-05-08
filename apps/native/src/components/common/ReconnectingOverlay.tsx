@@ -12,6 +12,7 @@ import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import { WifiOff, Wifi, RefreshCw } from "lucide-react-native";
 import { useEffect, useState, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { View } from "react-native";
 import Animated, {
   FadeIn,
@@ -37,19 +38,14 @@ type OverlayState = "reconnecting" | "back-online";
 const BACK_ONLINE_DISPLAY_MS = 2000;
 
 /**
- * Get progressive message based on disconnection duration.
- * Per AC#4: Progressive messaging at 10s, 20s, 30s thresholds.
+ * Progressive message key based on disconnection duration.
+ * Per AC#4: messaging changes at 10s, 20s, 30s thresholds.
  */
-function getProgressiveMessage(durationSeconds: number): string {
-  if (durationSeconds < 10) {
-    return "Reconnecting...";
-  } else if (durationSeconds < 20) {
-    return "Still trying to reconnect...";
-  } else if (durationSeconds < 30) {
-    return "This is taking longer than expected";
-  } else {
-    return "Connection issues. You can try again.";
-  }
+function getProgressiveMessageKey(durationSeconds: number): string {
+  if (durationSeconds < 10) return "connection.reconnecting";
+  if (durationSeconds < 20) return "connection.stillTrying";
+  if (durationSeconds < 30) return "connection.takingLonger";
+  return "connection.issues";
 }
 
 /**
@@ -77,6 +73,7 @@ export function ReconnectingOverlay({
   onRetry,
   onReconnected,
 }: ReconnectingOverlayProps) {
+  const { t } = useTranslation();
   const [state, setState] = useState<OverlayState>("reconnecting");
   const [disconnectionDuration, setDisconnectionDuration] = useState(0);
   const disconnectionStartRef = useRef<number | null>(null);
@@ -151,8 +148,8 @@ export function ReconnectingOverlay({
   const showRetryButton = disconnectionDuration >= 30 && state === "reconnecting";
   const message =
     state === "back-online"
-      ? "Back online"
-      : getProgressiveMessage(disconnectionDuration);
+      ? t("connection.backOnline")
+      : t(getProgressiveMessageKey(disconnectionDuration));
 
   return (
     <Animated.View
@@ -186,7 +183,7 @@ export function ReconnectingOverlay({
         {showRetryButton && (
           <Button onPress={onRetry} variant="outline" className="mt-4">
             <Icon as={RefreshCw} size={16} className="mr-2" />
-            <Text>Try Again</Text>
+            <Text>{t("common.tryAgain")}</Text>
           </Button>
         )}
       </View>

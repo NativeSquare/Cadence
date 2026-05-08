@@ -1,8 +1,11 @@
+import type { TFunction } from "i18next";
 import { z } from "zod";
 
-export const UserProfileSchema = z.object({
-  name: z.string().min(1, "Name is required"),
-  image: z.string().optional(),
-});
+export function makeUserProfileSchema(t: TFunction) {
+  return z.object({
+    name: z.string().min(1, t("validation.nameRequired")),
+    image: z.string().optional(),
+  });
+}
 
-export type UserProfileInput = z.infer<typeof UserProfileSchema>;
+export type UserProfileInput = z.infer<ReturnType<typeof makeUserProfileSchema>>;

@@ -28,6 +28,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { BottomSheetModal as GorhomBottomSheetModal } from "@gorhom/bottom-sheet";
 import { useQuery } from "convex/react";
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { Alert, Pressable, TextInput, View } from "react-native";
 
 type Props = {
@@ -124,6 +125,7 @@ function StepEditorBody({
   onCancel: () => void;
   onDelete?: () => void;
 }) {
+  const { t } = useTranslation();
   const intentLabels = useIntentLabels();
   const intentDescriptions = useIntentDescriptions();
   const [step, setStep] = React.useState<Step>(
@@ -201,10 +203,12 @@ function StepEditorBody({
         className="font-coach-bold text-[16px]"
         style={{ color: LIGHT_THEME.wText }}
       >
-        {initial ? "Edit step" : "Add step"}
+        {initial
+          ? t("workout.stepEditor.titleEdit")
+          : t("workout.stepEditor.titleAdd")}
       </Text>
 
-      <FormField label="Intent">
+      <FormField label={t("workout.stepEditor.intent")}>
         <View className="gap-2">
           <View className="flex-row flex-wrap gap-2">
             {INTENTS.map((intent) => {
@@ -258,16 +262,19 @@ function StepEditorBody({
         intent={step.intent}
         durationKind={step.duration.type}
         hasHrZones={hasHrZones}
-        onChange={(t) =>
-          setStep((s) => ({ ...s, target: t.type === "none" ? undefined : t }))
+        onChange={(target) =>
+          setStep((s) => ({
+            ...s,
+            target: target.type === "none" ? undefined : target,
+          }))
         }
       />
 
-      <FormField label="Name (optional)">
+      <FormField label={t("workout.stepEditor.nameOptional")}>
         <TextInput
           className="h-12 rounded-xl border px-4 font-coach-medium text-[15px]"
           style={inputStyle}
-          placeholder="e.g. Cruise"
+          placeholder={t("workout.stepEditor.namePlaceholder")}
           placeholderTextColor={LIGHT_THEME.wMute}
           value={step.name ?? ""}
           onChangeText={(v) =>
@@ -279,12 +286,12 @@ function StepEditorBody({
         />
       </FormField>
 
-      <FormField label="Notes (optional)">
+      <FormField label={t("workout.stepEditor.notesOptional")}>
         <View className="gap-1">
           <TextInput
             className="min-h-[64px] rounded-xl border px-4 py-3 font-coach-medium text-[14px]"
             style={inputStyle}
-            placeholder="Cues, focus points…"
+            placeholder={t("workout.stepEditor.notesPlaceholder")}
             placeholderTextColor={LIGHT_THEME.wMute}
             value={step.notes ?? ""}
             onChangeText={(v) =>
@@ -319,7 +326,9 @@ function StepEditorBody({
             className="font-coach-bold text-sm"
             style={{ color: "#FFFFFF" }}
           >
-            {initial ? "Save changes" : "Add step"}
+            {initial
+              ? t("workout.stepEditor.submitSave")
+              : t("workout.stepEditor.submitAdd")}
           </Text>
         </Pressable>
         <Pressable
@@ -334,19 +343,19 @@ function StepEditorBody({
             className="font-coach-semibold text-sm"
             style={{ color: LIGHT_THEME.wText }}
           >
-            Cancel
+            {t("common.cancel")}
           </Text>
         </Pressable>
         {onDelete && (
           <Pressable
             onPress={() => {
               Alert.alert(
-                "Delete this step?",
-                "This can't be undone. If it's the only step inside a Repeat, the Repeat is removed too.",
+                t("workout.stepEditor.delete.title"),
+                t("workout.stepEditor.delete.message"),
                 [
-                  { text: "Cancel", style: "cancel" },
+                  { text: t("common.cancel"), style: "cancel" },
                   {
-                    text: "Delete",
+                    text: t("workout.stepEditor.delete.confirm"),
                     style: "destructive",
                     onPress: onDelete,
                   },
@@ -360,7 +369,7 @@ function StepEditorBody({
               className="font-coach text-[13px]"
               style={{ color: COLORS.red }}
             >
-              Delete step
+              {t("workout.stepEditor.deleteStep")}
             </Text>
           </Pressable>
         )}
@@ -380,6 +389,7 @@ function DurationField({
   targetKind: NonNullable<Step["target"]>["type"];
   onChange: (d: Step["duration"]) => void;
 }) {
+  const { t } = useTranslation();
   const durationLabels = useDurationLabels();
   const durationDescriptions = useDurationDescriptions();
   // Only the four run-allowed kinds have descriptions; older imported steps
@@ -393,7 +403,7 @@ function DurationField({
       : null;
 
   return (
-    <FormField label="Duration">
+    <FormField label={t("workout.stepEditor.duration")}>
       <View className="gap-3">
         <View className="flex-row flex-wrap gap-2">
           {ALLOWED_DURATIONS_FOR_RUN.map((kind) => {
@@ -445,6 +455,7 @@ function DurationInputs({
   value: Step["duration"];
   onChange: (d: Step["duration"]) => void;
 }) {
+  const { t } = useTranslation();
   if (value.type === "open") return null;
   if (value.type === "time") {
     return <TimeInput value={value} onChange={onChange} />;
@@ -491,7 +502,9 @@ function DurationInputs({
                   className="font-coach-semibold text-[13px]"
                   style={{ color: selected ? "#FFFFFF" : LIGHT_THEME.wText }}
                 >
-                  Until {cmp}
+                  {cmp === "above"
+                    ? t("workout.stepEditor.untilAbove")
+                    : t("workout.stepEditor.untilBelow")}
                 </Text>
               </Pressable>
             );
@@ -532,8 +545,9 @@ function TargetField({
   intent: Step["intent"];
   durationKind: Step["duration"]["type"];
   hasHrZones: boolean;
-  onChange: (t: NonNullable<Step["target"]>) => void;
+  onChange: (target: NonNullable<Step["target"]>) => void;
 }) {
+  const { t } = useTranslation();
   const targetLabels = useTargetLabels();
   const targetDescriptions = useTargetDescriptions();
   // Only the six run-allowed kinds have descriptions; older imported steps
@@ -549,7 +563,7 @@ function TargetField({
       : null;
 
   return (
-    <FormField label="Target">
+    <FormField label={t("workout.stepEditor.target")}>
       <View className="gap-3">
         <View className="flex-row flex-wrap gap-2">
           {ALLOWED_TARGETS_FOR_RUN.map((kind) => {
@@ -598,7 +612,7 @@ function TargetField({
             className="font-coach text-[12px]"
             style={{ color: LIGHT_THEME.wMute }}
           >
-            Set up HR zones in Account → Zones to use HR zone targets.
+            {t("workout.stepEditor.hrZonesHint")}
           </Text>
         )}
         <TargetInputs value={value} onChange={onChange} />
@@ -612,8 +626,9 @@ function TargetInputs({
   onChange,
 }: {
   value: NonNullable<Step["target"]>;
-  onChange: (t: NonNullable<Step["target"]>) => void;
+  onChange: (target: NonNullable<Step["target"]>) => void;
 }) {
+  const { t } = useTranslation();
   if (value.type === "none") return null;
   if (value.type === "pace_range") {
     const fastPace = mpsToPaceString(value.max_speed_mps);
@@ -634,7 +649,9 @@ function TargetInputs({
               });
             }}
           />
-          <Text style={{ color: LIGHT_THEME.wMute }}>to</Text>
+          <Text style={{ color: LIGHT_THEME.wMute }}>
+            {t("workout.stepEditor.to")}
+          </Text>
           <PaceInput
             value={slowPace}
             placeholder="5:00"
@@ -652,7 +669,7 @@ function TargetInputs({
             className="font-coach text-[12px]"
             style={{ color: LIGHT_THEME.wMute }}
           >
-            min/km
+            {t("workout.stepEditor.pacePerKm")}
           </Text>
         </View>
       </View>
@@ -880,6 +897,7 @@ function RangeInput({
   maxLength?: number;
   onChange: (next: { min: number; max: number }) => void;
 }) {
+  const { t } = useTranslation();
   const [minDraft, setMinDraft] = React.useState(min > 0 ? String(min) : "");
   const [maxDraft, setMaxDraft] = React.useState(max > 0 ? String(max) : "");
 
@@ -917,7 +935,9 @@ function RangeInput({
         }}
         onBlur={handleBlur}
       />
-      <Text style={{ color: LIGHT_THEME.wMute }}>to</Text>
+      <Text style={{ color: LIGHT_THEME.wMute }}>
+        {t("workout.stepEditor.to")}
+      </Text>
       <NumericInput
         value={maxDraft}
         placeholder="max"
