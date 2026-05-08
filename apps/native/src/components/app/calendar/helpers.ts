@@ -15,16 +15,7 @@ import type {
 import { DAY_HEADERS_FULL, PHASE_COLORS } from "./constants";
 import { getWorkoutCategory } from "@/lib/design-tokens";
 import type { AgogeWorkout } from "../plan/utils";
-
-/** Subset of the agoge block doc the Calendar UI consumes. */
-export interface AgogeBlock {
-  _id: string;
-  name: string;
-  type: "base" | "build" | "peak" | "taper" | "recovery";
-  startDate: string;
-  endDate: string;
-  order: number;
-}
+import type { BlockDoc } from "@nativesquare/agoge/schema";
 
 /**
  * Blend hex color with off-white background (#F8F8F6) to produce a solid RGB color.
@@ -250,7 +241,7 @@ function formatWorkoutDuration(seconds?: number): string {
 }
 
 function mapBlockTypeToPhaseKey(
-  type: AgogeBlock["type"],
+  type: BlockDoc["type"],
 ): PhaseName {
   switch (type) {
     case "base":
@@ -263,6 +254,10 @@ function mapBlockTypeToPhaseKey(
       return "taper";
     case "recovery":
       return "recovery";
+    case "maintenance":
+      return "consolidation";
+    case "transition":
+      return "foundation";
   }
 }
 
@@ -270,7 +265,7 @@ function mapBlockTypeToPhaseKey(
  * Derive training phases from agoge blocks.
  * Each block becomes one Phase; the block's date range is used directly.
  */
-export function buildPhasesFromBlocks(blocks: AgogeBlock[]): Phase[] {
+export function buildPhasesFromBlocks(blocks: BlockDoc[]): Phase[] {
   return blocks
     .slice()
     .sort((a, b) => a.order - b.order)

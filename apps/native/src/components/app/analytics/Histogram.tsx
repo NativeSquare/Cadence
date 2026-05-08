@@ -25,7 +25,12 @@ import {
 import { COLORS } from "@/lib/design-tokens";
 import { DAY_LABELS } from "./mock-data";
 import { ActiveValueIndicator } from "./ActiveValueIndicator";
-import type { HistogramDatum } from "@/hooks/use-analytics-data";
+
+export type HistogramDatum = {
+  day: number;
+  km: number;
+  [key: string]: unknown;
+};
 
 const BAR_EASING = Easing.bezier(0.4, 0, 0.2, 1);
 

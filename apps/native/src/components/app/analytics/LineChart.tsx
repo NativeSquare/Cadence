@@ -31,10 +31,18 @@ import {
 } from "react-native-reanimated";
 import { COLORS, ACTIVITY_COLORS } from "@/lib/design-tokens";
 import { ActiveValueIndicator } from "./ActiveValueIndicator";
-import type {
-  PaceChartDatum,
-  PredictionTrendDatum,
-} from "@/hooks/use-analytics-data";
+
+export type PaceChartDatum = {
+  week: number;
+  pace: number;
+  [key: string]: unknown;
+};
+
+export type PredictionTrendDatum = {
+  week: number;
+  timeSeconds: number;
+  [key: string]: unknown;
+};
 
 export interface LineChartProps {
   data: PaceChartDatum[];

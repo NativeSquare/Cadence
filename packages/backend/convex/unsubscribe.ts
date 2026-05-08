@@ -20,8 +20,8 @@ export function verifyUnsubscribeToken(
   const expected = generateUnsubscribeToken(email);
   if (expected.length !== token.length) return false;
   return crypto.timingSafeEqual(
-    Buffer.from(expected, "hex"),
-    Buffer.from(token, "hex")
+    new Uint8Array(Buffer.from(expected, "hex")),
+    new Uint8Array(Buffer.from(token, "hex"))
   );
 }
 

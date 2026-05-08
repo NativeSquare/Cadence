@@ -36,8 +36,15 @@ import {
 import { Text } from "@/components/ui/text";
 import { COLORS, GRAYS, ACTIVITY_COLORS } from "@/lib/design-tokens";
 import { DAY_LABELS, WEEK_LABELS } from "./mock-data";
-import type { ZoneChartDatum } from "@/hooks/use-analytics-data";
 import type { WeekZoneData } from "./mock-data";
+
+export type ZoneChartDatum = {
+  day: number;
+  z2: number;
+  z3: number;
+  z4: number;
+  [key: string]: unknown;
+};
 
 const BAR_EASING = Easing.bezier(0.4, 0, 0.2, 1);
 
