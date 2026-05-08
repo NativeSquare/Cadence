@@ -1,16 +1,13 @@
 /**
- * CalendarScreen - Monthly calendar with two toggleable perspectives:
+ * CalendarScreen - Vertically scrollable monthly calendar.
  *
- * 1. **Workouts** – rounded-square tiles with colored dots for each workout type.
- * 2. **Blocks** – same tile grid but tiles are tinted by training phase color
- *    (Base / Build / Taper / Race / Recovery).
- *
- * - Animated month navigation with haptic feedback
- * - Tap month name to return to today
- * - Tap a training day to view workout details in a bottom sheet
+ * - Months stack vertically (Apple-Calendar-style); auto-scrolls to today on mount.
+ * - Tap a day to select it — the bottom panel lists that day's workouts.
+ * - Workout cards in the panel link to the workout detail page.
+ * - Layers toggle in the header tints tiles by training-block phase.
  */
 
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   View,
@@ -20,27 +17,21 @@ import {
   ScrollView,
   ActivityIndicator,
   useWindowDimensions,
+  type LayoutChangeEvent,
 } from "react-native";
-import Animated, {
-  runOnJS,
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
-} from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { ChevronLeft, ChevronRight, Layers } from "lucide-react-native";
+import { Layers } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import { useQuery } from "convex/react";
 import { useRouter } from "expo-router";
 import { api } from "@packages/backend/convex/_generated/api";
 
+import { COLORS, GRAYS, LIGHT_THEME, WORKOUT_CATEGORY_COLORS } from "@/lib/design-tokens";
 import {
-  COLORS,
-  GRAYS,
-  LIGHT_THEME,
-  WORKOUT_CATEGORY_COLORS,
-} from "@/lib/design-tokens";
-import { formatDayLabelShort, formatMonthName } from "@/lib/format";
+  formatDayLabelShort,
+  formatLongDate,
+  formatMonthName,
+} from "@/lib/format";
 import { useLanguage } from "@/lib/i18n";
 import { TODAY_KEY } from "./constants";
 import {
@@ -50,11 +41,16 @@ import {
   buildCalendarWorkouts,
   buildPhasesFromBlocks,
 } from "./helpers";
+import { AddWorkoutButton } from "@/components/app/workout/add-workout-button";
+import { WorkoutCard } from "@/components/app/workout/workout-card";
+import type { CalWorkout, Phase } from "./types";
 
 type ViewMode = "workouts" | "blocks";
 
 const GRID_GAP = 6;
 const GRID_PADDING = 10;
+const MONTHS_BEFORE = 6;
+const MONTHS_AFTER = 12;
 
 function toIsoDate(d: Date): string {
   const y = d.getFullYear();
@@ -69,6 +65,15 @@ function toUtcRangeStart(d: Date): string {
 
 function toUtcRangeEnd(d: Date): string {
   return `${toIsoDate(d)}T23:59:59.999Z`;
+}
+
+function buildMonthsList(centerDate: Date): Array<{ year: number; month: number }> {
+  const list: Array<{ year: number; month: number }> = [];
+  for (let i = -MONTHS_BEFORE; i <= MONTHS_AFTER; i++) {
+    const d = new Date(centerDate.getFullYear(), centerDate.getMonth() + i, 1);
+    list.push({ year: d.getFullYear(), month: d.getMonth() });
+  }
+  return list;
 }
 
 export function CalendarScreen() {
@@ -94,21 +99,18 @@ export function CalendarScreen() {
     [screenWidth],
   );
 
-  const [currentMonth, setCurrentMonth] = useState(todayDate.getMonth());
-  const [currentYear, setCurrentYear] = useState(todayDate.getFullYear());
-  const [viewMode, setViewMode] = useState<ViewMode>("workouts");
-
-  const contentFade = useSharedValue(1);
-  const contentTranslateX = useSharedValue(0);
-
+  const monthsList = useMemo(() => buildMonthsList(todayDate), [todayDate]);
   const monthRange = useMemo(() => {
-    const start = new Date(currentYear, currentMonth, 1);
-    const end = new Date(currentYear, currentMonth + 1, 0);
+    const first = monthsList[0];
+    const last = monthsList[monthsList.length - 1];
     return {
-      startDate: toUtcRangeStart(start),
-      endDate: toUtcRangeEnd(end),
+      startDate: toUtcRangeStart(new Date(first.year, first.month, 1)),
+      endDate: toUtcRangeEnd(new Date(last.year, last.month + 1, 0)),
     };
-  }, [currentYear, currentMonth]);
+  }, [monthsList]);
+
+  const [viewMode, setViewMode] = useState<ViewMode>("workouts");
+  const [selectedDate, setSelectedDate] = useState<string>(TODAY_KEY);
 
   const workouts = useQuery(api.agoge.workouts.listWorkouts, monthRange);
   const activePlan = useQuery(api.agoge.plans.getAthletePlan);
@@ -122,94 +124,74 @@ export function CalendarScreen() {
     [workouts],
   );
 
+  const workoutsByDate = useMemo(() => {
+    const map: Record<string, typeof workouts> = {};
+    if (!workouts) return map;
+    for (const w of workouts) {
+      const dateIso = w.planned?.date ?? w.actual?.date;
+      if (!dateIso) continue;
+      const key = dateIso.slice(0, 10);
+      (map[key] ??= []).push(w);
+    }
+    return map;
+  }, [workouts]);
+
   const phases = useMemo(
     () => (blocks ? buildPhasesFromBlocks(blocks) : []),
     [blocks],
   );
 
-  const weeks = useMemo(
-    () => buildWeeks(currentYear, currentMonth),
-    [currentYear, currentMonth],
-  );
-
   const phaseLookup = useMemo(() => buildPhaseLookup(phases), [phases]);
 
-  // ─── Month navigation ──────────────────────────────────────────────
+  // ─── Auto-scroll to today on mount ────────────────────────────────
 
-  const updateMonth = useCallback((direction: "prev" | "next") => {
-    if (direction === "next") {
-      setCurrentMonth((m) => {
-        if (m === 11) {
-          setCurrentYear((y) => y + 1);
-          return 0;
-        }
-        return m + 1;
-      });
-    } else {
-      setCurrentMonth((m) => {
-        if (m === 0) {
-          setCurrentYear((y) => y - 1);
-          return 11;
-        }
-        return m - 1;
-      });
-    }
-  }, []);
+  const scrollRef = useRef<ScrollView>(null);
+  const didInitialScroll = useRef(false);
+  const todayMonthIndex = MONTHS_BEFORE;
 
-  const animateMonthChange = useCallback(
-    (direction: "prev" | "next") => {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      const exit = direction === "next" ? -1 : 1;
-      contentFade.value = withTiming(0, { duration: 80 });
-      contentTranslateX.value = withTiming(exit * 16, { duration: 80 }, () => {
-        runOnJS(updateMonth)(direction);
-        contentTranslateX.value = exit * -16;
-        contentFade.value = withTiming(1, { duration: 150 });
-        contentTranslateX.value = withTiming(0, { duration: 150 });
-      });
+  const handleMonthLayout = useCallback(
+    (idx: number) => (e: LayoutChangeEvent) => {
+      if (idx === todayMonthIndex && !didInitialScroll.current) {
+        didInitialScroll.current = true;
+        const y = e.nativeEvent.layout.y;
+        requestAnimationFrame(() => {
+          scrollRef.current?.scrollTo({ y, animated: false });
+        });
+      }
     },
-    [contentFade, contentTranslateX, updateMonth],
+    [todayMonthIndex],
   );
 
-  const handleReturnToToday = useCallback(() => {
-    if (
-      currentMonth !== todayDate.getMonth() ||
-      currentYear !== todayDate.getFullYear()
-    ) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      contentFade.value = withTiming(0, { duration: 100 }, () => {
-        runOnJS(setCurrentMonth)(todayDate.getMonth());
-        runOnJS(setCurrentYear)(todayDate.getFullYear());
-        contentFade.value = withTiming(1, { duration: 250 });
-      });
-    }
-  }, [currentMonth, currentYear, contentFade, todayDate]);
-
-  const contentAnimStyle = useAnimatedStyle(() => ({
-    opacity: contentFade.value,
-    transform: [{ translateX: contentTranslateX.value }],
-  }));
-
-  // ─── Day / workout press ─────────────────────────────────────────
+  // ─── Interaction handlers ─────────────────────────────────────────
 
   const handleDayPress = useCallback((dateKey: string) => {
-    const dayWorkouts = calWorkouts[dateKey];
-    if (dayWorkouts && dayWorkouts.length > 0) {
+    Haptics.selectionAsync();
+    setSelectedDate(dateKey);
+  }, []);
+
+  const handleWorkoutPress = useCallback(
+    (workoutId: string) => {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      router.push(`/(app)/workouts/${dayWorkouts[0].workoutId}`);
-    }
-  }, [calWorkouts, router]);
+      router.push(`/(app)/workouts/${workoutId}`);
+    },
+    [router],
+  );
 
   const handleToggleBlocks = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setViewMode((m) => (m === "workouts" ? "blocks" : "workouts"));
   }, []);
 
+  const handleAddWorkout = useCallback(() => {
+    Haptics.selectionAsync();
+    router.push({
+      pathname: "/(app)/workouts/schedule",
+      params: { date: selectedDate },
+    });
+  }, [router, selectedDate]);
+
   // ─── Render ───────────────────────────────────────────────────────
 
-  const isCurrentMonth =
-    currentMonth === todayDate.getMonth() &&
-    currentYear === todayDate.getFullYear();
   const isBlocksMode = viewMode === "blocks";
 
   if (workouts === undefined) {
@@ -219,6 +201,9 @@ export function CalendarScreen() {
       </View>
     );
   }
+
+  const selectedDateObj = new Date(selectedDate + "T00:00:00");
+  const selectedWorkouts = workoutsByDate[selectedDate] ?? [];
 
   return (
     <View style={st.root}>
@@ -257,161 +242,221 @@ export function CalendarScreen() {
       {/* Rounded transition from dark header to light content */}
       <View style={st.cornerTransition} />
 
-      {/* Pinned month nav in the light area */}
-      <View style={st.controls}>
-        <View style={st.nav}>
-          <Pressable
-            onPress={() => animateMonthChange("prev")}
-            hitSlop={16}
-            style={st.navBtn}
-          >
-            <ChevronLeft size={20} color={LIGHT_THEME.wSub} strokeWidth={2} />
-          </Pressable>
-          <Pressable onPress={handleReturnToToday} hitSlop={8}>
-            <View style={st.monthRow}>
-              <Text style={st.monthText}>
-                {formatMonthName(locale, currentMonth, currentYear)}
-              </Text>
-              <Text style={st.yearText}>{currentYear}</Text>
-              {!isCurrentMonth && <View style={st.returnDot} />}
-            </View>
-          </Pressable>
-          <Pressable
-            onPress={() => animateMonthChange("next")}
-            hitSlop={16}
-            style={st.navBtn}
-          >
-            <ChevronRight size={20} color={LIGHT_THEME.wSub} strokeWidth={2} />
-          </Pressable>
-        </View>
-      </View>
-
-      {/* Calendar body */}
-      <ScrollView
-        style={st.body}
-        contentContainerStyle={st.bodyContent}
-        showsVerticalScrollIndicator={false}
-        bounces={false}
-      >
-        <Animated.View style={contentAnimStyle}>
-          {/* Day-of-week headers */}
-          <View style={st.dayHeaders}>
-            {dayHeaderLabels.map((label, i) => (
-              <View key={i} style={st.dayHeaderCell}>
-                <Text style={st.dayHeaderText}>{label}</Text>
-              </View>
-            ))}
-          </View>
-
-          {/* Week rows — tile grid */}
-          {weeks.map((week, wi) => (
-            <View key={`w-${wi}`} style={st.weekRow}>
-              {week.map((day) => {
-                const dayWorkouts = calWorkouts[day.key];
-                const hasWorkout = dayWorkouts && dayWorkouts.length > 0;
-                const isToday = day.key === TODAY_KEY;
-                const phase = phaseLookup.get(day.key);
-                const isBlocks = viewMode === "blocks";
-
-                const tileStyle = {
-                  width: tileSize,
-                  height: tileSize,
-                };
-
-                if (day.outside) {
-                  return (
-                    <View key={day.key} style={st.cellWrapper}>
-                      <View style={[st.tile, tileStyle]}>
-                        <Text style={[st.dayNum, st.dayNumOutside]}>
-                          {day.day}
-                        </Text>
-                      </View>
-                    </View>
-                  );
-                }
-
-                const blockTileBg =
-                  isBlocks && phase
-                    ? {
-                        backgroundColor: blendWithBg(phase.color, 0.18),
-                        borderWidth: 1,
-                        borderColor: blendWithBg(phase.color, 0.25),
-                      }
-                    : undefined;
-
-                return (
-                  <View key={day.key} style={st.cellWrapper}>
-                    <Pressable onPress={() => handleDayPress(day.key)}>
-                      <View
-                        style={[
-                          st.tile,
-                          tileStyle,
-                          isBlocks
-                            ? blockTileBg ?? st.tileEmpty
-                            : hasWorkout
-                              ? st.tileWithWorkout
-                              : st.tileEmpty,
-                          isToday && st.tileToday,
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            st.dayNum,
-                            isToday && st.dayNumToday,
-                            !isToday &&
-                              ((isBlocks && phase) ||
-                                (!isBlocks && hasWorkout)) &&
-                              st.dayNumActive,
-                          ]}
-                        >
-                          {day.day}
-                        </Text>
-
-                        {isBlocks ? (
-                          phase && day.key === phase.start ? (
-                            <View style={st.dotsRow}>
-                              <View
-                                style={[
-                                  st.workoutDot,
-                                  { backgroundColor: phase.color },
-                                ]}
-                              />
-                            </View>
-                          ) : (
-                            <View style={st.dotsSpacer} />
-                          )
-                        ) : hasWorkout ? (
-                          <View style={st.dotsRow}>
-                            {dayWorkouts!.map((w, wi) => (
-                              <View
-                                key={wi}
-                                style={[
-                                  st.workoutDot,
-                                  {
-                                    backgroundColor:
-                                      WORKOUT_CATEGORY_COLORS[w.type],
-                                  },
-                                  w.done && st.workoutDotDone,
-                                ]}
-                              />
-                            ))}
-                          </View>
-                        ) : (
-                          <View style={st.dotsSpacer} />
-                        )}
-                      </View>
-                    </Pressable>
-                  </View>
-                );
-              })}
+      {/* Light area: day-of-week headers + scrollable month list + bottom panel */}
+      <View style={st.light}>
+        <View style={st.dayHeaders}>
+          {dayHeaderLabels.map((label, i) => (
+            <View key={i} style={st.dayHeaderCell}>
+              <Text style={st.dayHeaderText}>{label}</Text>
             </View>
           ))}
-        </Animated.View>
-      </ScrollView>
+        </View>
 
+        <ScrollView
+          ref={scrollRef}
+          style={st.calendarScroll}
+          contentContainerStyle={st.calendarContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {monthsList.map((m, idx) => (
+            <View
+              key={`${m.year}-${m.month}`}
+              onLayout={handleMonthLayout(idx)}
+              style={st.monthSection}
+            >
+              <Text style={st.monthSectionTitle}>
+                {formatMonthName(locale, m.month, m.year)}{" "}
+                <Text style={st.monthSectionYear}>{m.year}</Text>
+              </Text>
+              <MonthGrid
+                year={m.year}
+                month={m.month}
+                tileSize={tileSize}
+                calWorkouts={calWorkouts}
+                phaseLookup={phaseLookup}
+                isBlocksMode={isBlocksMode}
+                selectedDate={selectedDate}
+                onDayPress={handleDayPress}
+              />
+            </View>
+          ))}
+        </ScrollView>
+
+        <View style={st.panel}>
+          <View style={st.panelHeader}>
+            <Text style={st.panelTitle}>
+              {formatLongDate(locale, selectedDateObj)}
+            </Text>
+            {selectedWorkouts.length > 0 && (
+              <View style={st.panelBadge}>
+                <Text style={st.panelBadgeText}>{selectedWorkouts.length}</Text>
+              </View>
+            )}
+          </View>
+
+          <ScrollView
+            style={st.panelList}
+            contentContainerStyle={st.panelListContent}
+            showsVerticalScrollIndicator={false}
+          >
+            {selectedWorkouts.length === 0 ? (
+              <Text style={st.emptyPanelText}>
+                {t("calendar.selectedDay.empty")}
+              </Text>
+            ) : (
+              selectedWorkouts.map((w) => (
+                <WorkoutCard
+                  key={w._id}
+                  workout={w}
+                  onPress={() => handleWorkoutPress(w._id)}
+                />
+              ))
+            )}
+            <AddWorkoutButton
+              label={t("account.trainingPlan.addWorkout")}
+              onPress={handleAddWorkout}
+            />
+          </ScrollView>
+        </View>
+      </View>
     </View>
   );
 }
+
+// ─── MonthGrid ───────────────────────────────────────────────────────
+
+interface MonthGridProps {
+  year: number;
+  month: number;
+  tileSize: number;
+  calWorkouts: Record<string, CalWorkout[]>;
+  phaseLookup: Map<string, Phase>;
+  isBlocksMode: boolean;
+  selectedDate: string;
+  onDayPress: (dateKey: string) => void;
+}
+
+const MonthGrid = React.memo(function MonthGrid({
+  year,
+  month,
+  tileSize,
+  calWorkouts,
+  phaseLookup,
+  isBlocksMode,
+  selectedDate,
+  onDayPress,
+}: MonthGridProps) {
+  const weeks = useMemo(() => buildWeeks(year, month), [year, month]);
+
+  return (
+    <View>
+      {weeks.map((week, wi) => (
+        <View key={`w-${wi}`} style={st.weekRow}>
+          {week.map((day) => {
+            const dayWorkouts = calWorkouts[day.key];
+            const hasWorkout = dayWorkouts && dayWorkouts.length > 0;
+            const isToday = day.key === TODAY_KEY;
+            const isSelected = day.key === selectedDate;
+            const phase = phaseLookup.get(day.key);
+            const tileStyle = { width: tileSize, height: tileSize };
+
+            // Days outside the current month section render dimmed + non-pressable
+            // so the user only ever taps the canonical month they belong to.
+            if (day.outside) {
+              return (
+                <View key={day.key} style={st.cellWrapper}>
+                  <View style={[st.tile, tileStyle]}>
+                    <Text style={[st.dayNum, st.dayNumOutside]}>{day.day}</Text>
+                  </View>
+                </View>
+              );
+            }
+
+            const blockTileBg =
+              isBlocksMode && phase
+                ? {
+                    backgroundColor: blendWithBg(phase.color, 0.18),
+                    borderWidth: 1,
+                    borderColor: blendWithBg(phase.color, 0.25),
+                  }
+                : undefined;
+
+            const baseTileBg = isBlocksMode && phase ? blockTileBg : st.tileWhite;
+            // Gray today-marker only applies when no phase tint is active,
+            // so block coloring still wins in blocks mode.
+            const isTodayMarker = isToday && !isSelected && !(isBlocksMode && phase);
+
+            return (
+              <View key={day.key} style={st.cellWrapper}>
+                <Pressable onPress={() => onDayPress(day.key)}>
+                  <View
+                    style={[
+                      st.tile,
+                      tileStyle,
+                      baseTileBg,
+                      isTodayMarker && st.tileToday,
+                      isSelected && st.tileSelected,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        st.dayNum,
+                        isSelected && st.dayNumSelected,
+                        !isSelected && isToday && st.dayNumToday,
+                        !isSelected &&
+                          !isToday &&
+                          ((isBlocksMode && phase) ||
+                            (!isBlocksMode && hasWorkout)) &&
+                          st.dayNumActive,
+                      ]}
+                    >
+                      {day.day}
+                    </Text>
+
+                    {isBlocksMode ? (
+                      phase && day.key === phase.start ? (
+                        <View style={st.dotsRow}>
+                          <View
+                            style={[
+                              st.workoutDot,
+                              { backgroundColor: phase.color },
+                            ]}
+                          />
+                        </View>
+                      ) : (
+                        <View style={st.dotsSpacer} />
+                      )
+                    ) : hasWorkout ? (
+                      <View style={st.dotsRow}>
+                        {dayWorkouts!.map((w, di) => (
+                          <View
+                            key={di}
+                            style={[
+                              st.workoutDot,
+                              {
+                                backgroundColor:
+                                  WORKOUT_CATEGORY_COLORS[w.type],
+                              },
+                              w.done && st.workoutDotDone,
+                            ]}
+                          />
+                        ))}
+                      </View>
+                    ) : (
+                      <View style={st.dotsSpacer} />
+                    )}
+                  </View>
+                </Pressable>
+              </View>
+            );
+          })}
+        </View>
+      ))}
+    </View>
+  );
+});
+
+// ─── Styles ──────────────────────────────────────────────────────────
 
 const st = StyleSheet.create({
   root: {
@@ -419,6 +464,7 @@ const st = StyleSheet.create({
     backgroundColor: COLORS.black,
   },
 
+  // Dark header
   header: {
     backgroundColor: COLORS.black,
     paddingHorizontal: 24,
@@ -468,59 +514,16 @@ const st = StyleSheet.create({
     borderTopRightRadius: 24,
   },
 
-  controls: {
-    backgroundColor: LIGHT_THEME.w2,
-    paddingHorizontal: 14,
-    paddingBottom: 16,
-  },
-  nav: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  navBtn: {
-    padding: 8,
-  },
-  monthRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    position: "relative",
-  },
-  monthText: {
-    fontSize: 20,
-    fontWeight: "700",
-    fontFamily: "Outfit-Bold",
-    color: LIGHT_THEME.wText,
-  },
-  yearText: {
-    fontSize: 20,
-    fontWeight: "300",
-    fontFamily: "Outfit-Light",
-    color: LIGHT_THEME.wMute,
-  },
-  returnDot: {
-    width: 5,
-    height: 5,
-    borderRadius: 3,
-    backgroundColor: COLORS.lime,
-    position: "absolute",
-    top: -2,
-    right: -10,
-  },
-
-  body: {
+  // Light area
+  light: {
     flex: 1,
     backgroundColor: LIGHT_THEME.w2,
-  },
-  bodyContent: {
-    paddingHorizontal: GRID_PADDING,
-    paddingBottom: 32,
   },
 
   dayHeaders: {
     flexDirection: "row",
-    marginBottom: 6,
+    paddingHorizontal: GRID_PADDING,
+    paddingBottom: 8,
     gap: GRID_GAP,
   },
   dayHeaderCell: {
@@ -534,6 +537,32 @@ const st = StyleSheet.create({
     color: LIGHT_THEME.wMute,
   },
 
+  // Calendar scroll (months stacked)
+  calendarScroll: {
+    flex: 1,
+  },
+  calendarContent: {
+    paddingHorizontal: GRID_PADDING,
+    paddingBottom: 16,
+  },
+  monthSection: {
+    marginBottom: 18,
+  },
+  monthSectionTitle: {
+    fontSize: 18,
+    fontFamily: "Outfit-Bold",
+    fontWeight: "700",
+    color: LIGHT_THEME.wText,
+    marginBottom: 8,
+    marginLeft: 4,
+    letterSpacing: -0.02 * 18,
+  },
+  monthSectionYear: {
+    fontFamily: "Outfit-Light",
+    fontWeight: "300",
+    color: LIGHT_THEME.wMute,
+  },
+
   weekRow: {
     flexDirection: "row",
     justifyContent: "center",
@@ -541,8 +570,7 @@ const st = StyleSheet.create({
     marginBottom: GRID_GAP,
   },
 
-  // ─── Tile styles ────────────────────────────────────────────────────
-
+  // Tile
   cellWrapper: {
     alignItems: "center",
   },
@@ -552,27 +580,22 @@ const st = StyleSheet.create({
     justifyContent: "center",
     overflow: "hidden",
   },
-  tileEmpty: {
-    backgroundColor: "#EAEAE8",
-  },
-  tileWithWorkout: {
-    backgroundColor: "#FFFFFF",
+  tileWhite: {
+    backgroundColor: LIGHT_THEME.w1,
     borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.06)",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
+    borderColor: LIGHT_THEME.wBrd,
   },
   tileToday: {
-    backgroundColor: LIGHT_THEME.w1,
+    backgroundColor: LIGHT_THEME.w3,
+    borderWidth: 1,
+    borderColor: LIGHT_THEME.wBrd,
+  },
+  tileSelected: {
     borderWidth: 2,
     borderColor: LIGHT_THEME.wText,
   },
 
-  // ─── Day number ─────────────────────────────────────────────────────
-
+  // Day number
   dayNum: {
     fontSize: 16,
     fontFamily: "Outfit-Regular",
@@ -587,14 +610,18 @@ const st = StyleSheet.create({
     fontWeight: "700",
     color: LIGHT_THEME.wText,
   },
+  dayNumSelected: {
+    fontFamily: "Outfit-Bold",
+    fontWeight: "700",
+    color: LIGHT_THEME.wText,
+  },
   dayNumActive: {
     fontFamily: "Outfit-SemiBold",
     fontWeight: "600",
     color: LIGHT_THEME.wText,
   },
 
-  // ─── Workout dots inside tile ───────────────────────────────────────
-
+  // Workout dots inside tile
   dotsRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -611,5 +638,62 @@ const st = StyleSheet.create({
   },
   dotsSpacer: {
     height: 10,
+  },
+
+  // Bottom panel
+  panel: {
+    minHeight: 220,
+    maxHeight: 280,
+    backgroundColor: LIGHT_THEME.w2,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: LIGHT_THEME.wBrd,
+    paddingTop: 14,
+  },
+  panelHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingBottom: 12,
+    gap: 8,
+  },
+  panelTitle: {
+    flex: 1,
+    fontSize: 16,
+    fontFamily: "Outfit-SemiBold",
+    fontWeight: "600",
+    color: LIGHT_THEME.wText,
+    textTransform: "capitalize",
+  },
+  panelBadge: {
+    minWidth: 22,
+    height: 22,
+    borderRadius: 11,
+    paddingHorizontal: 7,
+    backgroundColor: LIGHT_THEME.w3,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  panelBadgeText: {
+    fontSize: 12,
+    fontFamily: "Outfit-SemiBold",
+    fontWeight: "600",
+    color: LIGHT_THEME.wSub,
+    fontVariant: ["tabular-nums"],
+  },
+  panelList: {
+    flex: 1,
+  },
+  panelListContent: {
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+    gap: 10,
+  },
+  emptyPanelText: {
+    fontSize: 14,
+    fontFamily: "Outfit-Regular",
+    fontWeight: "400",
+    color: LIGHT_THEME.wMute,
+    textAlign: "center",
+    paddingVertical: 16,
   },
 });

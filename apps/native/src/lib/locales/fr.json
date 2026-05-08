@@ -142,6 +142,9 @@
       "show": "Afficher les blocs d'entraînement",
       "hide": "Masquer les blocs d'entraînement"
     },
+    "selectedDay": {
+      "empty": "Aucune séance prévue"
+    },
     "types": {
       "easy": "Facile",
       "specific": "Spécifique",
