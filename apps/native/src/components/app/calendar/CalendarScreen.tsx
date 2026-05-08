@@ -3,7 +3,7 @@
  *
  * 1. **Workouts** – rounded-square tiles with colored dots for each workout type.
  * 2. **Blocks** – same tile grid but tiles are tinted by training phase color
- *    (Base / Build / Taper / Race / Recovery) with a phase legend.
+ *    (Base / Build / Taper / Race / Recovery).
  *
  * - Animated month navigation with haptic feedback
  * - Tap month name to return to today
@@ -28,7 +28,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { ChevronLeft, ChevronRight } from "lucide-react-native";
+import { ChevronLeft, ChevronRight, Layers } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import { useQuery } from "convex/react";
 import { useRouter } from "expo-router";
@@ -50,7 +50,6 @@ import {
   buildCalendarWorkouts,
   buildPhasesFromBlocks,
 } from "./helpers";
-import type { CalWorkoutType } from "./types";
 
 type ViewMode = "workouts" | "blocks";
 
@@ -72,67 +71,6 @@ function toUtcRangeEnd(d: Date): string {
   return `${toIsoDate(d)}T23:59:59.999Z`;
 }
 
-function ViewToggle({
-  value,
-  onChange,
-}: {
-  value: ViewMode;
-  onChange: (v: ViewMode) => void;
-}) {
-  const { t } = useTranslation();
-  const indicatorX = useSharedValue(value === "workouts" ? 0 : 1);
-
-  const handlePress = useCallback(
-    (mode: ViewMode) => {
-      if (mode === value) return;
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      indicatorX.value = withTiming(mode === "workouts" ? 0 : 1, {
-        duration: 180,
-      });
-      onChange(mode);
-    },
-    [value, onChange, indicatorX],
-  );
-
-  const indicatorStyle = useAnimatedStyle(() => ({
-    left: `${indicatorX.value * 50}%` as unknown as number,
-  }));
-
-  return (
-    <View style={toggleStyles.container}>
-      <Animated.View style={[toggleStyles.indicator, indicatorStyle]} />
-      <Pressable
-        style={toggleStyles.option}
-        onPress={() => handlePress("workouts")}
-        hitSlop={4}
-      >
-        <Text
-          style={[
-            toggleStyles.label,
-            value === "workouts" && toggleStyles.labelActive,
-          ]}
-        >
-          {t("calendar.viewMode.workouts")}
-        </Text>
-      </Pressable>
-      <Pressable
-        style={toggleStyles.option}
-        onPress={() => handlePress("blocks")}
-        hitSlop={4}
-      >
-        <Text
-          style={[
-            toggleStyles.label,
-            value === "blocks" && toggleStyles.labelActive,
-          ]}
-        >
-          {t("calendar.viewMode.blocks")}
-        </Text>
-      </Pressable>
-    </View>
-  );
-}
-
 export function CalendarScreen() {
   const { t } = useTranslation();
   const locale = useLanguage();
@@ -150,13 +88,6 @@ export function CalendarScreen() {
       return formatDayLabelShort(locale, d);
     });
   }, [locale]);
-
-  const workoutTypeLabels: Record<CalWorkoutType, string> = {
-    easy: t("calendar.types.easy"),
-    specific: t("calendar.types.specific"),
-    long: t("calendar.types.long"),
-    race: t("calendar.types.race"),
-  };
 
   const tileSize = useMemo(
     () => Math.floor((screenWidth - GRID_PADDING * 2 - GRID_GAP * 6) / 7),
@@ -202,13 +133,6 @@ export function CalendarScreen() {
   );
 
   const phaseLookup = useMemo(() => buildPhaseLookup(phases), [phases]);
-
-  const visiblePhases = useMemo(() => {
-    const monthStart = `${currentYear}-${String(currentMonth + 1).padStart(2, "0")}-01`;
-    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-    const monthEnd = `${currentYear}-${String(currentMonth + 1).padStart(2, "0")}-${String(daysInMonth).padStart(2, "0")}`;
-    return phases.filter((p) => p.end >= monthStart && p.start <= monthEnd);
-  }, [currentYear, currentMonth, phases]);
 
   // ─── Month navigation ──────────────────────────────────────────────
 
@@ -276,11 +200,17 @@ export function CalendarScreen() {
     }
   }, [calWorkouts, router]);
 
+  const handleToggleBlocks = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setViewMode((m) => (m === "workouts" ? "blocks" : "workouts"));
+  }, []);
+
   // ─── Render ───────────────────────────────────────────────────────
 
   const isCurrentMonth =
     currentMonth === todayDate.getMonth() &&
     currentYear === todayDate.getFullYear();
+  const isBlocksMode = viewMode === "blocks";
 
   if (workouts === undefined) {
     return (
@@ -292,15 +222,50 @@ export function CalendarScreen() {
 
   return (
     <View style={st.root}>
-      {/* Dark header */}
-      <View style={[st.header, { paddingTop: insets.top + 12 }]}>
+      {/* Dark header — title + subtitle + blocks toggle */}
+      <View style={[st.header, { paddingTop: insets.top + 8 }]}>
+        <View style={st.headerRow}>
+          <View style={st.headerText}>
+            <Text style={st.titleText}>{t("calendar.title")}</Text>
+            <Text style={st.subtitleText}>{t("calendar.subtitle")}</Text>
+          </View>
+          <Pressable
+            onPress={handleToggleBlocks}
+            accessibilityRole="switch"
+            accessibilityState={{ checked: isBlocksMode }}
+            accessibilityLabel={t(
+              isBlocksMode
+                ? "calendar.toggleBlocks.hide"
+                : "calendar.toggleBlocks.show",
+            )}
+            hitSlop={6}
+            style={({ pressed }) => [
+              st.blocksToggle,
+              isBlocksMode && st.blocksToggleActive,
+              pressed && { opacity: 0.7 },
+            ]}
+          >
+            <Layers
+              size={16}
+              color={isBlocksMode ? COLORS.lime : GRAYS.g3}
+              strokeWidth={1.75}
+            />
+          </Pressable>
+        </View>
+      </View>
+
+      {/* Rounded transition from dark header to light content */}
+      <View style={st.cornerTransition} />
+
+      {/* Pinned month nav in the light area */}
+      <View style={st.controls}>
         <View style={st.nav}>
           <Pressable
             onPress={() => animateMonthChange("prev")}
             hitSlop={16}
             style={st.navBtn}
           >
-            <ChevronLeft size={20} color={GRAYS.g2} strokeWidth={2} />
+            <ChevronLeft size={20} color={LIGHT_THEME.wSub} strokeWidth={2} />
           </Pressable>
           <Pressable onPress={handleReturnToToday} hitSlop={8}>
             <View style={st.monthRow}>
@@ -316,17 +281,10 @@ export function CalendarScreen() {
             hitSlop={16}
             style={st.navBtn}
           >
-            <ChevronRight size={20} color={GRAYS.g2} strokeWidth={2} />
+            <ChevronRight size={20} color={LIGHT_THEME.wSub} strokeWidth={2} />
           </Pressable>
         </View>
-
-        <View style={st.toggleRow}>
-          <ViewToggle value={viewMode} onChange={setViewMode} />
-        </View>
       </View>
-
-      {/* Rounded transition from dark header to light content */}
-      <View style={st.cornerTransition} />
 
       {/* Calendar body */}
       <ScrollView
@@ -448,40 +406,6 @@ export function CalendarScreen() {
               })}
             </View>
           ))}
-
-          {/* Legend — swaps between workout types and training blocks */}
-          <View style={st.legend}>
-            <View style={st.legendCard}>
-              {viewMode === "workouts"
-                ? (
-                    Object.entries(workoutTypeLabels) as [
-                      CalWorkoutType,
-                      string,
-                    ][]
-                  ).map(([type, label]) => (
-                    <View key={type} style={st.legendItem}>
-                      <View
-                        style={[
-                          st.legendDot,
-                          { backgroundColor: WORKOUT_CATEGORY_COLORS[type] },
-                        ]}
-                      />
-                      <Text style={st.legendLabel}>{label}</Text>
-                    </View>
-                  ))
-                : visiblePhases.map((p) => (
-                    <View key={p.key} style={st.legendItem}>
-                      <View
-                        style={[
-                          st.legendDot,
-                          { backgroundColor: p.color },
-                        ]}
-                      />
-                      <Text style={st.legendLabel}>{p.name}</Text>
-                    </View>
-                  ))}
-            </View>
-          </View>
         </Animated.View>
       </ScrollView>
 
@@ -498,7 +422,56 @@ const st = StyleSheet.create({
   header: {
     backgroundColor: COLORS.black,
     paddingHorizontal: 24,
-    paddingBottom: 20,
+    paddingBottom: 16,
+  },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  headerText: {
+    flex: 1,
+  },
+  titleText: {
+    fontSize: 24,
+    fontFamily: "Outfit-Bold",
+    fontWeight: "700",
+    color: GRAYS.g1,
+    letterSpacing: -0.03 * 24,
+  },
+  subtitleText: {
+    fontSize: 13,
+    fontFamily: "Outfit-Regular",
+    fontWeight: "400",
+    color: GRAYS.g3,
+    marginTop: 4,
+  },
+  blocksToggle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.06)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+  },
+  blocksToggleActive: {
+    backgroundColor: "rgba(168,217,0,0.15)",
+    borderColor: "rgba(168,217,0,0.4)",
+  },
+
+  cornerTransition: {
+    height: 24,
+    backgroundColor: LIGHT_THEME.w2,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+  },
+
+  controls: {
+    backgroundColor: LIGHT_THEME.w2,
+    paddingHorizontal: 14,
+    paddingBottom: 16,
   },
   nav: {
     flexDirection: "row",
@@ -518,13 +491,13 @@ const st = StyleSheet.create({
     fontSize: 20,
     fontWeight: "700",
     fontFamily: "Outfit-Bold",
-    color: GRAYS.g1,
+    color: LIGHT_THEME.wText,
   },
   yearText: {
     fontSize: 20,
     fontWeight: "300",
     fontFamily: "Outfit-Light",
-    color: GRAYS.g3,
+    color: LIGHT_THEME.wMute,
   },
   returnDot: {
     width: 5,
@@ -534,17 +507,6 @@ const st = StyleSheet.create({
     position: "absolute",
     top: -2,
     right: -10,
-  },
-  toggleRow: {
-    alignItems: "center",
-    marginTop: 14,
-  },
-
-  cornerTransition: {
-    height: 24,
-    backgroundColor: LIGHT_THEME.w2,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
   },
 
   body: {
@@ -649,82 +611,5 @@ const st = StyleSheet.create({
   },
   dotsSpacer: {
     height: 10,
-  },
-
-  // ─── Legend ─────────────────────────────────────────────────────────
-
-  legend: {
-    marginTop: 18,
-  },
-  legendCard: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    backgroundColor: LIGHT_THEME.w1,
-    borderRadius: 16,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: LIGHT_THEME.wBrd,
-  },
-  legendItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    width: "50%" as unknown as number,
-    paddingVertical: 8,
-    gap: 10,
-  },
-  legendDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-  },
-  legendPill: {
-    width: 18,
-    height: 10,
-    borderRadius: 5,
-    borderLeftWidth: 2.5,
-  },
-  legendLabel: {
-    fontSize: 13,
-    fontFamily: "Outfit-Regular",
-    fontWeight: "400",
-    color: LIGHT_THEME.wSub,
-  },
-});
-
-const toggleStyles = StyleSheet.create({
-  container: {
-    flexDirection: "row",
-    backgroundColor: "rgba(255,255,255,0.08)",
-    borderRadius: 10,
-    padding: 2,
-    width: 200,
-    position: "relative",
-  },
-  indicator: {
-    position: "absolute",
-    top: 2,
-    bottom: 2,
-    width: "50%",
-    backgroundColor: "rgba(255,255,255,0.12)",
-    borderRadius: 8,
-  },
-  option: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 6,
-    zIndex: 1,
-  },
-  label: {
-    fontSize: 13,
-    fontFamily: "Outfit-Medium",
-    fontWeight: "500",
-    color: GRAYS.g3,
-  },
-  labelActive: {
-    fontFamily: "Outfit-SemiBold",
-    fontWeight: "600",
-    color: GRAYS.g1,
   },
 });

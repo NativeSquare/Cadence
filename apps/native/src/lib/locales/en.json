@@ -136,9 +136,11 @@
     "comingSoonHelper": "Tap continue to skip for now."
   },
   "calendar": {
-    "viewMode": {
-      "workouts": "Workouts",
-      "blocks": "Blocks"
+    "title": "Calendar",
+    "subtitle": "Your training month at a glance",
+    "toggleBlocks": {
+      "show": "Show training blocks",
+      "hide": "Hide training blocks"
     },
     "types": {
       "easy": "Easy",

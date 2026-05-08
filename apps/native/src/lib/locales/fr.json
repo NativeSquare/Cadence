@@ -136,9 +136,11 @@
     "comingSoonHelper": "Appuyez sur Continuer pour ignorer pour l'instant."
   },
   "calendar": {
-    "viewMode": {
-      "workouts": "Séances",
-      "blocks": "Blocs"
+    "title": "Calendrier",
+    "subtitle": "Votre mois d'entraînement en un coup d'œil",
+    "toggleBlocks": {
+      "show": "Afficher les blocs d'entraînement",
+      "hide": "Masquer les blocs d'entraînement"
     },
     "types": {
       "easy": "Facile",
