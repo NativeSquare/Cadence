@@ -1,6 +1,7 @@
 "use node";
 
 import { v } from "convex/values";
+import { APP_DOMAIN, APP_NAME } from "@packages/shared";
 import { internalAction } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { resend, buildBroadcastHtml } from "./emails";
@@ -49,7 +50,7 @@ export const sendAll = internalAction({
         } else {
           const html = buildBroadcastHtml(broadcast.bodyHtml, unsubscribeUrl);
           await resend.sendEmail(ctx, {
-            from: `Cadence <no-reply@dev.nativesquare.fr>`,
+            from: `${APP_NAME} <no-reply@${APP_DOMAIN}>`,
             to: contact.email,
             subject: broadcast.subject,
             html,

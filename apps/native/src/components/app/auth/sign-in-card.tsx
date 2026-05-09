@@ -1,9 +1,8 @@
 import { Text } from "@/components/ui/text";
 import { COLORS, GRAYS } from "@/lib/design-tokens";
-import { LEGAL_URLS } from "@/lib/constants";
 import { getConvexErrorMessage } from "@/utils/getConvexErrorMessage";
 import { useAuthActions } from "@convex-dev/auth/react";
-import { APP_SLUG } from "@packages/shared";
+import { APP_DOMAIN, APP_SLUG } from "@packages/shared";
 import { makeRedirectUri } from "expo-auth-session";
 import { useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
@@ -75,8 +74,10 @@ export function SignInCard() {
     }
   }
 
-  const openTerms = () => WebBrowser.openBrowserAsync(LEGAL_URLS.terms);
-  const openPrivacy = () => WebBrowser.openBrowserAsync(LEGAL_URLS.privacy);
+  const openTerms = () =>
+    WebBrowser.openBrowserAsync(`https://${APP_DOMAIN}/terms`);
+  const openPrivacy = () =>
+    WebBrowser.openBrowserAsync(`https://${APP_DOMAIN}/privacy`);
 
   return (
     <View style={styles.container}>

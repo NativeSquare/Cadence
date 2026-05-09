@@ -1,4 +1,6 @@
-const LOGO_URL = "https://cadencerun.fr/cadence-logo.png";
+import { APP_DOMAIN } from "@packages/shared";
+
+const LOGO_URL = `https://${APP_DOMAIN}/cadence-logo.png`;
 
 /** Converts Tiptap's semantic HTML into email-safe inline-styled HTML. */
 export function inlineEmailStyles(html: string): string {

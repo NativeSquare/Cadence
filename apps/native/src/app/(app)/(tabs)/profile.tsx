@@ -3,8 +3,8 @@ import { ConfirmationSheet } from "@/components/shared/confirmation-sheet";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { Text } from "@/components/ui/text";
 import { ACTIVITY_COLORS, COLORS, LIGHT_THEME } from "@/lib/design-tokens";
-import { LEGAL_URLS } from "@/lib/constants";
 import { useAuthActions } from "@convex-dev/auth/react";
+import { APP_DOMAIN } from "@packages/shared";
 import { api } from "@packages/backend/convex/_generated/api";
 import { Ionicons } from "@expo/vector-icons";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
@@ -288,13 +288,16 @@ export default function Profile() {
                   icon: "shield-checkmark-outline",
                   showChevron: false,
                   onPress: () =>
-                    WebBrowser.openBrowserAsync(LEGAL_URLS.privacy),
+                    WebBrowser.openBrowserAsync(
+                      `https://${APP_DOMAIN}/privacy`,
+                    ),
                 },
                 {
                   label: t("profile.items.termsOfService"),
                   icon: "document-text-outline",
                   showChevron: false,
-                  onPress: () => WebBrowser.openBrowserAsync(LEGAL_URLS.terms),
+                  onPress: () =>
+                    WebBrowser.openBrowserAsync(`https://${APP_DOMAIN}/terms`),
                 },
               ]}
             />
