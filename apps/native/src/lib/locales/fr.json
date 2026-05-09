@@ -163,10 +163,6 @@
       "reconnecting": "Reconnexion...",
       "errorTapRetry": "Erreur · appuyer pour réessayer"
     },
-    "toggleVerbose": {
-      "show": "Afficher l'activité des outils",
-      "hide": "Masquer l'activité des outils"
-    },
     "emptyState": {
       "heading": "Votre coach de course",
       "subheading": "Demandez-moi tout sur votre entraînement, votre récupération ou votre préparation de course.",

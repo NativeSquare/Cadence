@@ -1,14 +1,8 @@
 /**
- * ChatHeader - Header with title, online/typing status, and verbose toggle
- *
- * Layout:
- * - Left: "Coach" title (24px bold), status with dot
- * - Right: Eye / EyeOff icon toggle for the verbose preference (controls
- *   whether reading-tool pills like "Checking sessions…" render in chat)
+ * ChatHeader - Header with title and online/typing status
  */
 
-import { View, Pressable } from "react-native";
-import { Eye, EyeOff } from "lucide-react-native";
+import { View } from "react-native";
 import { Text } from "@/components/ui/text";
 import Animated, {
   useAnimatedStyle,
@@ -74,45 +68,25 @@ function StatusDot({
 // Main Component
 // =============================================================================
 
-export function ChatHeader({
-  isTyping,
-  statusKind,
-  verbose,
-  onToggleVerbose,
-}: ChatHeaderProps) {
+export function ChatHeader({ isTyping, statusKind }: ChatHeaderProps) {
   const { t } = useTranslation();
   const status = isTyping
     ? t("coach.status.thinking")
     : t(`coach.status.${statusKind === "error" ? "errorTapRetry" : statusKind}`);
-  const Icon = verbose ? Eye : EyeOff;
 
   return (
-    <View className="flex-row items-center justify-between">
-      <View>
-        <Text
-          className="text-[24px] font-coach-bold text-g1"
-          style={{ letterSpacing: -0.03 * 24 }}
-        >
-          {t("coach.title")}
-        </Text>
-
-        <View className="flex-row items-center gap-1.5 mt-1">
-          <StatusDot isTyping={isTyping} statusKind={statusKind} />
-          <Text className="text-[12px] font-coach text-g3">{status}</Text>
-        </View>
-      </View>
-
-      <Pressable
-        onPress={onToggleVerbose}
-        accessibilityRole="switch"
-        accessibilityState={{ checked: verbose }}
-        accessibilityLabel={
-          verbose ? t("coach.toggleVerbose.hide") : t("coach.toggleVerbose.show")
-        }
-        className="w-9 h-9 rounded-full items-center justify-center bg-card-surface border border-brd active:opacity-70"
+    <View>
+      <Text
+        className="text-[24px] font-coach-bold text-g1"
+        style={{ letterSpacing: -0.03 * 24 }}
       >
-        <Icon size={16} color="#a3a3a0" strokeWidth={1.75} />
-      </Pressable>
+        {t("coach.title")}
+      </Text>
+
+      <View className="flex-row items-center gap-1.5 mt-1">
+        <StatusDot isTyping={isTyping} statusKind={statusKind} />
+        <Text className="text-[12px] font-coach text-g3">{status}</Text>
+      </View>
     </View>
   );
 }

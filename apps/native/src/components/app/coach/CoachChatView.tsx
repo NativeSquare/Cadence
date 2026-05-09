@@ -29,11 +29,11 @@ import {
 } from "@/components/shared/upload-media-bottom-sheet-modal";
 import { useCoachAgent } from "@/hooks/use-coach-agent";
 import { useUploadImage } from "@/hooks/use-upload-image";
-import { useCoachVerbose, toggleCoachVerbose } from "@/hooks/use-coach-verbose";
 import { useMicrophonePermission } from "@/hooks/use-microphone-permission";
 import { useVoiceRecording } from "@/hooks/use-voice-recording";
 import { useLanguage } from "@/lib/i18n";
-import { isWritingToolPart } from "@/lib/ai-stream";
+import { extractToolName, isWritingToolPart } from "@/lib/ai-stream";
+import { isKnownWritingTool } from "./tool-cards";
 import type { ChatStatusKind, PendingAttachment } from "./types";
 
 const MAX_RECORDING_MS = 60_000;
@@ -58,7 +58,6 @@ export function CoachChatView({ threadId, initialPrompt }: CoachChatViewProps) {
   const [pendingAttachments, setPendingAttachments] = useState<
     PendingAttachment[]
   >([]);
-  const verbose = useCoachVerbose();
 
   const {
     messages,
@@ -355,12 +354,7 @@ export function CoachChatView({ threadId, initialPrompt }: CoachChatViewProps) {
         className="bg-black px-6 pb-4"
         style={{ paddingTop: insets.top + 8 }}
       >
-        <ChatHeader
-          isTyping={isStreaming}
-          statusKind={statusKind}
-          verbose={verbose}
-          onToggleVerbose={toggleCoachVerbose}
-        />
+        <ChatHeader isTyping={isStreaming} statusKind={statusKind} />
       </View>
 
       <View
@@ -454,10 +448,16 @@ export function CoachChatView({ threadId, initialPrompt }: CoachChatViewProps) {
                     });
                     return;
                   }
-                  // Tool parts are part of the assistant's turn. Reading-
-                  // tool pills are gated by the verbose toggle so the chat
-                  // stays clean for users who don't want to see them.
-                  if (!verbose && !isWritingToolPart(part)) return;
+                  // Skip known writing tools that haven't reached an
+                  // approval state — ChatToolPart renders null for them
+                  // (silent-retry / pre-approval), and a bare wrapper
+                  // would leave a marginBottom gap.
+                  if (
+                    !isWritingToolPart(part) &&
+                    isKnownWritingTool(extractToolName(part))
+                  ) {
+                    return;
+                  }
                   items.push({
                     key: partKey,
                     sender: "assistant",
@@ -488,12 +488,7 @@ export function CoachChatView({ threadId, initialPrompt }: CoachChatViewProps) {
               });
             })()}
 
-            <TypingIndicator
-              visible={
-                isStreaming &&
-                messages[messages.length - 1]?.role !== "assistant"
-              }
-            />
+            <TypingIndicator visible={isStreaming} />
 
             {error && !isStreaming && (
               <ChatErrorCard

@@ -24,9 +24,6 @@ export interface ChatHeaderProps {
    * locale-aware copy and force English-prefix string-sniffing for color.
    */
   statusKind: ChatStatusKind;
-  /** When true, the header's eye icon is filled; reading-tool pills show in chat. */
-  verbose: boolean;
-  onToggleVerbose: () => void;
 }
 
 export interface ChatMessageProps {

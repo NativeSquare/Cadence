@@ -163,10 +163,6 @@
       "reconnecting": "Reconnecting...",
       "errorTapRetry": "Error · tap retry"
     },
-    "toggleVerbose": {
-      "show": "Show tool activity",
-      "hide": "Hide tool activity"
-    },
     "emptyState": {
       "heading": "Your running coach",
       "subheading": "Ask me anything about your training, recovery, or race prep.",
