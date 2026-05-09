@@ -5,7 +5,7 @@
  *   day on the calendar strip.
  * - Log a workout      → opens the log form prefilled with the selected day.
  *
- * Workout-type selection (easy / specific / long / race) lives inside each
+ * Workout-type selection (easy / tempo / long / race) lives inside each
  * form, not on the home page.
  */
 

@@ -1,6 +1,6 @@
 import type { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
-import { WORKOUT_CATEGORY_COLORS } from "@/lib/design-tokens";
+import { WORKOUT_CATEGORY_COLORS } from "@packages/shared";
 import type {
   Duration,
   Step,
@@ -69,7 +69,7 @@ export function workoutStatusLabel(t: TFunction, status: string): string {
 
 export const WORKOUT_TYPE_COLORS: Record<WorkoutTypeOption, string> = {
   easy: WORKOUT_CATEGORY_COLORS.easy,
-  tempo: WORKOUT_CATEGORY_COLORS.specific,
+  tempo: WORKOUT_CATEGORY_COLORS.tempo,
   long: WORKOUT_CATEGORY_COLORS.long,
 };
 

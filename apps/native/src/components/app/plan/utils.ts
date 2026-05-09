@@ -6,10 +6,7 @@
  * totals) remains optional until the plan generator writes richer `plan.notes`.
  */
 
-import {
-  WORKOUT_CATEGORY_COLORS,
-  getWorkoutCategory,
-} from "@/lib/design-tokens";
+import { getWorkoutCategory, WORKOUT_CATEGORY_COLORS } from "@packages/shared";
 import { summarizeWorkout } from "@/components/app/workout/workout-summary";
 import type { WorkoutType } from "@nativesquare/agoge/schema";
 import type {
@@ -89,8 +86,8 @@ function formatDurationLong(seconds: number): string {
   return rem === 0 ? `${h}h` : `${h}h ${rem}m`;
 }
 
-function intensityFromName(name: string): WorkoutIntensity {
-  const category = getWorkoutCategory(name);
+function intensityFromType(type: WorkoutType): WorkoutIntensity {
+  const category = getWorkoutCategory(type);
   if (category === "race") return "key";
   if (category === "long") return "key";
   if (category === "easy") return "low";
@@ -124,7 +121,7 @@ export function workoutToWorkoutData(
     km: formatDistance(distanceMeters),
     dur: formatDurationShort(durationSeconds),
     done: workout.status === "completed",
-    intensity: intensityFromName(workout.name),
+    intensity: intensityFromType(workout.type),
     desc: workout.description ?? "",
     zone: "-",
     today: isToday,
@@ -280,7 +277,7 @@ function formatPace(secondsPerMeter: number): string {
 }
 
 export function getWorkoutColor(workout: WorkoutData): string {
-  const category = getWorkoutCategory(workout.type);
+  const category = workout.kind ? getWorkoutCategory(workout.kind) : "tempo";
   return WORKOUT_CATEGORY_COLORS[category];
 }
 

@@ -19,7 +19,6 @@ export { DayHeaders } from "./DayHeaders";
 // Types
 export type {
   CalWorkout,
-  CalWorkoutType,
   Phase,
   PhaseName,
   CalendarView,

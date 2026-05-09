@@ -1,6 +1,6 @@
 /**
  * WatermarkIcon - SVG watermark icons for workout cards.
- * 4 types: easy (concentric circles), specific (bolt), long (mountain), race (trophy).
+ * 4 types: easy (concentric circles), tempo (bolt), long (mountain), race (trophy).
  * Reference: cadence-calendar-final.jsx lines 268-297
  *
  * Icons are defined at module level to avoid recreation per render.
@@ -8,10 +8,10 @@
 
 import React from "react";
 import Svg, { Circle, Path } from "react-native-svg";
-import type { CalWorkoutType } from "./types";
+import type { WorkoutCategory } from "@packages/shared";
 
 interface WatermarkIconProps {
-  type: CalWorkoutType;
+  type: WorkoutCategory;
   size?: number;
   color?: string;
 }
@@ -45,7 +45,7 @@ function EasyIcon({ size, color }: { size: number; color: string }) {
   );
 }
 
-function SpecificIcon({ size, color }: { size: number; color: string }) {
+function TempoIcon({ size, color }: { size: number; color: string }) {
   return (
     <Svg
       width={size}
@@ -145,8 +145,8 @@ export const WatermarkIcon = React.memo(function WatermarkIcon({
   switch (type) {
     case "easy":
       return <EasyIcon size={size} color={color} />;
-    case "specific":
-      return <SpecificIcon size={size} color={color} />;
+    case "tempo":
+      return <TempoIcon size={size} color={color} />;
     case "long":
       return <LongIcon size={size} color={color} />;
     case "race":

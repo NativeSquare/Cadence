@@ -7,13 +7,12 @@ import type {
   Phase,
   PhaseName,
   CalWorkout,
-  CalWorkoutType,
   CalendarDay,
   WeekDate,
   PhaseSegment,
 } from "./types";
 import { DAY_HEADERS_FULL, PHASE_COLORS } from "./constants";
-import { getWorkoutCategory } from "@/lib/design-tokens";
+import { getWorkoutCategory } from "@packages/shared";
 import type { AgogeWorkout } from "../plan/utils";
 import type { BlockDoc } from "@nativesquare/agoge/schema";
 
@@ -219,7 +218,7 @@ export function buildCalendarWorkouts(
     );
     const calWorkout: CalWorkout = {
       workoutId: w._id,
-      type: getWorkoutCategory(w.name) as CalWorkoutType,
+      type: getWorkoutCategory(w.type),
       label: w.name,
       km,
       dur,

@@ -1,196 +1,22 @@
-/**
- * Design tokens aligned with the Cadence visual prototype.
- * Reference: cadence-full-v9.jsx T object (lines 3-14)
- *
- * Usage: Import tokens for type-safe access to design system values.
- * For NativeWind classes, use the corresponding utility names defined
- * in tailwind.config.ts (e.g., `bg-lime`, `text-g1`, `border-brd`).
- *
- * Design Pattern: "Dark chrome, light content"
- * - Dark theme (g* tokens): Header/status bar areas, black backgrounds
- * - Light theme (w* tokens): Content areas, scrollable white/cream cards
- */
+import { BRAND_COLORS, BRAND_NEUTRALS, WORKOUT_CATEGORY_COLORS } from "@packages/shared";
 
-/**
- * Primary accent colors with dim variants for subtle backgrounds.
- * Dim variants use 12% opacity for hover/selected states.
- */
-export const COLORS = {
-  /** Lime accent - primary brand color #C8FF00 */
-  lime: "#C8FF00",
-  /** Lime dim - rgba(200,255,0,0.12) for subtle lime backgrounds */
-  limeDim: "rgba(200,255,0,0.12)",
-  /** Lime glow - rgba(200,255,0,0.06) for very subtle lime backgrounds */
-  limeGlow: "rgba(200,255,0,0.06)",
+export const COLORS = BRAND_COLORS;
+export const LIGHT_THEME = BRAND_NEUTRALS;
 
-  /** Orange accent - secondary highlight, caution states #FF9500 */
-  ora: "#FF9500",
-  /** Orange dim - rgba(255,149,0,0.12) for subtle orange backgrounds */
-  oraDim: "rgba(255,149,0,0.12)",
-
-  /** Red accent - error/warning states #FF5A5A */
-  red: "#FF5A5A",
-  /** Red dim - rgba(255,90,90,0.12) for subtle red backgrounds */
-  redDim: "rgba(255,90,90,0.12)",
-
-  /** Blue accent - info/link states, rest day color #5B9EFF */
-  blu: "#5B9EFF",
-  /** Blue dim - rgba(91,158,255,0.12) for subtle blue backgrounds */
-  bluDim: "rgba(91,158,255,0.12)",
-
-  /** Yellow accent - caution/close states #FBBF24 */
-  ylw: "#FBBF24",
-  /** Yellow dim - rgba(251,191,36,0.12) for subtle yellow backgrounds */
-  ylwDim: "rgba(251,191,36,0.12)",
-
-  /** Green accent - success states, confirmations #4ADE80 */
-  grn: "#4ADE80",
-  /** Green dim - rgba(74,222,128,0.12) for subtle green backgrounds */
-  grnDim: "rgba(74,222,128,0.12)",
-
-  /** Pure black background */
-  black: "#000000",
-} as const;
-
-/**
- * Shadcn-style neutral palette as JS hex values, matching the HSL values in
- * global.css. Used by RN-API consumers that can't take className (OtpInput
- * theme prop, BottomSheet backgroundStyle, etc).
- */
-export const SHADCN_LIGHT = {
-  background: "#FFFFFF",
-  foreground: "#0A0A0A",
-  secondary: "#F5F5F5",
-  border: "#E5E5E5",
-  input: "#E5E5E5",
-  ring: "#A1A1A1",
-} as const;
-
-export const SHADCN_DARK = {
-  background: "#0A0A0A",
-  foreground: "#FAFAFA",
-  secondary: "#262626",
-  border: "#262626",
-  input: "#262626",
-  ring: "#737373",
-} as const;
-
-/**
- * Light theme colors for content areas (scrollable white/cream cards).
- * Used in the "light content" portion of the dark chrome/light content pattern.
- */
-export const LIGHT_THEME = {
-  /** w1 - Pure white #FFFFFF */
-  w1: "#FFFFFF",
-  /** w2 - Off-white/cream, main content background #F8F8F6 */
-  w2: "#F8F8F6",
-  /** w3 - Slightly darker cream for subtle backgrounds #EEEEEC */
-  w3: "#EEEEEC",
-  /** wText - Primary text on light backgrounds #1A1A1A */
-  wText: "#1A1A1A",
-  /** wSub - Secondary text on light backgrounds #5C5C5C */
-  wSub: "#5C5C5C",
-  /** wMute - Muted/tertiary text on light backgrounds #A3A3A0 */
-  wMute: "#A3A3A0",
-  /** wBrd - Border color on light backgrounds, 6% black opacity */
-  wBrd: "rgba(0,0,0,0.06)",
-} as const;
-
-/**
- * Activity intensity colors for charts, bars, and workout indicators.
- * Used to visually distinguish workout intensities across the app.
- */
-export const ACTIVITY_COLORS = {
-  /** barHigh - High intensity (tempo, intervals, Z4-5) #A8D900 */
-  barHigh: "#A8D900",
-  /** barEasy - Easy/recovery (Z2-3) #7CB342 */
-  barEasy: "#7CB342",
-  /** barRest - Rest day / Zone 2 base #5B9EFF */
-  barRest: "#5B9EFF",
-} as const;
-
-/**
- * Workout category — one of four run categories used across calendar
- * and plan views to consistently color-code workouts.
- */
-type WorkoutCategory = "easy" | "specific" | "long" | "race";
-
-/**
- * Vibrant workout category colors matched to the energy of the #C8FF00 primary.
- * Used for accent bars, dots, badges, and legend indicators.
- */
-export const WORKOUT_CATEGORY_COLORS: Record<WorkoutCategory, string> = {
-  easy: "#00E676",
-  specific: "#FF6D00",
-  long: "#00B0FF",
-  race: "#FF0040",
-} as const;
-
-/**
- * Dim (15% opacity) variants of workout category colors for subtle backgrounds.
- */
-export const WORKOUT_CATEGORY_COLORS_DIM: Record<WorkoutCategory, string> = {
-  easy: "rgba(0, 230, 118, 0.15)",
-  specific: "rgba(255, 109, 0, 0.15)",
-  long: "rgba(0, 176, 255, 0.15)",
-  race: "rgba(255, 0, 64, 0.15)",
-} as const;
-
-/**
- * Map a free-form workout type string (e.g. "Tempo", "Easy Run", "Long Run")
- * to one of the four workout categories for consistent color-coding.
- */
-export function getWorkoutCategory(workoutType: string): WorkoutCategory {
-  const t = workoutType.toLowerCase();
-  if (t.includes("long")) return "long";
-  if (t.includes("race") || t.includes("marathon") || t.includes("semi")) return "race";
-  if (
-    t.includes("easy") ||
-    t.includes("rest") ||
-    t.includes("recovery") ||
-    t.includes("shakeout")
-  )
-    return "easy";
-  return "specific";
-}
-
-/**
- * Gray scale using white at varying opacities.
- * Used for text hierarchy and subtle UI elements.
- */
 export const GRAYS = {
-  /** g1 - Primary text, 92% white opacity */
   g1: "rgba(255,255,255,0.92)",
-  /** g2 - Secondary text, 70% white opacity */
   g2: "rgba(255,255,255,0.70)",
-  /** g3 - Tertiary/placeholder text, 45% white opacity */
   g3: "rgba(255,255,255,0.45)",
-  /** g4 - Subtle/disabled text, 25% white opacity */
   g4: "rgba(255,255,255,0.25)",
-  /** g5 - Borders/dividers, 10% white opacity */
   g5: "rgba(255,255,255,0.10)",
-  /** g6 - Cards/surfaces, 6% white opacity */
   g6: "rgba(255,255,255,0.06)",
 } as const;
 
-/**
- * Surface tokens for borders, cards, and selection states.
- */
 export const SURFACES = {
-  /** Default border - 8% white opacity */
   brd: "rgba(255,255,255,0.08)",
-  /** Card background - 3% white opacity */
   card: "rgba(255,255,255,0.03)",
-  /** Selected border - lime at 40% opacity */
-  sb: "rgba(200,255,0,0.4)",
-  /** Selected glow - lime at 6% opacity */
-  sg: "rgba(200,255,0,0.06)",
 } as const;
 
-/**
- * Standard card shadow for light-background content cards.
- * Matches the elevation pattern used across HomePage and Analytics.
- */
 export const CARD_SHADOW = {
   borderWidth: 1,
   borderColor: "rgba(0,0,0,0.12)",
@@ -201,33 +27,11 @@ export const CARD_SHADOW = {
   elevation: 4,
 } as const;
 
-/**
- * Font family mappings.
- * Requires fonts to be loaded via expo-font.
- */
 export const FONTS = {
-  /** Coach voice, UI text - Outfit family */
   coach: "Outfit",
-  /** Data, terminal output - JetBrains Mono */
   mono: "JetBrainsMono",
 } as const;
 
-/**
- * Font weight mappings for Outfit font family.
- * Maps prototype fontWeight numbers to React Native font family names.
- *
- * Prototype usage → React Native fontFamily:
- *   fontWeight: 300 → "Outfit-Light"
- *   fontWeight: 400 → "Outfit-Regular"
- *   fontWeight: 500 → "Outfit-Medium"
- *   fontWeight: 600 → "Outfit-SemiBold"
- *   fontWeight: 700 → "Outfit-Bold"
- *   fontWeight: 800 → "Outfit-ExtraBold"
- *
- * NativeWind usage (in React Native, use these instead of font-coach + font-bold):
- *   font-coach-light, font-coach, font-coach-medium, font-coach-semibold,
- *   font-coach-bold, font-coach-extrabold
- */
 export const FONT_WEIGHTS = {
   light: "Outfit-Light",
   regular: "Outfit-Regular",
@@ -237,47 +41,23 @@ export const FONT_WEIGHTS = {
   extrabold: "Outfit-ExtraBold",
 } as const;
 
-/**
- * Font weight mappings for JetBrains Mono font family.
- */
 export const MONO_WEIGHTS = {
   regular: "JetBrainsMono-Regular",
   medium: "JetBrainsMono-Medium",
 } as const;
 
-/**
- * Animation keyframe definitions from the prototype.
- * Reference: cadence-full-v9.jsx CSS constant (lines 16-28)
- *
- * Note: NativeWind supports basic keyframe animations via tailwindcss-animate.
- * Complex transform animations should use react-native-reanimated instead.
- * These definitions are for reference and CSS-based animations where supported.
- */
 export const ANIMATIONS = {
-  /** Cursor blink animation for typing indicators */
   blink: "blink 0.8s infinite",
-  /** Pulsing glow for status indicators */
   pulseGlow: "pulseGlow 1.5s ease infinite",
-  /** Slide in from right for list items */
   slideIn: "slideIn 0.35s ease",
-  /** Dot pulse for loading/status indicators */
   dotPulse: "dotPulse 2s ease infinite",
-  /** Message appearance animation */
   msgIn: "msgIn 0.3s ease",
-  /** Count up number animation */
   countUp: "countUp 0.4s ease",
-  /** Waveform for audio indicators */
   waveform: "waveform 0.4s ease infinite alternate",
-  /** Typing indicator dots */
   typingDot: "typingDot 1.2s ease infinite",
-  /** FAB button entrance */
   fabIn: "fabIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)",
 } as const;
 
-/**
- * CSS keyframe definitions for web/CSS-in-JS contexts.
- * Use these for reference or in CSS files where keyframes are supported.
- */
 export const KEYFRAMES = {
   blink: {
     "0%, 50%": { opacity: 1 },
@@ -317,129 +97,22 @@ export const KEYFRAMES = {
   },
 } as const;
 
-/** Type for color token keys */
 export type ColorToken = keyof typeof COLORS;
 
-/** Type for gray token keys */
 export type GrayToken = keyof typeof GRAYS;
 
-/** Type for surface token keys */
 export type SurfaceToken = keyof typeof SURFACES;
 
-/** Type for light theme token keys */
 export type LightThemeToken = keyof typeof LIGHT_THEME;
 
-/** Type for activity color token keys */
-export type ActivityColorToken = keyof typeof ACTIVITY_COLORS;
-
-/** Type for font token keys */
 export type FontToken = keyof typeof FONTS;
 
-/** Type for animation keys */
 export type AnimationToken = keyof typeof ANIMATIONS;
 
-/**
- * Combined colors export for Tailwind config integration.
- * Use this to spread all design token colors into tailwind.config.ts
- */
 export const tailwindColors = {
   ...COLORS,
   ...GRAYS,
   ...SURFACES,
   ...LIGHT_THEME,
-  ...ACTIVITY_COLORS,
   ...WORKOUT_CATEGORY_COLORS,
 } as const;
-
-// ═══════════════════════════════════════════════════════════════════════════
-// COMPONENT USAGE PATTERNS
-// ═══════════════════════════════════════════════════════════════════════════
-//
-// This section documents common NativeWind class patterns for Cadence UI.
-//
-// ─────────────────────────────────────────────────────────────────────────────
-// DARK CHROME (Headers, Status Bars, Navigation)
-// ─────────────────────────────────────────────────────────────────────────────
-//
-// Background:
-//   className="bg-black"
-//
-// Text hierarchy:
-//   className="text-g1"     // Primary text (92% white)
-//   className="text-g2"     // Secondary text (70% white)
-//   className="text-g3"     // Tertiary/placeholder (45% white)
-//   className="text-g4"     // Subtle/disabled (25% white)
-//
-// Borders and surfaces:
-//   className="border-brd"          // Standard border (8% white)
-//   className="bg-card-surface"     // Card background (3% white)
-//
-// Accent highlights:
-//   className="text-lime"           // Primary accent
-//   className="bg-lime"             // Accent background
-//   className="bg-lime-dim"         // Subtle accent background
-//
-// ─────────────────────────────────────────────────────────────────────────────
-// LIGHT CONTENT (Scrollable Cards, Content Areas)
-// ─────────────────────────────────────────────────────────────────────────────
-//
-// Background:
-//   className="bg-w1"       // Pure white
-//   className="bg-w2"       // Off-white/cream (main content bg)
-//   className="bg-w3"       // Slightly darker cream
-//
-// Text hierarchy:
-//   className="text-wText"  // Primary text (#1A1A1A)
-//   className="text-wSub"   // Secondary text (#5C5C5C)
-//   className="text-wMute"  // Muted/tertiary (#A3A3A0)
-//
-// Borders:
-//   className="border-wBrd" // Light border (6% black)
-//
-// ─────────────────────────────────────────────────────────────────────────────
-// ACTIVITY INDICATORS (Charts, Workout Bars)
-// ─────────────────────────────────────────────────────────────────────────────
-//
-// Intensity colors:
-//   className="bg-barHigh"  // High intensity (tempo, intervals)
-//   className="bg-barEasy"  // Easy/recovery
-//   className="bg-barRest"  // Rest day / Z2
-//
-// ─────────────────────────────────────────────────────────────────────────────
-// TYPOGRAPHY
-// ─────────────────────────────────────────────────────────────────────────────
-//
-// IMPORTANT: In React Native, fontFamily and fontWeight don't combine like CSS.
-// Use weight-specific font classes instead of combining font-coach + font-bold.
-//
-// Coach font (Outfit) - Use these weight-specific classes:
-//   className="font-coach-light"      // 300 - Light emphasis
-//   className="font-coach"            // 400 - Regular (default)
-//   className="font-coach-medium"     // 500 - Medium emphasis
-//   className="font-coach-semibold"   // 600 - Section headers
-//   className="font-coach-bold"       // 700 - Primary headers
-//   className="font-coach-extrabold"  // 800 - Numbers, stats, emphasis
-//
-// Mono font (JetBrains Mono) - For data display:
-//   className="font-mono"             // 400 - Regular
-//   className="font-mono-medium"      // 500 - Medium
-//
-// ─────────────────────────────────────────────────────────────────────────────
-// ANIMATIONS (NativeWind utility classes)
-// ─────────────────────────────────────────────────────────────────────────────
-//
-// Available animation classes:
-//   className="animate-blink"       // Cursor blink
-//   className="animate-pulse-glow"  // Status indicator pulse
-//   className="animate-slide-in"    // List item entrance
-//   className="animate-dot-pulse"   // Loading dots
-//   className="animate-msg-in"      // Message appearance
-//   className="animate-count-up"    // Number animation
-//   className="animate-waveform"    // Audio waveform
-//   className="animate-typing-dot"  // Typing indicator
-//   className="animate-fab-in"      // FAB button entrance
-//
-// Note: Complex transform animations should use react-native-reanimated
-// for better performance on native platforms.
-//
-// ═══════════════════════════════════════════════════════════════════════════

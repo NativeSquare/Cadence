@@ -20,7 +20,8 @@ import Svg, { Circle, Path } from "react-native-svg";
 import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
 import { useCalendarFocused } from "./CalendarFocusContext";
 import { WORKOUT_COLORS } from "./constants";
-import type { CalWorkout, CalWorkoutType } from "./types";
+import type { WorkoutCategory } from "@packages/shared";
+import type { CalWorkout } from "./types";
 
 interface WorkoutCardProps {
   workout: CalWorkout;
@@ -37,7 +38,7 @@ const SmallWorkoutIcon = React.memo(function SmallWorkoutIcon({
   size = 10,
   color = LIGHT_THEME.wText,
 }: {
-  type: CalWorkoutType;
+  type: WorkoutCategory;
   size?: number;
   color?: string;
 }) {
@@ -49,7 +50,7 @@ const SmallWorkoutIcon = React.memo(function SmallWorkoutIcon({
           <Path d="M12 8v4" stroke={color} strokeWidth={ICON_SW} strokeLinecap="round" />
         </Svg>
       );
-    case "specific":
+    case "tempo":
       return (
         <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
           <Path d="M13 2L4 14h6l-1 8 9-12h-6l1-8z" stroke={color} strokeWidth={ICON_SW} strokeLinecap="round" strokeLinejoin="round" />

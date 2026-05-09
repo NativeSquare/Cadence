@@ -2,7 +2,7 @@ import { SettingsGroup } from "@/components/app/account/settings-group";
 import { ConfirmationSheet } from "@/components/shared/confirmation-sheet";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { Text } from "@/components/ui/text";
-import { ACTIVITY_COLORS, COLORS, LIGHT_THEME } from "@/lib/design-tokens";
+import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { APP_DOMAIN } from "@packages/shared";
 import { api } from "@packages/backend/convex/_generated/api";
@@ -150,7 +150,7 @@ export default function Profile() {
               </Avatar>
             ) : (
               <LinearGradient
-                colors={[COLORS.lime, ACTIVITY_COLORS.barHigh]}
+                colors={[COLORS.lime, "#A8D900"]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 className="mb-3 size-20 items-center justify-center rounded-full"

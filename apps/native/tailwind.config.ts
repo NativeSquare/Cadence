@@ -1,12 +1,13 @@
 import type { Config } from "tailwindcss";
 import {
+  WORKOUT_CATEGORY_COLORS,
+  WORKOUT_CATEGORY_COLORS_DIM,
+} from "@packages/shared";
+import {
   COLORS,
   GRAYS,
   SURFACES,
   LIGHT_THEME,
-  ACTIVITY_COLORS,
-  WORKOUT_CATEGORY_COLORS,
-  WORKOUT_CATEGORY_COLORS_DIM,
 } from "./src/lib/design-tokens";
 
 const { hairlineWidth } = require("nativewind/theme");
@@ -90,8 +91,6 @@ export default {
         // Dark theme surfaces
         brd: SURFACES.brd,
         "card-surface": SURFACES.card,
-        sb: SURFACES.sb,
-        sg: SURFACES.sg,
 
         // Light theme colors (content areas - white/cream backgrounds)
         w1: LIGHT_THEME.w1,
@@ -102,19 +101,14 @@ export default {
         wMute: LIGHT_THEME.wMute,
         wBrd: LIGHT_THEME.wBrd,
 
-        // Activity intensity colors (for charts/bars)
-        barHigh: ACTIVITY_COLORS.barHigh,
-        barEasy: ACTIVITY_COLORS.barEasy,
-        barRest: ACTIVITY_COLORS.barRest,
-
         // Workout type colors (4-color scheme)
         "workout-easy": {
           DEFAULT: WORKOUT_CATEGORY_COLORS.easy,
           dim: WORKOUT_CATEGORY_COLORS_DIM.easy,
         },
-        "workout-specific": {
-          DEFAULT: WORKOUT_CATEGORY_COLORS.specific,
-          dim: WORKOUT_CATEGORY_COLORS_DIM.specific,
+        "workout-tempo": {
+          DEFAULT: WORKOUT_CATEGORY_COLORS.tempo,
+          dim: WORKOUT_CATEGORY_COLORS_DIM.tempo,
         },
         "workout-long": {
           DEFAULT: WORKOUT_CATEGORY_COLORS.long,

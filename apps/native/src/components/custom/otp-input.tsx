@@ -1,33 +1,31 @@
-import { SHADCN_DARK, SHADCN_LIGHT } from "@/lib/design-tokens";
 import { useColorScheme } from "nativewind";
 import * as React from "react";
 import { OtpInput, type OtpInputProps } from "react-native-otp-entry";
 
 export function OTPInput({ ...props }: OtpInputProps) {
   const { colorScheme } = useColorScheme();
-  const theme = colorScheme === "dark" ? SHADCN_DARK : SHADCN_LIGHT;
+  const isDark = colorScheme === "dark";
+  const foreground = isDark ? "#FAFAFA" : "#0A0A0A";
+  const ring = isDark ? "#737373" : "#A1A1A1";
   return (
     <OtpInput
       numberOfDigits={6}
-      focusColor={theme.foreground}
+      focusColor={foreground}
       theme={{
         pinCodeContainerStyle: {
-          borderColor: theme.border, // border-input
-          backgroundColor:
-            colorScheme === "dark"
-              ? "rgba(255,255,255,0.03)"
-              : theme.background,
+          borderColor: isDark ? "#262626" : "#E5E5E5",
+          backgroundColor: isDark ? "rgba(255,255,255,0.03)" : "#FFFFFF",
         },
 
         focusedPinCodeContainerStyle: {
-          borderColor: theme.ring, // focus ring equivalent
-          shadowColor: theme.ring,
+          borderColor: ring,
+          shadowColor: ring,
           shadowOpacity: 0.4,
           shadowRadius: 4,
         },
 
         pinCodeTextStyle: {
-          color: theme.foreground, // text-foreground
+          color: foreground,
           fontSize: 20,
         },
       }}

@@ -12,12 +12,8 @@
 
 import { ConfirmationSheet } from "@/components/shared/confirmation-sheet";
 import { Text } from "@/components/ui/text";
-import {
-  COLORS,
-  getWorkoutCategory,
-  LIGHT_THEME,
-  WORKOUT_CATEGORY_COLORS,
-} from "@/lib/design-tokens";
+import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
+import { getWorkoutCategory, WORKOUT_CATEGORY_COLORS } from "@packages/shared";
 import { useLanguage, type Language } from "@/lib/i18n";
 import { selectionFeedback } from "@/lib/haptics";
 import { getConvexErrorMessage } from "@/utils/getConvexErrorMessage";
@@ -32,6 +28,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import type { TFunction } from "i18next";
 import type { Workout as WorkoutStructure } from "@nativesquare/agoge";
+import type { WorkoutType } from "@nativesquare/agoge/schema";
 import { api } from "@packages/backend/convex/_generated/api";
 import { useMutation, useQuery } from "convex/react";
 import { useRouter } from "expo-router";
@@ -146,7 +143,7 @@ function formatLoad(load?: number): string | null {
   return String(Math.round(load));
 }
 
-function getTypeColor(type: string): string {
+function getTypeColor(type: WorkoutType): string {
   const direct = (WORKOUT_TYPE_COLORS as Record<string, string>)[type];
   if (direct) return direct;
   return WORKOUT_CATEGORY_COLORS[getWorkoutCategory(type)];

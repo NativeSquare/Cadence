@@ -2,8 +2,7 @@
  * Type definitions for Calendar Tab components
  */
 
-/** Workout type determines card color */
-export type CalWorkoutType = "easy" | "specific" | "long" | "race";
+import type { WorkoutCategory } from "@packages/shared";
 
 /** Training phase name for color lookup */
 export type PhaseName =
@@ -23,7 +22,7 @@ export type CalendarView = "month" | "week";
 /** A single calendar workout */
 export interface CalWorkout {
   workoutId: string;
-  type: CalWorkoutType;
+  type: WorkoutCategory;
   label: string;
   km: string;
   dur: string;

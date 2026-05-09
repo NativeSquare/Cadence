@@ -147,7 +147,7 @@
     },
     "types": {
       "easy": "Easy",
-      "specific": "Specific",
+      "tempo": "Tempo",
       "long": "Long Run",
       "race": "Race"
     }

@@ -70,16 +70,16 @@
   --radius-3xl: calc(var(--radius) + 12px);
   --radius-4xl: calc(var(--radius) + 16px);
 
-  /* Cadence brand — Sadewa palette */
-  --color-accent-green: #98fe00;
+  /* Cadence brand — values mirror @packages/shared BRAND_COLORS. Keep in sync. */
+  --color-accent-green: #C8FF00;
   --color-dark-green: #233802;
   --color-surface: #f3f3f3;
   --color-surface-high: #ffffff;
 
   /* Legacy aliases kept for other sections */
-  --color-lime: #98fe00;
-  --color-lime-dim: rgba(152, 254, 0, 0.15);
-  --color-lime-glow: rgba(152, 254, 0, 0.08);
+  --color-lime: #C8FF00;
+  --color-lime-dim: rgba(200, 255, 0, 0.12);
+  --color-lime-glow: rgba(200, 255, 0, 0.06);
 
   /* Dark surfaces (kept for dashboard / other sections) */
   --color-dark-base: #121212;
@@ -116,7 +116,7 @@
   --card-foreground: #131313;
   --popover: #ffffff;
   --popover-foreground: #131313;
-  --primary: #98fe00;
+  --primary: #C8FF00;
   --primary-foreground: #233802;
   --secondary: #f3f3f3;
   --secondary-foreground: #131313;
@@ -127,20 +127,20 @@
   --destructive: #EF4444;
   --border: #e5e5e5;
   --input: #e5e5e5;
-  --ring: rgba(152, 254, 0, 0.4);
-  --chart-1: #98fe00;
+  --ring: rgba(200, 255, 0, 0.4);
+  --chart-1: #C8FF00;
   --chart-2: #3B82F6;
   --chart-3: #F97316;
   --chart-4: #EF4444;
   --chart-5: #10B981;
   --sidebar: #f3f3f3;
   --sidebar-foreground: #131313;
-  --sidebar-primary: #98fe00;
+  --sidebar-primary: #C8FF00;
   --sidebar-primary-foreground: #233802;
   --sidebar-accent: #f3f3f3;
   --sidebar-accent-foreground: #131313;
   --sidebar-border: #e5e5e5;
-  --sidebar-ring: rgba(152, 254, 0, 0.4);
+  --sidebar-ring: rgba(200, 255, 0, 0.4);
 }
 
 .dark {
@@ -212,6 +212,6 @@
 
 /* ── Selection highlight (Sadewa style) ── */
 ::selection {
-  background: #98fe00;
+  background: #C8FF00;
   color: #131313;
 }

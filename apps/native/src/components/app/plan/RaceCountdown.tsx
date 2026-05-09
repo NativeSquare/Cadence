@@ -22,7 +22,8 @@ import Animated, {
 } from "react-native-reanimated";
 import Svg, { Path } from "react-native-svg";
 import { Text } from "@/components/ui/text";
-import { LIGHT_THEME, WORKOUT_CATEGORY_COLORS } from "@/lib/design-tokens";
+import { LIGHT_THEME } from "@/lib/design-tokens";
+import { WORKOUT_CATEGORY_COLORS } from "@packages/shared";
 import { formatShortDate } from "@/lib/format";
 import { useLanguage } from "@/lib/i18n";
 import type { RaceGoalData } from "./types";

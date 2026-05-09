@@ -1,10 +1,10 @@
 import { Text } from "@/components/ui/text";
+import { LIGHT_THEME } from "@/lib/design-tokens";
 import {
-  LIGHT_THEME,
+  getWorkoutCategory,
   WORKOUT_CATEGORY_COLORS,
   WORKOUT_CATEGORY_COLORS_DIM,
-  getWorkoutCategory,
-} from "@/lib/design-tokens";
+} from "@packages/shared";
 import type { WorkoutTemplateDoc } from "@nativesquare/agoge/schema";
 import { Ionicons } from "@expo/vector-icons";
 import { Pressable, View } from "react-native";
