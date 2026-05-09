@@ -53,6 +53,29 @@ export const COLORS = {
 } as const;
 
 /**
+ * Shadcn-style neutral palette as JS hex values, matching the HSL values in
+ * global.css. Used by RN-API consumers that can't take className (OtpInput
+ * theme prop, BottomSheet backgroundStyle, etc).
+ */
+export const SHADCN_LIGHT = {
+  background: "#FFFFFF",
+  foreground: "#0A0A0A",
+  secondary: "#F5F5F5",
+  border: "#E5E5E5",
+  input: "#E5E5E5",
+  ring: "#A1A1A1",
+} as const;
+
+export const SHADCN_DARK = {
+  background: "#0A0A0A",
+  foreground: "#FAFAFA",
+  secondary: "#262626",
+  border: "#262626",
+  input: "#262626",
+  ring: "#737373",
+} as const;
+
+/**
  * Light theme colors for content areas (scrollable white/cream cards).
  * Used in the "light content" portion of the dark chrome/light content pattern.
  */

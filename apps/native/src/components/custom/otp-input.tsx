@@ -1,11 +1,11 @@
-import { THEME } from "@/lib/theme";
+import { SHADCN_DARK, SHADCN_LIGHT } from "@/lib/design-tokens";
 import { useColorScheme } from "nativewind";
 import * as React from "react";
 import { OtpInput, type OtpInputProps } from "react-native-otp-entry";
 
 export function OTPInput({ ...props }: OtpInputProps) {
   const { colorScheme } = useColorScheme();
-  const theme = colorScheme === "dark" ? THEME.dark : THEME.light;
+  const theme = colorScheme === "dark" ? SHADCN_DARK : SHADCN_LIGHT;
   return (
     <OtpInput
       numberOfDigits={6}

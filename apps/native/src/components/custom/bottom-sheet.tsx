@@ -1,4 +1,4 @@
-import { THEME } from "@/lib/theme";
+import { SHADCN_DARK, SHADCN_LIGHT } from "@/lib/design-tokens";
 import {
   BottomSheetBackdrop as GorhomBottomSheetBackdrop,
   BottomSheetModal as GorhomBottomSheetModal,
@@ -40,9 +40,7 @@ export function BottomSheetModal({
 
   const bgColor =
     backgroundColor ??
-    (colorScheme === "dark"
-      ? "#121212"
-      : THEME[colorScheme ?? "light"].background);
+    (colorScheme === "dark" ? "#121212" : SHADCN_LIGHT.background);
 
   const ContentWrapper = scrollable
     ? GorhomBottomSheetScrollView
@@ -59,9 +57,7 @@ export function BottomSheetModal({
       }}
       handleIndicatorStyle={{
         backgroundColor:
-          colorScheme === "dark"
-            ? THEME[colorScheme ?? "light"].secondary
-            : THEME[colorScheme ?? "light"].input,
+          colorScheme === "dark" ? SHADCN_DARK.secondary : SHADCN_LIGHT.input,
         width: 40,
         height: 5,
       }}
