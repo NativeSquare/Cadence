@@ -1,6 +1,6 @@
 import { Email } from "@convex-dev/auth/providers/Email";
 import { alphabet, generateRandomString } from "oslo/crypto";
-import { APP_DOMAIN, APP_NAME, APP_ADDRESS } from "@packages/shared/constants";
+import { APP_DOMAIN, APP_NAME, APP_ADDRESS } from "@packages/shared";
 import { Resend as ResendAPI } from "resend";
 
 function buildVerifyEmailHtml(code: string) {
