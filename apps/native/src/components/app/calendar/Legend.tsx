@@ -7,7 +7,7 @@ import { useTranslation } from "react-i18next";
 import { View, Text, StyleSheet } from "react-native";
 import Animated, { FadeIn } from "react-native-reanimated";
 import { LIGHT_THEME } from "@/lib/design-tokens";
-import { WORKOUT_CATEGORIES, type WorkoutCategory } from "@packages/shared";
+import { WORKOUT_CATEGORIES, type WorkoutCategory } from "@packages/shared/workout-categories";
 import { WORKOUT_COLORS, PHASES } from "./constants";
 import { blendWithBg, formatDateKey, getDaysInMonth } from "./helpers";
 

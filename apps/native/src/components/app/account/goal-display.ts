@@ -61,9 +61,9 @@ export function useGoalStatusLabels(): Record<GoalStatus, string> {
 
 export const GOAL_RANK_COLORS: Record<GoalRank, string> = {
   primary: COLORS.lime,
-  stretch: COLORS.ora,
-  minimum: LIGHT_THEME.wMute,
-  process: COLORS.blu,
+  stretch: LIGHT_THEME.w3,
+  minimum: LIGHT_THEME.w3,
+  process: LIGHT_THEME.w3,
 };
 
 export const GOAL_STATUS_LABELS: Record<GoalStatus, string> = {

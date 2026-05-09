@@ -2,7 +2,8 @@
  * Constants for Calendar Tab
  */
 
-import { WORKOUT_CATEGORY_COLORS, type WorkoutCategory } from "@packages/shared";
+import { WORKOUT_CATEGORY_COLORS } from "@packages/shared/colors";
+import type { WorkoutCategory } from "@packages/shared/workout-categories";
 import type { Phase, PhaseName } from "./types";
 
 export const WORKOUT_COLORS: Record<WorkoutCategory, string> = WORKOUT_CATEGORY_COLORS;

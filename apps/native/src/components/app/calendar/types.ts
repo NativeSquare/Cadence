@@ -2,7 +2,7 @@
  * Type definitions for Calendar Tab components
  */
 
-import type { WorkoutCategory } from "@packages/shared";
+import type { WorkoutCategory } from "@packages/shared/workout-categories";
 
 /** Training phase name for color lookup */
 export type PhaseName =

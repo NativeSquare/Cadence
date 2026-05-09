@@ -6,7 +6,8 @@
  * totals) remains optional until the plan generator writes richer `plan.notes`.
  */
 
-import { getWorkoutCategory, WORKOUT_CATEGORY_COLORS } from "@packages/shared";
+import { getWorkoutCategory } from "@packages/shared/workout-categories";
+import { WORKOUT_CATEGORY_COLORS } from "@packages/shared/colors";
 import { summarizeWorkout } from "@/components/app/workout/workout-summary";
 import type { WorkoutType } from "@nativesquare/agoge/schema";
 import type {

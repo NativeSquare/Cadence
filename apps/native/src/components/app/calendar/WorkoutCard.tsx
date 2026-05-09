@@ -20,7 +20,7 @@ import Svg, { Circle, Path } from "react-native-svg";
 import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
 import { useCalendarFocused } from "./CalendarFocusContext";
 import { WORKOUT_COLORS } from "./constants";
-import type { WorkoutCategory } from "@packages/shared";
+import type { WorkoutCategory } from "@packages/shared/workout-categories";
 import type { CalWorkout } from "./types";
 
 interface WorkoutCardProps {

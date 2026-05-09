@@ -5,7 +5,7 @@ import { render } from "@react-email/render";
 import { internalAction } from "./_generated/server";
 import { components } from "./_generated/api";
 import { v } from "convex/values";
-import { APP_DOMAIN, APP_NAME } from "@packages/shared";
+import { APP_DOMAIN, APP_NAME } from "@packages/shared/app";
 
 // Initialize the Resend component
 // Set testMode: false when ready for production

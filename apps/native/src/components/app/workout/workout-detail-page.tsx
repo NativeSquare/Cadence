@@ -13,7 +13,8 @@
 import { ConfirmationSheet } from "@/components/shared/confirmation-sheet";
 import { Text } from "@/components/ui/text";
 import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
-import { getWorkoutCategory, WORKOUT_CATEGORY_COLORS } from "@packages/shared";
+import { getWorkoutCategory } from "@packages/shared/workout-categories";
+import { WORKOUT_CATEGORY_COLORS } from "@packages/shared/colors";
 import { useLanguage, type Language } from "@/lib/i18n";
 import { selectionFeedback } from "@/lib/haptics";
 import { getConvexErrorMessage } from "@/utils/getConvexErrorMessage";
@@ -59,7 +60,7 @@ function statusLabel(t: TFunction, status: string): string {
 }
 
 const STATUS_COLOR: Record<string, string> = {
-  planned: COLORS.blu,
+  planned: LIGHT_THEME.wMute,
   completed: COLORS.grn,
   missed: COLORS.red,
   skipped: COLORS.ylw,
@@ -306,13 +307,13 @@ export function WorkoutDetailPage({ workoutId }: WorkoutDetailPageProps) {
                 <View
                   className="size-2 rounded-full"
                   style={{
-                    backgroundColor: STATUS_COLOR[workout.status] ?? COLORS.blu,
+                    backgroundColor: STATUS_COLOR[workout.status] ?? LIGHT_THEME.wMute,
                   }}
                 />
                 <Text
                   className="font-coach-semibold text-[12px] uppercase tracking-wider"
                   style={{
-                    color: STATUS_COLOR[workout.status] ?? COLORS.blu,
+                    color: STATUS_COLOR[workout.status] ?? LIGHT_THEME.wMute,
                   }}
                 >
                   {statusLabel(t, workout.status)}

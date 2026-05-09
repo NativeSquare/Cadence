@@ -2,7 +2,7 @@ import type { Config } from "tailwindcss";
 import {
   WORKOUT_CATEGORY_COLORS,
   WORKOUT_CATEGORY_COLORS_DIM,
-} from "@packages/shared";
+} from "@packages/shared/colors";
 import {
   COLORS,
   GRAYS,
@@ -57,23 +57,20 @@ export default {
         // Reference: cadence-full-v9.jsx T object
         // ═══════════════════════════════════════════════════════════════
 
-        // Accent colors with dim variants
+        // Brand
         lime: {
           DEFAULT: COLORS.lime,
           dim: COLORS.limeDim,
           glow: COLORS.limeGlow,
         },
-        ora: {
-          DEFAULT: COLORS.ora,
-          dim: COLORS.oraDim,
-        },
+        // System feedback (errors, warnings, success)
         red: {
           DEFAULT: COLORS.red,
           dim: COLORS.redDim,
         },
-        blu: {
-          DEFAULT: COLORS.blu,
-          dim: COLORS.bluDim,
+        ylw: {
+          DEFAULT: COLORS.ylw,
+          dim: COLORS.ylwDim,
         },
         grn: {
           DEFAULT: COLORS.grn,

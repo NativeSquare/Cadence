@@ -2,7 +2,7 @@ import { Text } from "@/components/ui/text";
 import { COLORS, GRAYS } from "@/lib/design-tokens";
 import { getConvexErrorMessage } from "@/utils/getConvexErrorMessage";
 import { useAuthActions } from "@convex-dev/auth/react";
-import { APP_DOMAIN, APP_SLUG } from "@packages/shared";
+import { APP_DOMAIN, APP_SLUG } from "@packages/shared/app";
 import { makeRedirectUri } from "expo-auth-session";
 import { useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";

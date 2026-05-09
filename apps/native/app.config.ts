@@ -1,5 +1,5 @@
 import { ConfigContext, ExpoConfig } from "expo/config";
-import { APP_NAME, APP_SLUG } from "@packages/shared";
+import { APP_NAME, APP_SLUG } from "@packages/shared/app";
 
 const IS_DEV = process.env.APP_VARIANT === "development";
 const IS_PREVIEW = process.env.APP_VARIANT === "preview";

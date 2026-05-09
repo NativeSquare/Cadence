@@ -44,13 +44,13 @@ type GoalDoc = {
 
 const PRIORITY_COLORS: Record<"A" | "B" | "C", string> = {
   A: COLORS.lime,
-  B: COLORS.ora,
+  B: LIGHT_THEME.w3,
   C: LIGHT_THEME.w3,
 };
 
 const PRIORITY_TEXT_COLORS: Record<"A" | "B" | "C", string> = {
   A: COLORS.black,
-  B: COLORS.black,
+  B: LIGHT_THEME.wText,
   C: LIGHT_THEME.wSub,
 };
 

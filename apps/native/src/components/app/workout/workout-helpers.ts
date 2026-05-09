@@ -1,6 +1,6 @@
 import type { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
-import { WORKOUT_CATEGORY_COLORS } from "@packages/shared";
+import { WORKOUT_CATEGORY_COLORS } from "@packages/shared/colors";
 import type {
   Duration,
   Step,

@@ -7,7 +7,7 @@ import { openAuthSessionAsync } from "expo-web-browser";
 import { useColorScheme } from "nativewind";
 import * as React from "react";
 import { ActivityIndicator, Image, Platform, View } from "react-native";
-import { APP_SLUG } from "@packages/shared";
+import { APP_SLUG } from "@packages/shared/app";
 
 const SOCIAL_CONNECTION_STRATEGIES = [
   {

@@ -223,9 +223,9 @@ function syncBadgeContent(
       };
     case "syncing":
       return {
-        icon: <SpinningSyncIcon color={COLORS.ora} />,
+        icon: <SpinningSyncIcon color={COLORS.ylw} />,
         label: t("plan.todayCard.syncing"),
-        color: COLORS.ora,
+        color: COLORS.ylw,
       };
     case "synced":
       return {

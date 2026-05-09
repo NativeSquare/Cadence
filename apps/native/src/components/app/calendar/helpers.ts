@@ -12,7 +12,7 @@ import type {
   PhaseSegment,
 } from "./types";
 import { DAY_HEADERS_FULL, PHASE_COLORS } from "./constants";
-import { getWorkoutCategory } from "@packages/shared";
+import { getWorkoutCategory } from "@packages/shared/workout-categories";
 import type { AgogeWorkout } from "../plan/utils";
 import type { BlockDoc } from "@nativesquare/agoge/schema";
 

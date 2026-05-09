@@ -27,7 +27,7 @@ import { useRouter } from "expo-router";
 import { api } from "@packages/backend/convex/_generated/api";
 
 import { COLORS, GRAYS, LIGHT_THEME } from "@/lib/design-tokens";
-import { WORKOUT_CATEGORY_COLORS } from "@packages/shared";
+import { WORKOUT_CATEGORY_COLORS } from "@packages/shared/colors";
 import {
   formatDayLabelShort,
   formatLongDate,

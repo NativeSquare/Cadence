@@ -1,7 +1,7 @@
 "use node";
 
 import { v } from "convex/values";
-import { APP_DOMAIN, APP_NAME } from "@packages/shared";
+import { APP_DOMAIN, APP_NAME } from "@packages/shared/app";
 import { internalAction } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { resend, buildBroadcastHtml } from "./emails";

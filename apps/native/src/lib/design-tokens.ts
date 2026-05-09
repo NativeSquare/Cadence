@@ -1,6 +1,11 @@
-import { BRAND_COLORS, BRAND_NEUTRALS, WORKOUT_CATEGORY_COLORS } from "@packages/shared";
+import {
+  BRAND_COLORS,
+  BRAND_NEUTRALS,
+  SYSTEM_COLORS,
+  WORKOUT_CATEGORY_COLORS,
+} from "@packages/shared/colors";
 
-export const COLORS = BRAND_COLORS;
+export const COLORS = { ...BRAND_COLORS, ...SYSTEM_COLORS };
 export const LIGHT_THEME = BRAND_NEUTRALS;
 
 export const GRAYS = {

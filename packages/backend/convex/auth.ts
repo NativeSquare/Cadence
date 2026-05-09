@@ -4,7 +4,7 @@ import Google from "@auth/core/providers/google";
 import { Password } from "@convex-dev/auth/providers/Password";
 import { convexAuth } from "@convex-dev/auth/server";
 import { ConvexError } from "convex/values";
-import { APP_SLUG } from "@packages/shared";
+import { APP_SLUG } from "@packages/shared/app";
 import { ResendOTP } from "./auth/ResendOTP";
 import { ResendOTPPasswordReset } from "./auth/ResendOTPPasswordReset";
 

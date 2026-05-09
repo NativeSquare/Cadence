@@ -1,4 +1,4 @@
-import { APP_DOMAIN } from "@packages/shared";
+import { APP_DOMAIN } from "@packages/shared/app";
 
 const LOGO_URL = `https://${APP_DOMAIN}/cadence-logo.png`;
 

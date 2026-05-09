@@ -1,4 +1,4 @@
-import type { WorkoutCategory } from "./types";
+import type { WorkoutCategory } from "./workout-categories";
 
 export const BRAND_NEUTRALS = {
   w1: "#FFFFFF",
@@ -15,22 +15,18 @@ export const BRAND_COLORS = {
   limeDim: "rgba(200,255,0,0.12)",
   limeGlow: "rgba(200,255,0,0.06)",
 
-  ora: "#FF9500",
-  oraDim: "rgba(255,149,0,0.12)",
+  black: "#000000",
+} as const;
 
+export const SYSTEM_COLORS = {
   red: "#FF5A5A",
   redDim: "rgba(255,90,90,0.12)",
-
-  blu: "#5B9EFF",
-  bluDim: "rgba(91,158,255,0.12)",
 
   ylw: "#FBBF24",
   ylwDim: "rgba(251,191,36,0.12)",
 
   grn: "#4ADE80",
   grnDim: "rgba(74,222,128,0.12)",
-
-  black: "#000000",
 } as const;
 
 export const WORKOUT_CATEGORY_COLORS: Record<WorkoutCategory, string> = {
