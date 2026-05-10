@@ -6,10 +6,6 @@
  */
 
 import {
-  workoutTypeColor,
-  workoutTypeColorDim,
-} from "@/components/app/training-plan/constants";
-import {
   workoutStatusLabel,
   workoutTypeLabel,
 } from "@/components/app/workout/workout-helpers";
@@ -18,6 +14,11 @@ import { LIGHT_THEME } from "@/lib/design-tokens";
 import { useLanguage, type Language } from "@/lib/i18n";
 import { Ionicons } from "@expo/vector-icons";
 import type { WorkoutDoc } from "@nativesquare/agoge/schema";
+import { getCadenceWorkoutType } from "@packages/shared/utils";
+import {
+  WORKOUT_TYPES_COLORS,
+  WORKOUT_TYPES_COLORS_DIM,
+} from "@packages/shared/colors";
 import { useTranslation } from "react-i18next";
 import { Pressable, View } from "react-native";
 
@@ -64,8 +65,9 @@ export function WorkoutCard({ workout, onPress }: WorkoutCardProps) {
   const day = date ? formatWorkoutDay(locale, date) : null;
   const duration = formatDuration(workout.planned?.durationSeconds);
   const distance = formatDistance(workout.planned?.distanceMeters);
-  const typeColor = workoutTypeColor(workout.type);
-  const typeColorDim = workoutTypeColorDim(workout.type);
+  const category = getCadenceWorkoutType(workout.type);
+  const typeColor = WORKOUT_TYPES_COLORS[category];
+  const typeColorDim = WORKOUT_TYPES_COLORS_DIM[category];
   const dimmed = workout.status === "skipped" || workout.status === "missed";
 
   const subtitleParts = [workoutTypeLabel(t, workout.type)];

@@ -1,14 +1,14 @@
 import { FormField, PillSelect } from "@/components/app/form";
 import { TemplatePickerSheet } from "@/components/app/workout/template-picker-sheet";
-import {
-  WORKOUT_TYPE_COLORS,
-  WORKOUT_TYPES,
-  type WorkoutTypeOption,
-} from "@/components/app/workout/workout-helpers";
+import { CADENCE_WORKOUT_TYPES } from "@/components/app/workout/workout-helpers";
 import { Text } from "@/components/ui/text";
 import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
 import { selectionFeedback } from "@/lib/haptics";
 import type { WorkoutTemplateDoc } from "@nativesquare/agoge/schema";
+import {
+  WORKOUT_TYPES_COLORS,
+} from "@packages/shared/colors";
+import type { CadenceWorkoutType } from "@packages/shared/types";
 import { Ionicons } from "@expo/vector-icons";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import React from "react";
@@ -27,7 +27,7 @@ const inputStyle = {
 };
 
 // The owning form's shape must include `name: string`, `description?: string`,
-// `type: WorkoutType` fields. We keep the generic constraint loose and cast
+// `type: CadenceWorkoutType` fields. We keep the generic constraint loose and cast
 // internally to avoid `Control<T>` invariance issues at the call site.
 export function WorkoutMetadataFields<T extends FieldValues>({
   control,
@@ -51,10 +51,11 @@ export function WorkoutMetadataFields<T extends FieldValues>({
   const sheetRef = React.useRef<BottomSheetModal>(null);
   const showTemplateAffordance = onPickTemplate != null;
 
-  const workoutTypeLabels: Record<WorkoutTypeOption, string> = {
+  const workoutTypeLabels: Record<CadenceWorkoutType, string> = {
     easy: t("workout.types.easy"),
     tempo: t("workout.types.tempo"),
     long: t("workout.types.long"),
+    race: t("workout.types.race"),
   };
 
   return (
@@ -162,11 +163,11 @@ export function WorkoutMetadataFields<T extends FieldValues>({
           render={({ field, fieldState }) => (
             <FormField label={t("workout.fields.type")} error={fieldState.error?.message}>
               <PillSelect
-                options={WORKOUT_TYPES}
+                options={CADENCE_WORKOUT_TYPES}
                 labels={workoutTypeLabels}
                 value={field.value}
                 onChange={field.onChange}
-                colorByValue={WORKOUT_TYPE_COLORS}
+                colorByValue={WORKOUT_TYPES_COLORS}
               />
             </FormField>
           )}

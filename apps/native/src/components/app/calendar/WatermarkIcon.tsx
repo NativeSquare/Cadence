@@ -8,10 +8,10 @@
 
 import React from "react";
 import Svg, { Circle, Path } from "react-native-svg";
-import type { WorkoutCategory } from "@packages/shared/workout-categories";
+import type { CadenceWorkoutType } from "@packages/shared/types";
 
 interface WatermarkIconProps {
-  type: WorkoutCategory;
+  type: CadenceWorkoutType;
   size?: number;
   color?: string;
 }

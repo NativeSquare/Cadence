@@ -23,7 +23,7 @@ import Animated, {
 import Svg, { Path } from "react-native-svg";
 import { Text } from "@/components/ui/text";
 import { LIGHT_THEME } from "@/lib/design-tokens";
-import { WORKOUT_CATEGORY_COLORS } from "@packages/shared/colors";
+import { WORKOUT_TYPES_COLORS } from "@packages/shared/colors";
 import { formatShortDate } from "@/lib/format";
 import { useLanguage } from "@/lib/i18n";
 import type { RaceGoalData } from "./types";
@@ -36,7 +36,7 @@ interface EmptyRaceCardProps {
   onAddPress: () => void;
 }
 
-const RACE_ACCENT = WORKOUT_CATEGORY_COLORS.race;
+const RACE_ACCENT = WORKOUT_TYPES_COLORS.race;
 
 function daysUntil(timestamp: number): number {
   const now = new Date();

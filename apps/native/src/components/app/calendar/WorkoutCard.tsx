@@ -20,7 +20,7 @@ import Svg, { Circle, Path } from "react-native-svg";
 import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
 import { useCalendarFocused } from "./CalendarFocusContext";
 import { WORKOUT_COLORS } from "./constants";
-import type { WorkoutCategory } from "@packages/shared/workout-categories";
+import type { CadenceWorkoutType } from "@packages/shared/types";
 import type { CalWorkout } from "./types";
 
 interface WorkoutCardProps {
@@ -38,7 +38,7 @@ const SmallWorkoutIcon = React.memo(function SmallWorkoutIcon({
   size = 10,
   color = LIGHT_THEME.wText,
 }: {
-  type: WorkoutCategory;
+  type: CadenceWorkoutType;
   size?: number;
   color?: string;
 }) {

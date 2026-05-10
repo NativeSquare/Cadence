@@ -25,7 +25,8 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { BLOCK_TYPES, BLOCK_TYPE_COLORS } from "./constants";
+import { BLOCK_TYPE_COLORS } from "@packages/shared/colors";
+import { BLOCK_TYPES } from "@packages/shared/types";
 
 export type BlockFormInitial = {
   name: string;

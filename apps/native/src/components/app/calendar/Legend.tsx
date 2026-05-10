@@ -7,7 +7,7 @@ import { useTranslation } from "react-i18next";
 import { View, Text, StyleSheet } from "react-native";
 import Animated, { FadeIn } from "react-native-reanimated";
 import { LIGHT_THEME } from "@/lib/design-tokens";
-import { WORKOUT_CATEGORIES, type WorkoutCategory } from "@packages/shared/workout-categories";
+import { CADENCE_WORKOUT_TYPES, type CadenceWorkoutType } from "@packages/shared/types";
 import { WORKOUT_COLORS, PHASES } from "./constants";
 import { blendWithBg, formatDateKey, getDaysInMonth } from "./helpers";
 
@@ -18,7 +18,7 @@ interface LegendProps {
 
 export const Legend = React.memo(function Legend({ currentYear, currentMonth }: LegendProps) {
   const { t } = useTranslation();
-  const workoutLabels: Record<WorkoutCategory, string> = {
+  const workoutLabels: Record<CadenceWorkoutType, string> = {
     easy: t("calendar.types.easy"),
     tempo: t("calendar.types.tempo"),
     long: t("calendar.types.long"),
@@ -33,7 +33,7 @@ export const Legend = React.memo(function Legend({ currentYear, currentMonth }: 
   return (
     <Animated.View entering={FadeIn.delay(400).duration(400)} style={styles.container}>
       <View style={styles.row}>
-        {WORKOUT_CATEGORIES.map((type) => (
+        {CADENCE_WORKOUT_TYPES.map((type) => (
           <View key={type} style={styles.item}>
             <View style={[styles.workoutDot, { backgroundColor: WORKOUT_COLORS[type] }]} />
             <Text style={styles.workoutLabel}>{workoutLabels[type]}</Text>

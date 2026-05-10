@@ -1,10 +1,7 @@
 import { FormSection } from "@/components/app/form";
 import { WorkoutFaceFields } from "@/components/app/workout/workout-face-fields";
 import { WorkoutFormShell } from "@/components/app/workout/workout-form-shell";
-import {
-  EMPTY_STRUCTURE,
-  type WorkoutTypeOption,
-} from "@/components/app/workout/workout-helpers";
+import { EMPTY_STRUCTURE } from "@/components/app/workout/workout-helpers";
 import { WorkoutMetadataFields } from "@/components/app/workout/workout-metadata-fields";
 import {
   buildErrorByPath,
@@ -18,10 +15,9 @@ import { LIGHT_THEME } from "@/lib/design-tokens";
 import { selectionFeedback } from "@/lib/haptics";
 import { getConvexErrorMessage } from "@/utils/getConvexErrorMessage";
 import { type Workout as WorkoutStructure } from "@nativesquare/agoge";
-import type {
-  WorkoutTemplateDoc,
-  WorkoutType,
-} from "@nativesquare/agoge/schema";
+import type { WorkoutTemplateDoc } from "@nativesquare/agoge/schema";
+import { getCadenceWorkoutType } from "@packages/shared/utils";
+import type { CadenceWorkoutType } from "@packages/shared/types";
 import { Ionicons } from "@expo/vector-icons";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "expo-router";
@@ -34,7 +30,7 @@ import { z } from "zod";
 const formSchema = z.object({
   name: z.string().trim().min(1, "Name is required"),
   description: z.string().optional(),
-  type: z.custom<WorkoutType>(),
+  type: z.custom<CadenceWorkoutType>(),
   actual: workoutFaceSchema,
   planned: workoutFaceSchema,
 });
@@ -43,7 +39,7 @@ type LogWorkoutFormShape = z.infer<typeof formSchema>;
 export type LogWorkoutFormValues = {
   name: string;
   description?: string;
-  type: WorkoutType;
+  type: CadenceWorkoutType;
   actual: LogWorkoutFormShape["actual"];
   planned?: LogWorkoutFormShape["planned"];
 };
@@ -68,7 +64,7 @@ export function LogWorkoutForm({
     defaultValues: {
       name: "",
       description: "",
-      type: "easy" as WorkoutTypeOption,
+      type: "easy",
       actual: { date: initialFaceDate, structure: EMPTY_STRUCTURE },
       planned: { date: initialFaceDate, structure: EMPTY_STRUCTURE },
     },
@@ -127,7 +123,7 @@ export function LogWorkoutForm({
       ...current,
       name: template.name,
       description: template.description ?? "",
-      type: template.type,
+      type: getCadenceWorkoutType(template.type),
       actual: { ...current.actual, structure: pickedStructure },
     });
     setTemplateId(template._id);

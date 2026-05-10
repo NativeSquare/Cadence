@@ -21,8 +21,3 @@ export const fontAssets = {
   "JetBrainsMono-Regular": JetBrainsMono_400Regular,
   "JetBrainsMono-Medium": JetBrainsMono_500Medium,
 } as const;
-
-export const FONT_FAMILY = {
-  coach: "Outfit",
-  mono: "JetBrainsMono",
-} as const;

@@ -13,15 +13,14 @@
 import { ConfirmationSheet } from "@/components/shared/confirmation-sheet";
 import { Text } from "@/components/ui/text";
 import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
-import { getWorkoutCategory } from "@packages/shared/workout-categories";
-import { WORKOUT_CATEGORY_COLORS } from "@packages/shared/colors";
+import { getCadenceWorkoutType } from "@packages/shared/utils";
+import { WORKOUT_TYPES_COLORS } from "@packages/shared/colors";
 import { useLanguage, type Language } from "@/lib/i18n";
 import { selectionFeedback } from "@/lib/haptics";
 import { getConvexErrorMessage } from "@/utils/getConvexErrorMessage";
 import {
   blockTypeLabel,
   mpsToPaceString,
-  WORKOUT_TYPE_COLORS,
   workoutTypeLabel,
 } from "@/components/app/workout/workout-helpers";
 import { WorkoutStructureView } from "@/components/app/workout/workout-structure-view";
@@ -145,9 +144,7 @@ function formatLoad(load?: number): string | null {
 }
 
 function getTypeColor(type: WorkoutType): string {
-  const direct = (WORKOUT_TYPE_COLORS as Record<string, string>)[type];
-  if (direct) return direct;
-  return WORKOUT_CATEGORY_COLORS[getWorkoutCategory(type)];
+  return WORKOUT_TYPES_COLORS[getCadenceWorkoutType(type)];
 }
 
 function computeBlockProgress(

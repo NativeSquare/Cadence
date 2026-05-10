@@ -27,7 +27,7 @@ import { useRouter } from "expo-router";
 import { api } from "@packages/backend/convex/_generated/api";
 
 import { COLORS, GRAYS, LIGHT_THEME } from "@/lib/design-tokens";
-import { WORKOUT_CATEGORY_COLORS } from "@packages/shared/colors";
+import { WORKOUT_TYPES_COLORS } from "@packages/shared/colors";
 import {
   formatDayLabelShort,
   formatLongDate,
@@ -436,7 +436,7 @@ const MonthGrid = React.memo(function MonthGrid({
                               st.workoutDot,
                               {
                                 backgroundColor:
-                                  WORKOUT_CATEGORY_COLORS[w.type],
+                                  WORKOUT_TYPES_COLORS[w.type],
                               },
                               w.done && st.workoutDotDone,
                             ]}

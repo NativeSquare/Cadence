@@ -2,13 +2,13 @@
  * Constants for Calendar Tab
  */
 
-import { WORKOUT_CATEGORY_COLORS } from "@packages/shared/colors";
-import type { WorkoutCategory } from "@packages/shared/workout-categories";
+import { WORKOUT_TYPES_COLORS } from "@packages/shared/colors";
+import type { CadenceWorkoutType } from "@packages/shared/types";
 import type { Phase, PhaseName } from "./types";
 
-export const WORKOUT_COLORS: Record<WorkoutCategory, string> = WORKOUT_CATEGORY_COLORS;
+export const WORKOUT_COLORS: Record<CadenceWorkoutType, string> = WORKOUT_TYPES_COLORS;
 
-export const WORKOUT_LABELS: Record<WorkoutCategory, string> = {
+export const WORKOUT_LABELS: Record<CadenceWorkoutType, string> = {
   easy: "Easy",
   tempo: "Tempo",
   long: "Long Run",

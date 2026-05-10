@@ -6,8 +6,8 @@
  * totals) remains optional until the plan generator writes richer `plan.notes`.
  */
 
-import { getWorkoutCategory } from "@packages/shared/workout-categories";
-import { WORKOUT_CATEGORY_COLORS } from "@packages/shared/colors";
+import { getCadenceWorkoutType } from "@packages/shared/utils";
+import { WORKOUT_TYPES_COLORS } from "@packages/shared/colors";
 import { summarizeWorkout } from "@/components/app/workout/workout-summary";
 import type { WorkoutType } from "@nativesquare/agoge/schema";
 import type {
@@ -88,7 +88,7 @@ function formatDurationLong(seconds: number): string {
 }
 
 function intensityFromType(type: WorkoutType): WorkoutIntensity {
-  const category = getWorkoutCategory(type);
+  const category = getCadenceWorkoutType(type);
   if (category === "race") return "key";
   if (category === "long") return "key";
   if (category === "easy") return "low";
@@ -107,7 +107,7 @@ export function workoutToWorkoutData(
     date.getDate() === today.getDate();
 
   const face = workout.actual ?? workout.planned;
-  const summary = summarizeWorkout(face, workout.type);
+  const summary = summarizeWorkout(face);
   const distanceMeters =
     face?.distanceMeters ?? summary.totalDistanceMeters ?? undefined;
   const durationSeconds =
@@ -118,7 +118,7 @@ export function workoutToWorkoutData(
   return {
     workoutId: workout._id,
     type: workout.name,
-    kind: workout.type,
+    kind: getCadenceWorkoutType(workout.type),
     km: formatDistance(distanceMeters),
     dur: formatDurationShort(durationSeconds),
     done: workout.status === "completed",
@@ -239,11 +239,11 @@ export function computeWeekInsights(
     if (d < weekStart || d > weekEnd) continue;
     currentWeekWorkouts.push(workoutToWorkoutData(w, today));
 
-    const plannedSummary = summarizeWorkout(w.planned, w.type);
+    const plannedSummary = summarizeWorkout(w.planned);
     volumePlannedMeters +=
       w.planned?.distanceMeters ?? plannedSummary.totalDistanceMeters ?? 0;
     if (w.status === "completed" && w.actual) {
-      const actualSummary = summarizeWorkout(w.actual, w.type);
+      const actualSummary = summarizeWorkout(w.actual);
       volumeCompletedMeters +=
         w.actual.distanceMeters ??
         actualSummary.totalDistanceMeters ??
@@ -278,7 +278,6 @@ function formatPace(secondsPerMeter: number): string {
 }
 
 export function getWorkoutColor(workout: WorkoutData): string {
-  const category = workout.kind ? getWorkoutCategory(workout.kind) : "tempo";
-  return WORKOUT_CATEGORY_COLORS[category];
+  return WORKOUT_TYPES_COLORS[workout.kind ?? "tempo"];
 }
 

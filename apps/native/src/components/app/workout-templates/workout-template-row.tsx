@@ -1,17 +1,14 @@
 import { Text } from "@/components/ui/text";
 import { LIGHT_THEME } from "@/lib/design-tokens";
-import { getWorkoutCategory } from "@packages/shared/workout-categories";
+import { getCadenceWorkoutType } from "@packages/shared/utils";
 import {
-  WORKOUT_CATEGORY_COLORS,
-  WORKOUT_CATEGORY_COLORS_DIM,
+  WORKOUT_TYPES_COLORS,
+  WORKOUT_TYPES_COLORS_DIM,
 } from "@packages/shared/colors";
 import type { WorkoutTemplateDoc } from "@nativesquare/agoge/schema";
 import { Ionicons } from "@expo/vector-icons";
 import { Pressable, View } from "react-native";
-import {
-  useWorkoutTypeLabels,
-  type WorkoutTypeOption,
-} from "../workout/workout-helpers";
+import { useWorkoutCategoryLabels } from "../workout/workout-helpers";
 
 export function WorkoutTemplateRow({
   template,
@@ -20,14 +17,11 @@ export function WorkoutTemplateRow({
   template: Pick<WorkoutTemplateDoc, "name" | "type">;
   onPress: () => void;
 }) {
-  const workoutTypeLabels = useWorkoutTypeLabels();
-  // The schema accepts 18 types but the app only creates the curated subset;
-  // fall back to the raw enum if older data slips through.
-  const typeLabel =
-    workoutTypeLabels[template.type as WorkoutTypeOption] ?? template.type;
-  const category = getWorkoutCategory(template.type);
-  const typeColor = WORKOUT_CATEGORY_COLORS[category];
-  const typeColorDim = WORKOUT_CATEGORY_COLORS_DIM[category];
+  const categoryLabels = useWorkoutCategoryLabels();
+  const category = getCadenceWorkoutType(template.type);
+  const typeLabel = categoryLabels[category];
+  const typeColor = WORKOUT_TYPES_COLORS[category];
+  const typeColorDim = WORKOUT_TYPES_COLORS_DIM[category];
 
   return (
     <Pressable

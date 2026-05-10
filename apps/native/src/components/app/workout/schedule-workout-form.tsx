@@ -2,10 +2,7 @@ import { FormSection } from "@/components/app/form";
 import { WorkoutBlockField } from "@/components/app/workout/workout-block-field";
 import { WorkoutFaceFields } from "@/components/app/workout/workout-face-fields";
 import { WorkoutFormShell } from "@/components/app/workout/workout-form-shell";
-import {
-  EMPTY_STRUCTURE,
-  type WorkoutTypeOption,
-} from "@/components/app/workout/workout-helpers";
+import { EMPTY_STRUCTURE } from "@/components/app/workout/workout-helpers";
 import { WorkoutMetadataFields } from "@/components/app/workout/workout-metadata-fields";
 import {
   buildErrorByPath,
@@ -20,8 +17,9 @@ import { type Workout as WorkoutStructure } from "@nativesquare/agoge";
 import type {
   BlockDoc,
   WorkoutTemplateDoc,
-  WorkoutType,
 } from "@nativesquare/agoge/schema";
+import { getCadenceWorkoutType } from "@packages/shared/utils";
+import type { CadenceWorkoutType } from "@packages/shared/types";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "expo-router";
 import React from "react";
@@ -33,7 +31,7 @@ import { z } from "zod";
 const formSchema = z.object({
   name: z.string().trim().min(1, "Name is required"),
   description: z.string().optional(),
-  type: z.custom<WorkoutType>(),
+  type: z.custom<CadenceWorkoutType>(),
   blockId: z.string().nullable().optional(),
   planned: workoutFaceSchema,
 });
@@ -62,7 +60,7 @@ export function ScheduleWorkoutForm({
     defaultValues: {
       name: "",
       description: "",
-      type: "easy" as WorkoutTypeOption,
+      type: "easy",
       blockId: initialBlockId ?? null,
       planned: {
         date: initialDate ?? nowIso(),
@@ -107,7 +105,7 @@ export function ScheduleWorkoutForm({
       ...current,
       name: template.name,
       description: template.description ?? "",
-      type: template.type,
+      type: getCadenceWorkoutType(template.type),
       planned: { ...current.planned, structure: pickedStructure },
     });
     setTemplateId(template._id);

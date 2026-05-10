@@ -2,7 +2,6 @@ import type {
   Step,
   Workout as WorkoutStructure,
 } from "@nativesquare/agoge";
-import type { WorkoutType } from "@nativesquare/agoge/schema";
 
 export interface WorkoutFaceLike {
   durationSeconds?: number;
@@ -18,9 +17,8 @@ export interface WorkoutSummary {
 
 export function summarizeWorkout(
   face: WorkoutFaceLike | undefined | null,
-  type: WorkoutType,
 ): WorkoutSummary {
-  if (type === "rest" || !face) {
+  if (!face) {
     return {
       structure: null,
       totalDistanceMeters: null,

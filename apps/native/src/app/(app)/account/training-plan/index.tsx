@@ -1,4 +1,4 @@
-import { BLOCK_TYPE_COLORS } from "@/components/app/training-plan/constants";
+import { BLOCK_TYPE_COLORS } from "@packages/shared/colors";
 import { blockTypeLabel } from "@/components/app/workout/workout-helpers";
 import { AddWorkoutButton } from "@/components/app/workout/add-workout-button";
 import { WorkoutCard } from "@/components/app/workout/workout-card";

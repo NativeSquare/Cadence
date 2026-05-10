@@ -1,13 +1,17 @@
 import type { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
-import { WORKOUT_CATEGORY_COLORS } from "@packages/shared/colors";
+import {
+  CADENCE_WORKOUT_TYPES,
+  type CadenceWorkoutType,
+} from "@packages/shared/types";
 import type {
   Duration,
   Step,
   Target,
   Workout as WorkoutStructure,
 } from "@nativesquare/agoge";
-import { WorkoutType } from "@nativesquare/agoge/schema";
+
+export { CADENCE_WORKOUT_TYPES, type CadenceWorkoutType };
 
 export const EMPTY_STRUCTURE: WorkoutStructure = {
   schema_version: 1,
@@ -16,19 +20,13 @@ export const EMPTY_STRUCTURE: WorkoutStructure = {
   blocks: [],
 };
 
-export const WORKOUT_TYPES = [
-  "easy",
-  "tempo",
-  "long",
-] as const satisfies readonly WorkoutType[];
-export type WorkoutTypeOption = (typeof WORKOUT_TYPES)[number];
-
-export function useWorkoutTypeLabels(): Record<WorkoutTypeOption, string> {
+export function useWorkoutCategoryLabels(): Record<CadenceWorkoutType, string> {
   const { t } = useTranslation();
   return {
     easy: t("workout.types.easy"),
     tempo: t("workout.types.tempo"),
     long: t("workout.types.long"),
+    race: t("workout.types.race"),
   };
 }
 
@@ -66,12 +64,6 @@ export function workoutStatusLabel(t: TFunction, status: string): string {
   if (translated && translated !== key) return translated;
   return status.charAt(0).toUpperCase() + status.slice(1);
 }
-
-export const WORKOUT_TYPE_COLORS: Record<WorkoutTypeOption, string> = {
-  easy: WORKOUT_CATEGORY_COLORS.easy,
-  tempo: WORKOUT_CATEGORY_COLORS.tempo,
-  long: WORKOUT_CATEGORY_COLORS.long,
-};
 
 // ── Step intent ─────────────────────────────────────────────────────────────
 
