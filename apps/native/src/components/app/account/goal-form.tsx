@@ -11,6 +11,7 @@ import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
 import { selectionFeedback } from "@/lib/haptics";
 import { getConvexErrorMessage } from "@/utils/getConvexErrorMessage";
 import { api } from "@packages/backend/convex/_generated/api";
+import { instantToCalendar } from "@packages/shared/utils";
 import { Ionicons } from "@expo/vector-icons";
 import { BottomSheetModal as GorhomBottomSheetModal } from "@gorhom/bottom-sheet";
 import type {
@@ -134,7 +135,10 @@ function initialToForm(initial: GoalFormInitial): FormState {
   base.type = initial.type;
   base.title = initial.title;
   base.description = initial.description ?? "";
-  base.targetDate = initial.targetDate ?? "";
+  // Tolerate legacy ISO rows from before the calendar/instant split.
+  base.targetDate = initial.targetDate
+    ? instantToCalendar(initial.targetDate)
+    : "";
   base.rank = initial.rank ?? "";
   base.status = initial.status ?? "active";
   base.raceId = initial.raceId ?? "";

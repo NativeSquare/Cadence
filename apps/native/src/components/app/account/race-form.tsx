@@ -357,7 +357,7 @@ export function RaceForm({
   const [pastDateAcknowledged, setPastDateAcknowledged] = React.useState(false);
   const deleteSheetRef = React.useRef<BottomSheetModal>(null);
 
-  const dateIsValid = form.date.length === 10;
+  const dateIsValid = form.date.length > 0;
   const dateString = dateIsValid ? form.date : null;
   const dateIsPast = dateString != null && dateString < todayDateString();
 
@@ -615,6 +615,7 @@ export function RaceForm({
 
             <DateField
               label={t("account.races.form.fields.date")}
+              mode="datetime"
               value={form.date || undefined}
               onChange={(v) => setForm((f) => ({ ...f, date: v }))}
               minDate={

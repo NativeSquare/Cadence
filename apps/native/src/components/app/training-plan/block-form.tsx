@@ -27,6 +27,7 @@ import {
 } from "react-native";
 import { BLOCK_TYPE_COLORS } from "@packages/shared/colors";
 import { BLOCK_TYPES } from "@packages/shared/types";
+import { instantToCalendar } from "@packages/shared/utils";
 
 export type BlockFormInitial = {
   name: string;
@@ -64,24 +65,14 @@ const EMPTY_FORM: FormState = {
   orderText: "1",
 };
 
-function isoToYmd(iso: string): string {
-  return iso.slice(0, 10);
-}
-
-function ymdToStartOfDayIso(ymd: string): string {
-  return `${ymd}T00:00:00.000Z`;
-}
-
-function ymdToEndOfDayIso(ymd: string): string {
-  return `${ymd}T23:59:59.999Z`;
-}
-
 function initialToForm(initial: BlockFormInitial): FormState {
+  // instantToCalendar tolerates both shapes: legacy `T00:00:00.000Z` rows from
+  // before the calendar/instant split, and the new bare YYYY-MM-DD form.
   return {
     name: initial.name,
     type: initial.type,
-    startDate: isoToYmd(initial.startDate),
-    endDate: isoToYmd(initial.endDate),
+    startDate: instantToCalendar(initial.startDate),
+    endDate: instantToCalendar(initial.endDate),
     focus: initial.focus ?? "",
     orderText: String(initial.order),
   };
@@ -153,8 +144,8 @@ export function BlockForm({
       await onSubmit({
         name: form.name.trim(),
         type: form.type,
-        startDate: ymdToStartOfDayIso(form.startDate),
-        endDate: ymdToEndOfDayIso(form.endDate),
+        startDate: form.startDate,
+        endDate: form.endDate,
         focus: form.focus.trim() || undefined,
         order: orderNum,
       });

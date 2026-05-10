@@ -1,19 +1,9 @@
-/**
- * CalendarScreen - Vertically scrollable monthly calendar.
- *
- * - Months stack vertically (Apple-Calendar-style); auto-scrolls to today on mount.
- * - Tap a day to select it — the bottom panel lists that day's workouts.
- * - Workout cards in the panel link to the workout detail page.
- * - Layers toggle in the header tints tiles by training-block phase.
- */
-
 import React, { useCallback, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   View,
   Text,
   Pressable,
-  StyleSheet,
   ScrollView,
   ActivityIndicator,
   useWindowDimensions,
@@ -26,7 +16,8 @@ import { useQuery } from "convex/react";
 import { useRouter } from "expo-router";
 import { api } from "@packages/backend/convex/_generated/api";
 
-import { COLORS, GRAYS, LIGHT_THEME } from "@/lib/design-tokens";
+import { cn } from "@/lib/utils";
+import { COLORS, GRAYS } from "@/lib/design-tokens";
 import {
   formatDayLabelShort,
   formatLongDate,
@@ -192,9 +183,7 @@ export function CalendarScreen() {
 
   if (workouts === undefined) {
     return (
-      <View
-        style={[st.root, { alignItems: "center", justifyContent: "center" }]}
-      >
+      <View className="flex-1 bg-black items-center justify-center">
         <ActivityIndicator size="large" color={GRAYS.g3} />
       </View>
     );
@@ -204,13 +193,23 @@ export function CalendarScreen() {
   const selectedWorkouts = workoutsByDate[selectedDate] ?? [];
 
   return (
-    <View style={st.root}>
+    <View className="flex-1 bg-black">
       {/* Dark header — title + subtitle + blocks toggle */}
-      <View style={[st.header, { paddingTop: insets.top + 8 }]}>
-        <View style={st.headerRow}>
-          <View style={st.headerText}>
-            <Text style={st.titleText}>{t("calendar.title")}</Text>
-            <Text style={st.subtitleText}>{t("calendar.subtitle")}</Text>
+      <View
+        className="bg-black px-6 pb-4"
+        style={{ paddingTop: insets.top + 8 }}
+      >
+        <View className="flex-row items-center justify-between">
+          <View className="flex-1">
+            <Text
+              className="text-2xl font-coach-bold text-g1"
+              style={{ letterSpacing: -0.03 * 24 }}
+            >
+              {t("calendar.title")}
+            </Text>
+            <Text className="text-[13px] font-coach text-g3 mt-1">
+              {t("calendar.subtitle")}
+            </Text>
           </View>
           <Pressable
             onPress={handleToggleBlocks}
@@ -222,11 +221,11 @@ export function CalendarScreen() {
                 : "calendar.toggleBlocks.show",
             )}
             hitSlop={6}
-            style={({ pressed }) => [
-              st.blocksToggle,
-              isBlocksMode && st.blocksToggleActive,
-              pressed && { opacity: 0.7 },
-            ]}
+            className={cn(
+              "w-9 h-9 rounded-full items-center justify-center border bg-[rgba(255,255,255,0.06)] border-[rgba(255,255,255,0.08)] active:opacity-70",
+              isBlocksMode &&
+                "bg-[rgba(168,217,0,0.15)] border-[rgba(168,217,0,0.4)]",
+            )}
           >
             <Layers
               size={16}
@@ -238,33 +237,44 @@ export function CalendarScreen() {
       </View>
 
       {/* Rounded transition from dark header to light content */}
-      <View style={st.cornerTransition} />
+      <View className="h-6 bg-w2 rounded-t-3xl" />
 
       {/* Light area: day-of-week headers + scrollable month list + bottom panel */}
-      <View style={st.light}>
-        <View style={st.dayHeaders}>
+      <View className="flex-1 bg-w2">
+        <View
+          className="flex-row pb-2"
+          style={{ paddingHorizontal: GRID_PADDING, gap: GRID_GAP }}
+        >
           {dayHeaderLabels.map((label, i) => (
-            <View key={i} style={st.dayHeaderCell}>
-              <Text style={st.dayHeaderText}>{label}</Text>
+            <View key={i} className="flex-1 items-center">
+              <Text className="text-xs font-coach-medium text-wMute">
+                {label}
+              </Text>
             </View>
           ))}
         </View>
 
         <ScrollView
           ref={scrollRef}
-          style={st.calendarScroll}
-          contentContainerStyle={st.calendarContent}
+          className="flex-1"
+          contentContainerStyle={{
+            paddingHorizontal: GRID_PADDING,
+            paddingBottom: 16,
+          }}
           showsVerticalScrollIndicator={false}
         >
           {monthsList.map((m, idx) => (
             <View
               key={`${m.year}-${m.month}`}
               onLayout={handleMonthLayout(idx)}
-              style={st.monthSection}
+              className="mb-[18px]"
             >
-              <Text style={st.monthSectionTitle}>
+              <Text
+                className="text-lg font-coach-bold text-wText mb-2 ml-1"
+                style={{ letterSpacing: -0.02 * 18 }}
+              >
                 {formatMonthName(locale, m.month, m.year)}{" "}
-                <Text style={st.monthSectionYear}>{m.year}</Text>
+                <Text className="font-coach-light text-wMute">{m.year}</Text>
               </Text>
               <MonthGrid
                 year={m.year}
@@ -281,20 +291,20 @@ export function CalendarScreen() {
           ))}
         </ScrollView>
 
-        <View style={st.panel}>
-          <View style={st.panelHeader}>
-            <Text style={st.panelTitle}>
+        <View className="min-h-[220px] max-h-[280px] bg-w2 border-t-hairline border-wBrd pt-3.5">
+          <View className="flex-row items-center px-5 pb-3 gap-2">
+            <Text className="flex-1 text-base font-coach-semibold text-wText capitalize">
               {formatLongDate(locale, selectedDateObj)}
             </Text>
           </View>
 
           <ScrollView
-            style={st.panelList}
-            contentContainerStyle={st.panelListContent}
+            className="flex-1"
+            contentContainerClassName="px-4 pb-4 gap-2.5"
             showsVerticalScrollIndicator={false}
           >
             {selectedWorkouts.length === 0 ? (
-              <Text style={st.emptyPanelText}>
+              <Text className="text-sm font-coach text-wMute text-center py-4">
                 {t("calendar.selectedDay.empty")}
               </Text>
             ) : (
@@ -316,168 +326,3 @@ export function CalendarScreen() {
     </View>
   );
 }
-
-// ─── Styles ──────────────────────────────────────────────────────────
-
-const st = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: COLORS.black,
-  },
-
-  // Dark header
-  header: {
-    backgroundColor: COLORS.black,
-    paddingHorizontal: 24,
-    paddingBottom: 16,
-  },
-  headerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  headerText: {
-    flex: 1,
-  },
-  titleText: {
-    fontSize: 24,
-    fontFamily: "Outfit-Bold",
-    fontWeight: "700",
-    color: GRAYS.g1,
-    letterSpacing: -0.03 * 24,
-  },
-  subtitleText: {
-    fontSize: 13,
-    fontFamily: "Outfit-Regular",
-    fontWeight: "400",
-    color: GRAYS.g3,
-    marginTop: 4,
-  },
-  blocksToggle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.06)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
-  },
-  blocksToggleActive: {
-    backgroundColor: "rgba(168,217,0,0.15)",
-    borderColor: "rgba(168,217,0,0.4)",
-  },
-
-  cornerTransition: {
-    height: 24,
-    backgroundColor: LIGHT_THEME.w2,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-  },
-
-  // Light area
-  light: {
-    flex: 1,
-    backgroundColor: LIGHT_THEME.w2,
-  },
-
-  dayHeaders: {
-    flexDirection: "row",
-    paddingHorizontal: GRID_PADDING,
-    paddingBottom: 8,
-    gap: GRID_GAP,
-  },
-  dayHeaderCell: {
-    flex: 1,
-    alignItems: "center",
-  },
-  dayHeaderText: {
-    fontSize: 12,
-    fontFamily: "Outfit-Medium",
-    fontWeight: "500",
-    color: LIGHT_THEME.wMute,
-  },
-
-  // Calendar scroll (months stacked)
-  calendarScroll: {
-    flex: 1,
-  },
-  calendarContent: {
-    paddingHorizontal: GRID_PADDING,
-    paddingBottom: 16,
-  },
-  monthSection: {
-    marginBottom: 18,
-  },
-  monthSectionTitle: {
-    fontSize: 18,
-    fontFamily: "Outfit-Bold",
-    fontWeight: "700",
-    color: LIGHT_THEME.wText,
-    marginBottom: 8,
-    marginLeft: 4,
-    letterSpacing: -0.02 * 18,
-  },
-  monthSectionYear: {
-    fontFamily: "Outfit-Light",
-    fontWeight: "300",
-    color: LIGHT_THEME.wMute,
-  },
-
-  // Bottom panel
-  panel: {
-    minHeight: 220,
-    maxHeight: 280,
-    backgroundColor: LIGHT_THEME.w2,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: LIGHT_THEME.wBrd,
-    paddingTop: 14,
-  },
-  panelHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    paddingBottom: 12,
-    gap: 8,
-  },
-  panelTitle: {
-    flex: 1,
-    fontSize: 16,
-    fontFamily: "Outfit-SemiBold",
-    fontWeight: "600",
-    color: LIGHT_THEME.wText,
-    textTransform: "capitalize",
-  },
-  panelBadge: {
-    minWidth: 22,
-    height: 22,
-    borderRadius: 11,
-    paddingHorizontal: 7,
-    backgroundColor: LIGHT_THEME.w3,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  panelBadgeText: {
-    fontSize: 12,
-    fontFamily: "Outfit-SemiBold",
-    fontWeight: "600",
-    color: LIGHT_THEME.wSub,
-    fontVariant: ["tabular-nums"],
-  },
-  panelList: {
-    flex: 1,
-  },
-  panelListContent: {
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-    gap: 10,
-  },
-  emptyPanelText: {
-    fontSize: 14,
-    fontFamily: "Outfit-Regular",
-    fontWeight: "400",
-    color: LIGHT_THEME.wMute,
-    textAlign: "center",
-    paddingVertical: 16,
-  },
-});

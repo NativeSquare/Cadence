@@ -1,16 +1,28 @@
 /**
- * Formatters shared across coach tool cards.
- *
- * Workout/block dates are canonical UTC ISO timestamps (e.g.
- * "2026-05-01T14:30:00.000Z"), so we parse with `new Date(iso)` and format
- * via the platform's locale-aware Intl.
+ * Formatters shared across coach tool cards. Inputs may be either calendar
+ * dates ("2026-05-01" — block/plan boundaries) or full UTC ISO instants
+ * ("2026-05-01T14:30:00.000Z" — workout planned/actual dates), so the
+ * parser handles both shapes.
  */
 
 import { paceMpsToMinPerKm } from "@/lib/format-pace";
 
-export function formatDate(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
+const CALENDAR_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+// Calendar dates must be parsed as local-time Y-M-D — otherwise `new Date("2026-05-07")`
+// interprets the string as UTC midnight and shifts the displayed day back by one
+// in any negative-offset locale.
+function parseDate(value: string): Date {
+  if (CALENDAR_DATE_RE.test(value)) {
+    const [y, m, d] = value.split("-").map((p) => Number.parseInt(p, 10));
+    return new Date(y, m - 1, d);
+  }
+  return new Date(value);
+}
+
+export function formatDate(value: string): string {
+  const d = parseDate(value);
+  if (Number.isNaN(d.getTime())) return value;
   return d.toLocaleDateString(undefined, {
     weekday: "short",
     month: "short",
@@ -18,9 +30,9 @@ export function formatDate(iso: string): string {
   });
 }
 
-export function formatDateLong(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
+export function formatDateLong(value: string): string {
+  const d = parseDate(value);
+  if (Number.isNaN(d.getTime())) return value;
   return d.toLocaleDateString(undefined, {
     weekday: "long",
     month: "long",

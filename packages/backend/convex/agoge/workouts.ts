@@ -19,11 +19,11 @@ import {
   result,
   validateActualDateNotInFuture,
   validateActualFace,
+  validateIsoInstantDate,
   validatePlannedDateInBlock,
   validatePlannedDateNotAfterActual,
   validatePlannedFace,
   validateStructureSportMatchesWorkout,
-  validateUtcDate,
   validateWorkoutStructure,
   validateWorkoutTemplateOwnership,
   validateZonesAvailableForStructure,
@@ -153,8 +153,8 @@ async function checkCreateWorkout(
   if (!plan) return fail([noActivePlanError]);
 
   const errors: ValidationError[] = [];
-  push(errors, validateUtcDate(args.planned?.date, "planned.date"));
-  push(errors, validateUtcDate(args.actual?.date, "actual.date"));
+  push(errors, validateIsoInstantDate(args.planned?.date, "planned.date"));
+  push(errors, validateIsoInstantDate(args.actual?.date, "actual.date"));
   push(errors, validatePlannedFace(args.status, args.planned));
   push(errors, validateActualFace(args.status, args.actual));
   push(
@@ -245,7 +245,7 @@ async function checkRescheduleWorkout(
       message: "Cannot reschedule a completed workout",
     });
   }
-  push(errors, validateUtcDate(args.date, "date"));
+  push(errors, validateIsoInstantDate(args.date, "date"));
   push(
     errors,
     validatePlannedDateNotAfterActual({ date: args.date }, workout.actual),
@@ -278,8 +278,8 @@ async function checkUpdateWorkout(
   const { workout: existing } = owned;
 
   const errors: ValidationError[] = [];
-  push(errors, validateUtcDate(rest.planned?.date, "planned.date"));
-  push(errors, validateUtcDate(rest.actual?.date, "actual.date"));
+  push(errors, validateIsoInstantDate(rest.planned?.date, "planned.date"));
+  push(errors, validateIsoInstantDate(rest.actual?.date, "actual.date"));
 
   const nextSport = rest.sport ?? existing.sport;
 

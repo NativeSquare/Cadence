@@ -1,7 +1,8 @@
 import React, { useMemo } from "react";
-import { View, Text, Pressable, StyleSheet } from "react-native";
+import { View, Text, Pressable } from "react-native";
 import type { BlockDoc, WorkoutDoc } from "@nativesquare/agoge/schema";
 
+import { cn } from "@/lib/utils";
 import { LIGHT_THEME } from "@/lib/design-tokens";
 import { BLOCK_TYPE_COLORS, WORKOUT_TYPES_COLORS } from "@packages/shared/colors";
 import { getCadenceWorkoutType } from "@packages/shared/utils";
@@ -41,7 +42,11 @@ export const MonthGrid = React.memo(function MonthGrid({
   return (
     <View>
       {weeks.map((week, wi) => (
-        <View key={`w-${wi}`} style={st.weekRow}>
+        <View
+          key={`w-${wi}`}
+          className="flex-row justify-center"
+          style={{ gap: GRID_GAP, marginBottom: GRID_GAP }}
+        >
           {week.map((day) => {
             const dayWorkouts = workoutsByDate[day.key]?.filter(
               (w) => w.status !== "skipped",
@@ -51,94 +56,111 @@ export const MonthGrid = React.memo(function MonthGrid({
             const isSelected = day.key === selectedDate;
             const block = blockLookup.get(day.key);
             const blockColor = block ? BLOCK_TYPE_COLORS[block.type] : undefined;
-            const tileStyle = { width: tileSize, height: tileSize };
+            const tileSizeStyle = { width: tileSize, height: tileSize };
 
             // Days outside the current month section render dimmed + non-pressable
             // so the user only ever taps the canonical month they belong to.
             if (day.outside) {
               return (
-                <View key={day.key} style={st.cellWrapper}>
-                  <View style={[st.tile, tileStyle]}>
-                    <Text style={[st.dayNum, st.dayNumOutside]}>{day.day}</Text>
+                <View key={day.key} className="items-center">
+                  <View
+                    className="rounded-[14px] items-center justify-center overflow-hidden"
+                    style={tileSizeStyle}
+                  >
+                    <Text className="text-base font-coach text-wMute opacity-20">
+                      {day.day}
+                    </Text>
                   </View>
                 </View>
               );
             }
 
-            const blockTileBg =
-              isBlocksMode && blockColor
+            const blockTint =
+              isBlocksMode && block && blockColor
                 ? {
                     backgroundColor: blendWithBg(blockColor, 0.18),
                     borderWidth: 1,
                     borderColor: blendWithBg(blockColor, 0.25),
                   }
                 : undefined;
-
-            const baseTileBg = isBlocksMode && block ? blockTileBg : st.tileWhite;
+            const baseTileStyle =
+              blockTint ?? {
+                backgroundColor: LIGHT_THEME.w1,
+                borderWidth: 1,
+                borderColor: LIGHT_THEME.wBrd,
+              };
             // Gray today-marker only applies when no block tint is active,
             // so block coloring still wins in blocks mode.
-            const isTodayMarker = isToday && !isSelected && !(isBlocksMode && block);
+            const isTodayMarker = isToday && !isSelected && !blockTint;
+            const todayStyle = isTodayMarker
+              ? {
+                  backgroundColor: LIGHT_THEME.w3,
+                  borderWidth: 1,
+                  borderColor: LIGHT_THEME.wBrd,
+                }
+              : undefined;
+            const selectedStyle = isSelected
+              ? { borderWidth: 2, borderColor: LIGHT_THEME.wText }
+              : undefined;
+            const isActive =
+              !isSelected &&
+              !isToday &&
+              ((isBlocksMode && block) || (!isBlocksMode && hasWorkout));
 
             return (
-              <View key={day.key} style={st.cellWrapper}>
+              <View key={day.key} className="items-center">
                 <Pressable onPress={() => onDayPress(day.key)}>
                   <View
+                    className="rounded-[14px] items-center justify-center overflow-hidden"
                     style={[
-                      st.tile,
-                      tileStyle,
-                      baseTileBg,
-                      isTodayMarker && st.tileToday,
-                      isSelected && st.tileSelected,
+                      tileSizeStyle,
+                      baseTileStyle,
+                      todayStyle,
+                      selectedStyle,
                     ]}
                   >
                     <Text
-                      style={[
-                        st.dayNum,
-                        isSelected && st.dayNumSelected,
-                        !isSelected && isToday && st.dayNumToday,
-                        !isSelected &&
-                          !isToday &&
-                          ((isBlocksMode && block) ||
-                            (!isBlocksMode && hasWorkout)) &&
-                          st.dayNumActive,
-                      ]}
+                      className={cn(
+                        "text-base font-coach text-wMute",
+                        isSelected && "font-coach-bold text-wText",
+                        !isSelected && isToday && "font-coach-bold text-wText",
+                        isActive && "font-coach-semibold text-wText",
+                      )}
                     >
                       {day.day}
                     </Text>
 
                     {isBlocksMode ? (
                       block && day.key === block.startDate ? (
-                        <View style={st.dotsRow}>
+                        <View className="flex-row items-center mt-1 gap-[3px]">
                           <View
-                            style={[
-                              st.workoutDot,
-                              { backgroundColor: blockColor },
-                            ]}
+                            className="w-1.5 h-1.5 rounded-full"
+                            style={{ backgroundColor: blockColor }}
                           />
                         </View>
                       ) : (
-                        <View style={st.dotsSpacer} />
+                        <View className="h-2.5" />
                       )
                     ) : hasWorkout ? (
-                      <View style={st.dotsRow}>
+                      <View className="flex-row items-center mt-1 gap-[3px]">
                         {dayWorkouts!.map((w, di) => (
                           <View
                             key={di}
-                            style={[
-                              st.workoutDot,
-                              {
-                                backgroundColor:
-                                  WORKOUT_TYPES_COLORS[
-                                    getCadenceWorkoutType(w.type)
-                                  ],
-                              },
-                              w.status === "completed" && st.workoutDotDone,
-                            ]}
+                            className={cn(
+                              "w-1.5 h-1.5 rounded-full",
+                              w.status === "completed" && "opacity-[0.45]",
+                            )}
+                            style={{
+                              backgroundColor:
+                                WORKOUT_TYPES_COLORS[
+                                  getCadenceWorkoutType(w.type)
+                                ],
+                            }}
                           />
                         ))}
                       </View>
                     ) : (
-                      <View style={st.dotsSpacer} />
+                      <View className="h-2.5" />
                     )}
                   </View>
                 </Pressable>
@@ -149,80 +171,4 @@ export const MonthGrid = React.memo(function MonthGrid({
       ))}
     </View>
   );
-});
-
-const st = StyleSheet.create({
-  weekRow: {
-    flexDirection: "row",
-    justifyContent: "center",
-    gap: GRID_GAP,
-    marginBottom: GRID_GAP,
-  },
-
-  cellWrapper: {
-    alignItems: "center",
-  },
-  tile: {
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-    overflow: "hidden",
-  },
-  tileWhite: {
-    backgroundColor: LIGHT_THEME.w1,
-    borderWidth: 1,
-    borderColor: LIGHT_THEME.wBrd,
-  },
-  tileToday: {
-    backgroundColor: LIGHT_THEME.w3,
-    borderWidth: 1,
-    borderColor: LIGHT_THEME.wBrd,
-  },
-  tileSelected: {
-    borderWidth: 2,
-    borderColor: LIGHT_THEME.wText,
-  },
-
-  dayNum: {
-    fontSize: 16,
-    fontFamily: "Outfit-Regular",
-    fontWeight: "400",
-    color: LIGHT_THEME.wMute,
-  },
-  dayNumOutside: {
-    opacity: 0.2,
-  },
-  dayNumToday: {
-    fontFamily: "Outfit-Bold",
-    fontWeight: "700",
-    color: LIGHT_THEME.wText,
-  },
-  dayNumSelected: {
-    fontFamily: "Outfit-Bold",
-    fontWeight: "700",
-    color: LIGHT_THEME.wText,
-  },
-  dayNumActive: {
-    fontFamily: "Outfit-SemiBold",
-    fontWeight: "600",
-    color: LIGHT_THEME.wText,
-  },
-
-  dotsRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 3,
-    marginTop: 4,
-  },
-  workoutDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  workoutDotDone: {
-    opacity: 0.45,
-  },
-  dotsSpacer: {
-    height: 10,
-  },
 });

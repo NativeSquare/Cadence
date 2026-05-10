@@ -1,5 +1,6 @@
 import { LogWorkoutForm } from "@/components/app/workout/log-workout-form";
 import { api } from "@packages/backend/convex/_generated/api";
+import { calendarToInstant } from "@packages/shared/utils";
 import { useMutation, useQuery } from "convex/react";
 import { useLocalSearchParams } from "expo-router";
 
@@ -9,15 +10,10 @@ function parseDateParam(raw: string | string[] | undefined): string | undefined 
   return undefined;
 }
 
-function ymdToIso(ymd: string): string {
-  const [y, m, d] = ymd.split("-").map((p) => Number.parseInt(p, 10));
-  return new Date(y, m - 1, d, 12, 0, 0, 0).toISOString();
-}
-
 export default function LogWorkoutScreen() {
   const params = useLocalSearchParams<{ date?: string }>();
   const initialDateYmd = parseDateParam(params.date);
-  const initialDate = initialDateYmd ? ymdToIso(initialDateYmd) : undefined;
+  const initialDate = initialDateYmd ? calendarToInstant(initialDateYmd) : undefined;
 
   const createWorkout = useMutation(api.agoge.workouts.createWorkout);
   const templates = useQuery(api.agoge.workoutTemplates.listMyWorkoutTemplates);

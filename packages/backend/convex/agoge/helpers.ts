@@ -172,7 +172,44 @@ export const noActivePlanError: ValidationError = {
 // Date / face primitives (pure)
 // ---------------------------------------------------------------------------
 
-export function validateUtcDate(
+const CALENDAR_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * Calendar-date fields (e.g. goal.targetDate, block.startDate, plan.startDate)
+ * carry a day with no meaningful time-of-day. Stored as YYYY-MM-DD.
+ */
+export function validateIsoCalendarDate(
+  date: string | undefined,
+  label: string,
+): ValidationError | null {
+  if (date === undefined) return null;
+  if (!CALENDAR_DATE_RE.test(date)) {
+    return {
+      code: "INVALID_DATE",
+      message: `${label} must be an ISO calendar date in YYYY-MM-DD form (e.g. '2026-05-01'), got '${date}'`,
+    };
+  }
+  // Reject "2026-13-40" — string matched the shape but isn't a real day.
+  const [y, m, d] = date.split("-").map((p) => Number.parseInt(p, 10));
+  const probe = new Date(Date.UTC(y, m - 1, d));
+  if (
+    probe.getUTCFullYear() !== y ||
+    probe.getUTCMonth() !== m - 1 ||
+    probe.getUTCDate() !== d
+  ) {
+    return {
+      code: "INVALID_DATE",
+      message: `${label} is not a valid calendar date: '${date}'`,
+    };
+  }
+  return null;
+}
+
+/**
+ * Instant fields (e.g. race.date, workout.planned.date) carry a moment in time.
+ * Stored as canonical UTC ISO 8601 — must round-trip through Date.toISOString().
+ */
+export function validateIsoInstantDate(
   date: string | undefined,
   label: string,
 ): ValidationError | null {
@@ -258,9 +295,9 @@ export function validateBlockDateRange(
   startDate: string,
   endDate: string,
 ): ValidationError | null {
-  const start = validateUtcDate(startDate, "Block startDate");
+  const start = validateIsoCalendarDate(startDate, "Block startDate");
   if (start) return start;
-  const end = validateUtcDate(endDate, "Block endDate");
+  const end = validateIsoCalendarDate(endDate, "Block endDate");
   if (end) return end;
   if (endDate < startDate) {
     return {
@@ -275,10 +312,10 @@ export function validatePlanDateRange(
   startDate: string,
   endDate?: string,
 ): ValidationError | null {
-  const start = validateUtcDate(startDate, "Plan startDate");
+  const start = validateIsoCalendarDate(startDate, "Plan startDate");
   if (start) return start;
   if (endDate !== undefined) {
-    const end = validateUtcDate(endDate, "Plan endDate");
+    const end = validateIsoCalendarDate(endDate, "Plan endDate");
     if (end) return end;
     if (endDate < startDate) {
       return {
@@ -323,7 +360,12 @@ export async function validatePlannedDateInBlock(
     blockId,
   });
   if (!block) return notFound("Block not found");
-  if (plannedDate < block.startDate || plannedDate > block.endDate) {
+  // plannedDate is an instant; block boundaries are calendar dates. Compare
+  // on the calendar-date prefix so an 8 AM workout on the block's first day
+  // isn't reported as "before" the block (lexicographic comparison would
+  // otherwise sort the longer instant string above the shorter date string).
+  const plannedYmd = plannedDate.slice(0, 10);
+  if (plannedYmd < block.startDate || plannedYmd > block.endDate) {
     return {
       code: "DATE_OUT_OF_RANGE",
       message: `planned.date (${plannedDate}) must fall within the selected block "${block.name}" (${block.startDate} → ${block.endDate})`,

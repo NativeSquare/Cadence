@@ -23,6 +23,7 @@ import {
   push,
   requireAuthError,
   result,
+  validateIsoCalendarDate,
   validateRaceOwnership,
   type ValidationError,
   type ValidationResult,
@@ -84,6 +85,7 @@ async function checkCreateGoal(
   const auth = await loadAthlete(ctx);
   if (!auth) return fail([requireAuthError]);
   const errors: ValidationError[] = [];
+  push(errors, validateIsoCalendarDate(args.targetDate, "targetDate"));
   if (args.raceId) {
     push(
       errors,
@@ -110,7 +112,9 @@ async function checkUpdateGoal(
   if (!goal || goal.athleteId !== auth.athlete._id) {
     return fail([{ code: "NOT_FOUND", message: "Goal not found" }]);
   }
-  return result([]);
+  const errors: ValidationError[] = [];
+  push(errors, validateIsoCalendarDate(args.targetDate, "targetDate"));
+  return result(errors);
 }
 
 // ---------------------------------------------------------------------------

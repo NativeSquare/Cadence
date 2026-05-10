@@ -8,19 +8,6 @@ export function nowIso(): string {
   return new Date().toISOString();
 }
 
-export function ymdToIso(ymd: string): string {
-  const [y, m, d] = ymd.split("-").map((p) => Number.parseInt(p, 10));
-  return new Date(y, m - 1, d, 12, 0, 0, 0).toISOString();
-}
-
-export function isFutureYmd(ymd: string): boolean {
-  const [y, m, d] = ymd.split("-").map((p) => Number.parseInt(p, 10));
-  const target = new Date(y, m - 1, d);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  return target > today;
-}
-
 export function isValidIso(s: string): boolean {
   if (!s) return false;
   const parsed = Date.parse(s);
