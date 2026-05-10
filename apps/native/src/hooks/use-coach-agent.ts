@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from "react";
-import { useAction, useMutation } from "convex/react";
+import { useAction } from "convex/react";
 import { useUIMessages } from "@convex-dev/agent/react";
 import { api } from "@packages/backend/convex/_generated/api";
 import type {
@@ -48,7 +48,7 @@ export function useCoachAgent(
   const { threadId, maxRetries: maxRetriesOption = MAX_RETRIES, onError } = options;
 
   const sendAction = useAction(api.coach.messages.send);
-  const respondToToolApprovalMutation = useMutation(
+  const respondToToolApprovalAction = useAction(
     api.coach.messages.respondToToolApproval,
   );
 
@@ -156,9 +156,9 @@ export function useCoachAgent(
   const respondToToolApproval = useCallback(
     async (args: { approvalId: string; approved: boolean; reason?: string }) => {
       if (!threadId) return;
-      await respondToToolApprovalMutation({ threadId, ...args });
+      await respondToToolApprovalAction({ threadId, ...args });
     },
-    [threadId, respondToToolApprovalMutation],
+    [threadId, respondToToolApprovalAction],
   );
 
   return {

@@ -2,7 +2,6 @@ import { workoutsValidator } from "@nativesquare/agoge/schema";
 import { ConvexError, v } from "convex/values";
 import { components, internal } from "../_generated/api";
 import {
-  internalMutation,
   type MutationCtx,
   mutation,
   query,
@@ -144,9 +143,8 @@ const createWorkoutArgs = workoutsValidator
 async function checkCreateWorkout(
   ctx: QueryCtx | MutationCtx,
   args: typeof createWorkoutArgs.type,
-  userIdOverride?: string,
 ): Promise<ValidationResult> {
-  const auth = await loadAthlete(ctx, userIdOverride);
+  const auth = await loadAthlete(ctx);
   if (!auth) return fail([requireAuthError]);
 
   const plan = await loadActiveAthletePlan(ctx, auth.athlete._id);
@@ -226,9 +224,8 @@ const rescheduleArgs = v.object({
 async function checkRescheduleWorkout(
   ctx: QueryCtx | MutationCtx,
   args: typeof rescheduleArgs.type,
-  userIdOverride?: string,
 ): Promise<ValidationResult> {
-  const owned = await loadOwnedWorkout(ctx, args.workoutId, userIdOverride);
+  const owned = await loadOwnedWorkout(ctx, args.workoutId);
   if (!owned) return fail([requireAuthError]);
   const { workout } = owned;
 
@@ -270,10 +267,9 @@ const updateWorkoutArgs = workoutsValidator
 async function checkUpdateWorkout(
   ctx: QueryCtx | MutationCtx,
   args: typeof updateWorkoutArgs.type,
-  userIdOverride?: string,
 ): Promise<ValidationResult> {
   const { workoutId, blockId, ...rest } = args;
-  const owned = await loadOwnedWorkout(ctx, workoutId, userIdOverride);
+  const owned = await loadOwnedWorkout(ctx, workoutId);
   if (!owned) return fail([requireAuthError]);
   const { workout: existing } = owned;
 
@@ -455,11 +451,10 @@ function throwIfInvalid(validation: ValidationResult): void {
 async function performCreateWorkout(
   ctx: MutationCtx,
   args: typeof createWorkoutArgs.type,
-  userIdOverride?: string,
 ): Promise<string> {
-  throwIfInvalid(await checkCreateWorkout(ctx, args, userIdOverride));
+  throwIfInvalid(await checkCreateWorkout(ctx, args));
 
-  const auth = await loadAthlete(ctx, userIdOverride);
+  const auth = await loadAthlete(ctx);
   if (!auth) throw new ConvexError({ code: "VALIDATION_FAILED", errors: [requireAuthError] });
   const plan = await loadActiveAthletePlan(ctx, auth.athlete._id);
   if (!plan) throw new ConvexError({ code: "VALIDATION_FAILED", errors: [noActivePlanError] });
@@ -484,12 +479,11 @@ async function performCreateWorkout(
 async function performRescheduleWorkout(
   ctx: MutationCtx,
   args: typeof rescheduleArgs.type,
-  userIdOverride?: string,
 ): Promise<void> {
-  throwIfInvalid(await checkRescheduleWorkout(ctx, args, userIdOverride));
+  throwIfInvalid(await checkRescheduleWorkout(ctx, args));
 
   const { workoutId, date } = args;
-  const owned = await loadOwnedWorkout(ctx, workoutId, userIdOverride);
+  const owned = await loadOwnedWorkout(ctx, workoutId);
   if (!owned) throw new ConvexError({ code: "VALIDATION_FAILED", errors: [requireAuthError] });
   const { userId, workout } = owned;
   const planned = workout.planned;
@@ -514,12 +508,11 @@ async function performRescheduleWorkout(
 async function performUpdateWorkout(
   ctx: MutationCtx,
   args: typeof updateWorkoutArgs.type,
-  userIdOverride?: string,
 ): Promise<void> {
-  throwIfInvalid(await checkUpdateWorkout(ctx, args, userIdOverride));
+  throwIfInvalid(await checkUpdateWorkout(ctx, args));
 
   const { workoutId, blockId, ...rest } = args;
-  const owned = await loadOwnedWorkout(ctx, workoutId, userIdOverride);
+  const owned = await loadOwnedWorkout(ctx, workoutId);
   if (!owned) throw new ConvexError({ code: "VALIDATION_FAILED", errors: [requireAuthError] });
   const { userId, workout: existing } = owned;
   const nextBlockId =
@@ -602,28 +595,16 @@ export const swapWorkouts = mutation({
 
 async function performDeleteWorkout(
   ctx: MutationCtx,
-  userId: string,
   workoutId: string,
 ): Promise<void> {
-  const athlete = await ctx.runQuery(
-    components.agoge.public.getAthleteByUserId,
-    { userId },
-  );
-  if (!athlete) {
+  const owned = await loadOwnedWorkout(ctx, workoutId);
+  if (!owned) {
     throw new ConvexError({
       code: "VALIDATION_FAILED",
       errors: [requireAuthError],
     });
   }
-  const workout = await ctx.runQuery(components.agoge.public.getWorkout, {
-    workoutId,
-  });
-  if (!workout || workout.athleteId !== athlete._id) {
-    throw new ConvexError({
-      code: "VALIDATION_FAILED",
-      errors: [requireAuthError],
-    });
-  }
+  const { userId } = owned;
   const ref = await ctx.runQuery(
     components.agoge.public.getWorkoutProviderRef,
     { workoutId, provider: "garmin" },
@@ -649,50 +630,7 @@ async function performDeleteWorkout(
 export const deleteWorkout = mutation({
   args: { workoutId: v.string() },
   handler: async (ctx, { workoutId }) => {
-    const auth = await loadAthlete(ctx);
-    if (!auth) {
-      throw new ConvexError({
-        code: "VALIDATION_FAILED",
-        errors: [requireAuthError],
-      });
-    }
-    await performDeleteWorkout(ctx, auth.userId, workoutId);
+    await performDeleteWorkout(ctx, workoutId);
   },
 });
 
-// Variants called from the coach agent's tool execution path. The agent's
-// post-approval continuation runs as a scheduled internalAction, which has no
-// auth identity — so getAuthUserId would return null and trigger NOT_AUTHORIZED.
-// The agent framework provides ctx.userId on the tool ctx (bound to the thread
-// at streamText time), and we trust that here instead of re-deriving from auth.
-
-export const createWorkoutAsUser = internalMutation({
-  args: { ...createWorkoutArgs.fields, userId: v.string() },
-  handler: async (ctx, args) => {
-    const { userId, ...rest } = args;
-    return await performCreateWorkout(ctx, rest, userId);
-  },
-});
-
-export const updateWorkoutAsUser = internalMutation({
-  args: { ...updateWorkoutArgs.fields, userId: v.string() },
-  handler: async (ctx, args) => {
-    const { userId, ...rest } = args;
-    await performUpdateWorkout(ctx, rest, userId);
-  },
-});
-
-export const rescheduleWorkoutAsUser = internalMutation({
-  args: { ...rescheduleArgs.fields, userId: v.string() },
-  handler: async (ctx, args) => {
-    const { userId, ...rest } = args;
-    await performRescheduleWorkout(ctx, rest, userId);
-  },
-});
-
-export const deleteWorkoutAsUser = internalMutation({
-  args: { userId: v.string(), workoutId: v.string() },
-  handler: async (ctx, { userId, workoutId }) => {
-    await performDeleteWorkout(ctx, userId, workoutId);
-  },
-});

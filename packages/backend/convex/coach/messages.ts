@@ -8,8 +8,7 @@ import {
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
 import { components, internal } from "../_generated/api";
-import type { Id } from "../_generated/dataModel";
-import { action, mutation, query } from "../_generated/server";
+import { action, internalMutation, query } from "../_generated/server";
 import { coach } from "./agent";
 import { type TurnSeed, runCoachTurn } from "./turns";
 
@@ -50,19 +49,25 @@ export const send = action({
       ? { kind: "multimodal", text, attachments }
       : { kind: "text", text };
 
-    await runCoachTurn(ctx, { userId: userId as Id<"users">, threadId, seed });
+    await runCoachTurn(ctx, { userId: userId, threadId, seed });
   },
 });
 
-/**
- * Resolve a pending tool-approval-request from the chat UI.
- *
- * - approved=true  → framework runs the tool's `execute()` (the real DB write).
- * - approved=false → framework injects an `execution-denied` result; no write.
- *
- * After saving the response, schedules a coach turn to react to the result.
- */
-export const respondToToolApproval = mutation({
+export const _approveOrDeny = internalMutation({
+  args: {
+    threadId: v.string(),
+    approvalId: v.string(),
+    approved: v.boolean(),
+    reason: v.optional(v.string()),
+  },
+  handler: async (ctx, { threadId, approvalId, approved, reason }) => {
+    return approved
+      ? await coach.approveToolCall(ctx, { threadId, approvalId, reason })
+      : await coach.denyToolCall(ctx, { threadId, approvalId, reason });
+  },
+});
+
+export const respondToToolApproval = action({
   args: {
     threadId: v.string(),
     approvalId: v.string(),
@@ -83,12 +88,13 @@ export const respondToToolApproval = mutation({
       });
     }
 
-    const { messageId } = approved
-      ? await coach.approveToolCall(ctx, { threadId, approvalId, reason })
-      : await coach.denyToolCall(ctx, { threadId, approvalId, reason });
+    const { messageId } = await ctx.runMutation(
+      internal.coach.messages._approveOrDeny,
+      { threadId, approvalId, approved, reason },
+    );
 
-    await ctx.scheduler.runAfter(0, internal.coach.turns.run, {
-      userId: userId as Id<"users">,
+    await runCoachTurn(ctx, {
+      userId: userId,
       threadId,
       seed: { kind: "continue", promptMessageId: messageId },
     });
