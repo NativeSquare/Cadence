@@ -1,20 +1,15 @@
 /**
  * Utility functions for Calendar Tab
- * Reference: cadence-calendar-final.jsx lines 204-237, 302-309
  */
 
-import type {
-  Phase,
-  PhaseName,
-  CalWorkout,
-  CalendarDay,
-  WeekDate,
-  PhaseSegment,
-} from "./types";
-import { DAY_HEADERS_FULL, PHASE_COLORS } from "./constants";
-import { getCadenceWorkoutType } from "@packages/shared/utils";
-import type { AgogeWorkout } from "../plan/utils";
 import type { BlockDoc } from "@nativesquare/agoge/schema";
+
+/** A single day cell in the calendar grid. */
+export interface CalendarDay {
+  day: number;
+  key: string;
+  outside: boolean;
+}
 
 /**
  * Blend hex color with off-white background (#F8F8F6) to produce a solid RGB color.
@@ -35,54 +30,47 @@ export function blendWithBg(
 }
 
 /**
- * Pre-compute a Map<dateKey, Phase> for O(1) lookups.
- * Called once with useMemo — avoids scanning PHASES for every date.
+ * Pre-compute a Map<dateKey, BlockDoc> for O(1) lookups across the calendar grid.
  */
-export function buildPhaseLookup(phases: Phase[]): Map<string, Phase> {
-  const map = new Map<string, Phase>();
-  for (const p of phases) {
-    const start = new Date(p.start + "T00:00:00");
-    const end = new Date(p.end + "T00:00:00");
-    for (
-      let d = new Date(start);
-      d <= end;
-      d.setDate(d.getDate() + 1)
-    ) {
+export function buildBlockLookup(blocks: BlockDoc[]): Map<string, BlockDoc> {
+  const map = new Map<string, BlockDoc>();
+  for (const b of blocks) {
+    const start = new Date(b.startDate + "T00:00:00");
+    const end = new Date(b.endDate + "T00:00:00");
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
       map.set(
         formatDateKey(d.getFullYear(), d.getMonth(), d.getDate()),
-        p
+        b,
       );
     }
   }
   return map;
 }
 
-export function getDaysInMonth(year: number, month: number): number {
+function getDaysInMonth(year: number, month: number): number {
   return new Date(year, month + 1, 0).getDate();
 }
 
 /** Monday-first: returns 0-6 where 0=Monday */
-export function getFirstDayOfMonth(year: number, month: number): number {
+function getFirstDayOfMonth(year: number, month: number): number {
   const d = new Date(year, month, 1).getDay();
   return d === 0 ? 6 : d - 1;
 }
 
-export function formatDateKey(
-  year: number,
-  month: number,
-  day: number
-): string {
+function formatDateKey(year: number, month: number, day: number): string {
   return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+/** Format a Date as a calendar day key ("YYYY-MM-DD" in local time). */
+export function dateKey(d: Date): string {
+  return formatDateKey(d.getFullYear(), d.getMonth(), d.getDate());
 }
 
 /**
  * Build the calendar grid for a given month.
  * Returns an array of weeks, each containing 7 CalendarDay items (Monday-first).
  */
-export function buildWeeks(
-  year: number,
-  month: number
-): CalendarDay[][] {
+export function buildWeeks(year: number, month: number): CalendarDay[][] {
   const daysInMonth = getDaysInMonth(year, month);
   const firstDay = getFirstDayOfMonth(year, month);
   const prevMonth = month === 0 ? 11 : month - 1;
@@ -91,7 +79,6 @@ export function buildWeeks(
 
   const calendarDays: CalendarDay[] = [];
 
-  // Previous month trailing days
   for (let i = 0; i < firstDay; i++) {
     const day = prevMonthDays - firstDay + 1 + i;
     calendarDays.push({
@@ -101,7 +88,6 @@ export function buildWeeks(
     });
   }
 
-  // Current month
   for (let i = 1; i <= daysInMonth; i++) {
     calendarDays.push({
       day: i,
@@ -110,7 +96,6 @@ export function buildWeeks(
     });
   }
 
-  // Next month leading days
   const remaining = 7 - (calendarDays.length % 7);
   if (remaining < 7) {
     const nextMonth = month === 11 ? 0 : month + 1;
@@ -129,153 +114,4 @@ export function buildWeeks(
     weeks.push(calendarDays.slice(i, i + 7));
   }
   return weeks;
-}
-
-/**
- * Compute contiguous phase segments for a week row.
- * Each segment spans consecutive days with the same phase.
- */
-export function computePhaseSegments(
-  week: CalendarDay[],
-  phaseLookup: Map<string, Phase>
-): PhaseSegment[] {
-  const segments: PhaseSegment[] = [];
-  let current: PhaseSegment | null = null;
-
-  week.forEach((d, di) => {
-    const phase = d.outside ? undefined : phaseLookup.get(d.key);
-    if (phase) {
-      if (current && current.phase.name === phase.name) {
-        current.end = di;
-      } else {
-        if (current) segments.push(current);
-        current = {
-          phase,
-          start: di,
-          end: di,
-          isPhaseStart: d.key === phase.start,
-        };
-      }
-    } else {
-      if (current) {
-        segments.push(current);
-        current = null;
-      }
-    }
-  });
-  if (current) segments.push(current);
-  return segments;
-}
-
-/**
- * Get the 7 WeekDate objects for the week containing the given date key.
- */
-export function getWeekDates(dateKey: string): WeekDate[] {
-  const d = new Date(dateKey + "T00:00:00");
-  const day = d.getDay();
-  const diff = day === 0 ? 6 : day - 1;
-  const monday = new Date(d);
-  monday.setDate(d.getDate() - diff);
-
-  const dates: WeekDate[] = [];
-  for (let i = 0; i < 7; i++) {
-    const dd = new Date(monday);
-    dd.setDate(monday.getDate() + i);
-    dates.push({
-      year: dd.getFullYear(),
-      month: dd.getMonth(),
-      day: dd.getDate(),
-      key: formatDateKey(dd.getFullYear(), dd.getMonth(), dd.getDate()),
-      dayName: DAY_HEADERS_FULL[i],
-    });
-  }
-  return dates;
-}
-
-/**
- * Transform agoge workouts into the calendar's date-keyed lookup.
- * Skipped workouts are excluded so they render as empty tiles.
- */
-export function buildCalendarWorkouts(
-  workouts: AgogeWorkout[],
-): Record<string, CalWorkout[]> {
-  const result: Record<string, CalWorkout[]> = {};
-  for (const w of workouts) {
-    if (w.status === "skipped") continue;
-    // Faces store date as a UTC ISO timestamp; the YYYY-MM-DD prefix is the
-    // local-day the user authored (workouts are written as `${YYYY-MM-DD}T00:00:00.000Z`).
-    const dateIso = w.actual?.date ?? w.planned?.date;
-    if (!dateIso) continue;
-    const key = dateIso.slice(0, 10);
-    const km =
-      w.actual?.distanceMeters != null
-        ? (w.actual.distanceMeters / 1000).toFixed(1)
-        : w.planned?.distanceMeters != null
-          ? (w.planned.distanceMeters / 1000).toFixed(1)
-          : "-";
-    const dur = formatWorkoutDuration(
-      w.actual?.durationSeconds ?? w.planned?.durationSeconds,
-    );
-    const calWorkout: CalWorkout = {
-      workoutId: w._id,
-      type: getCadenceWorkoutType(w.type),
-      label: w.name,
-      km,
-      dur,
-      done: w.status === "completed",
-    };
-    if (!result[key]) result[key] = [];
-    result[key].push(calWorkout);
-  }
-  return result;
-}
-
-function formatWorkoutDuration(seconds?: number): string {
-  if (seconds == null) return "-";
-  const m = Math.round(seconds / 60);
-  if (m < 60) return `${m}min`;
-  const h = Math.floor(m / 60);
-  const rem = m % 60;
-  return rem === 0 ? `${h}h` : `${h}h${rem.toString().padStart(2, "0")}`;
-}
-
-function mapBlockTypeToPhaseKey(
-  type: BlockDoc["type"],
-): PhaseName {
-  switch (type) {
-    case "base":
-      return "base";
-    case "build":
-      return "build1";
-    case "peak":
-      return "build2";
-    case "taper":
-      return "taper";
-    case "recovery":
-      return "recovery";
-    case "maintenance":
-      return "consolidation";
-    case "transition":
-      return "foundation";
-  }
-}
-
-/**
- * Derive training phases from agoge blocks.
- * Each block becomes one Phase; the block's date range is used directly.
- */
-export function buildPhasesFromBlocks(blocks: BlockDoc[]): Phase[] {
-  return blocks
-    .slice()
-    .sort((a, b) => a.order - b.order)
-    .map((block) => {
-      const key = mapBlockTypeToPhaseKey(block.type);
-      return {
-        name: block.name,
-        key,
-        start: block.startDate,
-        end: block.endDate,
-        color: PHASE_COLORS[key],
-      };
-    });
 }

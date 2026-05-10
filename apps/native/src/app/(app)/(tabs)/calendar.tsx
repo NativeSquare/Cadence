@@ -1,4 +1,4 @@
-import { CalendarScreen } from "@/components/app/calendar";
+import { CalendarScreen } from "@/components/app/calendar/CalendarScreen";
 
 /**
  * Calendar Tab - Monthly training calendar

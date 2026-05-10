@@ -27,28 +27,20 @@ import { useRouter } from "expo-router";
 import { api } from "@packages/backend/convex/_generated/api";
 
 import { COLORS, GRAYS, LIGHT_THEME } from "@/lib/design-tokens";
-import { WORKOUT_TYPES_COLORS } from "@packages/shared/colors";
 import {
   formatDayLabelShort,
   formatLongDate,
   formatMonthName,
 } from "@/lib/format";
 import { useLanguage } from "@/lib/i18n";
-import { TODAY_KEY } from "./constants";
-import {
-  buildWeeks,
-  buildPhaseLookup,
-  blendWithBg,
-  buildCalendarWorkouts,
-  buildPhasesFromBlocks,
-} from "./helpers";
+import { buildBlockLookup, dateKey } from "./helpers";
+import { MonthGrid, GRID_GAP } from "./MonthGrid";
 import { AddWorkoutButton } from "@/components/app/workout/add-workout-button";
 import { WorkoutCard } from "@/components/app/workout/workout-card";
-import type { CalWorkout, Phase } from "./types";
+import type { WorkoutDoc } from "@nativesquare/agoge/schema";
 
 type ViewMode = "workouts" | "blocks";
 
-const GRID_GAP = 6;
 const GRID_PADDING = 10;
 const MONTHS_BEFORE = 6;
 const MONTHS_AFTER = 12;
@@ -68,7 +60,9 @@ function toUtcRangeEnd(d: Date): string {
   return `${toIsoDate(d)}T23:59:59.999Z`;
 }
 
-function buildMonthsList(centerDate: Date): Array<{ year: number; month: number }> {
+function buildMonthsList(
+  centerDate: Date,
+): Array<{ year: number; month: number }> {
   const list: Array<{ year: number; month: number }> = [];
   for (let i = -MONTHS_BEFORE; i <= MONTHS_AFTER; i++) {
     const d = new Date(centerDate.getFullYear(), centerDate.getMonth() + i, 1);
@@ -83,7 +77,15 @@ export function CalendarScreen() {
   const insets = useSafeAreaInsets();
   const { width: screenWidth } = useWindowDimensions();
   const router = useRouter();
-  const todayDate = useMemo(() => new Date(TODAY_KEY + "T00:00:00"), []);
+  // Frozen at mount: anchors the months list and the initial selected day.
+  // Avoids reflowing the calendar when the day rolls over while the app is open.
+  const mountTodayKey = useMemo(() => dateKey(new Date()), []);
+  const mountTodayDate = useMemo(
+    () => new Date(mountTodayKey + "T00:00:00"),
+    [mountTodayKey],
+  );
+  // Recomputed every render so the today highlight follows the wall clock.
+  const todayKey = dateKey(new Date());
 
   const dayHeaderLabels = useMemo(() => {
     // Mondays-Sundays of any week — use ISO week starting on Monday.
@@ -100,7 +102,10 @@ export function CalendarScreen() {
     [screenWidth],
   );
 
-  const monthsList = useMemo(() => buildMonthsList(todayDate), [todayDate]);
+  const monthsList = useMemo(
+    () => buildMonthsList(mountTodayDate),
+    [mountTodayDate],
+  );
   const monthRange = useMemo(() => {
     const first = monthsList[0];
     const last = monthsList[monthsList.length - 1];
@@ -111,7 +116,7 @@ export function CalendarScreen() {
   }, [monthsList]);
 
   const [viewMode, setViewMode] = useState<ViewMode>("workouts");
-  const [selectedDate, setSelectedDate] = useState<string>(TODAY_KEY);
+  const [selectedDate, setSelectedDate] = useState<string>(mountTodayKey);
 
   const workouts = useQuery(api.agoge.workouts.listWorkouts, monthRange);
   const activePlan = useQuery(api.agoge.plans.getAthletePlan);
@@ -120,13 +125,8 @@ export function CalendarScreen() {
     activePlan ? { planId: activePlan._id } : "skip",
   );
 
-  const calWorkouts = useMemo(
-    () => (workouts ? buildCalendarWorkouts(workouts) : {}),
-    [workouts],
-  );
-
   const workoutsByDate = useMemo(() => {
-    const map: Record<string, typeof workouts> = {};
+    const map: Record<string, WorkoutDoc[]> = {};
     if (!workouts) return map;
     for (const w of workouts) {
       const dateIso = w.planned?.date ?? w.actual?.date;
@@ -137,12 +137,7 @@ export function CalendarScreen() {
     return map;
   }, [workouts]);
 
-  const phases = useMemo(
-    () => (blocks ? buildPhasesFromBlocks(blocks) : []),
-    [blocks],
-  );
-
-  const phaseLookup = useMemo(() => buildPhaseLookup(phases), [phases]);
+  const blockLookup = useMemo(() => buildBlockLookup(blocks ?? []), [blocks]);
 
   // ─── Auto-scroll to today on mount ────────────────────────────────
 
@@ -197,7 +192,9 @@ export function CalendarScreen() {
 
   if (workouts === undefined) {
     return (
-      <View style={[st.root, { alignItems: "center", justifyContent: "center" }]}>
+      <View
+        style={[st.root, { alignItems: "center", justifyContent: "center" }]}
+      >
         <ActivityIndicator size="large" color={GRAYS.g3} />
       </View>
     );
@@ -273,8 +270,9 @@ export function CalendarScreen() {
                 year={m.year}
                 month={m.month}
                 tileSize={tileSize}
-                calWorkouts={calWorkouts}
-                phaseLookup={phaseLookup}
+                workoutsByDate={workoutsByDate}
+                blockLookup={blockLookup}
+                todayKey={todayKey}
                 isBlocksMode={isBlocksMode}
                 selectedDate={selectedDate}
                 onDayPress={handleDayPress}
@@ -288,11 +286,6 @@ export function CalendarScreen() {
             <Text style={st.panelTitle}>
               {formatLongDate(locale, selectedDateObj)}
             </Text>
-            {selectedWorkouts.length > 0 && (
-              <View style={st.panelBadge}>
-                <Text style={st.panelBadgeText}>{selectedWorkouts.length}</Text>
-              </View>
-            )}
           </View>
 
           <ScrollView
@@ -323,139 +316,6 @@ export function CalendarScreen() {
     </View>
   );
 }
-
-// ─── MonthGrid ───────────────────────────────────────────────────────
-
-interface MonthGridProps {
-  year: number;
-  month: number;
-  tileSize: number;
-  calWorkouts: Record<string, CalWorkout[]>;
-  phaseLookup: Map<string, Phase>;
-  isBlocksMode: boolean;
-  selectedDate: string;
-  onDayPress: (dateKey: string) => void;
-}
-
-const MonthGrid = React.memo(function MonthGrid({
-  year,
-  month,
-  tileSize,
-  calWorkouts,
-  phaseLookup,
-  isBlocksMode,
-  selectedDate,
-  onDayPress,
-}: MonthGridProps) {
-  const weeks = useMemo(() => buildWeeks(year, month), [year, month]);
-
-  return (
-    <View>
-      {weeks.map((week, wi) => (
-        <View key={`w-${wi}`} style={st.weekRow}>
-          {week.map((day) => {
-            const dayWorkouts = calWorkouts[day.key];
-            const hasWorkout = dayWorkouts && dayWorkouts.length > 0;
-            const isToday = day.key === TODAY_KEY;
-            const isSelected = day.key === selectedDate;
-            const phase = phaseLookup.get(day.key);
-            const tileStyle = { width: tileSize, height: tileSize };
-
-            // Days outside the current month section render dimmed + non-pressable
-            // so the user only ever taps the canonical month they belong to.
-            if (day.outside) {
-              return (
-                <View key={day.key} style={st.cellWrapper}>
-                  <View style={[st.tile, tileStyle]}>
-                    <Text style={[st.dayNum, st.dayNumOutside]}>{day.day}</Text>
-                  </View>
-                </View>
-              );
-            }
-
-            const blockTileBg =
-              isBlocksMode && phase
-                ? {
-                    backgroundColor: blendWithBg(phase.color, 0.18),
-                    borderWidth: 1,
-                    borderColor: blendWithBg(phase.color, 0.25),
-                  }
-                : undefined;
-
-            const baseTileBg = isBlocksMode && phase ? blockTileBg : st.tileWhite;
-            // Gray today-marker only applies when no phase tint is active,
-            // so block coloring still wins in blocks mode.
-            const isTodayMarker = isToday && !isSelected && !(isBlocksMode && phase);
-
-            return (
-              <View key={day.key} style={st.cellWrapper}>
-                <Pressable onPress={() => onDayPress(day.key)}>
-                  <View
-                    style={[
-                      st.tile,
-                      tileStyle,
-                      baseTileBg,
-                      isTodayMarker && st.tileToday,
-                      isSelected && st.tileSelected,
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        st.dayNum,
-                        isSelected && st.dayNumSelected,
-                        !isSelected && isToday && st.dayNumToday,
-                        !isSelected &&
-                          !isToday &&
-                          ((isBlocksMode && phase) ||
-                            (!isBlocksMode && hasWorkout)) &&
-                          st.dayNumActive,
-                      ]}
-                    >
-                      {day.day}
-                    </Text>
-
-                    {isBlocksMode ? (
-                      phase && day.key === phase.start ? (
-                        <View style={st.dotsRow}>
-                          <View
-                            style={[
-                              st.workoutDot,
-                              { backgroundColor: phase.color },
-                            ]}
-                          />
-                        </View>
-                      ) : (
-                        <View style={st.dotsSpacer} />
-                      )
-                    ) : hasWorkout ? (
-                      <View style={st.dotsRow}>
-                        {dayWorkouts!.map((w, di) => (
-                          <View
-                            key={di}
-                            style={[
-                              st.workoutDot,
-                              {
-                                backgroundColor:
-                                  WORKOUT_TYPES_COLORS[w.type],
-                              },
-                              w.done && st.workoutDotDone,
-                            ]}
-                          />
-                        ))}
-                      </View>
-                    ) : (
-                      <View style={st.dotsSpacer} />
-                    )}
-                  </View>
-                </Pressable>
-              </View>
-            );
-          })}
-        </View>
-      ))}
-    </View>
-  );
-});
 
 // ─── Styles ──────────────────────────────────────────────────────────
 
@@ -562,83 +422,6 @@ const st = StyleSheet.create({
     fontFamily: "Outfit-Light",
     fontWeight: "300",
     color: LIGHT_THEME.wMute,
-  },
-
-  weekRow: {
-    flexDirection: "row",
-    justifyContent: "center",
-    gap: GRID_GAP,
-    marginBottom: GRID_GAP,
-  },
-
-  // Tile
-  cellWrapper: {
-    alignItems: "center",
-  },
-  tile: {
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-    overflow: "hidden",
-  },
-  tileWhite: {
-    backgroundColor: LIGHT_THEME.w1,
-    borderWidth: 1,
-    borderColor: LIGHT_THEME.wBrd,
-  },
-  tileToday: {
-    backgroundColor: LIGHT_THEME.w3,
-    borderWidth: 1,
-    borderColor: LIGHT_THEME.wBrd,
-  },
-  tileSelected: {
-    borderWidth: 2,
-    borderColor: LIGHT_THEME.wText,
-  },
-
-  // Day number
-  dayNum: {
-    fontSize: 16,
-    fontFamily: "Outfit-Regular",
-    fontWeight: "400",
-    color: LIGHT_THEME.wMute,
-  },
-  dayNumOutside: {
-    opacity: 0.2,
-  },
-  dayNumToday: {
-    fontFamily: "Outfit-Bold",
-    fontWeight: "700",
-    color: LIGHT_THEME.wText,
-  },
-  dayNumSelected: {
-    fontFamily: "Outfit-Bold",
-    fontWeight: "700",
-    color: LIGHT_THEME.wText,
-  },
-  dayNumActive: {
-    fontFamily: "Outfit-SemiBold",
-    fontWeight: "600",
-    color: LIGHT_THEME.wText,
-  },
-
-  // Workout dots inside tile
-  dotsRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 3,
-    marginTop: 4,
-  },
-  workoutDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  workoutDotDone: {
-    opacity: 0.45,
-  },
-  dotsSpacer: {
-    height: 10,
   },
 
   // Bottom panel

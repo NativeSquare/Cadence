@@ -46,6 +46,17 @@ export function formatMonthName(
   );
 }
 
+/** "May" / "mai" — abbreviated month name. */
+export function formatMonthNameShort(
+  locale: Language,
+  monthIndex: number,
+  year: number,
+): string {
+  return new Intl.DateTimeFormat(locale, { month: "short" }).format(
+    new Date(year, monthIndex, 1),
+  );
+}
+
 /** "Mon" / "lun." — short weekday name for the given date */
 export function formatDayLabelShort(locale: Language, date: Date): string {
   return new Intl.DateTimeFormat(locale, { weekday: "short" }).format(date);
