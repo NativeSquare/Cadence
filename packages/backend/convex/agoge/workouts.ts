@@ -448,105 +448,111 @@ function throwIfInvalid(validation: ValidationResult): void {
   }
 }
 
-async function performCreateWorkout(
-  ctx: MutationCtx,
-  args: typeof createWorkoutArgs.type,
-): Promise<string> {
-  throwIfInvalid(await checkCreateWorkout(ctx, args));
-
-  const auth = await loadAthlete(ctx);
-  if (!auth) throw new ConvexError({ code: "VALIDATION_FAILED", errors: [requireAuthError] });
-  const plan = await loadActiveAthletePlan(ctx, auth.athlete._id);
-  if (!plan) throw new ConvexError({ code: "VALIDATION_FAILED", errors: [noActivePlanError] });
-
-  const workoutId = await ctx.runMutation(
-    components.agoge.public.createWorkout,
-    {
-      ...args,
-      athleteId: auth.athlete._id,
-      planId: plan._id,
-    },
-  );
-
-  await ctx.scheduler.runAfter(
-    0,
-    internal.agoge.sync.syncWorkoutToProviders,
-    { userId: auth.userId, workoutId, operation: "upsert" },
-  );
-  return workoutId;
-}
-
-async function performRescheduleWorkout(
-  ctx: MutationCtx,
-  args: typeof rescheduleArgs.type,
-): Promise<void> {
-  throwIfInvalid(await checkRescheduleWorkout(ctx, args));
-
-  const { workoutId, date } = args;
-  const owned = await loadOwnedWorkout(ctx, workoutId);
-  if (!owned) throw new ConvexError({ code: "VALIDATION_FAILED", errors: [requireAuthError] });
-  const { userId, workout } = owned;
-  const planned = workout.planned;
-  if (!planned) {
-    throw new ConvexError({
-      code: "VALIDATION_FAILED",
-      errors: [{ code: "INVALID_STATE", message: "Cannot reschedule a workout without a planned face" }],
-    });
-  }
-
-  await ctx.runMutation(components.agoge.public.updateWorkout, {
-    workoutId,
-    planned: { ...planned, date },
-  });
-  await ctx.scheduler.runAfter(
-    0,
-    internal.agoge.sync.syncWorkoutToProviders,
-    { userId, workoutId, operation: "upsert" },
-  );
-}
-
-async function performUpdateWorkout(
-  ctx: MutationCtx,
-  args: typeof updateWorkoutArgs.type,
-): Promise<void> {
-  throwIfInvalid(await checkUpdateWorkout(ctx, args));
-
-  const { workoutId, blockId, ...rest } = args;
-  const owned = await loadOwnedWorkout(ctx, workoutId);
-  if (!owned) throw new ConvexError({ code: "VALIDATION_FAILED", errors: [requireAuthError] });
-  const { userId, workout: existing } = owned;
-  const nextBlockId =
-    blockId === undefined
-      ? existing.blockId
-      : blockId === null
-        ? undefined
-        : blockId;
-
-  await ctx.runMutation(components.agoge.public.updateWorkout, {
-    ...rest,
-    ...(blockId !== undefined ? { blockId: nextBlockId } : {}),
-    workoutId,
-  });
-  await ctx.scheduler.runAfter(
-    0,
-    internal.agoge.sync.syncWorkoutToProviders,
-    { userId, workoutId, operation: "upsert" },
-  );
-}
-
 export const createWorkout = mutation({
   args: createWorkoutArgs.fields,
-  handler: async (ctx, args) => performCreateWorkout(ctx, args),
+  handler: async (ctx, args): Promise<string> => {
+    throwIfInvalid(await checkCreateWorkout(ctx, args));
+
+    const auth = await loadAthlete(ctx);
+    if (!auth)
+      throw new ConvexError({
+        code: "VALIDATION_FAILED",
+        errors: [requireAuthError],
+      });
+    const plan = await loadActiveAthletePlan(ctx, auth.athlete._id);
+    if (!plan)
+      throw new ConvexError({
+        code: "VALIDATION_FAILED",
+        errors: [noActivePlanError],
+      });
+
+    const workoutId = await ctx.runMutation(
+      components.agoge.public.createWorkout,
+      {
+        ...args,
+        athleteId: auth.athlete._id,
+        planId: plan._id,
+      },
+    );
+
+    await ctx.scheduler.runAfter(
+      0,
+      internal.agoge.sync.syncWorkoutToProviders,
+      { userId: auth.userId, workoutId, operation: "upsert" },
+    );
+    return workoutId;
+  },
 });
 
 export const rescheduleWorkout = mutation({
   args: rescheduleArgs.fields,
-  handler: async (ctx, args) => performRescheduleWorkout(ctx, args),
+  handler: async (ctx, args) => {
+    throwIfInvalid(await checkRescheduleWorkout(ctx, args));
+
+    const { workoutId, date } = args;
+    const owned = await loadOwnedWorkout(ctx, workoutId);
+    if (!owned)
+      throw new ConvexError({
+        code: "VALIDATION_FAILED",
+        errors: [requireAuthError],
+      });
+    const { userId, workout } = owned;
+    const planned = workout.planned;
+    if (!planned) {
+      throw new ConvexError({
+        code: "VALIDATION_FAILED",
+        errors: [
+          {
+            code: "INVALID_STATE",
+            message: "Cannot reschedule a workout without a planned face",
+          },
+        ],
+      });
+    }
+
+    await ctx.runMutation(components.agoge.public.updateWorkout, {
+      workoutId,
+      planned: { ...planned, date },
+    });
+    await ctx.scheduler.runAfter(
+      0,
+      internal.agoge.sync.syncWorkoutToProviders,
+      { userId, workoutId, operation: "upsert" },
+    );
+  },
 });
 
 export const updateWorkout = mutation({
   args: updateWorkoutArgs.fields,
-  handler: async (ctx, args) => performUpdateWorkout(ctx, args),
+  handler: async (ctx, args) => {
+    throwIfInvalid(await checkUpdateWorkout(ctx, args));
+
+    const { workoutId, blockId, ...rest } = args;
+    const owned = await loadOwnedWorkout(ctx, workoutId);
+    if (!owned)
+      throw new ConvexError({
+        code: "VALIDATION_FAILED",
+        errors: [requireAuthError],
+      });
+    const { userId, workout: existing } = owned;
+    const nextBlockId =
+      blockId === undefined
+        ? existing.blockId
+        : blockId === null
+          ? undefined
+          : blockId;
+
+    await ctx.runMutation(components.agoge.public.updateWorkout, {
+      ...rest,
+      ...(blockId !== undefined ? { blockId: nextBlockId } : {}),
+      workoutId,
+    });
+    await ctx.scheduler.runAfter(
+      0,
+      internal.agoge.sync.syncWorkoutToProviders,
+      { userId, workoutId, operation: "upsert" },
+    );
+  },
 });
 
 export const swapWorkouts = mutation({
@@ -593,44 +599,37 @@ export const swapWorkouts = mutation({
   },
 });
 
-async function performDeleteWorkout(
-  ctx: MutationCtx,
-  workoutId: string,
-): Promise<void> {
-  const owned = await loadOwnedWorkout(ctx, workoutId);
-  if (!owned) {
-    throw new ConvexError({
-      code: "VALIDATION_FAILED",
-      errors: [requireAuthError],
-    });
-  }
-  const { userId } = owned;
-  const ref = await ctx.runQuery(
-    components.agoge.public.getWorkoutProviderRef,
-    { workoutId, provider: "garmin" },
-  );
-  await ctx.runMutation(components.agoge.public.deleteWorkout, { workoutId });
-  if (ref) {
-    await ctx.scheduler.runAfter(
-      0,
-      internal.agoge.sync.syncWorkoutToProviders,
-      {
-        userId,
-        workoutId,
-        operation: "delete",
-        deletePayload: {
-          externalWorkoutId: ref.externalWorkoutId,
-          externalScheduleId: ref.externalScheduleId,
-        },
-      },
-    );
-  }
-}
-
 export const deleteWorkout = mutation({
   args: { workoutId: v.string() },
   handler: async (ctx, { workoutId }) => {
-    await performDeleteWorkout(ctx, workoutId);
+    const owned = await loadOwnedWorkout(ctx, workoutId);
+    if (!owned) {
+      throw new ConvexError({
+        code: "VALIDATION_FAILED",
+        errors: [requireAuthError],
+      });
+    }
+    const { userId } = owned;
+    const ref = await ctx.runQuery(
+      components.agoge.public.getWorkoutProviderRef,
+      { workoutId, provider: "garmin" },
+    );
+    await ctx.runMutation(components.agoge.public.deleteWorkout, { workoutId });
+    if (ref) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.agoge.sync.syncWorkoutToProviders,
+        {
+          userId,
+          workoutId,
+          operation: "delete",
+          deletePayload: {
+            externalWorkoutId: ref.externalWorkoutId,
+            externalScheduleId: ref.externalScheduleId,
+          },
+        },
+      );
+    }
   },
 });
 
