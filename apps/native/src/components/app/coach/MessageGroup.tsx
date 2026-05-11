@@ -24,26 +24,20 @@ export function hasRenderableParts(message: UIMessage): boolean {
     if (part.type === "text") return !!part.text;
     if (part.type === "file") return true;
     if (!isToolPart(part)) return false;
-    if (
-      !isWritingToolPart(part) &&
-      isKnownWritingTool(getToolPartName(part))
-    ) {
+    if (!isWritingToolPart(part) && isKnownWritingTool(getToolPartName(part))) {
       return false;
     }
     return true;
   });
 }
 
-export function MessageGroup({
-  message,
-  onToolRespond,
-}: MessageGroupProps) {
+export function MessageGroup({ message, onToolRespond }: MessageGroupProps) {
   const isCoach = message.role === "assistant";
   const isMessageStreaming = message.status === "streaming";
   const lastIdx = message.parts.length - 1;
 
   return (
-    <View style={{ gap: 16 }}>
+    <View className="gap-4">
       {message.parts.map((part, idx) => {
         if (part.type === "text") {
           if (!part.text) return null;
@@ -74,9 +68,7 @@ export function MessageGroup({
         ) {
           return null;
         }
-        return (
-          <ChatToolPart key={idx} part={part} onRespond={onToolRespond} />
-        );
+        return <ChatToolPart key={idx} part={part} onRespond={onToolRespond} />;
       })}
     </View>
   );

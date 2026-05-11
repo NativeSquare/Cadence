@@ -110,7 +110,13 @@ export function CoachChatView({ threadId }: CoachChatViewProps) {
   const handleMediaSelected = useCallback(
     async (asset: SelectedAttachmentAsset) => {
       const { uri, kind, mimeType, name } = asset;
-      const placeholder: PendingAttachment = { uri, kind, mimeType, name };
+      const placeholder: PendingAttachment = {
+        uri,
+        kind,
+        mimeType,
+        name,
+        isUploading: true,
+      };
       setPendingAttachments((prev) => [...prev, placeholder]);
       try {
         const url =
@@ -118,7 +124,9 @@ export function CoachChatView({ threadId }: CoachChatViewProps) {
             ? await uploadImage(uri)
             : await uploadFile(uri, mimeType ?? "application/octet-stream");
         setPendingAttachments((prev) =>
-          prev.map((a) => (a.uri === uri ? { ...a, url } : a)),
+          prev.map((a) =>
+            a.uri === uri ? { ...a, url, isUploading: false } : a,
+          ),
         );
       } catch (err) {
         console.error("[CoachChatView] Upload failed:", err);

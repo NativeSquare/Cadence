@@ -5,6 +5,7 @@ import {
   Image,
   Text,
   ScrollView,
+  ActivityIndicator,
 } from "react-native";
 import { useTranslation } from "react-i18next";
 import { ArrowUp, Plus, X, FileText } from "lucide-react-native";
@@ -135,6 +136,22 @@ export function ChatInput({
                       }}
                       resizeMode="cover"
                     />
+                  )}
+                  {att.isUploading && (
+                    <View
+                      pointerEvents="none"
+                      className="items-center justify-center rounded-xl"
+                      style={{
+                        position: "absolute",
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        backgroundColor: "rgba(0,0,0,0.35)",
+                      }}
+                    >
+                      <ActivityIndicator size="small" color="#fff" />
+                    </View>
                   )}
                   {onRemoveAttachment && (
                     <Pressable

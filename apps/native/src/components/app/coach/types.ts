@@ -27,6 +27,7 @@ export interface TypingIndicatorProps {
 export interface PendingAttachment {
   uri: string;
   url?: string;
+  isUploading: boolean;
   kind: "image" | "file";
   mimeType?: string;
   name?: string;
