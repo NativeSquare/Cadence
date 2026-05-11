@@ -16,11 +16,11 @@
 import { useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { Alert } from "react-native";
-import { extractToolName, type ToolMessagePart } from "@/lib/ai-stream";
+import { getToolPartName, type ToolPart } from "@/lib/ai-stream";
 import { isKnownWritingTool, resolveToolCard } from "./tool-cards";
 
 interface ChatToolPartProps {
-  part: ToolMessagePart;
+  part: ToolPart;
   onRespond: (args: {
     approvalId: string;
     approved: boolean;
@@ -30,11 +30,8 @@ interface ChatToolPartProps {
 
 export function ChatToolPart({ part, onRespond }: ChatToolPartProps) {
   const { t } = useTranslation();
-  const toolName = extractToolName(part);
-  const isWriting =
-    !!part.approval ||
-    part.state === "approval-requested" ||
-    part.state === "approval-responded";
+  const toolName = getToolPartName(part);
+  const isWriting = !!part.approval;
 
   // Silent-retry path: known writing tool that never reached an approval
   // state. Hide it entirely so the chat doesn't surface failed validation

@@ -1,12 +1,3 @@
-/**
- * CoachScreen - Main container for the Coach/Chat tab
- *
- * Manages conversation lifecycle (load/create) and delegates
- * to CoachChatView once the conversation is ready.
- *
- * Source: Story 10.3 - AC#1, AC#2, AC#3, AC#4, AC#5
- */
-
 import { View, ActivityIndicator } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
@@ -14,7 +5,7 @@ import { Text } from "@/components/ui/text";
 import { useCoachAgentThread } from "@/hooks/use-coach-agent-thread";
 import { CoachChatView } from "./CoachChatView";
 
-export function CoachScreen({ initialPrompt }: { initialPrompt?: string }) {
+export function CoachScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { phase, threadId } = useCoachAgentThread();
@@ -46,11 +37,5 @@ export function CoachScreen({ initialPrompt }: { initialPrompt?: string }) {
     );
   }
 
-  return (
-    <CoachChatView
-      key={threadId}
-      threadId={threadId}
-      initialPrompt={initialPrompt}
-    />
-  );
+  return <CoachChatView key={threadId} threadId={threadId} />;
 }

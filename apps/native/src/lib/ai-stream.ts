@@ -1,45 +1,23 @@
-export type ToolPartState =
-  | "input-streaming"
-  | "input-available"
-  | "approval-requested"
-  | "approval-responded"
-  | "output-available"
-  | "output-error";
+import type { UIMessage } from "@convex-dev/agent/react";
 
-export interface ToolMessagePart {
-  type: `tool-${string}`;
-  toolCallId: string;
-  state: ToolPartState;
-  input?: unknown;
-  output?: unknown;
-  errorText?: string;
-  approval?: {
-    id: string;
-    approved?: boolean;
-    reason?: string;
-  };
+type UIPart = UIMessage["parts"][number];
+export type ToolPart = Extract<UIPart, { toolCallId: string }>;
+export type ToolPartState = ToolPart["state"];
+
+export function isToolPart(part: UIPart): part is ToolPart {
+  return (
+    typeof part.type === "string" &&
+    (part.type.startsWith("tool-") || part.type === "dynamic-tool")
+  );
 }
 
-export interface FileMessagePart {
-  type: "file";
-  mediaType: string;
-  url: string;
-  filename?: string;
-}
-
-export type MessagePart =
-  | { type: "text"; text: string }
-  | FileMessagePart
-  | ToolMessagePart;
-
-export function extractToolName(part: ToolMessagePart): string {
+export function getToolPartName(part: ToolPart): string {
+  if (part.type === "dynamic-tool") {
+    return part.toolName;
+  }
   return part.type.slice("tool-".length);
 }
 
-export function isWritingToolPart(part: ToolMessagePart): boolean {
-  return (
-    !!part.approval ||
-    part.state === "approval-requested" ||
-    part.state === "approval-responded"
-  );
+export function isWritingToolPart(part: ToolPart): boolean {
+  return !!part.approval;
 }

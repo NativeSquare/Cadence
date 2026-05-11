@@ -1,12 +1,11 @@
 /**
  * ChatMessage - Claude-style message rendering.
  * - User: right-aligned dark bubble, max 75% width.
- * - Coach: full-width markdown text with Cadence icon shown AFTER the message
- *   (Claude-style footer mark), no bubble background.
+ * - Coach: full-width markdown text, no bubble background.
  */
 
 import { Fragment } from "react";
-import { View, Image } from "react-native";
+import { View } from "react-native";
 import { Text } from "@/components/ui/text";
 import Animated, { FadeIn } from "react-native-reanimated";
 import { useSmoothText } from "@convex-dev/agent/react";
@@ -14,8 +13,6 @@ import { useMarkdown } from "react-native-marked";
 
 import { LIGHT_THEME } from "@/lib/design-tokens";
 import type { ChatMessageProps } from "./types";
-
-const CADENCE_ICON = require("../../../../assets/icons/ios-icon.png");
 
 const COACH_BODY_LINE_HEIGHT = 16 * 1.55;
 
@@ -77,17 +74,17 @@ const COACH_MD_THEME = {
 };
 
 export function ChatMessage({
-  message,
+  text,
+  isStreaming,
   isCoach,
-  showFooterIcon,
 }: ChatMessageProps) {
   // Typewriter only for the actively-streaming assistant bubble; historical
   // messages render instantly because startStreaming is false.
-  const [smoothContent] = useSmoothText(message.content, {
+  const [smoothContent] = useSmoothText(text, {
     charsPerSec: 60,
-    startStreaming: isCoach && message.isStreaming,
+    startStreaming: isCoach && isStreaming,
   });
-  const displayContent = isCoach ? smoothContent : message.content;
+  const displayContent = isCoach ? smoothContent : text;
 
   const markdownElements = useMarkdown(isCoach ? displayContent : "", {
     colorScheme: "light",
@@ -101,11 +98,6 @@ export function ChatMessage({
         {markdownElements.map((el, i) => (
           <Fragment key={i}>{el}</Fragment>
         ))}
-        {showFooterIcon && (
-          <View className="w-7 h-7 rounded-full overflow-hidden mt-3">
-            <Image source={CADENCE_ICON} className="w-7 h-7" />
-          </View>
-        )}
       </Animated.View>
     );
   }

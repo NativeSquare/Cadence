@@ -1,15 +1,3 @@
-import type { MessagePart } from "@/lib/ai-stream";
-
-export interface ChatMessage {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
-  parts: MessagePart[];
-  isStreaming: boolean;
-  createdAt: number;
-  isInterrupted?: boolean;
-}
-
 export type ChatStatusKind =
   | "online"
   | "offline"
@@ -27,9 +15,9 @@ export interface ChatHeaderProps {
 }
 
 export interface ChatMessageProps {
-  message: ChatMessage;
+  text: string;
+  isStreaming: boolean;
   isCoach: boolean;
-  showFooterIcon?: boolean;
 }
 
 export interface TypingIndicatorProps {

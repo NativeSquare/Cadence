@@ -15,11 +15,8 @@ import { useAction } from "convex/react";
 import { api } from "@packages/backend/convex/_generated/api";
 import type { Id } from "@packages/backend/convex/_generated/dataModel";
 import { ChatHeader } from "./ChatHeader";
-import { ChatMessage as ChatMessageBubble } from "./ChatMessage";
-import { ChatAttachmentBubble } from "./ChatAttachmentBubble";
-import { ChatToolPart } from "./ChatToolPart";
+import { MessageGroup, hasRenderableParts } from "./MessageGroup";
 import { ChatErrorCard } from "./ChatErrorCard";
-import { TypingIndicator } from "./TypingIndicator";
 import { ChatInput } from "./ChatInput";
 import { VoiceRecorder } from "./VoiceRecorder";
 import { CoachEmptyState } from "./CoachEmptyState";
@@ -32,18 +29,15 @@ import { useUploadImage } from "@/hooks/use-upload-image";
 import { useMicrophonePermission } from "@/hooks/use-microphone-permission";
 import { useVoiceRecording } from "@/hooks/use-voice-recording";
 import { useLanguage } from "@/lib/i18n";
-import { extractToolName, isWritingToolPart } from "@/lib/ai-stream";
-import { isKnownWritingTool } from "./tool-cards";
 import type { ChatStatusKind, PendingAttachment } from "./types";
 
 const MAX_RECORDING_MS = 60_000;
 
 export interface CoachChatViewProps {
   threadId: string;
-  initialPrompt?: string;
 }
 
-export function CoachChatView({ threadId, initialPrompt }: CoachChatViewProps) {
+export function CoachChatView({ threadId }: CoachChatViewProps) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const scrollViewRef = useRef<ScrollView>(null);
@@ -73,7 +67,7 @@ export function CoachChatView({ threadId, initialPrompt }: CoachChatViewProps) {
     respondToToolApproval,
   } = useCoachAgent({ threadId });
 
-  const [inputValue, setInputValue] = useState(initialPrompt ?? "");
+  const [inputValue, setInputValue] = useState("");
   const [isRecording, setIsRecording] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [isVoiceBusy, setIsVoiceBusy] = useState(false);
@@ -164,10 +158,7 @@ export function CoachChatView({ threadId, initialPrompt }: CoachChatViewProps) {
             resolve();
             return;
           }
-          idx = Math.min(
-            idx + Math.floor(Math.random() * 3) + 1,
-            text.length,
-          );
+          idx = Math.min(idx + Math.floor(Math.random() * 3) + 1, text.length);
           setTranscript(text.slice(0, idx));
         }, 30);
       }),
@@ -229,7 +220,14 @@ export function CoachChatView({ threadId, initialPrompt }: CoachChatViewProps) {
         );
       }
     },
-    [transcribeAction, language, animateTranscript, isStreaming, sendMessage, t],
+    [
+      transcribeAction,
+      language,
+      animateTranscript,
+      isStreaming,
+      sendMessage,
+      t,
+    ],
   );
 
   const handleMicPress = useCallback(async () => {
@@ -330,12 +328,7 @@ export function CoachChatView({ threadId, initialPrompt }: CoachChatViewProps) {
     ) {
       void handleVoiceSend("");
     }
-  }, [
-    isRecording,
-    isVoiceBusy,
-    voiceRecording.durationMs,
-    handleVoiceSend,
-  ]);
+  }, [isRecording, isVoiceBusy, voiceRecording.durationMs, handleVoiceSend]);
 
   const statusKind: ChatStatusKind = isOffline
     ? "offline"
@@ -376,119 +369,15 @@ export function CoachChatView({ threadId, initialPrompt }: CoachChatViewProps) {
             className="flex-1 px-4 pt-5"
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
-            contentContainerStyle={{ paddingBottom: 20 }}
+            contentContainerStyle={{ paddingBottom: 20, gap: 24 }}
           >
-            {(() => {
-              // Locate the last assistant text part across all messages so
-              // only that bubble shows the Cadence footer icon.
-              let footerMsgIdx = -1;
-              let footerPartIdx = -1;
-              for (let m = messages.length - 1; m >= 0; m--) {
-                const msg = messages[m];
-                if (msg.role !== "assistant") continue;
-                for (let p = msg.parts.length - 1; p >= 0; p--) {
-                  const part = msg.parts[p];
-                  if (part.type === "text" && part.text) {
-                    footerMsgIdx = m;
-                    footerPartIdx = p;
-                    break;
-                  }
-                }
-                if (footerMsgIdx !== -1) break;
-              }
-
-              type RenderItem = {
-                key: string;
-                sender: "user" | "assistant";
-                node: React.ReactNode;
-              };
-              const items: RenderItem[] = [];
-
-              messages.forEach((message, mIdx) => {
-                const isCoach = message.role === "assistant";
-                const lastIdx = message.parts.length - 1;
-                message.parts.forEach((part, idx) => {
-                  const partKey = `${message.id}:${idx}`;
-                  if (part.type === "text") {
-                    if (!part.text) return;
-                    items.push({
-                      key: partKey,
-                      sender: message.role,
-                      node: (
-                        <ChatMessageBubble
-                          message={{
-                            id: partKey,
-                            role: message.role,
-                            content: part.text,
-                            parts: [part],
-                            isStreaming: message.isStreaming && idx === lastIdx,
-                            createdAt: message.createdAt,
-                          }}
-                          isCoach={isCoach}
-                          showFooterIcon={
-                            mIdx === footerMsgIdx && idx === footerPartIdx
-                          }
-                        />
-                      ),
-                    });
-                    return;
-                  }
-                  if (part.type === "file") {
-                    items.push({
-                      key: partKey,
-                      sender: message.role,
-                      node: (
-                        <ChatAttachmentBubble
-                          mediaType={part.mediaType}
-                          url={part.url}
-                          filename={part.filename}
-                          isUser={!isCoach}
-                        />
-                      ),
-                    });
-                    return;
-                  }
-                  // Skip known writing tools that haven't reached an
-                  // approval state — ChatToolPart renders null for them
-                  // (silent-retry / pre-approval), and a bare wrapper
-                  // would leave a marginBottom gap.
-                  if (
-                    !isWritingToolPart(part) &&
-                    isKnownWritingTool(extractToolName(part))
-                  ) {
-                    return;
-                  }
-                  items.push({
-                    key: partKey,
-                    sender: "assistant",
-                    node: (
-                      <ChatToolPart
-                        part={part}
-                        onRespond={respondToToolApproval}
-                      />
-                    ),
-                  });
-                });
-              });
-
-              // Turn-aware spacing: 24px between sender swaps, 16px within
-              // a single sender's run.
-              return items.map((item, i) => {
-                const next = items[i + 1];
-                const marginBottom = !next
-                  ? 0
-                  : next.sender === item.sender
-                    ? 16
-                    : 24;
-                return (
-                  <View key={item.key} style={{ marginBottom }}>
-                    {item.node}
-                  </View>
-                );
-              });
-            })()}
-
-            <TypingIndicator visible={isStreaming} />
+            {messages.filter(hasRenderableParts).map((message) => (
+              <MessageGroup
+                key={message.key}
+                message={message}
+                onToolRespond={respondToToolApproval}
+              />
+            ))}
 
             {error && !isStreaming && (
               <ChatErrorCard

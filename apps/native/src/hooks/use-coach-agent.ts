@@ -1,14 +1,8 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useAction } from "convex/react";
-import { useUIMessages } from "@convex-dev/agent/react";
+import { useUIMessages, type UIMessage } from "@convex-dev/agent/react";
 import { api } from "@packages/backend/convex/_generated/api";
-import type {
-  FileMessagePart,
-  MessagePart,
-  ToolMessagePart,
-} from "@/lib/ai-stream";
 import { useNetworkOptional } from "@/contexts/network-context";
-import type { ChatMessage } from "@/components/app/coach/types";
 
 const MAX_RETRIES = 3;
 
@@ -25,7 +19,7 @@ export interface UseCoachAgentOptions {
 }
 
 export interface UseCoachAgentReturn {
-  messages: ChatMessage[];
+  messages: UIMessage[];
   isStreaming: boolean;
   error: Error | null;
   isOffline: boolean;
@@ -66,56 +60,17 @@ export function useCoachAgent(
   const network = useNetworkOptional();
   const isOffline = network?.isOffline ?? false;
 
-  const messages = useMemo<ChatMessage[]>(() => {
-    if (!results) return [];
-    return results
-      .filter((m) => m.role === "user" || m.role === "assistant")
-      .map((m) => {
-        const parts: MessagePart[] = (m.parts ?? [])
-          .map((p): MessagePart | null => {
-            if (p.type === "text") {
-              return { type: "text", text: p.text };
-            }
-            if (p.type === "file") {
-              const fp = p as unknown as FileMessagePart;
-              return {
-                type: "file",
-                mediaType: fp.mediaType,
-                url: fp.url,
-                filename: fp.filename,
-              };
-            }
-            if (typeof p.type === "string" && p.type.startsWith("tool-")) {
-              const tp = p as unknown as ToolMessagePart;
-              return {
-                type: tp.type,
-                toolCallId: tp.toolCallId,
-                state: tp.state,
-                input: tp.input,
-                output: tp.output,
-                errorText: tp.errorText,
-                approval: tp.approval,
-              };
-            }
-            return null;
-          })
-          .filter((p): p is MessagePart => p !== null);
-        return {
-          id: m.key,
-          role: m.role as "user" | "assistant",
-          content: m.text ?? "",
-          parts: parts.length > 0 ? parts : [{ type: "text", text: m.text ?? "" }],
-          isStreaming: m.status === "streaming",
-          createdAt: m._creationTime ?? 0,
-        };
-      });
-  }, [results]);
+  const messages = useMemo<UIMessage[]>(
+    () =>
+      results?.filter((m) => m.role === "user" || m.role === "assistant") ?? [],
+    [results],
+  );
 
   const isStreaming = useMemo(() => {
     if (sending) return true;
     const last = messages[messages.length - 1];
     if (!last) return false;
-    return last.isStreaming || last.role === "user";
+    return last.status === "streaming" || last.role === "user";
   }, [sending, messages]);
 
   const sendMessage = useCallback(
