@@ -200,7 +200,6 @@
     },
     "fallbackPrompt": "Que voyez-vous ?",
     "voice": {
-      "liveTranscription": "Transcription en direct",
       "listening": "À l'écoute…",
       "transcribing": "Transcription…",
       "transcriptionFailedTitle": "Transcription impossible",

@@ -200,7 +200,6 @@
     },
     "fallbackPrompt": "What do you see?",
     "voice": {
-      "liveTranscription": "Live transcription",
       "listening": "Listening…",
       "transcribing": "Transcribing…",
       "transcriptionFailedTitle": "Couldn't transcribe",

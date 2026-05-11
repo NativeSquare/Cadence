@@ -13,29 +13,14 @@ import Animated, {
 } from "react-native-reanimated";
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
+import type { ChatStatusKind } from "./types";
 
-import type { ChatHeaderProps, ChatStatusKind } from "./types";
-
-// =============================================================================
-// Sub-components
-// =============================================================================
-
-/**
- * Status dot indicator
- * Reference: prototype line 329
- *
- * Dot colors:
- * - Typing/streaming: orange (T.ora)
- * - Offline/error: red
- * - Online: lime (T.lime)
- */
-function StatusDot({
-  isTyping,
-  statusKind,
-}: {
+export interface ChatHeaderProps {
   isTyping: boolean;
   statusKind: ChatStatusKind;
-}) {
+}
+
+function StatusDot({ isTyping, statusKind }: ChatHeaderProps) {
   const opacity = useSharedValue(1);
   const isOfflineOrError = statusKind === "offline" || statusKind === "error";
 
@@ -44,7 +29,7 @@ function StatusDot({
       opacity.value = withRepeat(
         withTiming(0.5, { duration: 500, easing: Easing.inOut(Easing.ease) }),
         -1,
-        true
+        true,
       );
     } else {
       opacity.value = withTiming(1, { duration: 150 });
@@ -61,18 +46,21 @@ function StatusDot({
       ? "bg-ora"
       : "bg-lime";
 
-  return <Animated.View style={animatedStyle} className={`w-1.5 h-1.5 rounded-full ${dotColor}`} />;
+  return (
+    <Animated.View
+      style={animatedStyle}
+      className={`w-1.5 h-1.5 rounded-full ${dotColor}`}
+    />
+  );
 }
-
-// =============================================================================
-// Main Component
-// =============================================================================
 
 export function ChatHeader({ isTyping, statusKind }: ChatHeaderProps) {
   const { t } = useTranslation();
   const status = isTyping
     ? t("coach.status.thinking")
-    : t(`coach.status.${statusKind === "error" ? "errorTapRetry" : statusKind}`);
+    : t(
+        `coach.status.${statusKind === "error" ? "errorTapRetry" : statusKind}`,
+      );
 
   return (
     <View>

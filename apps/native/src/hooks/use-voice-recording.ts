@@ -6,15 +6,12 @@ import {
   useAudioRecorderState,
 } from "expo-audio";
 
-const VOICE_RECORDING_OPTIONS = {
-  ...RecordingPresets.HIGH_QUALITY,
-  sampleRate: 16000,
-  numberOfChannels: 1,
-};
-
 export function useVoiceRecording() {
-  const recorder = useAudioRecorder(VOICE_RECORDING_OPTIONS);
-  const state = useAudioRecorderState(recorder, 250);
+  const recorder = useAudioRecorder({
+    ...RecordingPresets.HIGH_QUALITY,
+    isMeteringEnabled: true,
+  });
+  const state = useAudioRecorderState(recorder);
 
   const start = useCallback(async () => {
     await setAudioModeAsync({
@@ -31,9 +28,15 @@ export function useVoiceRecording() {
     return recorder.uri;
   }, [recorder, state.isRecording, state.canRecord]);
 
+  const getMetering = useCallback(
+    (): number | null => recorder.getStatus().metering ?? null,
+    [recorder],
+  );
+
   return {
     start,
     stop,
+    getMetering,
     isRecording: state.isRecording,
     durationMs: state.durationMillis,
   };

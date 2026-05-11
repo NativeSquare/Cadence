@@ -4,24 +4,10 @@ export type ChatStatusKind =
   | "reconnecting"
   | "error";
 
-export interface ChatHeaderProps {
-  isTyping: boolean;
-  /**
-   * Discriminated status from the agent state. The header maps this to a
-   * translated label and the dot color — passing a free string would prevent
-   * locale-aware copy and force English-prefix string-sniffing for color.
-   */
-  statusKind: ChatStatusKind;
-}
-
 export interface ChatMessageProps {
   text: string;
   isStreaming: boolean;
   isCoach: boolean;
-}
-
-export interface TypingIndicatorProps {
-  visible: boolean;
 }
 
 export interface PendingAttachment {
@@ -46,7 +32,8 @@ export interface ChatInputProps {
 
 export interface VoiceRecorderProps {
   onCancel: () => void;
-  onSend: (text: string) => void;
-  transcript: string;
+  onSend: () => void;
   isBusy?: boolean;
+  getMetering: () => number | null;
+  isMeteringActive: boolean;
 }

@@ -1,230 +1,141 @@
-/**
- * VoiceRecorder - Voice recording mode with waveform and transcription
- * Reference: cadence-full-v9.jsx CoachTab recording mode (lines 356-392)
- *
- * Layout from prototype:
- * - Live transcription card: rounded-14, bg:T.w1, border:"1px solid "+T.wBrd
- * - Recording indicator: 5px dot, bg:T.red, animation:"pulseGlow 1s ease infinite"
- * - Label: fontSize:10, fontWeight:600, color:T.wMute
- * - Transcript text: fontSize:14, color:T.wText, lineHeight:1.5
- *
- * Recording bar:
- * - Cancel button: 42x42, rounded-14, bg:T.w1, border:"1px solid "+T.wBrd
- * - Waveform: 20 animated bars, bg:T.red, animation:"waveform"
- * - Send button: 42x42, rounded-14, bg:T.wText
- *
- * Waveform animation from prototype:
- * @keyframes waveform {
- *   0%, 100% { transform: scaleY(0.3); }
- *   50% { transform: scaleY(1); }
- * }
- *
- * Source: Story 10.3 - AC#4, AC#5, Task 7
- */
-
-import { View, Pressable } from "react-native";
-import { useTranslation } from "react-i18next";
-import { Text } from "@/components/ui/text";
+import { View, Pressable, ActivityIndicator } from "react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
-  withRepeat,
   withTiming,
-  withDelay,
   Easing,
   FadeIn,
   FadeOut,
+  type SharedValue,
 } from "react-native-reanimated";
 import { useEffect } from "react";
-import { X, Send } from "lucide-react-native";
-import { LIGHT_THEME, COLORS } from "@/lib/design-tokens";
+import { X, ArrowUp } from "lucide-react-native";
+import { LIGHT_THEME } from "@/lib/design-tokens";
 
 import type { VoiceRecorderProps } from "./types";
 
-// =============================================================================
-// Sub-components
-// =============================================================================
+const BAR_COUNT = 24;
+const POLL_MS = 250;
+const MIN_DB = -60;
+const MAX_DB = 0;
+const MIN_BAR_HEIGHT = 4;
+const MAX_BAR_HEIGHT = 24;
 
-/**
- * Pulsing recording indicator dot
- * Reference: prototype line 360
- */
-function RecordingDot() {
-  const opacity = useSharedValue(0.6);
+function normalizeMetering(db: number): number {
+  const clamped = Math.max(MIN_DB, Math.min(MAX_DB, db));
+  const ratio = (clamped - MIN_DB) / (MAX_DB - MIN_DB);
+  return MIN_BAR_HEIGHT + ratio * (MAX_BAR_HEIGHT - MIN_BAR_HEIGHT);
+}
 
-  useEffect(() => {
-    opacity.value = withRepeat(
-      withTiming(1, { duration: 500, easing: Easing.inOut(Easing.ease) }),
-      -1,
-      true
-    );
-  }, [opacity]);
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    opacity: opacity.value,
-  }));
-
-  return (
-    <Animated.View style={animatedStyle} className="w-[5px] h-[5px] rounded-full bg-red" />
+// Bar count is a module constant, so the hook call order is stable.
+function useWaveformBars(): SharedValue<number>[] {
+  return Array.from(
+    { length: BAR_COUNT },
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    () => useSharedValue(MIN_BAR_HEIGHT),
   );
 }
 
-/**
- * Blinking cursor for live transcription
- * Reference: prototype Blink component (line 53)
- */
-function BlinkingCursor() {
-  const opacity = useSharedValue(1);
-
-  useEffect(() => {
-    opacity.value = withRepeat(
-      withTiming(0, { duration: 400 }),
-      -1,
-      true
-    );
-  }, [opacity]);
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    opacity: opacity.value,
+function WaveformBar({ heightSV }: { heightSV: SharedValue<number> }) {
+  const animStyle = useAnimatedStyle(() => ({
+    height: heightSV.value,
   }));
-
   return (
-    <Animated.View
-      style={animatedStyle}
-      className="w-0.5 h-4 bg-wText ml-0.5"
-    />
+    <View className="flex-1 items-center justify-center">
+      <Animated.View
+        style={animStyle}
+        className="w-full max-w-[3px] rounded-full bg-wMute opacity-70"
+      />
+    </View>
   );
 }
 
-/**
- * Single waveform bar with animation
- * Reference: prototype waveform animation (lines 384-385)
- */
-function WaveformBar({ index }: { index: number }) {
-  const scaleY = useSharedValue(0.3);
+function Waveform({
+  getMetering,
+  isActive,
+}: {
+  getMetering: () => number | null;
+  isActive: boolean;
+}) {
+  const bars = useWaveformBars();
 
   useEffect(() => {
-    // Random duration between 0.4s and 0.8s for natural look
-    const duration = 400 + Math.random() * 400;
-    // Staggered delay based on index
-    const delay = index * 40;
-
-    scaleY.value = withDelay(
-      delay,
-      withRepeat(
-        withTiming(1, { duration, easing: Easing.inOut(Easing.ease) }),
-        -1,
-        true
-      )
-    );
-  }, [index, scaleY]);
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scaleY: scaleY.value }],
-  }));
+    if (!isActive) return;
+    const timing = { duration: POLL_MS, easing: Easing.linear };
+    const interval = setInterval(() => {
+      const db = getMetering() ?? MIN_DB;
+      const next = normalizeMetering(db);
+      // FIFO shift left, append newest sample on the right.
+      for (let i = 0; i < BAR_COUNT - 1; i++) {
+        bars[i].value = withTiming(bars[i + 1].value, timing);
+      }
+      bars[BAR_COUNT - 1].value = withTiming(next, timing);
+    }, POLL_MS);
+    return () => clearInterval(interval);
+  }, [isActive, getMetering, bars]);
 
   return (
-    <Animated.View
-      style={[animatedStyle, { minHeight: 4 }]}
-      className="w-[3px] rounded-sm bg-red opacity-70"
-    />
-  );
-}
-
-/**
- * Waveform visualization with 20 bars
- * Reference: prototype line 385
- */
-function Waveform() {
-  return (
-    <View className="flex-1 flex-row items-center justify-center gap-0.5 h-[42px] px-2">
-      {Array.from({ length: 20 }).map((_, i) => (
-        <WaveformBar key={i} index={i} />
+    <View className="flex-1 flex-row items-center gap-0.5 h-9 px-2">
+      {bars.map((bar, i) => (
+        <WaveformBar key={i} heightSV={bar} />
       ))}
     </View>
   );
 }
 
-// =============================================================================
-// Main Component
-// =============================================================================
-
-/**
- * VoiceRecorder component
- *
- * Renders the voice recording interface with:
- * - Live transcription preview with blinking cursor
- * - Cancel button
- * - Waveform visualization
- * - Send button
- */
 export function VoiceRecorder({
-  transcript,
   onCancel,
   onSend,
   isBusy = false,
+  getMetering,
+  isMeteringActive,
 }: VoiceRecorderProps) {
-  const { t } = useTranslation();
   return (
     <Animated.View
       entering={FadeIn.duration(200)}
       exiting={FadeOut.duration(150)}
-      className="px-4"
+      className="flex-row items-end gap-2 px-4 pt-1.5 pb-2"
     >
-      {/* Live transcription card */}
-      {transcript ? (
-        <View className="p-4 mb-1.5 mt-2.5 rounded-[14px] bg-w1 border border-wBrd">
-          {/* Recording indicator */}
-          <View className="flex-row items-center gap-1.5 mb-1.5">
-            <RecordingDot />
-            <Text className="text-[10px] font-coach-semibold text-wMute">
-              {t("coach.voice.liveTranscription")}
-            </Text>
-          </View>
+      <Pressable
+        onPress={onCancel}
+        className="w-11 h-11 rounded-full bg-w1 items-center justify-center mb-[1px] active:opacity-60"
+        style={{
+          borderWidth: 1,
+          borderColor: "rgba(0,0,0,0.08)",
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.06,
+          shadowRadius: 8,
+          elevation: 2,
+        }}
+      >
+        <X size={20} color={LIGHT_THEME.wSub} strokeWidth={2} />
+      </Pressable>
 
-          {/* Transcript text with cursor */}
-          <View className="flex-row items-center flex-wrap">
-            <Text
-              className="text-[14px] font-coach text-wText"
-              style={{ lineHeight: 14 * 1.5 }}
-            >
-              {transcript}
-            </Text>
-            <BlinkingCursor />
-          </View>
-        </View>
-      ) : null}
+      <View
+        className="flex-1 flex-row items-center rounded-[24px] bg-w1 pl-2 pr-1.5 py-1.5"
+        style={{
+          borderWidth: 1,
+          borderColor: "rgba(0,0,0,0.08)",
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.06,
+          shadowRadius: 8,
+          elevation: 2,
+        }}
+      >
+        <Waveform getMetering={getMetering} isActive={isMeteringActive} />
 
-      {/* Recording controls */}
-      <View className="flex-row gap-2 items-center py-2.5">
-        {/* Cancel button */}
         <Pressable
-          onPress={onCancel}
-          className="w-[42px] h-[42px] rounded-[14px] bg-w1 border border-wBrd items-center justify-center active:opacity-70"
-        >
-          <X size={14} color={LIGHT_THEME.wMute} strokeWidth={1.8} />
-        </Pressable>
-
-        {/* Waveform container */}
-        <View
-          className="flex-1 h-[42px] rounded-[14px] items-center justify-center"
-          style={{
-            backgroundColor: "rgba(255,90,90,0.06)",
-            borderWidth: 1,
-            borderColor: "rgba(255,90,90,0.12)",
-          }}
-        >
-          <Waveform />
-        </View>
-
-        {/* Send button */}
-        <Pressable
-          onPress={() => onSend(transcript)}
+          onPress={onSend}
           disabled={isBusy}
-          className="w-[42px] h-[42px] rounded-[14px] bg-wText items-center justify-center active:opacity-80"
-          style={{ opacity: isBusy ? 0.5 : 1 }}
+          className="w-9 h-9 rounded-full bg-wText items-center justify-center mb-[1px]"
         >
-          <Send size={16} color={COLORS.lime} strokeWidth={2} />
+          {isBusy ? (
+            <ActivityIndicator size="small" color="#C8FF00" />
+          ) : (
+            <ArrowUp size={18} color="#C8FF00" strokeWidth={2.5} />
+          )}
         </Pressable>
       </View>
     </Animated.View>

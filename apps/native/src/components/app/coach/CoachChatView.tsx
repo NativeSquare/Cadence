@@ -69,7 +69,6 @@ export function CoachChatView({ threadId }: CoachChatViewProps) {
 
   const [inputValue, setInputValue] = useState("");
   const [isRecording, setIsRecording] = useState(false);
-  const [transcript, setTranscript] = useState("");
   const [isVoiceBusy, setIsVoiceBusy] = useState(false);
   const isVoiceBusyRef = useRef(false);
   const recordingDiscardedRef = useRef(false);
@@ -155,25 +154,7 @@ export function CoachChatView({ threadId }: CoachChatViewProps) {
     [isStreaming, sendMessage],
   );
 
-  const animateTranscript = useCallback(
-    (text: string): Promise<void> =>
-      new Promise((resolve) => {
-        let idx = 0;
-        setTranscript("");
-        const interval = setInterval(() => {
-          if (idx >= text.length) {
-            clearInterval(interval);
-            resolve();
-            return;
-          }
-          idx = Math.min(idx + Math.floor(Math.random() * 3) + 1, text.length);
-          setTranscript(text.slice(0, idx));
-        }, 30);
-      }),
-    [],
-  );
-
-  const transcribeAndSend = useCallback(
+  const transcribeAndAppend = useCallback(
     async (storageId: Id<"_storage">) => {
       try {
         const { text } = await transcribeAction({
@@ -183,20 +164,15 @@ export function CoachChatView({ threadId }: CoachChatViewProps) {
         if (recordingDiscardedRef.current) return;
 
         const trimmed = text.trim();
-        if (!trimmed) {
-          setIsRecording(false);
-          setTranscript("");
-          return;
-        }
-
-        await animateTranscript(trimmed);
-        if (recordingDiscardedRef.current) return;
-
         setIsRecording(false);
-        setTranscript("");
-        if (!isStreaming) {
-          await sendMessage(trimmed);
-        }
+        if (!trimmed) return;
+
+        setInputValue((prev) => {
+          const trimmedPrev = prev.trimEnd();
+          return trimmedPrev.length === 0
+            ? trimmed
+            : `${trimmedPrev} ${trimmed}`;
+        });
       } catch (err) {
         if (recordingDiscardedRef.current) return;
         console.error("[CoachChatView] Transcribe failed", err);
@@ -210,7 +186,6 @@ export function CoachChatView({ threadId }: CoachChatViewProps) {
               onPress: () => {
                 recordingDiscardedRef.current = true;
                 setIsRecording(false);
-                setTranscript("");
               },
             },
             {
@@ -218,7 +193,7 @@ export function CoachChatView({ threadId }: CoachChatViewProps) {
               onPress: () => {
                 isVoiceBusyRef.current = true;
                 setIsVoiceBusy(true);
-                void transcribeAndSend(storageId).finally(() => {
+                void transcribeAndAppend(storageId).finally(() => {
                   isVoiceBusyRef.current = false;
                   setIsVoiceBusy(false);
                 });
@@ -228,14 +203,7 @@ export function CoachChatView({ threadId }: CoachChatViewProps) {
         );
       }
     },
-    [
-      transcribeAction,
-      language,
-      animateTranscript,
-      isStreaming,
-      sendMessage,
-      t,
-    ],
+    [transcribeAction, language, t],
   );
 
   const handleMicPress = useCallback(async () => {
@@ -262,7 +230,6 @@ export function CoachChatView({ threadId }: CoachChatViewProps) {
 
     recordingDiscardedRef.current = false;
     setIsRecording(true);
-    setTranscript("");
 
     try {
       await voiceRecording.start();
@@ -275,7 +242,6 @@ export function CoachChatView({ threadId }: CoachChatViewProps) {
   const handleVoiceCancel = useCallback(async () => {
     recordingDiscardedRef.current = true;
     setIsRecording(false);
-    setTranscript("");
     if (voiceRecording.isRecording) {
       try {
         await voiceRecording.stop();
@@ -285,56 +251,51 @@ export function CoachChatView({ threadId }: CoachChatViewProps) {
     }
   }, [voiceRecording]);
 
-  const handleVoiceSend = useCallback(
-    async (_text: string) => {
-      if (isVoiceBusyRef.current) return;
-      isVoiceBusyRef.current = true;
-      setIsVoiceBusy(true);
+  const handleVoiceSend = useCallback(async () => {
+    if (isVoiceBusyRef.current) return;
+    isVoiceBusyRef.current = true;
+    setIsVoiceBusy(true);
 
+    try {
+      let uri: string | null = null;
       try {
-        let uri: string | null = null;
-        try {
-          uri = await voiceRecording.stop();
-        } catch (err) {
-          console.error("[CoachChatView] Stop failed", err);
-        }
-
-        if (!uri || recordingDiscardedRef.current) {
-          setIsRecording(false);
-          setTranscript("");
-          return;
-        }
-
-        const storageId = await uploadFileToStorage(uri, "audio/m4a");
-        if (recordingDiscardedRef.current) return;
-
-        await transcribeAndSend(storageId);
+        uri = await voiceRecording.stop();
       } catch (err) {
-        if (recordingDiscardedRef.current) return;
-        console.error("[CoachChatView] Voice send failed", err);
-        Alert.alert(
-          t("coach.voice.transcriptionFailedTitle"),
-          t("coach.voice.transcriptionFailedMessage"),
-          [{ text: t("common.cancel"), style: "cancel" }],
-        );
-        setIsRecording(false);
-        setTranscript("");
-      } finally {
-        isVoiceBusyRef.current = false;
-        setIsVoiceBusy(false);
+        console.error("[CoachChatView] Stop failed", err);
       }
-    },
-    [voiceRecording, uploadFileToStorage, transcribeAndSend, t],
-  );
 
-  // Hard-cap recordings at MAX_RECORDING_MS — auto-trigger the send flow.
+      if (!uri || recordingDiscardedRef.current) {
+        setIsRecording(false);
+        return;
+      }
+
+      const storageId = await uploadFileToStorage(uri, "audio/m4a");
+      if (recordingDiscardedRef.current) return;
+
+      await transcribeAndAppend(storageId);
+    } catch (err) {
+      if (recordingDiscardedRef.current) return;
+      console.error("[CoachChatView] Voice send failed", err);
+      Alert.alert(
+        t("coach.voice.transcriptionFailedTitle"),
+        t("coach.voice.transcriptionFailedMessage"),
+        [{ text: t("common.cancel"), style: "cancel" }],
+      );
+      setIsRecording(false);
+    } finally {
+      isVoiceBusyRef.current = false;
+      setIsVoiceBusy(false);
+    }
+  }, [voiceRecording, uploadFileToStorage, transcribeAndAppend, t]);
+
+  // Hard-cap recordings at MAX_RECORDING_MS — auto-trigger the finish flow.
   useEffect(() => {
     if (
       isRecording &&
       !isVoiceBusy &&
       voiceRecording.durationMs >= MAX_RECORDING_MS
     ) {
-      void handleVoiceSend("");
+      void handleVoiceSend();
     }
   }, [isRecording, isVoiceBusy, voiceRecording.durationMs, handleVoiceSend]);
 
@@ -405,10 +366,11 @@ export function CoachChatView({ threadId }: CoachChatViewProps) {
         <View className="bg-w2">
           {isRecording ? (
             <VoiceRecorder
-              transcript={transcript}
               onCancel={handleVoiceCancel}
               onSend={handleVoiceSend}
               isBusy={isVoiceBusy}
+              getMetering={voiceRecording.getMetering}
+              isMeteringActive={voiceRecording.isRecording}
             />
           ) : (
             <>
