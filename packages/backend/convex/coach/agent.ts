@@ -7,7 +7,7 @@ import { writingTools } from "./tools/writing";
 
 export const coach = new Agent(components.agent, {
   name: "Cadence Coach",
-  languageModel: anthropic.chat("claude-sonnet-4-6"),
+  languageModel: anthropic.chat("claude-haiku-4-5-20251001"),
   // The default `instructions` is a fallback used only when a call site forgets
   // to pass a `system` override. The real per-user prompt is composed in
   // `messages.ts` via `composeCoachSystem({ locale, prefs })`.
