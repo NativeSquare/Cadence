@@ -39,7 +39,66 @@ const GOAL_STATUSES = [
 ] as const;
 
 // ---------------------------------------------------------------------------
-// Reads
+// Guards
+// ---------------------------------------------------------------------------
+
+const createGoalArgs = goalsValidator
+  .omit("athleteId", "raceId")
+  .extend({ raceId: v.optional(v.string()) });
+
+async function validateCreateGoal(
+  ctx: QueryCtx | MutationCtx,
+  args: typeof createGoalArgs.type,
+): Promise<ValidationResult> {
+  const auth = await loadAthlete(ctx);
+  if (!auth) return fail([requireAuthError]);
+  const errors: ValidationError[] = [];
+  push(errors, validateIsoCalendarDate(args.targetDate, "targetDate"));
+  if (args.raceId) {
+    push(
+      errors,
+      await validateRaceOwnership(ctx, args.raceId, auth.athlete._id),
+    );
+  }
+  return result(errors);
+}
+
+const updateGoalArgs = goalsValidator
+  .omit("athleteId", "raceId")
+  .partial()
+  .extend({ goalId: v.string() });
+
+async function validateUpdateGoal(
+  ctx: QueryCtx | MutationCtx,
+  args: typeof updateGoalArgs.type,
+): Promise<ValidationResult> {
+  const auth = await loadAthlete(ctx);
+  if (!auth) return fail([requireAuthError]);
+  const goal = await ctx.runQuery(components.agoge.public.getGoal, {
+    goalId: args.goalId,
+  });
+  if (!goal || goal.athleteId !== auth.athlete._id) {
+    return fail([{ code: "NOT_FOUND", message: "Goal not found" }]);
+  }
+  const errors: ValidationError[] = [];
+  push(errors, validateIsoCalendarDate(args.targetDate, "targetDate"));
+  return result(errors);
+}
+
+export const dryRunCreateGoal = query({
+  args: createGoalArgs.fields,
+  returns: validationResultValidator,
+  handler: (ctx, args) => validateCreateGoal(ctx, args),
+});
+
+export const dryRunUpdateGoal = query({
+  args: updateGoalArgs.fields,
+  returns: validationResultValidator,
+  handler: (ctx, args) => validateUpdateGoal(ctx, args),
+});
+
+// ---------------------------------------------------------------------------
+// Queries
 // ---------------------------------------------------------------------------
 
 export const listMyGoals = query({
@@ -71,85 +130,19 @@ export const listGoalsForRace = query({
 });
 
 // ---------------------------------------------------------------------------
-// Validators
-// ---------------------------------------------------------------------------
-
-const createGoalArgs = goalsValidator
-  .omit("athleteId", "raceId")
-  .extend({ raceId: v.optional(v.string()) });
-
-async function checkCreateGoal(
-  ctx: QueryCtx | MutationCtx,
-  args: typeof createGoalArgs.type,
-): Promise<ValidationResult> {
-  const auth = await loadAthlete(ctx);
-  if (!auth) return fail([requireAuthError]);
-  const errors: ValidationError[] = [];
-  push(errors, validateIsoCalendarDate(args.targetDate, "targetDate"));
-  if (args.raceId) {
-    push(
-      errors,
-      await validateRaceOwnership(ctx, args.raceId, auth.athlete._id),
-    );
-  }
-  return result(errors);
-}
-
-const updateGoalArgs = goalsValidator
-  .omit("athleteId", "raceId")
-  .partial()
-  .extend({ goalId: v.string() });
-
-async function checkUpdateGoal(
-  ctx: QueryCtx | MutationCtx,
-  args: typeof updateGoalArgs.type,
-): Promise<ValidationResult> {
-  const auth = await loadAthlete(ctx);
-  if (!auth) return fail([requireAuthError]);
-  const goal = await ctx.runQuery(components.agoge.public.getGoal, {
-    goalId: args.goalId,
-  });
-  if (!goal || goal.athleteId !== auth.athlete._id) {
-    return fail([{ code: "NOT_FOUND", message: "Goal not found" }]);
-  }
-  const errors: ValidationError[] = [];
-  push(errors, validateIsoCalendarDate(args.targetDate, "targetDate"));
-  return result(errors);
-}
-
-// ---------------------------------------------------------------------------
-// Validate queries
-// ---------------------------------------------------------------------------
-
-export const validateCreate = query({
-  args: createGoalArgs.fields,
-  returns: validationResultValidator,
-  handler: (ctx, args) => checkCreateGoal(ctx, args),
-});
-
-export const validateUpdate = query({
-  args: updateGoalArgs.fields,
-  returns: validationResultValidator,
-  handler: (ctx, args) => checkUpdateGoal(ctx, args),
-});
-
-// ---------------------------------------------------------------------------
 // Mutations
 // ---------------------------------------------------------------------------
-
-function throwIfInvalid(validation: ValidationResult): void {
-  if (!validation.ok) {
-    throw new ConvexError({
-      code: "VALIDATION_FAILED",
-      errors: validation.errors,
-    });
-  }
-}
 
 export const createGoal = mutation({
   args: createGoalArgs.fields,
   handler: async (ctx, args) => {
-    throwIfInvalid(await checkCreateGoal(ctx, args));
+    const validation = await validateCreateGoal(ctx, args);
+    if (!validation.ok)
+      throw new ConvexError({
+        code: "VALIDATION_FAILED",
+        errors: validation.errors,
+      });
+
     const auth = await loadAthlete(ctx);
     if (!auth)
       throw new ConvexError({
@@ -166,7 +159,13 @@ export const createGoal = mutation({
 export const updateGoal = mutation({
   args: updateGoalArgs.fields,
   handler: async (ctx, args) => {
-    throwIfInvalid(await checkUpdateGoal(ctx, args));
+    const validation = await validateUpdateGoal(ctx, args);
+    if (!validation.ok)
+      throw new ConvexError({
+        code: "VALIDATION_FAILED",
+        errors: validation.errors,
+      });
+
     const { goalId, ...patch } = args;
     await ctx.runMutation(components.agoge.public.updateGoal, {
       goalId,

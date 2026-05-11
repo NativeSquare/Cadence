@@ -201,7 +201,7 @@ export const writingTools = {
       templateId: z.string().optional(),
     }),
     needsApproval: async (ctx, input): Promise<boolean> => {
-      const a = await ctx.runQuery(api.agoge.workouts.validateCreate, input);
+      const a = await ctx.runQuery(api.agoge.workouts.dryRunCreateWorkout, input);
       if (!a.ok) return false;
       const p = await ctx.runQuery(
         api.coach.philosophy.validate.validateWorkoutCreate,
@@ -248,7 +248,7 @@ export const writingTools = {
       templateId: z.string().optional(),
     }),
     needsApproval: async (ctx, input): Promise<boolean> => {
-      const a = await ctx.runQuery(api.agoge.workouts.validateUpdate, input);
+      const a = await ctx.runQuery(api.agoge.workouts.dryRunUpdateWorkout, input);
       if (!a.ok) return false;
       const p = await ctx.runQuery(
         api.coach.philosophy.validate.validateWorkoutUpdate,
@@ -286,7 +286,7 @@ export const writingTools = {
     }),
     needsApproval: async (ctx, input): Promise<boolean> => {
       const a = await ctx.runQuery(
-        api.agoge.workouts.validateReschedule,
+        api.agoge.workouts.dryRunRescheduleWorkout,
         input,
       );
       if (!a.ok) return false;
@@ -367,7 +367,7 @@ export const writingTools = {
         .describe("Sort order within the plan, 0-indexed."),
     }),
     needsApproval: async (ctx, input): Promise<boolean> => {
-      const a = await ctx.runQuery(api.agoge.blocks.validateCreate, input);
+      const a = await ctx.runQuery(api.agoge.blocks.dryRunCreateBlock, input);
       if (!a.ok) return false;
       const p = await ctx.runQuery(
         api.coach.philosophy.validate.validateBlockCreate,
@@ -410,7 +410,7 @@ export const writingTools = {
       order: z.number().int().nonnegative().optional(),
     }),
     needsApproval: async (ctx, input): Promise<boolean> => {
-      const a = await ctx.runQuery(api.agoge.blocks.validateUpdate, input);
+      const a = await ctx.runQuery(api.agoge.blocks.dryRunUpdateBlock, input);
       if (!a.ok) return false;
       const p = await ctx.runQuery(
         api.coach.philosophy.validate.validateBlockUpdate,

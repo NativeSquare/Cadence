@@ -26,7 +26,30 @@ import {
 } from "./helpers";
 
 // ---------------------------------------------------------------------------
-// Reads
+// Guards
+// ---------------------------------------------------------------------------
+
+const createPlanArgs = plansValidator.omit("athleteId");
+
+async function validateCreatePlan(
+  ctx: QueryCtx | MutationCtx,
+  args: typeof createPlanArgs.type,
+): Promise<ValidationResult> {
+  const auth = await loadAthlete(ctx);
+  if (!auth) return fail([requireAuthError]);
+  const errors: ValidationError[] = [];
+  push(errors, validatePlanDateRange(args.startDate, args.endDate));
+  return result(errors);
+}
+
+export const dryRunCreatePlan = query({
+  args: createPlanArgs.fields,
+  returns: validationResultValidator,
+  handler: (ctx, args) => validateCreatePlan(ctx, args),
+});
+
+// ---------------------------------------------------------------------------
+// Queries
 // ---------------------------------------------------------------------------
 
 export const getAthletePlan = query({
@@ -43,49 +66,19 @@ export const getAthletePlan = query({
 });
 
 // ---------------------------------------------------------------------------
-// Validators
-// ---------------------------------------------------------------------------
-
-const createPlanArgs = plansValidator.omit("athleteId");
-
-async function checkCreatePlan(
-  ctx: QueryCtx | MutationCtx,
-  args: typeof createPlanArgs.type,
-): Promise<ValidationResult> {
-  const auth = await loadAthlete(ctx);
-  if (!auth) return fail([requireAuthError]);
-  const errors: ValidationError[] = [];
-  push(errors, validatePlanDateRange(args.startDate, args.endDate));
-  return result(errors);
-}
-
-// ---------------------------------------------------------------------------
-// Validate query
-// ---------------------------------------------------------------------------
-
-export const validateCreate = query({
-  args: createPlanArgs.fields,
-  returns: validationResultValidator,
-  handler: (ctx, args) => checkCreatePlan(ctx, args),
-});
-
-// ---------------------------------------------------------------------------
 // Mutations
 // ---------------------------------------------------------------------------
-
-function throwIfInvalid(validation: ValidationResult): void {
-  if (!validation.ok) {
-    throw new ConvexError({
-      code: "VALIDATION_FAILED",
-      errors: validation.errors,
-    });
-  }
-}
 
 export const createPlan = mutation({
   args: createPlanArgs.fields,
   handler: async (ctx, args): Promise<string> => {
-    throwIfInvalid(await checkCreatePlan(ctx, args));
+    const validation = await validateCreatePlan(ctx, args);
+    if (!validation.ok)
+      throw new ConvexError({
+        code: "VALIDATION_FAILED",
+        errors: validation.errors,
+      });
+
     const auth = await loadAthlete(ctx);
     if (!auth)
       throw new ConvexError({

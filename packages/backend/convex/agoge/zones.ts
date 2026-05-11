@@ -23,7 +23,58 @@ import {
 } from "./helpers";
 
 // ---------------------------------------------------------------------------
-// Reads
+// Guards
+// ---------------------------------------------------------------------------
+
+const createZoneArgs = zonesValidator.omit("athleteId", "sport");
+
+async function validateCreateZone(
+  ctx: QueryCtx | MutationCtx,
+  args: typeof createZoneArgs.type,
+): Promise<ValidationResult> {
+  const auth = await loadAthlete(ctx);
+  if (!auth) return fail([requireAuthError]);
+  const errors: ValidationError[] = [];
+  push(errors, validateZoneBoundariesLength(args.boundaries));
+  push(errors, validateZoneBoundariesExtremes(args.boundaries));
+  push(errors, validateZoneBoundariesOrder(args.boundaries));
+  return result(errors);
+}
+
+const updateZoneArgs = zonesValidator
+  .omit("athleteId", "sport")
+  .partial()
+  .extend({ zoneId: v.string() });
+
+async function validateUpdateZone(
+  ctx: QueryCtx | MutationCtx,
+  args: typeof updateZoneArgs.type,
+): Promise<ValidationResult> {
+  const owned = await loadOwnedZone(ctx, args.zoneId);
+  if (!owned) return fail([requireAuthError]);
+  const errors: ValidationError[] = [];
+  if (args.boundaries !== undefined) {
+    push(errors, validateZoneBoundariesLength(args.boundaries));
+    push(errors, validateZoneBoundariesExtremes(args.boundaries));
+    push(errors, validateZoneBoundariesOrder(args.boundaries));
+  }
+  return result(errors);
+}
+
+export const dryRunCreateZone = query({
+  args: createZoneArgs.fields,
+  returns: validationResultValidator,
+  handler: (ctx, args) => validateCreateZone(ctx, args),
+});
+
+export const dryRunUpdateZone = query({
+  args: updateZoneArgs.fields,
+  returns: validationResultValidator,
+  handler: (ctx, args) => validateUpdateZone(ctx, args),
+});
+
+// ---------------------------------------------------------------------------
+// Queries
 // ---------------------------------------------------------------------------
 
 export const listAthleteZones = query({
@@ -46,77 +97,19 @@ export const listAthleteZones = query({
 });
 
 // ---------------------------------------------------------------------------
-// Validators
-// ---------------------------------------------------------------------------
-
-const createZoneArgs = zonesValidator.omit("athleteId", "sport");
-
-async function checkCreateZone(
-  ctx: QueryCtx | MutationCtx,
-  args: typeof createZoneArgs.type,
-): Promise<ValidationResult> {
-  const auth = await loadAthlete(ctx);
-  if (!auth) return fail([requireAuthError]);
-  const errors: ValidationError[] = [];
-  push(errors, validateZoneBoundariesLength(args.boundaries));
-  push(errors, validateZoneBoundariesExtremes(args.boundaries));
-  push(errors, validateZoneBoundariesOrder(args.boundaries));
-  return result(errors);
-}
-
-const updateZoneArgs = zonesValidator
-  .omit("athleteId", "sport")
-  .partial()
-  .extend({ zoneId: v.string() });
-
-async function checkUpdateZone(
-  ctx: QueryCtx | MutationCtx,
-  args: typeof updateZoneArgs.type,
-): Promise<ValidationResult> {
-  const owned = await loadOwnedZone(ctx, args.zoneId);
-  if (!owned) return fail([requireAuthError]);
-  const errors: ValidationError[] = [];
-  if (args.boundaries !== undefined) {
-    push(errors, validateZoneBoundariesLength(args.boundaries));
-    push(errors, validateZoneBoundariesExtremes(args.boundaries));
-    push(errors, validateZoneBoundariesOrder(args.boundaries));
-  }
-  return result(errors);
-}
-
-// ---------------------------------------------------------------------------
-// Validate queries
-// ---------------------------------------------------------------------------
-
-export const validateCreate = query({
-  args: createZoneArgs.fields,
-  returns: validationResultValidator,
-  handler: (ctx, args) => checkCreateZone(ctx, args),
-});
-
-export const validateUpdate = query({
-  args: updateZoneArgs.fields,
-  returns: validationResultValidator,
-  handler: (ctx, args) => checkUpdateZone(ctx, args),
-});
-
-// ---------------------------------------------------------------------------
 // Mutations
 // ---------------------------------------------------------------------------
-
-function throwIfInvalid(validation: ValidationResult): void {
-  if (!validation.ok) {
-    throw new ConvexError({
-      code: "VALIDATION_FAILED",
-      errors: validation.errors,
-    });
-  }
-}
 
 export const createZone = mutation({
   args: createZoneArgs.fields,
   handler: async (ctx, args) => {
-    throwIfInvalid(await checkCreateZone(ctx, args));
+    const validation = await validateCreateZone(ctx, args);
+    if (!validation.ok)
+      throw new ConvexError({
+        code: "VALIDATION_FAILED",
+        errors: validation.errors,
+      });
+
     const auth = await loadAthlete(ctx);
     if (!auth)
       throw new ConvexError({
@@ -134,7 +127,13 @@ export const createZone = mutation({
 export const updateZone = mutation({
   args: updateZoneArgs.fields,
   handler: async (ctx, args) => {
-    throwIfInvalid(await checkUpdateZone(ctx, args));
+    const validation = await validateUpdateZone(ctx, args);
+    if (!validation.ok)
+      throw new ConvexError({
+        code: "VALIDATION_FAILED",
+        errors: validation.errors,
+      });
+
     const { zoneId, ...patch } = args;
     await ctx.runMutation(components.agoge.public.updateZone, {
       zoneId,

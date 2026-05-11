@@ -32,7 +32,306 @@ import {
 } from "./helpers";
 
 // ---------------------------------------------------------------------------
-// Reads
+// Guards
+// ---------------------------------------------------------------------------
+
+const createWorkoutArgs = workoutsValidator
+  .omit("athleteId", "planId", "blockId", "templateId")
+  .extend({
+    blockId: v.optional(v.string()),
+    templateId: v.optional(v.string()),
+  });
+
+async function validateCreateWorkout(
+  ctx: QueryCtx | MutationCtx,
+  args: typeof createWorkoutArgs.type,
+): Promise<ValidationResult> {
+  const auth = await loadAthlete(ctx);
+  if (!auth) return fail([requireAuthError]);
+
+  const plan = await loadActiveAthletePlan(ctx, auth.athlete._id);
+  if (!plan) return fail([noActivePlanError]);
+
+  const errors: ValidationError[] = [];
+  push(errors, validateIsoInstantDate(args.planned?.date, "planned.date"));
+  push(errors, validateIsoInstantDate(args.actual?.date, "actual.date"));
+  push(errors, validatePlannedFace(args.status, args.planned));
+  push(errors, validateActualFace(args.status, args.actual));
+  push(errors, validatePlannedDateNotAfterActual(args.planned, args.actual));
+  push(errors, validateActualDateNotInFuture(args.actual));
+  push(
+    errors,
+    await validatePlannedDateInBlock(ctx, args.planned?.date, args.blockId),
+  );
+
+  if (args.planned?.structure !== undefined) {
+    const r = validateWorkoutStructure(args.planned.structure);
+    if (!r.ok) push(errors, r.error);
+    else {
+      push(
+        errors,
+        validateStructureSportMatchesWorkout(r.structure, args.sport),
+      );
+      push(
+        errors,
+        await validateZonesAvailableForStructure(
+          ctx,
+          auth.athlete._id,
+          r.structure,
+        ),
+      );
+    }
+  }
+  if (args.actual?.structure !== undefined) {
+    const r = validateWorkoutStructure(args.actual.structure);
+    if (!r.ok) push(errors, r.error);
+    else {
+      push(
+        errors,
+        validateStructureSportMatchesWorkout(r.structure, args.sport),
+      );
+      push(
+        errors,
+        await validateZonesAvailableForStructure(
+          ctx,
+          auth.athlete._id,
+          r.structure,
+        ),
+      );
+    }
+  }
+
+  if (args.templateId) {
+    push(
+      errors,
+      await validateWorkoutTemplateOwnership(
+        ctx,
+        args.templateId,
+        auth.athlete._id,
+      ),
+    );
+  }
+
+  return result(errors);
+}
+
+const rescheduleArgs = v.object({
+  workoutId: v.string(),
+  date: v.string(),
+});
+
+async function validateRescheduleWorkout(
+  ctx: QueryCtx | MutationCtx,
+  args: typeof rescheduleArgs.type,
+): Promise<ValidationResult> {
+  const owned = await loadOwnedWorkout(ctx, args.workoutId);
+  if (!owned) return fail([requireAuthError]);
+  const { workout } = owned;
+
+  const errors: ValidationError[] = [];
+  if (!workout.planned) {
+    push(errors, {
+      code: "INVALID_STATE",
+      message: "Cannot reschedule a workout without a planned face",
+    });
+  }
+  if (workout.status === "completed") {
+    push(errors, {
+      code: "INVALID_STATE",
+      message: "Cannot reschedule a completed workout",
+    });
+  }
+  push(errors, validateIsoInstantDate(args.date, "date"));
+  push(
+    errors,
+    validatePlannedDateNotAfterActual({ date: args.date }, workout.actual),
+  );
+  push(
+    errors,
+    await validatePlannedDateInBlock(ctx, args.date, workout.blockId),
+  );
+
+  return result(errors);
+}
+
+const updateWorkoutArgs = workoutsValidator
+  .omit("athleteId", "planId", "blockId", "templateId")
+  .partial()
+  .extend({
+    workoutId: v.string(),
+    blockId: v.optional(v.union(v.string(), v.null())),
+    templateId: v.optional(v.string()),
+  });
+
+async function validateUpdateWorkout(
+  ctx: QueryCtx | MutationCtx,
+  args: typeof updateWorkoutArgs.type,
+): Promise<ValidationResult> {
+  const { workoutId, blockId, ...rest } = args;
+  const owned = await loadOwnedWorkout(ctx, workoutId);
+  if (!owned) return fail([requireAuthError]);
+  const { workout: existing } = owned;
+
+  const errors: ValidationError[] = [];
+  push(errors, validateIsoInstantDate(rest.planned?.date, "planned.date"));
+  push(errors, validateIsoInstantDate(rest.actual?.date, "actual.date"));
+
+  const nextSport = rest.sport ?? existing.sport;
+
+  if (rest.planned?.structure !== undefined) {
+    const r = validateWorkoutStructure(rest.planned.structure);
+    if (!r.ok) push(errors, r.error);
+    else {
+      push(
+        errors,
+        validateStructureSportMatchesWorkout(r.structure, nextSport),
+      );
+      push(
+        errors,
+        await validateZonesAvailableForStructure(
+          ctx,
+          existing.athleteId,
+          r.structure,
+        ),
+      );
+    }
+  }
+  if (rest.actual?.structure !== undefined) {
+    const r = validateWorkoutStructure(rest.actual.structure);
+    if (!r.ok) push(errors, r.error);
+    else {
+      push(
+        errors,
+        validateStructureSportMatchesWorkout(r.structure, nextSport),
+      );
+      push(
+        errors,
+        await validateZonesAvailableForStructure(
+          ctx,
+          existing.athleteId,
+          r.structure,
+        ),
+      );
+    }
+  }
+
+  if (rest.templateId) {
+    push(
+      errors,
+      await validateWorkoutTemplateOwnership(
+        ctx,
+        rest.templateId,
+        existing.athleteId,
+      ),
+    );
+  }
+
+  const nextStatus = rest.status ?? existing.status;
+  const nextPlanned = rest.planned ?? existing.planned;
+  const nextActual = rest.actual ?? existing.actual;
+  const nextBlockId =
+    blockId === undefined
+      ? existing.blockId
+      : blockId === null
+        ? undefined
+        : blockId;
+
+  push(errors, validatePlannedFace(nextStatus, nextPlanned));
+  push(errors, validateActualFace(nextStatus, nextActual));
+  push(errors, validatePlannedDateNotAfterActual(nextPlanned, nextActual));
+  push(errors, validateActualDateNotInFuture(nextActual));
+  push(
+    errors,
+    await validatePlannedDateInBlock(ctx, nextPlanned?.date, nextBlockId),
+  );
+
+  return result(errors);
+}
+
+const swapArgs = v.object({
+  workoutAId: v.string(),
+  workoutBId: v.string(),
+});
+
+async function validateSwapWorkouts(
+  ctx: QueryCtx | MutationCtx,
+  args: typeof swapArgs.type,
+): Promise<ValidationResult> {
+  const [a, b] = await Promise.all([
+    loadOwnedWorkout(ctx, args.workoutAId),
+    loadOwnedWorkout(ctx, args.workoutBId),
+  ]);
+  if (!a || !b) return fail([requireAuthError]);
+
+  const errors: ValidationError[] = [];
+  if (!a.workout.planned || !b.workout.planned) {
+    push(errors, {
+      code: "INVALID_STATE",
+      message: "Both workouts must have a planned face to be swapped",
+    });
+    return result(errors);
+  }
+
+  push(
+    errors,
+    validatePlannedDateNotAfterActual(
+      { date: b.workout.planned.date },
+      a.workout.actual,
+    ),
+  );
+  push(
+    errors,
+    validatePlannedDateNotAfterActual(
+      { date: a.workout.planned.date },
+      b.workout.actual,
+    ),
+  );
+  push(
+    errors,
+    await validatePlannedDateInBlock(
+      ctx,
+      b.workout.planned.date,
+      a.workout.blockId,
+    ),
+  );
+  push(
+    errors,
+    await validatePlannedDateInBlock(
+      ctx,
+      a.workout.planned.date,
+      b.workout.blockId,
+    ),
+  );
+
+  return result(errors);
+}
+
+export const dryRunCreateWorkout = query({
+  args: createWorkoutArgs.fields,
+  returns: validationResultValidator,
+  handler: (ctx, args) => validateCreateWorkout(ctx, args),
+});
+
+export const dryRunRescheduleWorkout = query({
+  args: rescheduleArgs.fields,
+  returns: validationResultValidator,
+  handler: (ctx, args) => validateRescheduleWorkout(ctx, args),
+});
+
+export const dryRunUpdateWorkout = query({
+  args: updateWorkoutArgs.fields,
+  returns: validationResultValidator,
+  handler: (ctx, args) => validateUpdateWorkout(ctx, args),
+});
+
+export const dryRunSwapWorkouts = query({
+  args: swapArgs.fields,
+  returns: validationResultValidator,
+  handler: (ctx, args) => validateSwapWorkouts(ctx, args),
+});
+
+// ---------------------------------------------------------------------------
+// Queries
 // ---------------------------------------------------------------------------
 
 export const listWorkouts = query({
@@ -130,328 +429,18 @@ export const getWorkout = query({
 });
 
 // ---------------------------------------------------------------------------
-// Validators (shared between dry-run query and write-time mutation)
-// ---------------------------------------------------------------------------
-
-const createWorkoutArgs = workoutsValidator
-  .omit("athleteId", "planId", "blockId", "templateId")
-  .extend({
-    blockId: v.optional(v.string()),
-    templateId: v.optional(v.string()),
-  });
-
-async function checkCreateWorkout(
-  ctx: QueryCtx | MutationCtx,
-  args: typeof createWorkoutArgs.type,
-): Promise<ValidationResult> {
-  const auth = await loadAthlete(ctx);
-  if (!auth) return fail([requireAuthError]);
-
-  const plan = await loadActiveAthletePlan(ctx, auth.athlete._id);
-  if (!plan) return fail([noActivePlanError]);
-
-  const errors: ValidationError[] = [];
-  push(errors, validateIsoInstantDate(args.planned?.date, "planned.date"));
-  push(errors, validateIsoInstantDate(args.actual?.date, "actual.date"));
-  push(errors, validatePlannedFace(args.status, args.planned));
-  push(errors, validateActualFace(args.status, args.actual));
-  push(
-    errors,
-    validatePlannedDateNotAfterActual(args.planned, args.actual),
-  );
-  push(errors, validateActualDateNotInFuture(args.actual));
-  push(
-    errors,
-    await validatePlannedDateInBlock(ctx, args.planned?.date, args.blockId),
-  );
-
-  if (args.planned?.structure !== undefined) {
-    const r = validateWorkoutStructure(args.planned.structure);
-    if (!r.ok) push(errors, r.error);
-    else {
-      push(
-        errors,
-        validateStructureSportMatchesWorkout(r.structure, args.sport),
-      );
-      push(
-        errors,
-        await validateZonesAvailableForStructure(
-          ctx,
-          auth.athlete._id,
-          r.structure,
-        ),
-      );
-    }
-  }
-  if (args.actual?.structure !== undefined) {
-    const r = validateWorkoutStructure(args.actual.structure);
-    if (!r.ok) push(errors, r.error);
-    else {
-      push(
-        errors,
-        validateStructureSportMatchesWorkout(r.structure, args.sport),
-      );
-      push(
-        errors,
-        await validateZonesAvailableForStructure(
-          ctx,
-          auth.athlete._id,
-          r.structure,
-        ),
-      );
-    }
-  }
-
-  if (args.templateId) {
-    push(
-      errors,
-      await validateWorkoutTemplateOwnership(
-        ctx,
-        args.templateId,
-        auth.athlete._id,
-      ),
-    );
-  }
-
-  return result(errors);
-}
-
-const rescheduleArgs = v.object({
-  workoutId: v.string(),
-  date: v.string(),
-});
-
-async function checkRescheduleWorkout(
-  ctx: QueryCtx | MutationCtx,
-  args: typeof rescheduleArgs.type,
-): Promise<ValidationResult> {
-  const owned = await loadOwnedWorkout(ctx, args.workoutId);
-  if (!owned) return fail([requireAuthError]);
-  const { workout } = owned;
-
-  const errors: ValidationError[] = [];
-  if (!workout.planned) {
-    push(errors, {
-      code: "INVALID_STATE",
-      message: "Cannot reschedule a workout without a planned face",
-    });
-  }
-  if (workout.status === "completed") {
-    push(errors, {
-      code: "INVALID_STATE",
-      message: "Cannot reschedule a completed workout",
-    });
-  }
-  push(errors, validateIsoInstantDate(args.date, "date"));
-  push(
-    errors,
-    validatePlannedDateNotAfterActual({ date: args.date }, workout.actual),
-  );
-  push(
-    errors,
-    await validatePlannedDateInBlock(ctx, args.date, workout.blockId),
-  );
-
-  return result(errors);
-}
-
-const updateWorkoutArgs = workoutsValidator
-  .omit("athleteId", "planId", "blockId", "templateId")
-  .partial()
-  .extend({
-    workoutId: v.string(),
-    blockId: v.optional(v.union(v.string(), v.null())),
-    templateId: v.optional(v.string()),
-  });
-
-async function checkUpdateWorkout(
-  ctx: QueryCtx | MutationCtx,
-  args: typeof updateWorkoutArgs.type,
-): Promise<ValidationResult> {
-  const { workoutId, blockId, ...rest } = args;
-  const owned = await loadOwnedWorkout(ctx, workoutId);
-  if (!owned) return fail([requireAuthError]);
-  const { workout: existing } = owned;
-
-  const errors: ValidationError[] = [];
-  push(errors, validateIsoInstantDate(rest.planned?.date, "planned.date"));
-  push(errors, validateIsoInstantDate(rest.actual?.date, "actual.date"));
-
-  const nextSport = rest.sport ?? existing.sport;
-
-  if (rest.planned?.structure !== undefined) {
-    const r = validateWorkoutStructure(rest.planned.structure);
-    if (!r.ok) push(errors, r.error);
-    else {
-      push(
-        errors,
-        validateStructureSportMatchesWorkout(r.structure, nextSport),
-      );
-      push(
-        errors,
-        await validateZonesAvailableForStructure(
-          ctx,
-          existing.athleteId,
-          r.structure,
-        ),
-      );
-    }
-  }
-  if (rest.actual?.structure !== undefined) {
-    const r = validateWorkoutStructure(rest.actual.structure);
-    if (!r.ok) push(errors, r.error);
-    else {
-      push(
-        errors,
-        validateStructureSportMatchesWorkout(r.structure, nextSport),
-      );
-      push(
-        errors,
-        await validateZonesAvailableForStructure(
-          ctx,
-          existing.athleteId,
-          r.structure,
-        ),
-      );
-    }
-  }
-
-  if (rest.templateId) {
-    push(
-      errors,
-      await validateWorkoutTemplateOwnership(
-        ctx,
-        rest.templateId,
-        existing.athleteId,
-      ),
-    );
-  }
-
-  const nextStatus = rest.status ?? existing.status;
-  const nextPlanned = rest.planned ?? existing.planned;
-  const nextActual = rest.actual ?? existing.actual;
-  const nextBlockId =
-    blockId === undefined
-      ? existing.blockId
-      : blockId === null
-        ? undefined
-        : blockId;
-
-  push(errors, validatePlannedFace(nextStatus, nextPlanned));
-  push(errors, validateActualFace(nextStatus, nextActual));
-  push(errors, validatePlannedDateNotAfterActual(nextPlanned, nextActual));
-  push(errors, validateActualDateNotInFuture(nextActual));
-  push(
-    errors,
-    await validatePlannedDateInBlock(ctx, nextPlanned?.date, nextBlockId),
-  );
-
-  return result(errors);
-}
-
-const swapArgs = v.object({
-  workoutAId: v.string(),
-  workoutBId: v.string(),
-});
-
-async function checkSwapWorkouts(
-  ctx: QueryCtx | MutationCtx,
-  args: typeof swapArgs.type,
-): Promise<ValidationResult> {
-  const [a, b] = await Promise.all([
-    loadOwnedWorkout(ctx, args.workoutAId),
-    loadOwnedWorkout(ctx, args.workoutBId),
-  ]);
-  if (!a || !b) return fail([requireAuthError]);
-
-  const errors: ValidationError[] = [];
-  if (!a.workout.planned || !b.workout.planned) {
-    push(errors, {
-      code: "INVALID_STATE",
-      message: "Both workouts must have a planned face to be swapped",
-    });
-    return result(errors);
-  }
-
-  push(
-    errors,
-    validatePlannedDateNotAfterActual(
-      { date: b.workout.planned.date },
-      a.workout.actual,
-    ),
-  );
-  push(
-    errors,
-    validatePlannedDateNotAfterActual(
-      { date: a.workout.planned.date },
-      b.workout.actual,
-    ),
-  );
-  push(
-    errors,
-    await validatePlannedDateInBlock(
-      ctx,
-      b.workout.planned.date,
-      a.workout.blockId,
-    ),
-  );
-  push(
-    errors,
-    await validatePlannedDateInBlock(
-      ctx,
-      a.workout.planned.date,
-      b.workout.blockId,
-    ),
-  );
-
-  return result(errors);
-}
-
-// ---------------------------------------------------------------------------
-// Validate queries (AI-tool-callable dry-runs)
-// ---------------------------------------------------------------------------
-
-export const validateCreate = query({
-  args: createWorkoutArgs.fields,
-  returns: validationResultValidator,
-  handler: (ctx, args) => checkCreateWorkout(ctx, args),
-});
-
-export const validateReschedule = query({
-  args: rescheduleArgs.fields,
-  returns: validationResultValidator,
-  handler: (ctx, args) => checkRescheduleWorkout(ctx, args),
-});
-
-export const validateUpdate = query({
-  args: updateWorkoutArgs.fields,
-  returns: validationResultValidator,
-  handler: (ctx, args) => checkUpdateWorkout(ctx, args),
-});
-
-export const validateSwap = query({
-  args: swapArgs.fields,
-  returns: validationResultValidator,
-  handler: (ctx, args) => checkSwapWorkouts(ctx, args),
-});
-
-// ---------------------------------------------------------------------------
 // Mutations
 // ---------------------------------------------------------------------------
-
-function throwIfInvalid(validation: ValidationResult): void {
-  if (!validation.ok) {
-    throw new ConvexError({
-      code: "VALIDATION_FAILED",
-      errors: validation.errors,
-    });
-  }
-}
 
 export const createWorkout = mutation({
   args: createWorkoutArgs.fields,
   handler: async (ctx, args): Promise<string> => {
-    throwIfInvalid(await checkCreateWorkout(ctx, args));
+    const validation = await validateCreateWorkout(ctx, args);
+    if (!validation.ok)
+      throw new ConvexError({
+        code: "VALIDATION_FAILED",
+        errors: validation.errors,
+      });
 
     const auth = await loadAthlete(ctx);
     if (!auth)
@@ -487,7 +476,12 @@ export const createWorkout = mutation({
 export const rescheduleWorkout = mutation({
   args: rescheduleArgs.fields,
   handler: async (ctx, args) => {
-    throwIfInvalid(await checkRescheduleWorkout(ctx, args));
+    const validation = await validateRescheduleWorkout(ctx, args);
+    if (!validation.ok)
+      throw new ConvexError({
+        code: "VALIDATION_FAILED",
+        errors: validation.errors,
+      });
 
     const { workoutId, date } = args;
     const owned = await loadOwnedWorkout(ctx, workoutId);
@@ -525,7 +519,12 @@ export const rescheduleWorkout = mutation({
 export const updateWorkout = mutation({
   args: updateWorkoutArgs.fields,
   handler: async (ctx, args) => {
-    throwIfInvalid(await checkUpdateWorkout(ctx, args));
+    const validation = await validateUpdateWorkout(ctx, args);
+    if (!validation.ok)
+      throw new ConvexError({
+        code: "VALIDATION_FAILED",
+        errors: validation.errors,
+      });
 
     const { workoutId, blockId, ...rest } = args;
     const owned = await loadOwnedWorkout(ctx, workoutId);
@@ -558,19 +557,36 @@ export const updateWorkout = mutation({
 export const swapWorkouts = mutation({
   args: swapArgs.fields,
   handler: async (ctx, { workoutAId, workoutBId }) => {
-    throwIfInvalid(await checkSwapWorkouts(ctx, { workoutAId, workoutBId }));
+    const validation = await validateSwapWorkouts(ctx, {
+      workoutAId,
+      workoutBId,
+    });
+    if (!validation.ok)
+      throw new ConvexError({
+        code: "VALIDATION_FAILED",
+        errors: validation.errors,
+      });
 
     const [a, b] = await Promise.all([
       loadOwnedWorkout(ctx, workoutAId),
       loadOwnedWorkout(ctx, workoutBId),
     ]);
-    if (!a || !b) throw new ConvexError({ code: "VALIDATION_FAILED", errors: [requireAuthError] });
+    if (!a || !b)
+      throw new ConvexError({
+        code: "VALIDATION_FAILED",
+        errors: [requireAuthError],
+      });
     const plannedA = a.workout.planned;
     const plannedB = b.workout.planned;
     if (!plannedA || !plannedB) {
       throw new ConvexError({
         code: "VALIDATION_FAILED",
-        errors: [{ code: "INVALID_STATE", message: "Both workouts must have a planned face to be swapped" }],
+        errors: [
+          {
+            code: "INVALID_STATE",
+            message: "Both workouts must have a planned face to be swapped",
+          },
+        ],
       });
     }
 
@@ -632,4 +648,3 @@ export const deleteWorkout = mutation({
     }
   },
 });
-
