@@ -12,14 +12,13 @@ import { getConvexErrorMessage } from "@/utils/getConvexErrorMessage";
 import { Ionicons } from "@expo/vector-icons";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import type {
-  CourseType,
   Discipline as AgogeDiscipline,
   ItraCategory,
   RaceFormat,
   RacePriority,
   RaceStatus,
-  Surface,
 } from "@nativesquare/agoge/schema";
+import { instantToCalendar } from "@packages/shared/utils";
 import { useRouter } from "expo-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
@@ -40,7 +39,7 @@ export type Format = Extract<
   RaceFormat,
   "5k" | "10k" | "15k" | "half_marathon" | "marathon" | "custom"
 >;
-export type { CourseType, ItraCategory, RaceStatus, Surface };
+export type { ItraCategory, RaceStatus };
 
 export const PRIORITIES = ["A", "B", "C"] as const satisfies readonly Priority[];
 
@@ -51,24 +50,6 @@ export const STATUSES = [
   "dns",
   "cancelled",
 ] as const satisfies readonly RaceStatus[];
-
-export const COURSE_TYPES = [
-  "loop",
-  "point_to_point",
-  "out_and_back",
-  "laps",
-  "stages",
-  "other",
-] as const satisfies readonly CourseType[];
-
-export const SURFACES = [
-  "road",
-  "mixed",
-  "trail",
-  "technical_trail",
-  "track",
-  "other",
-] as const satisfies readonly Surface[];
 
 export const DISCIPLINES = [
   "road",
@@ -149,8 +130,6 @@ export type RaceFormInitial = {
   notes?: string;
   elevationGainMeters?: number;
   elevationLossMeters?: number;
-  courseType?: CourseType;
-  surface?: Surface;
   itraCategory?: ItraCategory;
   result?: {
     finishTime?: string;
@@ -172,8 +151,6 @@ export type RaceFormSubmit = {
   notes?: string;
   elevationGainMeters?: number;
   elevationLossMeters?: number;
-  courseType?: CourseType;
-  surface?: Surface;
   itraCategory?: ItraCategory;
   result?: {
     finishTime?: string;
@@ -204,8 +181,6 @@ type FormState = {
   notes: string;
   elevationGainM: string;
   elevationLossM: string;
-  courseType: CourseType | "";
-  surface: Surface | "";
   itraCategory: ItraCategory | "";
   finishHours: string;
   finishMinutes: string;
@@ -227,8 +202,6 @@ const EMPTY_FORM: FormState = {
   notes: "",
   elevationGainM: "",
   elevationLossM: "",
-  courseType: "",
-  surface: "",
   itraCategory: "",
   finishHours: "",
   finishMinutes: "",
@@ -256,7 +229,7 @@ function initialToForm(initial: RaceFormInitial): FormState {
   }
   return {
     name: initial.name,
-    date: initial.date,
+    date: instantToCalendar(initial.date),
     priority: initial.priority,
     discipline: initial.discipline ?? "road",
     format: initial.format ?? "",
@@ -273,8 +246,6 @@ function initialToForm(initial: RaceFormInitial): FormState {
       initial.elevationLossMeters != null
         ? String(initial.elevationLossMeters)
         : "",
-    courseType: initial.courseType ?? "",
-    surface: initial.surface ?? "",
     itraCategory: initial.itraCategory ?? "",
     finishHours: h,
     finishMinutes: mm,
@@ -316,22 +287,6 @@ export function RaceForm({
     dnf: t("account.races.form.statusLabels.dnf"),
     dns: t("account.races.form.statusLabels.dns"),
     cancelled: t("account.races.form.statusLabels.cancelled"),
-  };
-  const courseTypeLabels: Record<CourseType, string> = {
-    loop: t("account.races.form.courseTypes.loop"),
-    point_to_point: t("account.races.form.courseTypes.point_to_point"),
-    out_and_back: t("account.races.form.courseTypes.out_and_back"),
-    laps: t("account.races.form.courseTypes.laps"),
-    stages: t("account.races.form.courseTypes.stages"),
-    other: t("account.races.form.courseTypes.other"),
-  };
-  const surfaceLabels: Record<Surface, string> = {
-    road: t("account.races.form.surfaces.road"),
-    mixed: t("account.races.form.surfaces.mixed"),
-    trail: t("account.races.form.surfaces.trail"),
-    technical_trail: t("account.races.form.surfaces.technical_trail"),
-    track: t("account.races.form.surfaces.track"),
-    other: t("account.races.form.surfaces.other"),
   };
   const disciplineLabels: Record<Discipline, string> = {
     road: t("account.races.form.disciplines.road"),
@@ -538,8 +493,6 @@ export function RaceForm({
         notes: form.notes.trim() || undefined,
         elevationGainMeters,
         elevationLossMeters,
-        courseType: form.courseType || undefined,
-        surface: form.surface || undefined,
         itraCategory: form.itraCategory || undefined,
         result,
       });
@@ -615,7 +568,6 @@ export function RaceForm({
 
             <DateField
               label={t("account.races.form.fields.date")}
-              mode="datetime"
               value={form.date || undefined}
               onChange={(v) => setForm((f) => ({ ...f, date: v }))}
               minDate={
@@ -791,33 +743,6 @@ export function RaceForm({
                 />
               </FormField>
             )}
-
-            <FormField label={t("account.races.form.fields.courseTypeOptional")}>
-              <PillSelect
-                options={COURSE_TYPES}
-                labels={courseTypeLabels}
-                value={form.courseType}
-                onChange={(v) =>
-                  setForm((f) => ({
-                    ...f,
-                    courseType: f.courseType === v ? "" : v,
-                  }))
-                }
-                allowClear
-              />
-            </FormField>
-
-            <FormField label={t("account.races.form.fields.surfaceOptional")}>
-              <PillSelect
-                options={SURFACES}
-                labels={surfaceLabels}
-                value={form.surface}
-                onChange={(v) =>
-                  setForm((f) => ({ ...f, surface: f.surface === v ? "" : v }))
-                }
-                allowClear
-              />
-            </FormField>
 
             {form.discipline === "trail" && (
               <FormField label={t("account.races.form.fields.itraOptional")}>

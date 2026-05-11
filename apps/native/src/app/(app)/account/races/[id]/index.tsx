@@ -65,20 +65,9 @@ function statusLabel(t: TFunction, status: string): string {
   return translated && translated !== key ? translated : status;
 }
 
-function courseTypeLabel(t: TFunction, kind: string): string {
-  const key = `account.races.form.courseTypes.${kind}`;
-  const translated = t(key);
-  return translated && translated !== key ? translated : kind;
-}
-
-function surfaceLabel(t: TFunction, kind: string): string {
-  const key = `account.races.form.surfaces.${kind}`;
-  const translated = t(key);
-  return translated && translated !== key ? translated : kind;
-}
-
 function formatDate(iso: string): string {
-  const [y, m, d] = iso.split("-");
+  // Slice handles legacy ISO-instant rows alongside the new YMD shape.
+  const [y, m, d] = iso.slice(0, 10).split("-");
   if (!y || !m || !d) return iso;
   return `${d}/${m}/${y}`;
 }
@@ -181,8 +170,6 @@ export default function RaceDetailScreen() {
   const distance = formatDistance(race.distanceMeters);
   const locationText = formatLocation(race.location);
   const hasRaceDetails =
-    race.courseType ||
-    race.surface ||
     race.elevationGainMeters != null ||
     race.bibNumber ||
     race.registrationUrl;
@@ -314,18 +301,6 @@ export default function RaceDetailScreen() {
 
           {hasRaceDetails && (
             <DetailSection title={t("account.races.detail.raceDetailsSection")}>
-              {race.courseType && (
-                <DetailRow
-                  label={t("account.races.detail.rows.course")}
-                  value={courseTypeLabel(t, race.courseType)}
-                />
-              )}
-              {race.surface && (
-                <DetailRow
-                  label={t("account.races.detail.rows.surface")}
-                  value={surfaceLabel(t, race.surface)}
-                />
-              )}
               {race.elevationGainMeters != null && (
                 <DetailRow
                   label={t("account.races.detail.rows.elevationGain")}

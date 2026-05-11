@@ -63,8 +63,6 @@ export default function EditRaceScreen() {
         notes: race.notes,
         elevationGainMeters: race.elevationGainMeters,
         elevationLossMeters: race.elevationLossMeters,
-        courseType: race.courseType,
-        surface: race.surface,
         itraCategory: race.itraCategory,
         result: race.result,
       }}
@@ -82,8 +80,6 @@ export default function EditRaceScreen() {
           notes: values.notes,
           elevationGainMeters: values.elevationGainMeters,
           elevationLossMeters: values.elevationLossMeters,
-          courseType: values.courseType,
-          surface: values.surface,
           itraCategory: values.itraCategory,
           result: values.result,
         });

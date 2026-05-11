@@ -26,7 +26,8 @@ const PRIORITY_TEXT_COLORS: Record<"A" | "B" | "C", string> = {
 type RaceStatusKey = "completed" | "cancelled" | "dnf" | "dns";
 
 function formatDate(iso: string): string {
-  const [y, m, d] = iso.split("-");
+  // Slice handles legacy ISO-instant rows alongside the new YMD shape.
+  const [y, m, d] = iso.slice(0, 10).split("-");
   if (!y || !m || !d) return iso;
   return `${d}/${m}/${y}`;
 }

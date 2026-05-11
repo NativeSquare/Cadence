@@ -25,8 +25,6 @@ export default function NewRaceScreen() {
           notes: values.notes,
           elevationGainMeters: values.elevationGainMeters,
           elevationLossMeters: values.elevationLossMeters,
-          courseType: values.courseType,
-          surface: values.surface,
           itraCategory: values.itraCategory,
         });
       }}

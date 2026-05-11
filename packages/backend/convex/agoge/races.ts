@@ -14,7 +14,7 @@ import {
   push,
   requireAuthError,
   result,
-  validateIsoInstantDate,
+  validateIsoCalendarDate,
   validateNoUpcomingARaceConflict,
   validateRaceDateStatusCoherent,
   validateRaceOwnership,
@@ -27,7 +27,12 @@ import {
 // Guards
 // ---------------------------------------------------------------------------
 
-const createMyRaceArgs = racesValidator.omit("athleteId", "sport");
+const createMyRaceArgs = racesValidator.omit(
+  "athleteId",
+  "sport",
+  "courseType",
+  "surface",
+);
 
 async function validateCreateMyRace(
   ctx: QueryCtx | MutationCtx,
@@ -37,7 +42,7 @@ async function validateCreateMyRace(
   if (!auth) return fail([requireAuthError]);
 
   const errors: ValidationError[] = [];
-  push(errors, validateIsoInstantDate(args.date, "date"));
+  push(errors, validateIsoCalendarDate(args.date, "date"));
   push(errors, validateRaceDateStatusCoherent(args.date, args.status));
   if (args.priority === "A" && args.status === "upcoming") {
     push(errors, await validateNoUpcomingARaceConflict(ctx, auth.athlete._id));
@@ -46,7 +51,7 @@ async function validateCreateMyRace(
 }
 
 const updateMyRaceArgs = racesValidator
-  .omit("athleteId", "sport")
+  .omit("athleteId", "sport", "courseType", "surface")
   .partial()
   .extend({ raceId: v.string() });
 
@@ -64,7 +69,7 @@ async function validateUpdateMyRace(
   if (!race) return fail([{ code: "NOT_FOUND", message: "Race not found" }]);
 
   const errors: ValidationError[] = [];
-  if (patch.date) push(errors, validateIsoInstantDate(patch.date, "date"));
+  if (patch.date) push(errors, validateIsoCalendarDate(patch.date, "date"));
 
   const effectiveDate = patch.date ?? race.date;
   const effectivePriority = patch.priority ?? race.priority;

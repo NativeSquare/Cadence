@@ -501,9 +501,10 @@ export function validateRaceDateStatusCoherent(
   date: string,
   status: RaceStatus,
 ): ValidationError | null {
-  const dateMs = Date.parse(date);
-  const now = Date.now();
-  if (status === "upcoming" && dateMs < now - CLOCK_SKEW_TOLERANCE_MS) {
+  // Slice tolerates legacy ISO-instant rows still in the DB (`2026-05-11T10:…`).
+  const ymd = date.slice(0, 10);
+  const todayYmd = new Date().toISOString().slice(0, 10);
+  if (status === "upcoming" && ymd < todayYmd) {
     return {
       code: "INVALID_STATE",
       message: "An upcoming race must have a future date.",
@@ -511,7 +512,7 @@ export function validateRaceDateStatusCoherent(
   }
   if (
     (status === "completed" || status === "dnf" || status === "dns") &&
-    dateMs > now + CLOCK_SKEW_TOLERANCE_MS
+    ymd > todayYmd
   ) {
     return {
       code: "INVALID_STATE",

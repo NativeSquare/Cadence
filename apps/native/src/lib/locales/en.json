@@ -735,8 +735,6 @@
         "rows": {
           "location": "Location",
           "notes": "Notes",
-          "course": "Course",
-          "surface": "Surface",
           "elevationGain": "Elevation gain",
           "bib": "Bib",
           "registration": "Registration",
@@ -781,8 +779,6 @@
           "distancePlaceholder": "—",
           "discipline": "Discipline",
           "status": "Status",
-          "courseTypeOptional": "Course type (optional)",
-          "surfaceOptional": "Surface (optional)",
           "itraOptional": "ITRA category (optional)",
           "elevationOptional": "Elevation (optional)",
           "elevationGain": "Gain",
@@ -828,22 +824,6 @@
           "dnf": "DNF",
           "dns": "DNS",
           "cancelled": "Cancelled"
-        },
-        "courseTypes": {
-          "loop": "Loop",
-          "point_to_point": "Point to point",
-          "out_and_back": "Out & back",
-          "laps": "Laps",
-          "stages": "Stages",
-          "other": "Other"
-        },
-        "surfaces": {
-          "road": "Road",
-          "mixed": "Mixed",
-          "trail": "Trail",
-          "technical_trail": "Technical trail",
-          "track": "Track",
-          "other": "Other"
         },
         "disciplines": {
           "road": "Road",

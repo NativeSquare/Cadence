@@ -735,8 +735,6 @@
         "rows": {
           "location": "Lieu",
           "notes": "Notes",
-          "course": "Parcours",
-          "surface": "Surface",
           "elevationGain": "Dénivelé positif",
           "bib": "Dossard",
           "registration": "Inscription",
@@ -781,8 +779,6 @@
           "distancePlaceholder": "—",
           "discipline": "Discipline",
           "status": "Statut",
-          "courseTypeOptional": "Type de parcours (optionnel)",
-          "surfaceOptional": "Surface (optionnel)",
           "itraOptional": "Catégorie ITRA (optionnel)",
           "elevationOptional": "Dénivelé (optionnel)",
           "elevationGain": "D+",
@@ -828,22 +824,6 @@
           "dnf": "DNF",
           "dns": "DNS",
           "cancelled": "Annulée"
-        },
-        "courseTypes": {
-          "loop": "Boucle",
-          "point_to_point": "Point à point",
-          "out_and_back": "Aller-retour",
-          "laps": "Tours",
-          "stages": "Étapes",
-          "other": "Autre"
-        },
-        "surfaces": {
-          "road": "Route",
-          "mixed": "Mixte",
-          "trail": "Trail",
-          "technical_trail": "Trail technique",
-          "track": "Piste",
-          "other": "Autre"
         },
         "disciplines": {
           "road": "Route",
