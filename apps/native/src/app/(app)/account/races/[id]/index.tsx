@@ -1,46 +1,19 @@
-import {
-  GOAL_RANK_COLORS,
-  GOAL_STATUS_COLORS,
-  useGoalRankLabels,
-  useGoalStatusLabels,
-  useGoalTypeLabels,
-} from "@/components/app/account/goal-display";
-import {
-  GoalForm,
-  type GoalFormInitial,
-  type GoalFormValues,
-} from "@/components/app/account/goal-form";
 import { Text } from "@/components/ui/text";
 import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
 import { api } from "@packages/backend/convex/_generated/api";
 import { Ionicons } from "@expo/vector-icons";
-import { BottomSheetModal as GorhomBottomSheetModal } from "@gorhom/bottom-sheet";
-import type {
-  GoalRank,
-  GoalStatus,
-  GoalType,
-} from "@nativesquare/agoge/schema";
-import { useMutation, useQuery } from "convex/react";
+import type { GoalStatus, GoalType } from "@nativesquare/agoge/schema";
+import { useQuery } from "convex/react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { Linking, Pressable, ScrollView, View } from "react-native";
 import type { TFunction } from "i18next";
 
-type RaceDoc = NonNullable<
-  ReturnType<typeof useQuery<typeof api.agoge.races.getMyRace>>
+type RaceWithGoal = NonNullable<
+  ReturnType<typeof useQuery<typeof api.agoge.races.getMyRaceWithGoal>>
 >;
-
-type GoalDoc = {
-  _id: string;
-  type: GoalType;
-  title: string;
-  description?: string;
-  targetValue: string;
-  targetDate?: string;
-  rank?: GoalRank;
-  status: GoalStatus;
-};
+type RaceDoc = RaceWithGoal["race"];
 
 const PRIORITY_COLORS: Record<"A" | "B" | "C", string> = {
   A: COLORS.lime,
@@ -54,19 +27,33 @@ const PRIORITY_TEXT_COLORS: Record<"A" | "B" | "C", string> = {
   C: LIGHT_THEME.wSub,
 };
 
-/**
- * Lookups go through the `account.races.form.*` taxonomy that's already
- * exhaustively translated. Falls back to the raw enum value if the schema
- * gains a variant before the locale catches up.
- */
+const GOAL_STATUS_COLORS: Record<GoalStatus, string> = {
+  active: COLORS.lime,
+  achieved: COLORS.lime,
+  missed: COLORS.red,
+  abandoned: LIGHT_THEME.wMute,
+  paused: LIGHT_THEME.wMute,
+};
+
 function statusLabel(t: TFunction, status: string): string {
   const key = `account.races.form.statusLabels.${status}`;
   const translated = t(key);
   return translated && translated !== key ? translated : status;
 }
 
+function goalStatusLabel(t: TFunction, status: GoalStatus): string {
+  const key = `account.races.objective.statuses.${status}`;
+  const translated = t(key);
+  return translated && translated !== key ? translated : status;
+}
+
+function objectiveTypeLabel(t: TFunction, type: GoalType): string {
+  const key = `account.races.form.objectiveTypes.${type}`;
+  const translated = t(key);
+  return translated && translated !== key ? translated : type;
+}
+
 function formatDate(iso: string): string {
-  // Slice handles legacy ISO-instant rows alongside the new YMD shape.
   const [y, m, d] = iso.slice(0, 10).split("-");
   if (!y || !m || !d) return iso;
   return `${d}/${m}/${y}`;
@@ -92,65 +79,13 @@ export default function RaceDetailScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const race = useQuery(api.agoge.races.getMyRace, { raceId: id });
-  const goals = useQuery(
-    api.agoge.goals.listGoalsForRace,
-    race ? { raceId: race._id } : "skip",
-  ) as GoalDoc[] | undefined;
+  const data = useQuery(api.agoge.races.getMyRaceWithGoal, { raceId: id });
 
-  const createGoal = useMutation(api.agoge.goals.createGoal);
-  const updateGoal = useMutation(api.agoge.goals.updateGoal);
-  const deleteGoal = useMutation(api.agoge.goals.deleteGoal);
-
-  const goalSheetRef = React.useRef<GorhomBottomSheetModal>(null);
-  const [editingGoal, setEditingGoal] = React.useState<GoalDoc | null>(null);
-
-  const openCreateGoal = () => {
-    setEditingGoal(null);
-    goalSheetRef.current?.present();
-  };
-
-  const openEditGoal = (goal: GoalDoc) => {
-    setEditingGoal(goal);
-    goalSheetRef.current?.present();
-  };
-
-  const handleSubmitGoal = async (values: GoalFormValues) => {
-    if (editingGoal) {
-      await updateGoal({
-        goalId: editingGoal._id,
-        type: values.type,
-        title: values.title,
-        targetValue: values.targetValue,
-        description: values.description,
-        targetDate: values.targetDate,
-        rank: values.rank,
-        status: values.status,
-      });
-    } else if (race) {
-      await createGoal({
-        raceId: race._id,
-        type: values.type,
-        title: values.title,
-        targetValue: values.targetValue,
-        description: values.description,
-        targetDate: values.targetDate,
-        rank: values.rank,
-        status: values.status ?? "active",
-      });
-    }
-  };
-
-  const handleDeleteGoal = async () => {
-    if (!editingGoal) return;
-    await deleteGoal({ goalId: editingGoal._id });
-  };
-
-  if (race === undefined) {
+  if (data === undefined) {
     return <View className="flex-1" style={{ backgroundColor: LIGHT_THEME.w2 }} />;
   }
 
-  if (race === null) {
+  if (data === null) {
     return (
       <View
         className="pt-safe flex-1 items-center justify-center px-4"
@@ -166,6 +101,7 @@ export default function RaceDetailScreen() {
     );
   }
 
+  const { race, goal } = data;
   const priority = race.priority as "A" | "B" | "C";
   const distance = formatDistance(race.distanceMeters);
   const locationText = formatLocation(race.location);
@@ -179,18 +115,6 @@ export default function RaceDetailScreen() {
     (race.result.finishTime ||
       race.result.placement != null ||
       race.result.notes);
-
-  const goalFormInitial: GoalFormInitial | undefined = editingGoal
-    ? {
-        type: editingGoal.type,
-        title: editingGoal.title,
-        targetValue: editingGoal.targetValue,
-        description: editingGoal.description,
-        targetDate: editingGoal.targetDate,
-        rank: editingGoal.rank,
-        status: editingGoal.status,
-      }
-    : undefined;
 
   return (
     <View className="pt-safe flex-1" style={{ backgroundColor: LIGHT_THEME.w2 }}>
@@ -276,11 +200,68 @@ export default function RaceDetailScreen() {
             </View>
           </View>
 
-          <GoalsSection
-            goals={goals}
-            onAdd={openCreateGoal}
-            onTapGoal={openEditGoal}
-          />
+          {goal && (
+            <View className="gap-2">
+              <Text
+                className="px-1 font-coach-extrabold text-[11px] uppercase tracking-widest"
+                style={{ color: LIGHT_THEME.wSub }}
+              >
+                {t("account.races.detail.objectiveSection")}
+              </Text>
+              <View
+                className="gap-2 rounded-2xl border p-4"
+                style={{
+                  backgroundColor: LIGHT_THEME.w1,
+                  borderColor: LIGHT_THEME.wBrd,
+                }}
+              >
+                <View className="flex-row items-center justify-between gap-3">
+                  <Text
+                    className="font-coach-semibold text-[10px] uppercase tracking-wider"
+                    style={{ color: LIGHT_THEME.wMute }}
+                  >
+                    {objectiveTypeLabel(t, goal.type)}
+                  </Text>
+                  <View
+                    className="rounded-full px-2 py-0.5"
+                    style={{ backgroundColor: LIGHT_THEME.w3 }}
+                  >
+                    <Text
+                      className="font-coach-semibold text-[10px]"
+                      style={{ color: GOAL_STATUS_COLORS[goal.status] }}
+                    >
+                      {goalStatusLabel(t, goal.status)}
+                    </Text>
+                  </View>
+                </View>
+                <View className="flex-row items-baseline justify-between gap-3">
+                  <Text
+                    className="flex-1 font-coach-bold text-[16px]"
+                    style={{ color: LIGHT_THEME.wText }}
+                  >
+                    {goal.title}
+                  </Text>
+                  <Text
+                    className="font-coach-extrabold text-[16px]"
+                    style={{ color: LIGHT_THEME.wText }}
+                    numberOfLines={1}
+                  >
+                    {goal.targetValue === "Finish"
+                      ? t("account.races.objective.targetFinish")
+                      : goal.targetValue}
+                  </Text>
+                </View>
+                {goal.description && (
+                  <Text
+                    className="font-coach text-[13px]"
+                    style={{ color: LIGHT_THEME.wSub }}
+                  >
+                    {goal.description}
+                  </Text>
+                )}
+              </View>
+            </View>
+          )}
 
           {(locationText || race.notes) && (
             <DetailSection title={t("account.races.detail.eventSection")}>
@@ -351,152 +332,7 @@ export default function RaceDetailScreen() {
           )}
         </View>
       </ScrollView>
-
-      <GoalForm
-        sheetRef={goalSheetRef}
-        mode={editingGoal ? "edit" : "create"}
-        initial={goalFormInitial}
-        raceLocked
-        onSubmit={handleSubmitGoal}
-        onDelete={editingGoal ? handleDeleteGoal : undefined}
-        onDismiss={() => setEditingGoal(null)}
-      />
     </View>
-  );
-}
-
-function GoalsSection({
-  goals,
-  onAdd,
-  onTapGoal,
-}: {
-  goals: GoalDoc[] | undefined;
-  onAdd: () => void;
-  onTapGoal: (goal: GoalDoc) => void;
-}) {
-  const { t } = useTranslation();
-  const items = goals ?? [];
-  const hasGoals = items.length > 0;
-
-  return (
-    <View className="gap-2">
-      <Text
-        className="px-1 font-coach-extrabold text-[11px] uppercase tracking-widest"
-        style={{ color: LIGHT_THEME.wSub }}
-      >
-        {t("account.races.detail.goalsSection")}
-      </Text>
-      <View
-        className="rounded-2xl border"
-        style={{
-          backgroundColor: LIGHT_THEME.w1,
-          borderColor: LIGHT_THEME.wBrd,
-        }}
-      >
-        {items.map((goal, idx) => (
-          <GoalRow
-            key={goal._id}
-            goal={goal}
-            onPress={() => onTapGoal(goal)}
-            isLast={idx === items.length - 1}
-          />
-        ))}
-        <Pressable
-          onPress={onAdd}
-          className="flex-row items-center gap-2 px-4 py-5 active:opacity-70"
-          style={
-            hasGoals
-              ? { borderTopWidth: 1, borderTopColor: LIGHT_THEME.wBrd }
-              : undefined
-          }
-        >
-          <Ionicons name="add" size={16} color={LIGHT_THEME.wSub} />
-          <Text
-            className="font-coach-semibold text-[13px]"
-            style={{ color: LIGHT_THEME.wSub }}
-          >
-            {t("account.races.detail.addGoal")}
-          </Text>
-        </Pressable>
-      </View>
-    </View>
-  );
-}
-
-function GoalRow({
-  goal,
-  onPress,
-  isLast,
-}: {
-  goal: GoalDoc;
-  onPress: () => void;
-  isLast: boolean;
-}) {
-  const { t } = useTranslation();
-  const goalTypeLabels = useGoalTypeLabels();
-  const goalRankLabels = useGoalRankLabels();
-  const goalStatusLabels = useGoalStatusLabels();
-  const rankColor = goal.rank ? GOAL_RANK_COLORS[goal.rank] : LIGHT_THEME.w3;
-  return (
-    <Pressable
-      onPress={onPress}
-      className="flex-row items-start gap-3 px-4 py-3 active:opacity-70"
-      style={
-        isLast
-          ? undefined
-          : { borderBottomWidth: 1, borderBottomColor: LIGHT_THEME.wBrd }
-      }
-    >
-      <View
-        className="mt-1.5 size-2.5 rounded-full"
-        style={{ backgroundColor: rankColor }}
-      />
-      <View className="flex-1 gap-0.5">
-        <Text
-          className="font-coach-semibold text-[10px] uppercase tracking-wider"
-          style={{ color: LIGHT_THEME.wMute }}
-        >
-          {goalTypeLabels[goal.type]}
-          {goal.rank ? ` · ${goalRankLabels[goal.rank]}` : ""}
-        </Text>
-        <Text
-          className="font-coach-bold text-[14px]"
-          style={{ color: LIGHT_THEME.wText }}
-        >
-          {goal.title}
-        </Text>
-        {goal.targetDate && (
-          <Text
-            className="font-coach text-[11px]"
-            style={{ color: LIGHT_THEME.wMute }}
-          >
-            {t("account.goals.byDate", { date: formatDate(goal.targetDate) })}
-          </Text>
-        )}
-        {goal.status !== "active" && (
-          <View
-            className="mt-1 self-start rounded-full px-2 py-0.5"
-            style={{ backgroundColor: LIGHT_THEME.w3 }}
-          >
-            <Text
-              className="font-coach-semibold text-[10px]"
-              style={{ color: GOAL_STATUS_COLORS[goal.status] }}
-            >
-              {goalStatusLabels[goal.status]}
-            </Text>
-          </View>
-        )}
-      </View>
-      <Text
-        className="max-w-[40%] text-right font-coach-extrabold text-[14px]"
-        style={{ color: LIGHT_THEME.wText }}
-        numberOfLines={2}
-      >
-        {goal.targetValue === "Finish"
-          ? t("account.goals.targetFinish")
-          : goal.targetValue}
-      </Text>
-    </Pressable>
   );
 }
 

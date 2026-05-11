@@ -118,6 +118,8 @@ const ITRA_CATEGORY_LABELS: Record<ItraCategory, string> = {
   XXL: "XXL",
 };
 
+export type ObjectiveType = "performance" | "completion";
+
 export type RaceFormInitial = {
   name: string;
   date: string;
@@ -136,6 +138,12 @@ export type RaceFormInitial = {
     finishTimeSec?: number;
     placement?: number;
     notes?: string;
+  };
+  goal?: {
+    type: ObjectiveType;
+    title: string;
+    targetValue: string;
+    description?: string;
   };
 };
 
@@ -157,6 +165,12 @@ export type RaceFormSubmit = {
     finishTimeSec?: number;
     placement?: number;
     notes?: string;
+  };
+  goal: {
+    type: ObjectiveType;
+    title: string;
+    targetValue: string;
+    description?: string;
   };
 };
 
@@ -187,6 +201,10 @@ type FormState = {
   finishSeconds: string;
   placement: string;
   resultNotes: string;
+  goalType: ObjectiveType;
+  goalTitle: string;
+  targetValue: string;
+  goalDescription: string;
 };
 
 const EMPTY_FORM: FormState = {
@@ -208,6 +226,10 @@ const EMPTY_FORM: FormState = {
   finishSeconds: "",
   placement: "",
   resultNotes: "",
+  goalType: "performance",
+  goalTitle: "",
+  targetValue: "",
+  goalDescription: "",
 };
 
 function initialToForm(initial: RaceFormInitial): FormState {
@@ -253,6 +275,10 @@ function initialToForm(initial: RaceFormInitial): FormState {
     placement:
       initial.result?.placement != null ? String(initial.result.placement) : "",
     resultNotes: initial.result?.notes ?? "",
+    goalType: initial.goal?.type ?? "performance",
+    goalTitle: initial.goal?.title ?? "",
+    targetValue: initial.goal?.targetValue ?? "",
+    goalDescription: initial.goal?.description ?? "",
   };
 }
 
@@ -327,6 +353,8 @@ export function RaceForm({
     dateIsValid &&
     form.format !== "" &&
     (form.format !== "custom" || form.distanceKm.trim().length > 0) &&
+    form.goalTitle.trim().length > 0 &&
+    form.targetValue.trim().length > 0 &&
     !showPastDatePrompt;
 
   React.useEffect(() => {
@@ -495,6 +523,12 @@ export function RaceForm({
         elevationLossMeters,
         itraCategory: form.itraCategory || undefined,
         result,
+        goal: {
+          type: form.goalType,
+          title: form.goalTitle.trim(),
+          targetValue: form.targetValue.trim(),
+          description: form.goalDescription.trim() || undefined,
+        },
       });
       router.back();
     } catch (err) {
@@ -804,6 +838,97 @@ export function RaceForm({
               </View>
             </FormField>
 
+          </FormSection>
+
+          <FormSection title={t("account.races.form.sections.objective")}>
+            <FormField label={t("account.races.form.fields.objectiveType")}>
+              <View className="flex-row gap-2">
+                {(["performance", "completion"] as const).map((value) => {
+                  const selected = form.goalType === value;
+                  return (
+                    <Pressable
+                      key={value}
+                      onPress={() => {
+                        selectionFeedback();
+                        setForm((f) => ({ ...f, goalType: value }));
+                      }}
+                      className="flex-1 items-center rounded-2xl py-3.5 active:opacity-80"
+                      style={{
+                        backgroundColor: selected
+                          ? COLORS.lime
+                          : LIGHT_THEME.w1,
+                        borderWidth: 1,
+                        borderColor: selected ? COLORS.lime : LIGHT_THEME.wBrd,
+                      }}
+                    >
+                      <Text
+                        className="font-coach-extrabold text-[13px]"
+                        style={{
+                          color: selected ? COLORS.black : LIGHT_THEME.wText,
+                        }}
+                      >
+                        {t(`account.races.form.objectiveTypes.${value}`)}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </FormField>
+
+            <FormField label={t("account.races.form.fields.objectiveTitle")}>
+              <TextInput
+                className="h-12 rounded-xl border px-4 font-coach-medium text-[15px]"
+                style={inputStyle}
+                placeholder={t(
+                  `account.races.form.fields.objectiveTitlePlaceholder.${form.goalType}`,
+                )}
+                placeholderTextColor={LIGHT_THEME.wMute}
+                value={form.goalTitle}
+                onChangeText={(v) => setForm((f) => ({ ...f, goalTitle: v }))}
+                returnKeyType="next"
+                selectionColor={COLORS.lime}
+                cursorColor={COLORS.lime}
+              />
+            </FormField>
+
+            <FormField
+              label={t(`account.races.form.fields.targetValue.${form.goalType}`)}
+            >
+              <TextInput
+                className="h-12 rounded-xl border px-4 font-coach-medium text-[15px]"
+                style={inputStyle}
+                placeholder={t(
+                  `account.races.form.fields.targetValuePlaceholder.${form.goalType}`,
+                )}
+                placeholderTextColor={LIGHT_THEME.wMute}
+                value={form.targetValue}
+                onChangeText={(v) => setForm((f) => ({ ...f, targetValue: v }))}
+                autoCapitalize="none"
+                selectionColor={COLORS.lime}
+                cursorColor={COLORS.lime}
+              />
+            </FormField>
+
+            <FormField
+              label={t("account.races.form.fields.objectiveDescriptionOptional")}
+            >
+              <TextInput
+                className="min-h-[80px] rounded-xl border px-4 py-3 font-coach-medium text-[15px]"
+                style={inputStyle}
+                placeholder={t(
+                  "account.races.form.fields.objectiveDescriptionPlaceholder",
+                )}
+                placeholderTextColor={LIGHT_THEME.wMute}
+                value={form.goalDescription}
+                onChangeText={(v) =>
+                  setForm((f) => ({ ...f, goalDescription: v }))
+                }
+                multiline
+                textAlignVertical="top"
+                selectionColor={COLORS.lime}
+                cursorColor={COLORS.lime}
+              />
+            </FormField>
           </FormSection>
 
           {showResultSection && (

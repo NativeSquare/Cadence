@@ -625,7 +625,6 @@
       "subscription": "Subscription",
       "trainingPlan": "Training Plan",
       "races": "Races",
-      "goals": "Goals",
       "zones": "Zones",
       "workoutTemplates": "Workout Templates",
       "appsAndDevices": "Apps & Devices",
@@ -727,8 +726,7 @@
     "races": {
       "detail": {
         "header": "Race",
-        "goalsSection": "Goals",
-        "addGoal": "Add a goal",
+        "objectiveSection": "Objective",
         "eventSection": "Event",
         "raceDetailsSection": "Race details",
         "resultSection": "Result",
@@ -740,6 +738,16 @@
           "registration": "Registration",
           "finishTime": "Finish time",
           "placement": "Placement"
+        }
+      },
+      "objective": {
+        "targetFinish": "Finish",
+        "statuses": {
+          "active": "On track",
+          "achieved": "Achieved",
+          "missed": "Missed",
+          "abandoned": "Abandoned",
+          "paused": "Paused"
         }
       },
       "title": "Races",
@@ -762,7 +770,12 @@
         "sections": {
           "event": "Event",
           "race": "Race",
+          "objective": "Objective",
           "result": "Result"
+        },
+        "objectiveTypes": {
+          "performance": "Hit a time",
+          "completion": "Finish the race"
         },
         "fields": {
           "name": "Name",
@@ -790,7 +803,23 @@
           "placementOptional": "Placement (optional)",
           "placementPlaceholder": "—",
           "resultNotesOptional": "Result notes (optional)",
-          "resultNotesPlaceholder": "How did it go?"
+          "resultNotesPlaceholder": "How did it go?",
+          "objectiveType": "Objective type",
+          "objectiveTitle": "Objective",
+          "objectiveTitlePlaceholder": {
+            "performance": "e.g. Sub 2:50 marathon",
+            "completion": "e.g. Cross the finish line"
+          },
+          "targetValue": {
+            "performance": "Target time",
+            "completion": "Target"
+          },
+          "targetValuePlaceholder": {
+            "performance": "2:50:00",
+            "completion": "Finish"
+          },
+          "objectiveDescriptionOptional": "Notes (optional)",
+          "objectiveDescriptionPlaceholder": "What this race means to you, strategy…"
         },
         "pastDatePrompt": {
           "title": "This date is in the past",
@@ -839,78 +868,6 @@
           "marathon": "Marathon",
           "custom": "Custom"
         }
-      }
-    },
-    "goals": {
-      "title": "Goals",
-      "noneYet": "No goals yet",
-      "helper": "Set targets to focus your training.",
-      "active": "Active",
-      "resolved": "Resolved",
-      "byDate": "by {{date}}",
-      "targetFinish": "Finish",
-      "types": {
-        "performance": "Performance",
-        "completion": "Completion",
-        "process": "Process",
-        "volume": "Volume",
-        "body": "Body",
-        "other": "Other"
-      },
-      "ranks": {
-        "primary": "Primary",
-        "stretch": "Stretch",
-        "minimum": "Minimum",
-        "process": "Process"
-      },
-      "statuses": {
-        "active": "Active",
-        "achieved": "Achieved",
-        "missed": "Missed",
-        "abandoned": "Abandoned",
-        "paused": "Paused"
-      },
-      "form": {
-        "newGoal": "New goal",
-        "editGoal": "Edit goal",
-        "goalSection": "Goal",
-        "raceOptional": "Race (optional)",
-        "linkedToPrefix": "Linked to ",
-        "type": "Type",
-        "title": "Title",
-        "titlePlaceholder": "e.g. Sub-3 marathon",
-        "metric": "Metric",
-        "performanceModes": {
-          "time": "Time",
-          "pace": "Pace",
-          "place": "Placement"
-        },
-        "finishTime": "Finish time (HH:MM:SS)",
-        "finishHours": "HH",
-        "finishMinutes": "MM",
-        "finishSeconds": "SS",
-        "pacePerKm": "Pace (per km)",
-        "placement": "Placement",
-        "placementPlaceholder": "e.g. 10",
-        "distance": "Distance",
-        "distancePlaceholder": "—",
-        "weight": "Weight",
-        "weightPlaceholder": "—",
-        "targetPrefix": "Target: ",
-        "targetLabel": "Target",
-        "targetPlaceholder": "e.g. Hit fueling plan",
-        "rankOptional": "Rank (optional)",
-        "targetDateOptional": "Target date (optional)",
-        "descriptionOptional": "Description (optional)",
-        "descriptionPlaceholder": "Why this goal? Any context…",
-        "status": "Status",
-        "addGoal": "Add goal",
-        "saveGoal": "Save goal",
-        "deleteGoal": "Delete goal",
-        "deleteDescription": "This cannot be undone.",
-        "errorRequired": "Title and target are required.",
-        "tapToClear": "Tap again to clear",
-        "racePickerNone": "None"
       }
     },
     "zones": {

@@ -1,4 +1,4 @@
-import { RaceRow, type RaceDoc } from "@/components/app/account/race-row";
+import { RaceRow, type RaceWithGoal } from "@/components/app/account/race-row";
 import { Text } from "@/components/ui/text";
 import { LIGHT_THEME } from "@/lib/design-tokens";
 import { useRouter } from "expo-router";
@@ -7,11 +7,11 @@ import { View } from "react-native";
 
 export function RaceSection({
   title,
-  races,
+  rows,
   dimmed = false,
 }: {
   title: string;
-  races: RaceDoc[];
+  rows: RaceWithGoal[];
   dimmed?: boolean;
 }) {
   const router = useRouter();
@@ -24,10 +24,11 @@ export function RaceSection({
         {title}
       </Text>
       <View className="gap-3">
-        {races.map((race) => (
+        {rows.map(({ race, goal }) => (
           <RaceRow
             key={race._id}
             race={race}
+            goal={goal}
             dimmed={dimmed}
             onPress={() =>
               router.push({

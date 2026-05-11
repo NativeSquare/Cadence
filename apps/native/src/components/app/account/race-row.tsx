@@ -7,9 +7,11 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, View } from "react-native";
 
-export type RaceDoc = FunctionReturnType<
-  typeof api.agoge.races.listMyRaces
+export type RaceWithGoal = FunctionReturnType<
+  typeof api.agoge.races.listMyRacesWithGoals
 >[number];
+export type RaceDoc = RaceWithGoal["race"];
+export type GoalDoc = RaceWithGoal["goal"];
 
 const PRIORITY_COLORS: Record<"A" | "B" | "C", string> = {
   A: COLORS.lime,
@@ -44,10 +46,12 @@ function formatDistance(meters?: number): string | null {
 
 export function RaceRow({
   race,
+  goal,
   dimmed,
   onPress,
 }: {
   race: RaceDoc;
+  goal: GoalDoc;
   dimmed: boolean;
   onPress: () => void;
 }) {
@@ -58,6 +62,12 @@ export function RaceRow({
     race.status !== "upcoming"
       ? t(`account.races.statusPills.${race.status as RaceStatusKey}`)
       : null;
+
+  const targetText = goal
+    ? goal.targetValue === "Finish"
+      ? t("account.races.objective.targetFinish")
+      : goal.targetValue
+    : null;
 
   return (
     <Pressable
@@ -110,6 +120,16 @@ export function RaceRow({
             </View>
           )}
         </View>
+        {goal && (
+          <Text
+            numberOfLines={1}
+            className="mt-1 font-coach text-[12px]"
+            style={{ color: LIGHT_THEME.wMute }}
+          >
+            {goal.title}
+            {targetText ? ` · ${targetText}` : ""}
+          </Text>
+        )}
       </View>
       <Ionicons name="chevron-forward" size={16} color={LIGHT_THEME.wMute} />
     </Pressable>

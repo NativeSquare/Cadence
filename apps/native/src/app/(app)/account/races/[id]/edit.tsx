@@ -3,6 +3,7 @@ import {
   FORMATS,
   type Discipline,
   type Format,
+  type ObjectiveType,
   RaceForm,
 } from "@/components/app/account/race-form";
 import { Text } from "@/components/ui/text";
@@ -16,15 +17,15 @@ import { View } from "react-native";
 export default function EditRaceScreen() {
   const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const race = useQuery(api.agoge.races.getMyRace, { raceId: id });
-  const updateRace = useMutation(api.agoge.races.updateMyRace);
+  const data = useQuery(api.agoge.races.getMyRaceWithGoal, { raceId: id });
+  const updateRace = useMutation(api.agoge.races.updateMyRaceWithGoal);
   const deleteRace = useMutation(api.agoge.races.deleteMyRace);
 
-  if (race === undefined) {
+  if (data === undefined) {
     return <View className="flex-1" style={{ backgroundColor: LIGHT_THEME.w2 }} />;
   }
 
-  if (race === null) {
+  if (data === null) {
     return (
       <View
         className="pt-safe flex-1 items-center justify-center px-4"
@@ -39,6 +40,10 @@ export default function EditRaceScreen() {
       </View>
     );
   }
+
+  const { race, goal } = data;
+  const goalType: ObjectiveType =
+    goal?.type === "completion" ? "completion" : "performance";
 
   return (
     <RaceForm
@@ -65,23 +70,34 @@ export default function EditRaceScreen() {
         elevationLossMeters: race.elevationLossMeters,
         itraCategory: race.itraCategory,
         result: race.result,
+        goal: goal
+          ? {
+              type: goalType,
+              title: goal.title,
+              targetValue: goal.targetValue,
+              description: goal.description,
+            }
+          : undefined,
       }}
       onSubmit={async (values) => {
         await updateRace({
           raceId: id,
-          name: values.name,
-          date: values.date,
-          priority: values.priority,
-          discipline: values.discipline,
-          format: values.format,
-          distanceMeters: values.distanceMeters,
-          status: values.status,
-          location: values.location,
-          notes: values.notes,
-          elevationGainMeters: values.elevationGainMeters,
-          elevationLossMeters: values.elevationLossMeters,
-          itraCategory: values.itraCategory,
-          result: values.result,
+          race: {
+            name: values.name,
+            date: values.date,
+            priority: values.priority,
+            discipline: values.discipline,
+            format: values.format,
+            distanceMeters: values.distanceMeters,
+            status: values.status,
+            location: values.location,
+            notes: values.notes,
+            elevationGainMeters: values.elevationGainMeters,
+            elevationLossMeters: values.elevationLossMeters,
+            itraCategory: values.itraCategory,
+            result: values.result,
+          },
+          goal: values.goal,
         });
       }}
       onDelete={async () => {

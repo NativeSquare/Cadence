@@ -625,7 +625,6 @@
       "subscription": "Abonnement",
       "trainingPlan": "Plan d'entraînement",
       "races": "Courses",
-      "goals": "Objectifs",
       "zones": "Zones",
       "workoutTemplates": "Modèles de séance",
       "appsAndDevices": "Apps et appareils",
@@ -727,8 +726,7 @@
     "races": {
       "detail": {
         "header": "Course",
-        "goalsSection": "Objectifs",
-        "addGoal": "Ajouter un objectif",
+        "objectiveSection": "Objectif",
         "eventSection": "Évènement",
         "raceDetailsSection": "Détails de la course",
         "resultSection": "Résultat",
@@ -740,6 +738,16 @@
           "registration": "Inscription",
           "finishTime": "Temps final",
           "placement": "Classement"
+        }
+      },
+      "objective": {
+        "targetFinish": "Terminer",
+        "statuses": {
+          "active": "En cours",
+          "achieved": "Atteint",
+          "missed": "Manqué",
+          "abandoned": "Abandonné",
+          "paused": "En pause"
         }
       },
       "title": "Courses",
@@ -762,7 +770,12 @@
         "sections": {
           "event": "Évènement",
           "race": "Course",
+          "objective": "Objectif",
           "result": "Résultat"
+        },
+        "objectiveTypes": {
+          "performance": "Viser un temps",
+          "completion": "Terminer la course"
         },
         "fields": {
           "name": "Nom",
@@ -790,7 +803,23 @@
           "placementOptional": "Classement (optionnel)",
           "placementPlaceholder": "—",
           "resultNotesOptional": "Notes de résultat (optionnel)",
-          "resultNotesPlaceholder": "Comment ça s'est passé ?"
+          "resultNotesPlaceholder": "Comment ça s'est passé ?",
+          "objectiveType": "Type d'objectif",
+          "objectiveTitle": "Objectif",
+          "objectiveTitlePlaceholder": {
+            "performance": "ex. Marathon en moins de 2h50",
+            "completion": "ex. Franchir la ligne d'arrivée"
+          },
+          "targetValue": {
+            "performance": "Temps cible",
+            "completion": "Cible"
+          },
+          "targetValuePlaceholder": {
+            "performance": "2:50:00",
+            "completion": "Terminer"
+          },
+          "objectiveDescriptionOptional": "Notes (optionnel)",
+          "objectiveDescriptionPlaceholder": "Ce que cette course représente, stratégie…"
         },
         "pastDatePrompt": {
           "title": "Cette date est dans le passé",
@@ -839,78 +868,6 @@
           "marathon": "Marathon",
           "custom": "Personnalisé"
         }
-      }
-    },
-    "goals": {
-      "title": "Objectifs",
-      "noneYet": "Aucun objectif pour l'instant",
-      "helper": "Fixez des cibles pour orienter votre entraînement.",
-      "active": "Actifs",
-      "resolved": "Résolus",
-      "byDate": "pour le {{date}}",
-      "targetFinish": "Terminer",
-      "types": {
-        "performance": "Performance",
-        "completion": "Achèvement",
-        "process": "Processus",
-        "volume": "Volume",
-        "body": "Corps",
-        "other": "Autre"
-      },
-      "ranks": {
-        "primary": "Principal",
-        "stretch": "Ambitieux",
-        "minimum": "Minimum",
-        "process": "Processus"
-      },
-      "statuses": {
-        "active": "Actif",
-        "achieved": "Atteint",
-        "missed": "Manqué",
-        "abandoned": "Abandonné",
-        "paused": "En pause"
-      },
-      "form": {
-        "newGoal": "Nouvel objectif",
-        "editGoal": "Modifier l'objectif",
-        "goalSection": "Objectif",
-        "raceOptional": "Course (optionnel)",
-        "linkedToPrefix": "Lié à ",
-        "type": "Type",
-        "title": "Titre",
-        "titlePlaceholder": "ex. Marathon en moins de 3h",
-        "metric": "Métrique",
-        "performanceModes": {
-          "time": "Temps",
-          "pace": "Allure",
-          "place": "Classement"
-        },
-        "finishTime": "Temps final (HH:MM:SS)",
-        "finishHours": "HH",
-        "finishMinutes": "MM",
-        "finishSeconds": "SS",
-        "pacePerKm": "Allure (par km)",
-        "placement": "Classement",
-        "placementPlaceholder": "ex. 10",
-        "distance": "Distance",
-        "distancePlaceholder": "—",
-        "weight": "Poids",
-        "weightPlaceholder": "—",
-        "targetPrefix": "Cible : ",
-        "targetLabel": "Cible",
-        "targetPlaceholder": "ex. Tenir le plan nutrition",
-        "rankOptional": "Rang (optionnel)",
-        "targetDateOptional": "Date cible (optionnel)",
-        "descriptionOptional": "Description (optionnel)",
-        "descriptionPlaceholder": "Pourquoi cet objectif ? Contexte…",
-        "status": "Statut",
-        "addGoal": "Ajouter l'objectif",
-        "saveGoal": "Enregistrer",
-        "deleteGoal": "Supprimer l'objectif",
-        "deleteDescription": "Cette action est irréversible.",
-        "errorRequired": "Le titre et la cible sont requis.",
-        "tapToClear": "Appuyez à nouveau pour effacer",
-        "racePickerNone": "Aucune"
       }
     },
     "zones": {

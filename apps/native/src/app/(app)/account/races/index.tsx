@@ -1,4 +1,4 @@
-import { type RaceDoc } from "@/components/app/account/race-row";
+import { type RaceWithGoal } from "@/components/app/account/race-row";
 import { RaceSection } from "@/components/app/account/race-section";
 import { Text } from "@/components/ui/text";
 import { LIGHT_THEME } from "@/lib/design-tokens";
@@ -12,19 +12,20 @@ import { Pressable, ScrollView, View } from "react-native";
 
 const PRIORITY_RANK: Record<"A" | "B" | "C", number> = { A: 0, B: 1, C: 2 };
 
-function partitionAndSort(races: RaceDoc[]) {
-  const upcoming: RaceDoc[] = [];
-  const past: RaceDoc[] = [];
-  for (const r of races) {
-    if (r.status === "upcoming") upcoming.push(r);
-    else past.push(r);
+function partitionAndSort(rows: RaceWithGoal[]) {
+  const upcoming: RaceWithGoal[] = [];
+  const past: RaceWithGoal[] = [];
+  for (const row of rows) {
+    if (row.race.status === "upcoming") upcoming.push(row);
+    else past.push(row);
   }
-  const byPriorityThen = (dir: 1 | -1) => (a: RaceDoc, b: RaceDoc) => {
-    const pa = PRIORITY_RANK[a.priority];
-    const pb = PRIORITY_RANK[b.priority];
-    if (pa !== pb) return pa - pb;
-    return dir * a.date.localeCompare(b.date);
-  };
+  const byPriorityThen =
+    (dir: 1 | -1) => (a: RaceWithGoal, b: RaceWithGoal) => {
+      const pa = PRIORITY_RANK[a.race.priority];
+      const pb = PRIORITY_RANK[b.race.priority];
+      if (pa !== pb) return pa - pb;
+      return dir * a.race.date.localeCompare(b.race.date);
+    };
   upcoming.sort(byPriorityThen(1));
   past.sort(byPriorityThen(-1));
   return { upcoming, past };
@@ -33,11 +34,11 @@ function partitionAndSort(races: RaceDoc[]) {
 export default function RacesListScreen() {
   const { t } = useTranslation();
   const router = useRouter();
-  const races = useQuery(api.agoge.races.listMyRaces);
+  const rows = useQuery(api.agoge.races.listMyRacesWithGoals);
 
   const { upcoming, past } = React.useMemo(
-    () => (races ? partitionAndSort(races) : { upcoming: [], past: [] }),
-    [races],
+    () => (rows ? partitionAndSort(rows) : { upcoming: [], past: [] }),
+    [rows],
   );
 
   return (
@@ -75,7 +76,7 @@ export default function RacesListScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerClassName="px-4 py-6"
       >
-        {races === undefined ? null : upcoming.length === 0 &&
+        {rows === undefined ? null : upcoming.length === 0 &&
           past.length === 0 ? (
           <View className="w-full max-w-md items-center gap-2 self-center pt-20">
             <Text
@@ -94,10 +95,10 @@ export default function RacesListScreen() {
         ) : (
           <View className="w-full max-w-md gap-6 self-center">
             {upcoming.length > 0 && (
-              <RaceSection title={t("account.races.upcoming")} races={upcoming} />
+              <RaceSection title={t("account.races.upcoming")} rows={upcoming} />
             )}
             {past.length > 0 && (
-              <RaceSection title={t("account.races.past")} races={past} dimmed />
+              <RaceSection title={t("account.races.past")} rows={past} dimmed />
             )}
           </View>
         )}
