@@ -1,4 +1,5 @@
 import { FormSection } from "@/components/app/form";
+import { WorkoutFaceCard } from "@/components/app/workout/workout-face-card";
 import { WorkoutFaceFields } from "@/components/app/workout/workout-face-fields";
 import { WorkoutFormShell } from "@/components/app/workout/workout-form-shell";
 import { EMPTY_STRUCTURE } from "@/components/app/workout/workout-helpers";
@@ -194,7 +195,10 @@ export function LogWorkoutForm({
         <WorkoutMetadataFields control={form.control} />
       </FormSection>
 
-      <FormSection title={t("workout.fields.actualSection")}>
+      <WorkoutFaceCard
+        variant="actual"
+        title={t("workout.fields.actualSection")}
+      >
         <WorkoutFaceFields
           control={form.control}
           faceName="actual"
@@ -202,10 +206,13 @@ export function LogWorkoutForm({
           errorByPath={actualErrorByPath}
           structureError={actualError}
         />
-      </FormSection>
+      </WorkoutFaceCard>
 
       {showPlanned && (
-        <FormSection title={t("workout.log.plannedSectionOptional")}>
+        <WorkoutFaceCard
+          variant="planned"
+          title={t("workout.log.plannedSectionOptional")}
+        >
           <WorkoutFaceFields
             control={form.control}
             faceName="planned"
@@ -213,7 +220,7 @@ export function LogWorkoutForm({
             errorByPath={plannedErrorByPath}
             structureError={plannedError}
           />
-        </FormSection>
+        </WorkoutFaceCard>
       )}
 
       <View>

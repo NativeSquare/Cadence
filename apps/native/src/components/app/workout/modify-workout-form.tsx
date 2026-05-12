@@ -1,5 +1,6 @@
 import { FormSection } from "@/components/app/form";
 import { WorkoutBlockField } from "@/components/app/workout/workout-block-field";
+import { WorkoutFaceCard } from "@/components/app/workout/workout-face-card";
 import { WorkoutFaceFields } from "@/components/app/workout/workout-face-fields";
 import { WorkoutFormShell } from "@/components/app/workout/workout-form-shell";
 import { EMPTY_STRUCTURE } from "@/components/app/workout/workout-helpers";
@@ -194,16 +195,22 @@ export function ModifyWorkoutForm({
         <WorkoutBlockField control={form.control} blocks={blocks} />
       </FormSection>
 
-      <FormSection title={t("workout.fields.plannedSection")}>
+      <WorkoutFaceCard
+        variant="planned"
+        title={t("workout.fields.plannedSection")}
+      >
         <WorkoutFaceFields
           control={form.control}
           faceName="planned"
           errorByPath={plannedErrorByPath}
           structureError={plannedError}
         />
-      </FormSection>
+      </WorkoutFaceCard>
 
-      <FormSection title={t("workout.fields.actualSection")}>
+      <WorkoutFaceCard
+        variant="actual"
+        title={t("workout.fields.actualSection")}
+      >
         <WorkoutFaceFields
           control={form.control}
           faceName="actual"
@@ -211,7 +218,7 @@ export function ModifyWorkoutForm({
           errorByPath={actualErrorByPath}
           structureError={actualError}
         />
-      </FormSection>
+      </WorkoutFaceCard>
     </WorkoutFormShell>
   );
 }

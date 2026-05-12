@@ -1,4 +1,4 @@
-import { FormSection } from "@/components/app/form";
+import { WorkoutFaceCard } from "@/components/app/workout/workout-face-card";
 import { WorkoutFaceFields } from "@/components/app/workout/workout-face-fields";
 import { WorkoutFormShell } from "@/components/app/workout/workout-form-shell";
 import { EMPTY_STRUCTURE } from "@/components/app/workout/workout-helpers";
@@ -117,7 +117,10 @@ export function MarkWorkoutAsDoneForm({
         </Text>
       </View>
 
-      <FormSection title={t("workout.fields.actualSection")}>
+      <WorkoutFaceCard
+        variant="actual"
+        title={t("workout.fields.actualSection")}
+      >
         <WorkoutFaceFields
           control={form.control}
           faceName="actual"
@@ -125,7 +128,7 @@ export function MarkWorkoutAsDoneForm({
           errorByPath={actualErrorByPath}
           structureError={actualError}
         />
-      </FormSection>
+      </WorkoutFaceCard>
     </WorkoutFormShell>
   );
 }

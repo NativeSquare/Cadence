@@ -175,9 +175,9 @@ export default function TrainingPlanScreen() {
                     },
                   });
                 }}
-                onEditWorkout={(workoutId) =>
+                onSelectWorkout={(workoutId) =>
                   router.push({
-                    pathname: "/(app)/workouts/[id]/edit",
+                    pathname: "/(app)/workouts/[id]",
                     params: { id: workoutId },
                   })
                 }
@@ -239,7 +239,7 @@ function BlockSection({
   workouts,
   onEditBlock,
   onAddWorkout,
-  onEditWorkout,
+  onSelectWorkout,
 }: {
   t: TFunction;
   locale: Language;
@@ -247,7 +247,7 @@ function BlockSection({
   workouts: WorkoutWithRefs[];
   onEditBlock: () => void;
   onAddWorkout: () => void;
-  onEditWorkout: (workoutId: string) => void;
+  onSelectWorkout: (workoutId: string) => void;
 }) {
   const accent = BLOCK_TYPE_COLORS[block.type];
   const grouped = React.useMemo(() => {
@@ -317,7 +317,7 @@ function BlockSection({
                 <WorkoutCard
                   key={w._id}
                   workout={w}
-                  onPress={() => onEditWorkout(w._id)}
+                  onPress={() => onSelectWorkout(w._id)}
                 />
               ))}
             </View>
