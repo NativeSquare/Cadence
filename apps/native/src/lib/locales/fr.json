@@ -774,8 +774,8 @@
           "result": "Résultat"
         },
         "objectiveTypes": {
-          "performance": "Viser un temps",
-          "completion": "Terminer la course"
+          "performance": "Temps",
+          "completion": "Terminer"
         },
         "fields": {
           "name": "Nom",
@@ -805,21 +805,8 @@
           "resultNotesOptional": "Notes de résultat (optionnel)",
           "resultNotesPlaceholder": "Comment ça s'est passé ?",
           "objectiveType": "Type d'objectif",
-          "objectiveTitle": "Objectif",
-          "objectiveTitlePlaceholder": {
-            "performance": "ex. Marathon en moins de 2h50",
-            "completion": "ex. Franchir la ligne d'arrivée"
-          },
-          "targetValue": {
-            "performance": "Temps cible",
-            "completion": "Cible"
-          },
-          "targetValuePlaceholder": {
-            "performance": "2:50:00",
-            "completion": "Terminer"
-          },
-          "objectiveDescriptionOptional": "Notes (optionnel)",
-          "objectiveDescriptionPlaceholder": "Ce que cette course représente, stratégie…"
+          "targetTime": "Temps cible",
+          "targetTimePlaceholder": "2:50:00"
         },
         "pastDatePrompt": {
           "title": "Cette date est dans le passé",

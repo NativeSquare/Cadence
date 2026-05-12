@@ -73,9 +73,7 @@ export default function EditRaceScreen() {
         goal: goal
           ? {
               type: goalType,
-              title: goal.title,
               targetValue: goal.targetValue,
-              description: goal.description,
             }
           : undefined,
       }}

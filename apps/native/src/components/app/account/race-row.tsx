@@ -120,14 +120,13 @@ export function RaceRow({
             </View>
           )}
         </View>
-        {goal && (
+        {goal && targetText && (
           <Text
             numberOfLines={1}
             className="mt-1 font-coach text-[12px]"
             style={{ color: LIGHT_THEME.wMute }}
           >
-            {goal.title}
-            {targetText ? ` · ${targetText}` : ""}
+            {targetText}
           </Text>
         )}
       </View>

@@ -234,31 +234,15 @@ export default function RaceDetailScreen() {
                     </Text>
                   </View>
                 </View>
-                <View className="flex-row items-baseline justify-between gap-3">
-                  <Text
-                    className="flex-1 font-coach-bold text-[16px]"
-                    style={{ color: LIGHT_THEME.wText }}
-                  >
-                    {goal.title}
-                  </Text>
-                  <Text
-                    className="font-coach-extrabold text-[16px]"
-                    style={{ color: LIGHT_THEME.wText }}
-                    numberOfLines={1}
-                  >
-                    {goal.targetValue === "Finish"
-                      ? t("account.races.objective.targetFinish")
-                      : goal.targetValue}
-                  </Text>
-                </View>
-                {goal.description && (
-                  <Text
-                    className="font-coach text-[13px]"
-                    style={{ color: LIGHT_THEME.wSub }}
-                  >
-                    {goal.description}
-                  </Text>
-                )}
+                <Text
+                  className="font-coach-extrabold text-[18px]"
+                  style={{ color: LIGHT_THEME.wText }}
+                  numberOfLines={1}
+                >
+                  {goal.targetValue === "Finish"
+                    ? t("account.races.objective.targetFinish")
+                    : goal.targetValue}
+                </Text>
               </View>
             </View>
           )}

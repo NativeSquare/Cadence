@@ -774,8 +774,8 @@
           "result": "Result"
         },
         "objectiveTypes": {
-          "performance": "Hit a time",
-          "completion": "Finish the race"
+          "performance": "Time",
+          "completion": "Finish"
         },
         "fields": {
           "name": "Name",
@@ -805,21 +805,8 @@
           "resultNotesOptional": "Result notes (optional)",
           "resultNotesPlaceholder": "How did it go?",
           "objectiveType": "Objective type",
-          "objectiveTitle": "Objective",
-          "objectiveTitlePlaceholder": {
-            "performance": "e.g. Sub 2:50 marathon",
-            "completion": "e.g. Cross the finish line"
-          },
-          "targetValue": {
-            "performance": "Target time",
-            "completion": "Target"
-          },
-          "targetValuePlaceholder": {
-            "performance": "2:50:00",
-            "completion": "Finish"
-          },
-          "objectiveDescriptionOptional": "Notes (optional)",
-          "objectiveDescriptionPlaceholder": "What this race means to you, strategy…"
+          "targetTime": "Target time",
+          "targetTimePlaceholder": "2:50:00"
         },
         "pastDatePrompt": {
           "title": "This date is in the past",
