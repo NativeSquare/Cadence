@@ -97,32 +97,6 @@ export interface RaceGoalData {
 }
 
 /**
- * Overall plan data for the week
- */
-export interface PlanData {
-  /** User's display name */
-  userName: string;
-  /** Current week number in the training plan */
-  weekNumber: number;
-  /** Current training phase (e.g., "Build", "Peak", "Taper") */
-  phase: string;
-  /** Array of 7 workouts for the week (Mon-Sun) */
-  workouts: WorkoutData[];
-  /** Kilometers completed this week */
-  volumeCompleted: number;
-  /** Total planned kilometers for the week */
-  volumePlanned: number;
-  /** Formatted time completed this week (e.g., "2h 45m") */
-  timeCompleted: string;
-  /** Average pace this week formatted as "m:ss" (e.g. "5:12") */
-  avgPace: string;
-  /** Week-over-week volume change percentage */
-  weekOverWeekChange: number;
-  /** Coach message for today */
-  coachMessage: string;
-}
-
-/**
  * Day labels for the calendar strip
  */
 export const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;

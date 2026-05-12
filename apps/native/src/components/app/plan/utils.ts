@@ -9,7 +9,7 @@
 import { getCadenceWorkoutType } from "@packages/shared/utils";
 import { WORKOUT_TYPES_COLORS } from "@packages/shared/colors";
 import { summarizeWorkout } from "@/components/app/workout/workout-summary";
-import type { WorkoutType } from "@nativesquare/agoge/schema";
+import type { PlanDoc, RaceDoc, WorkoutType } from "@nativesquare/agoge/schema";
 import type {
   RaceGoalData,
   WorkoutData,
@@ -157,20 +157,6 @@ export function buildWorkoutsByDate(
   return result;
 }
 
-/**
- * Subset of the agoge race doc we need to render the home-page countdown.
- * Mirrors `api.agoge.races.listMyRaces[number]` without forcing this util to
- * import the generated API types.
- */
-export interface RaceLite {
-  name: string;
-  /** YYYY-MM-DD UTC ISO string (matches schema) */
-  date: string;
-  distanceMeters?: number;
-  priority: "A" | "B" | "C";
-  status: "upcoming" | "completed" | "dnf" | "dns" | "cancelled";
-}
-
 function formatRaceDistance(meters: number | undefined): string {
   if (meters == null) return "Race";
   if (meters >= 1000) {
@@ -181,26 +167,20 @@ function formatRaceDistance(meters: number | undefined): string {
 }
 
 /**
- * Pick the primary upcoming race for the home-page card.
- *
- * Preference: next A race by date. Falls back to next B race if no A is
- * scheduled. C races and non-upcoming races are ignored — those belong on the
- * dedicated races screen, not the home page.
+ * Shape an Agoge RaceDoc (+ optional PlanDoc) into the UI's `RaceGoalData`.
+ * The race goal's `raceId` already points at the right race — no heuristic
+ * selection needed. Plan-derived fields (currentWeek/totalWeeks/phase) are
+ * placeholders for now; the plan generator hasn't surfaced them yet.
  */
-export function selectPrimaryRace(
-  races: readonly RaceLite[] | undefined,
-): RaceGoalData | null {
-  if (!races || races.length === 0) return null;
-  const upcoming = races.filter((r) => r.status === "upcoming");
-  const aRaces = upcoming.filter((r) => r.priority === "A");
-  const pool = aRaces.length > 0 ? aRaces : upcoming.filter((r) => r.priority === "B");
-  if (pool.length === 0) return null;
-  const next = [...pool].sort((a, b) => a.date.localeCompare(b.date))[0];
+export function mapRaceToGoalData(
+  race: RaceDoc,
+  _plan: PlanDoc | null,
+): RaceGoalData {
   return {
-    raceName: next.name,
-    raceDistance: formatRaceDistance(next.distanceMeters),
-    raceDate: localDateFromIso(next.date).getTime(),
-    priority: next.priority,
+    raceName: race.name,
+    raceDistance: formatRaceDistance(race.distanceMeters),
+    raceDate: localDateFromIso(race.date).getTime(),
+    priority: race.priority,
   };
 }
 
@@ -220,7 +200,6 @@ export function computeWeekInsights(
   volumeCompleted: number;
   volumePlanned: number;
   timeCompleted: string;
-  avgPace: string;
   currentWeekWorkouts: WorkoutData[];
 } {
   const weekStart = isoWeekStart(today);
@@ -255,26 +234,13 @@ export function computeWeekInsights(
     }
   }
 
-  const avgPace =
-    volumeCompletedMeters > 0 && timeCompletedSeconds > 0
-      ? formatPace(timeCompletedSeconds / volumeCompletedMeters)
-      : "-:--";
-
   return {
     volumeCompleted: Math.round((volumeCompletedMeters / 1000) * 10) / 10,
     volumePlanned: Math.round((volumePlannedMeters / 1000) * 10) / 10,
     timeCompleted:
       timeCompletedSeconds > 0 ? formatDurationLong(timeCompletedSeconds) : "0m",
-    avgPace,
     currentWeekWorkouts,
   };
-}
-
-function formatPace(secondsPerMeter: number): string {
-  const secondsPerKm = secondsPerMeter * 1000;
-  const m = Math.floor(secondsPerKm / 60);
-  const s = Math.round(secondsPerKm % 60);
-  return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
 export function getWorkoutColor(workout: WorkoutData): string {

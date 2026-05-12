@@ -295,10 +295,12 @@
     "coachLabel": "Coach",
     "noWorkoutToday": "Aucune séance prévue aujourd'hui.",
     "yourRace": "Votre course",
-    "noGoalYet": "Pas encore d'objectif",
-    "setYourARace": "Choisissez votre course A",
-    "setYourARaceHelper": "Fixez un objectif pour que le plan s'y prépare.",
-    "addRace": "Ajouter une course",
+    "setGoal": {
+      "eyebrow": "Aucun objectif",
+      "title": "Pour quoi t'entraînes-tu ?",
+      "body": "Choisis une course à préparer ou un focus forme. Ton accueil se remplira autour.",
+      "cta": "Définir ton objectif"
+    },
     "raceFallback": "Course",
     "days": "jours",
     "weekOfCurrent": "Semaine {{current}}",
@@ -312,8 +314,10 @@
       "kmSuffix": "/ {{planned}} km",
       "ranSuffix": "{{time}} couru",
       "workouts": "Séances",
-      "done": "faites",
-      "kmAvg": "/km moy."
+      "done": "faites"
+    },
+    "fitnessIntent": {
+      "eyebrow": "Ton focus"
     },
     "quickActions": {
       "title": "Actions rapides",
@@ -352,6 +356,83 @@
       "tryAgain": "Réessayer",
       "somethingWentWrong": "Une erreur est survenue",
       "noWorkoutAvailable": "Aucune séance à envoyer"
+    }
+  },
+  "goal": {
+    "title": "Définir un objectif",
+    "cancel": "Annuler",
+    "back": "Retour",
+    "next": "Suivant",
+    "done": "Terminer",
+    "stepOf": "Étape {{current}} sur {{total}}",
+    "chooseType": {
+      "heading": "Quel est votre objectif ?",
+      "helper": "Nous adapterons votre expérience en fonction de votre réponse.",
+      "race": {
+        "title": "Préparer une course",
+        "desc": "Construire un plan autour d'un événement précis."
+      },
+      "fitness": {
+        "title": "Forme générale",
+        "desc": "Pas de course en tête — rester actif avec intention."
+      }
+    },
+    "raceDetails": {
+      "heading": "Parlez-nous de votre course",
+      "name": "Nom",
+      "namePlaceholder": "ex. Marathon de Paris",
+      "date": "Date",
+      "format": "Format",
+      "discipline": "Discipline",
+      "customDistance": "Distance (km)",
+      "customDistancePlaceholder": "42.2"
+    },
+    "raceGoal": {
+      "heading": "Quel est votre objectif ?",
+      "completion": "Terminer",
+      "completionDesc": "Franchir la ligne.",
+      "performance": "Chrono",
+      "performanceDesc": "Viser un temps de référence.",
+      "targetTime": "Temps visé",
+      "targetHours": "HH",
+      "targetMinutes": "MM",
+      "targetSeconds": "SS"
+    },
+    "fitness": {
+      "heading": "Choisissez votre orientation",
+      "helper": "Vous pourrez ajouter une course plus tard — c'est pour adapter nos suggestions.",
+      "options": {
+        "start_running": {
+          "label": "Débuter la course",
+          "desc": "Construire une base depuis zéro."
+        },
+        "build_base": {
+          "label": "Construire une base",
+          "desc": "Faire monter le volume et la base aérobie."
+        },
+        "maintain_fitness": {
+          "label": "Maintenir la forme",
+          "desc": "Garder votre niveau actuel."
+        },
+        "restart_running": {
+          "label": "Reprise après blessure",
+          "desc": "Reconstruire en douceur après une pause."
+        },
+        "general_health": {
+          "label": "Rester en forme",
+          "desc": "Bouger régulièrement pour le bien-être."
+        }
+      }
+    },
+    "errors": {
+      "nameRequired": "Le nom de la course est requis",
+      "dateRequired": "La date de la course est requise",
+      "dateInPast": "La date doit être dans le futur",
+      "formatRequired": "Le format est requis",
+      "disciplineRequired": "La discipline est requise",
+      "customDistanceRequired": "La distance est requise",
+      "targetTimeRequired": "Le temps visé est requis",
+      "submitFailed": "Impossible d'enregistrer votre objectif. Réessayez."
     }
   },
   "workout": {
@@ -725,7 +806,7 @@
     "races": {
       "detail": {
         "header": "Course",
-        "objectiveSection": "Objectif",
+        "goalSection": "Objectif",
         "eventSection": "Évènement",
         "raceDetailsSection": "Détails de la course",
         "resultSection": "Résultat",
@@ -739,7 +820,7 @@
           "placement": "Classement"
         }
       },
-      "objective": {
+      "goal": {
         "targetFinish": "Terminer",
         "statuses": {
           "active": "En cours",
@@ -769,10 +850,10 @@
         "sections": {
           "event": "Évènement",
           "race": "Course",
-          "objective": "Objectif",
+          "goal": "Objectif",
           "result": "Résultat"
         },
-        "objectiveTypes": {
+        "goalTypes": {
           "performance": "Temps",
           "completion": "Terminer"
         },
@@ -803,7 +884,7 @@
           "placementPlaceholder": "—",
           "resultNotesOptional": "Notes de résultat (optionnel)",
           "resultNotesPlaceholder": "Comment ça s'est passé ?",
-          "objectiveType": "Type d'objectif",
+          "goalType": "Type d'objectif",
           "targetTime": "Temps cible",
           "targetTimePlaceholder": "2:50:00"
         },

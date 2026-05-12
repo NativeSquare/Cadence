@@ -9,14 +9,15 @@ export { PlanScreen } from "./PlanScreen";
 export { DateHeader } from "./DateHeader";
 export { CalendarStrip } from "./CalendarStrip";
 export { TodayCard } from "./TodayCard";
-export { RaceCountdown, EmptyRaceCard } from "./RaceCountdown";
+export { RaceCountdown } from "./RaceCountdown";
 export { WeekInsights } from "./WeekInsights";
 export { QuickActions } from "./QuickActions";
+export { FitnessIntentRecap } from "./FitnessIntentRecap";
 
 // Types
-export type { WorkoutData, PlanData, RaceGoalData, WorkoutIntensity } from "./types";
+export type { WorkoutData, RaceGoalData, WorkoutIntensity } from "./types";
 export { DAYS } from "./types";
 
 // Utilities
-export { getWorkoutColor } from "./utils";
+export { getWorkoutColor, mapRaceToGoalData } from "./utils";
 

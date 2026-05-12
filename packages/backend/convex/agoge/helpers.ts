@@ -102,8 +102,12 @@ export async function loadOwnedBlock(
     planId: block.planId,
   });
   if (!plan || plan.athleteId !== auth.athlete._id) return null;
+  const goal = await ctx.runQuery(components.agoge.public.getGoal, {
+    goalId: plan.goalId,
+  });
+  if (!goal || !goal.raceId) return null;
   const race = await ctx.runQuery(components.agoge.public.getRace, {
-    raceId: plan.targetRaceId,
+    raceId: goal.raceId,
   });
   if (!race) return null;
   return { userId: auth.userId, athlete: auth.athlete, block, plan, race };
@@ -167,6 +171,8 @@ export async function loadOwnedPlan(
  * joined with its target race, since callers almost always need both.
  *
  * Returns null when no plan is current (planless state is legitimate).
+ * Plans whose goal is not race-anchored are skipped — our host-app rule is
+ * "Plan only for Goal with raceId" (see plans.ts).
  */
 export async function loadCurrentAthletePlan(
   ctx: QueryCtx | MutationCtx,
@@ -179,8 +185,12 @@ export async function loadCurrentAthletePlan(
   const todayYmd = new Date().toISOString().slice(0, 10);
   for (const plan of plans) {
     if (plan.archivedAt !== undefined) continue;
+    const goal = await ctx.runQuery(components.agoge.public.getGoal, {
+      goalId: plan.goalId,
+    });
+    if (!goal || !goal.raceId) continue;
     const race = await ctx.runQuery(components.agoge.public.getRace, {
-      raceId: plan.targetRaceId,
+      raceId: goal.raceId,
     });
     if (!race) continue;
     const raceYmd = race.date.slice(0, 10);

@@ -1,10 +1,15 @@
 /**
  * Plan reads + creation.
  *
- * A Plan is 1:1 with an A-priority race. The plan's effective end is always
- * `race.date` (derived, not stored). Creation goes through the race-creation
- * mutation in races.ts; the standalone `createPlan` here is for recovery /
- * inconsistency repair (e.g. an A-race exists with no plan).
+ * Host-app domain rule: a Plan only makes sense for a Goal that is anchored
+ * to an A-priority race. Agoge itself allows any Goal to host a plan, but
+ * Cadence enforces the stricter rule here. The plan's effective end is
+ * always `race.date` (derived from goal.raceId, not stored).
+ *
+ * Creation usually goes through the race-creation mutation in races.ts (which
+ * creates Race + Goal + Plan in one shot). The standalone `createPlan` here
+ * is for recovery / inconsistency repair (e.g. a Goal with a race exists
+ * with no plan).
  */
 
 import { ConvexError, v } from "convex/values";
@@ -24,7 +29,6 @@ import {
   requireAuthError,
   result,
   validatePlanStart,
-  validateRaceOwnership,
   type ValidationError,
   type ValidationResult,
   validationResultValidator,
@@ -35,7 +39,7 @@ import {
 // ---------------------------------------------------------------------------
 
 const createPlanArgs = v.object({
-  targetRaceId: v.string(),
+  goalId: v.string(),
   startDate: v.optional(v.string()),
   notes: v.optional(v.string()),
 });
@@ -47,19 +51,27 @@ async function validateCreatePlan(
   const auth = await loadAthlete(ctx);
   if (!auth) return fail([requireAuthError]);
 
-  const ownership = await validateRaceOwnership(
-    ctx,
-    args.targetRaceId,
-    auth.athlete._id,
-  );
-  if (ownership) return fail([ownership]);
-
-  const race = await ctx.runQuery(components.agoge.public.getRace, {
-    raceId: args.targetRaceId,
+  const goal = await ctx.runQuery(components.agoge.public.getGoal, {
+    goalId: args.goalId,
   });
-  if (!race) return fail([{ code: "NOT_FOUND", message: "Race not found" }]);
+  if (!goal || goal.athleteId !== auth.athlete._id) {
+    return fail([{ code: "NOT_FOUND", message: "Goal not found" }]);
+  }
 
   const errors: ValidationError[] = [];
+
+  if (!goal.raceId) {
+    push(errors, {
+      code: "INVALID_STATE",
+      message: "Plan target goal must be anchored to a race.",
+    });
+    return result(errors);
+  }
+
+  const race = await ctx.runQuery(components.agoge.public.getRace, {
+    raceId: goal.raceId,
+  });
+  if (!race) return fail([{ code: "NOT_FOUND", message: "Race not found" }]);
 
   if (race.priority !== "A") {
     push(errors, {
@@ -74,14 +86,14 @@ async function validateCreatePlan(
     });
   }
 
-  const existingForRace = await ctx.runQuery(
-    components.agoge.public.getPlansByRace,
-    { raceId: args.targetRaceId },
+  const existingForGoal = await ctx.runQuery(
+    components.agoge.public.getPlansByGoal,
+    { goalId: args.goalId },
   );
-  if (existingForRace.some((p) => p.archivedAt === undefined)) {
+  if (existingForGoal.some((p) => p.archivedAt === undefined)) {
     push(errors, {
       code: "CONFLICT",
-      message: "A plan already exists for this race.",
+      message: "A plan already exists for this goal.",
     });
   }
 
@@ -105,7 +117,9 @@ async function validateCreatePlan(
 
 /**
  * Find a non-archived plan whose [startDate, race.date] window overlaps the
- * candidate range. Used by plan creation and by race-date updates.
+ * candidate range. Used by plan creation and by race-date updates. Plans
+ * whose goal isn't race-anchored are skipped (they shouldn't exist per the
+ * host-app rule, but we're defensive).
  */
 export async function findOverlappingPlan(
   ctx: QueryCtx | MutationCtx,
@@ -119,8 +133,12 @@ export async function findOverlappingPlan(
   for (const plan of plans) {
     if (plan._id === options?.excludePlanId) continue;
     if (plan.archivedAt !== undefined) continue;
+    const goal = await ctx.runQuery(components.agoge.public.getGoal, {
+      goalId: plan.goalId,
+    });
+    if (!goal || !goal.raceId) continue;
     const race = await ctx.runQuery(components.agoge.public.getRace, {
-      raceId: plan.targetRaceId,
+      raceId: goal.raceId,
     });
     if (!race) continue;
     const planEndYmd = race.date.slice(0, 10);
@@ -164,8 +182,12 @@ export const listMyPlans = query({
     });
     const withRace = await Promise.all(
       plans.map(async (plan) => {
+        const goal = await ctx.runQuery(components.agoge.public.getGoal, {
+          goalId: plan.goalId,
+        });
+        if (!goal || !goal.raceId) return null;
         const race = await ctx.runQuery(components.agoge.public.getRace, {
-          raceId: plan.targetRaceId,
+          raceId: goal.raceId,
         });
         return race ? { plan, race } : null;
       }),
@@ -200,7 +222,7 @@ export const createPlan = mutation({
 
     return await ctx.runMutation(components.agoge.public.createPlan, {
       athleteId: auth.athlete._id,
-      targetRaceId: args.targetRaceId,
+      goalId: args.goalId,
       startDate,
       notes: args.notes,
     });
@@ -228,13 +250,26 @@ export const archivePlan = mutation({
 // Internal helpers used by races.ts lifecycle hooks
 // ---------------------------------------------------------------------------
 
+async function plansForRace(
+  ctx: QueryCtx | MutationCtx,
+  raceId: string,
+): Promise<{ _id: string; archivedAt?: string }[]> {
+  const goals = await ctx.runQuery(components.agoge.public.getGoalsByRace, {
+    raceId,
+  });
+  const plansByGoal = await Promise.all(
+    goals.map((g) =>
+      ctx.runQuery(components.agoge.public.getPlansByGoal, { goalId: g._id }),
+    ),
+  );
+  return plansByGoal.flat();
+}
+
 export async function archivePlansForRace(
   ctx: MutationCtx,
   raceId: string,
 ): Promise<void> {
-  const plans = await ctx.runQuery(components.agoge.public.getPlansByRace, {
-    raceId,
-  });
+  const plans = await plansForRace(ctx, raceId);
   const now = new Date().toISOString();
   for (const plan of plans) {
     if (plan.archivedAt !== undefined) continue;
@@ -249,9 +284,7 @@ export async function deletePlansForRace(
   ctx: MutationCtx,
   raceId: string,
 ): Promise<void> {
-  const plans = await ctx.runQuery(components.agoge.public.getPlansByRace, {
-    raceId,
-  });
+  const plans = await plansForRace(ctx, raceId);
   for (const plan of plans) {
     await ctx.runMutation(components.agoge.public.deletePlan, {
       planId: plan._id,

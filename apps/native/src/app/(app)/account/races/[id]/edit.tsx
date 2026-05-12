@@ -3,7 +3,6 @@ import {
   FORMATS,
   type Discipline,
   type Format,
-  type ObjectiveType,
   RaceForm,
 } from "@/components/app/account/race-form";
 import { Text } from "@/components/ui/text";
@@ -42,8 +41,6 @@ export default function EditRaceScreen() {
   }
 
   const { race, goal } = data;
-  const goalType: ObjectiveType =
-    goal?.type === "completion" ? "completion" : "performance";
 
   return (
     <RaceForm
@@ -70,12 +67,10 @@ export default function EditRaceScreen() {
         elevationLossMeters: race.elevationLossMeters,
         itraCategory: race.itraCategory,
         result: race.result,
-        goal: goal
-          ? {
-              type: goalType,
-              targetValue: goal.targetValue,
-            }
-          : undefined,
+        goal:
+          goal && goal.category === "race" && goal.raceTarget
+            ? { raceTarget: goal.raceTarget }
+            : undefined,
       }}
       onSubmit={async (values) => {
         await updateRace({

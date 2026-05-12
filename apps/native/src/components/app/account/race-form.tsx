@@ -67,7 +67,7 @@ export const FORMATS = [
   "custom",
 ] as const satisfies readonly Format[];
 
-const FORMAT_DISTANCE_METERS: Record<
+export const FORMAT_DISTANCE_METERS: Record<
   Exclude<Format, "custom">,
   number
 > = {
@@ -118,7 +118,11 @@ const ITRA_CATEGORY_LABELS: Record<ItraCategory, string> = {
   XXL: "XXL",
 };
 
-export type ObjectiveType = "performance" | "completion";
+export type GoalType = "performance" | "completion";
+
+export type RaceTarget =
+  | { type: "finish" }
+  | { type: "time"; seconds: number };
 
 export type RaceFormInitial = {
   name: string;
@@ -140,8 +144,7 @@ export type RaceFormInitial = {
     notes?: string;
   };
   goal?: {
-    type: ObjectiveType;
-    targetValue: string;
+    raceTarget: RaceTarget;
   };
 };
 
@@ -165,11 +168,40 @@ export type RaceFormSubmit = {
     notes?: string;
   };
   goal: {
-    type: ObjectiveType;
-    title: string;
-    targetValue: string;
+    raceTarget: RaceTarget;
   };
 };
+
+function targetValueToSeconds(target: string): number {
+  const trimmed = target.trim();
+  if (!trimmed) return 0;
+  if (/^\d+$/.test(trimmed)) {
+    const n = Number.parseInt(trimmed, 10);
+    return Number.isFinite(n) && n > 0 ? n : 0;
+  }
+  const parts = trimmed.split(":");
+  if (parts.length < 2 || parts.length > 3) return 0;
+  for (const p of parts) if (!/^\d+$/.test(p)) return 0;
+  const nums = parts.map((p) => Number.parseInt(p, 10));
+  if (nums.length === 2) {
+    const [m, s] = nums;
+    if (s >= 60) return 0;
+    return m * 60 + s;
+  }
+  const [h, m, s] = nums;
+  if (m >= 60 || s >= 60) return 0;
+  return h * 3600 + m * 60 + s;
+}
+
+function secondsToTargetValue(seconds: number): string {
+  if (!Number.isFinite(seconds) || seconds <= 0) return "";
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = Math.round(seconds % 60);
+  const mm = String(m).padStart(2, "0");
+  const ss = String(s).padStart(2, "0");
+  return h > 0 ? `${h}:${mm}:${ss}` : `${m}:${ss}`;
+}
 
 function todayDateString(): string {
   const now = new Date();
@@ -198,7 +230,7 @@ type FormState = {
   finishSeconds: string;
   placement: string;
   resultNotes: string;
-  goalType: ObjectiveType;
+  goalType: GoalType;
   targetValue: string;
 };
 
@@ -268,10 +300,11 @@ function initialToForm(initial: RaceFormInitial): FormState {
     placement:
       initial.result?.placement != null ? String(initial.result.placement) : "",
     resultNotes: initial.result?.notes ?? "",
-    goalType: initial.goal?.type ?? "performance",
+    goalType:
+      initial.goal?.raceTarget.type === "finish" ? "completion" : "performance",
     targetValue:
-      initial.goal?.targetValue && initial.goal.targetValue !== "Finish"
-        ? initial.goal.targetValue
+      initial.goal?.raceTarget.type === "time"
+        ? secondsToTargetValue(initial.goal.raceTarget.seconds)
         : "",
   };
 }
@@ -517,12 +550,13 @@ export function RaceForm({
         itraCategory: form.itraCategory || undefined,
         result,
         goal: {
-          type: form.goalType,
-          title: "",
-          targetValue:
+          raceTarget:
             form.goalType === "performance"
-              ? form.targetValue.trim()
-              : "Finish",
+              ? {
+                  type: "time",
+                  seconds: targetValueToSeconds(form.targetValue),
+                }
+              : { type: "finish" },
         },
       });
       router.back();
@@ -835,8 +869,8 @@ export function RaceForm({
 
           </FormSection>
 
-          <FormSection title={t("account.races.form.sections.objective")}>
-            <FormField label={t("account.races.form.fields.objectiveType")}>
+          <FormSection title={t("account.races.form.sections.goal")}>
+            <FormField label={t("account.races.form.fields.goalType")}>
               <View className="flex-row gap-2">
                 {(["performance", "completion"] as const).map((value) => {
                   const selected = form.goalType === value;
@@ -862,7 +896,7 @@ export function RaceForm({
                           color: selected ? COLORS.black : LIGHT_THEME.wText,
                         }}
                       >
-                        {t(`account.races.form.objectiveTypes.${value}`)}
+                        {t(`account.races.form.goalTypes.${value}`)}
                       </Text>
                     </Pressable>
                   );

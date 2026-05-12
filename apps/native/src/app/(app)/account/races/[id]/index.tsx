@@ -2,7 +2,7 @@ import { Text } from "@/components/ui/text";
 import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
 import { api } from "@packages/backend/convex/_generated/api";
 import { Ionicons } from "@expo/vector-icons";
-import type { GoalStatus, GoalType } from "@nativesquare/agoge/schema";
+import type { GoalStatus } from "@nativesquare/agoge/schema";
 import { useQuery } from "convex/react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React from "react";
@@ -42,15 +42,36 @@ function statusLabel(t: TFunction, status: string): string {
 }
 
 function goalStatusLabel(t: TFunction, status: GoalStatus): string {
-  const key = `account.races.objective.statuses.${status}`;
+  const key = `account.races.goal.statuses.${status}`;
   const translated = t(key);
   return translated && translated !== key ? translated : status;
 }
 
-function objectiveTypeLabel(t: TFunction, type: GoalType): string {
-  const key = `account.races.form.objectiveTypes.${type}`;
+function goalTypeLabel(
+  t: TFunction,
+  raceTarget: { type: "finish" } | { type: "time"; seconds: number },
+): string {
+  const goalKey = raceTarget.type === "finish" ? "completion" : "performance";
+  const key = `account.races.form.goalTypes.${goalKey}`;
   const translated = t(key);
-  return translated && translated !== key ? translated : type;
+  return translated && translated !== key ? translated : goalKey;
+}
+
+function formatRaceTargetValue(
+  t: TFunction,
+  raceTarget: { type: "finish" } | { type: "time"; seconds: number },
+): string {
+  if (raceTarget.type === "finish") {
+    return t("account.races.goal.targetFinish");
+  }
+  const seconds = raceTarget.seconds;
+  if (!Number.isFinite(seconds) || seconds <= 0) return "—";
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = Math.round(seconds % 60);
+  const mm = String(m).padStart(2, "0");
+  const ss = String(s).padStart(2, "0");
+  return h > 0 ? `${h}:${mm}:${ss}` : `${m}:${ss}`;
 }
 
 function formatDate(iso: string): string {
@@ -200,13 +221,13 @@ export default function RaceDetailScreen() {
             </View>
           </View>
 
-          {goal && (
+          {goal && goal.category === "race" && goal.raceTarget && (
             <View className="gap-2">
               <Text
                 className="px-1 font-coach-extrabold text-[11px] uppercase tracking-widest"
                 style={{ color: LIGHT_THEME.wSub }}
               >
-                {t("account.races.detail.objectiveSection")}
+                {t("account.races.detail.goalSection")}
               </Text>
               <View
                 className="gap-2 rounded-2xl border p-4"
@@ -220,7 +241,7 @@ export default function RaceDetailScreen() {
                     className="font-coach-semibold text-[10px] uppercase tracking-wider"
                     style={{ color: LIGHT_THEME.wMute }}
                   >
-                    {objectiveTypeLabel(t, goal.type)}
+                    {goalTypeLabel(t, goal.raceTarget)}
                   </Text>
                   <View
                     className="rounded-full px-2 py-0.5"
@@ -239,9 +260,7 @@ export default function RaceDetailScreen() {
                   style={{ color: LIGHT_THEME.wText }}
                   numberOfLines={1}
                 >
-                  {goal.targetValue === "Finish"
-                    ? t("account.races.objective.targetFinish")
-                    : goal.targetValue}
+                  {formatRaceTargetValue(t, goal.raceTarget)}
                 </Text>
               </View>
             </View>

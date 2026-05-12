@@ -197,3 +197,108 @@ export const deleteGoal = mutation({
     return null;
   },
 });
+
+// ---------------------------------------------------------------------------
+// Fitness-goal helpers (host-app concern)
+//
+// "1 Athlete = 1 Active Primary Objective" — implemented as: at most one
+// active fitness Goal at a time. Active race Goals are governed by the
+// no-upcoming-A-race-conflict rule on the race side. The Home tab reads both
+// signals through `getMyActiveGoal` below.
+// ---------------------------------------------------------------------------
+
+const fitnessIntentValidator = v.union(
+  v.literal("start_running"),
+  v.literal("restart_running"),
+  v.literal("build_base"),
+  v.literal("maintain_fitness"),
+  v.literal("general_health"),
+);
+
+/**
+ * The athlete's active goal, joined with its race and current plan when
+ * applicable. Powers the Home tab — the primary axis is goal, with plan as a
+ * sub-state of the race-goal branch. Plan is returned only when it's "current"
+ * (today between startDate and race.date), matching getAthletePlan semantics.
+ */
+export const getMyActiveGoal = query({
+  args: {},
+  handler: async (ctx) => {
+    const auth = await loadAthlete(ctx);
+    if (!auth) return null;
+
+    const activeGoals = await ctx.runQuery(
+      components.agoge.public.getGoalsByAthleteAndStatus,
+      { athleteId: auth.athlete._id, status: "active" },
+    );
+    if (activeGoals.length === 0) return null;
+
+    // Race goal wins if both exist (athlete invariant: at most one of each).
+    const goal =
+      activeGoals.find((g) => g.category === "race") ?? activeGoals[0];
+
+    if (goal.category !== "race" || !goal.raceId) {
+      return { goal, race: null, plan: null };
+    }
+
+    const race = await ctx.runQuery(components.agoge.public.getRace, {
+      raceId: goal.raceId,
+    });
+    if (!race) return { goal, race: null, plan: null };
+
+    const plansForGoal = await ctx.runQuery(
+      components.agoge.public.getPlansByGoal,
+      { goalId: goal._id },
+    );
+    const todayYmd = new Date().toISOString().slice(0, 10);
+    const raceYmd = race.date.slice(0, 10);
+    const plan =
+      plansForGoal.find(
+        (p) =>
+          p.archivedAt === undefined &&
+          todayYmd >= p.startDate &&
+          todayYmd <= raceYmd,
+      ) ?? null;
+
+    return { goal, race, plan };
+  },
+});
+
+export const createMyFitnessGoal = mutation({
+  args: {
+    fitnessIntent: fitnessIntentValidator,
+    description: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const auth = await loadAthlete(ctx);
+    if (!auth)
+      throw new ConvexError({
+        code: "VALIDATION_FAILED",
+        errors: [requireAuthError],
+      });
+
+    const activeGoals = await ctx.runQuery(
+      components.agoge.public.getGoalsByAthleteAndStatus,
+      { athleteId: auth.athlete._id, status: "active" },
+    );
+    if (activeGoals.some((g) => g.category === "fitness")) {
+      throw new ConvexError({
+        code: "VALIDATION_FAILED",
+        errors: [
+          {
+            code: "CONFLICT",
+            message: "Athlete already has an active fitness goal.",
+          },
+        ],
+      });
+    }
+
+    return await ctx.runMutation(components.agoge.public.createGoal, {
+      athleteId: auth.athlete._id,
+      category: "fitness",
+      fitnessIntent: args.fitnessIntent,
+      description: args.description,
+      status: "active",
+    });
+  },
+});

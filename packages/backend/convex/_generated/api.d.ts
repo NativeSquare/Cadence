@@ -5512,20 +5512,18 @@ export declare const components: {
         "internal",
         {
           athleteId: string;
+          category: "race" | "fitness";
           description?: string;
+          fitnessIntent?:
+            | "start_running"
+            | "restart_running"
+            | "build_base"
+            | "maintain_fitness"
+            | "general_health";
           raceId?: string;
-          rank?: "primary" | "stretch" | "minimum" | "process";
+          raceTarget?: { type: "finish" } | { seconds: number; type: "time" };
           status: "active" | "achieved" | "missed" | "abandoned" | "paused";
           targetDate?: string;
-          targetValue: string;
-          title: string;
-          type:
-            | "performance"
-            | "process"
-            | "volume"
-            | "completion"
-            | "body"
-            | "other";
         },
         string
       >;
@@ -5535,9 +5533,9 @@ export declare const components: {
         {
           archivedAt?: string;
           athleteId: string;
+          goalId: string;
           notes?: string;
           startDate: string;
-          targetRaceId: string;
         },
         string
       >;
@@ -5637,6 +5635,7 @@ export declare const components: {
           blockId?: string;
           description?: string;
           name: string;
+          origin?: string;
           planId?: string;
           planned?: {
             avgHr?: number;
@@ -5898,6 +5897,7 @@ export declare const components: {
           blockId?: string;
           description?: string;
           name: string;
+          origin?: string;
           planId?: string;
           planned?: {
             avgHr?: number;
@@ -5944,20 +5944,18 @@ export declare const components: {
           _creationTime: number;
           _id: string;
           athleteId: string;
+          category: "race" | "fitness";
           description?: string;
+          fitnessIntent?:
+            | "start_running"
+            | "restart_running"
+            | "build_base"
+            | "maintain_fitness"
+            | "general_health";
           raceId?: string;
-          rank?: "primary" | "stretch" | "minimum" | "process";
+          raceTarget?: { type: "finish" } | { seconds: number; type: "time" };
           status: "active" | "achieved" | "missed" | "abandoned" | "paused";
           targetDate?: string;
-          targetValue: string;
-          title: string;
-          type:
-            | "performance"
-            | "process"
-            | "volume"
-            | "completion"
-            | "body"
-            | "other";
         } | null
       >;
       getGoalsByAthleteAndStatus: FunctionReference<
@@ -5971,20 +5969,18 @@ export declare const components: {
           _creationTime: number;
           _id: string;
           athleteId: string;
+          category: "race" | "fitness";
           description?: string;
+          fitnessIntent?:
+            | "start_running"
+            | "restart_running"
+            | "build_base"
+            | "maintain_fitness"
+            | "general_health";
           raceId?: string;
-          rank?: "primary" | "stretch" | "minimum" | "process";
+          raceTarget?: { type: "finish" } | { seconds: number; type: "time" };
           status: "active" | "achieved" | "missed" | "abandoned" | "paused";
           targetDate?: string;
-          targetValue: string;
-          title: string;
-          type:
-            | "performance"
-            | "process"
-            | "volume"
-            | "completion"
-            | "body"
-            | "other";
         }>
       >;
       getGoalsByRace: FunctionReference<
@@ -5995,20 +5991,18 @@ export declare const components: {
           _creationTime: number;
           _id: string;
           athleteId: string;
+          category: "race" | "fitness";
           description?: string;
+          fitnessIntent?:
+            | "start_running"
+            | "restart_running"
+            | "build_base"
+            | "maintain_fitness"
+            | "general_health";
           raceId?: string;
-          rank?: "primary" | "stretch" | "minimum" | "process";
+          raceTarget?: { type: "finish" } | { seconds: number; type: "time" };
           status: "active" | "achieved" | "missed" | "abandoned" | "paused";
           targetDate?: string;
-          targetValue: string;
-          title: string;
-          type:
-            | "performance"
-            | "process"
-            | "volume"
-            | "completion"
-            | "body"
-            | "other";
         }>
       >;
       getPlan: FunctionReference<
@@ -6020,9 +6014,9 @@ export declare const components: {
           _id: string;
           archivedAt?: string;
           athleteId: string;
+          goalId: string;
           notes?: string;
           startDate: string;
-          targetRaceId: string;
         } | null
       >;
       getPlannedWorkoutsByAthlete: FunctionReference<
@@ -6057,6 +6051,7 @@ export declare const components: {
           blockId?: string;
           description?: string;
           name: string;
+          origin?: string;
           planId?: string;
           planned?: {
             avgHr?: number;
@@ -6104,23 +6099,23 @@ export declare const components: {
           _id: string;
           archivedAt?: string;
           athleteId: string;
+          goalId: string;
           notes?: string;
           startDate: string;
-          targetRaceId: string;
         }>
       >;
-      getPlansByRace: FunctionReference<
+      getPlansByGoal: FunctionReference<
         "query",
         "internal",
-        { raceId: string },
+        { goalId: string },
         Array<{
           _creationTime: number;
           _id: string;
           archivedAt?: string;
           athleteId: string;
+          goalId: string;
           notes?: string;
           startDate: string;
-          targetRaceId: string;
         }>
       >;
       getRace: FunctionReference<
@@ -6434,6 +6429,7 @@ export declare const components: {
           blockId?: string;
           description?: string;
           name: string;
+          origin?: string;
           planId?: string;
           planned?: {
             avgHr?: number;
@@ -6549,6 +6545,7 @@ export declare const components: {
           blockId?: string;
           description?: string;
           name: string;
+          origin?: string;
           planId?: string;
           planned?: {
             avgHr?: number;
@@ -6619,6 +6616,7 @@ export declare const components: {
           blockId?: string;
           description?: string;
           name: string;
+          origin?: string;
           planId?: string;
           planned?: {
             avgHr?: number;
@@ -6689,6 +6687,7 @@ export declare const components: {
           blockId?: string;
           description?: string;
           name: string;
+          origin?: string;
           planId?: string;
           planned?: {
             avgHr?: number;
@@ -6911,21 +6910,19 @@ export declare const components: {
         "internal",
         {
           athleteId?: string;
+          category?: "race" | "fitness";
           description?: string;
+          fitnessIntent?:
+            | "start_running"
+            | "restart_running"
+            | "build_base"
+            | "maintain_fitness"
+            | "general_health";
           goalId: string;
           raceId?: string;
-          rank?: "primary" | "stretch" | "minimum" | "process";
+          raceTarget?: { type: "finish" } | { seconds: number; type: "time" };
           status?: "active" | "achieved" | "missed" | "abandoned" | "paused";
           targetDate?: string;
-          targetValue?: string;
-          title?: string;
-          type?:
-            | "performance"
-            | "process"
-            | "volume"
-            | "completion"
-            | "body"
-            | "other";
         },
         null
       >;
@@ -6935,10 +6932,10 @@ export declare const components: {
         {
           archivedAt?: string;
           athleteId?: string;
+          goalId?: string;
           notes?: string;
           planId: string;
           startDate?: string;
-          targetRaceId?: string;
         },
         null
       >;
@@ -7039,6 +7036,7 @@ export declare const components: {
           blockId?: string;
           description?: string;
           name?: string;
+          origin?: string;
           planId?: string;
           planned?: {
             avgHr?: number;

@@ -95,12 +95,20 @@ async function validateUpdateMyRace(
   }
 
   // If a non-archived plan exists for this race and the date moves, ensure
-  // the plan's new window doesn't overlap another plan.
+  // the plan's new window doesn't overlap another plan. Walk via goals since
+  // plans now hang off goals, not races directly.
   if (patch.date && patch.date !== race.date) {
-    const plans = await ctx.runQuery(components.agoge.public.getPlansByRace, {
+    const goals = await ctx.runQuery(components.agoge.public.getGoalsByRace, {
       raceId,
     });
-    const plan = plans.find((p) => p.archivedAt === undefined);
+    const plansByGoal = await Promise.all(
+      goals.map((g) =>
+        ctx.runQuery(components.agoge.public.getPlansByGoal, {
+          goalId: g._id,
+        }),
+      ),
+    );
+    const plan = plansByGoal.flat().find((p) => p.archivedAt === undefined);
     if (plan) {
       const conflict = await findOverlappingPlan(
         ctx,
@@ -249,23 +257,19 @@ export const deleteMyRace = mutation({
 //   - deleting a race cascades to its goal (handled by Agoge's deleteRace)
 // ---------------------------------------------------------------------------
 
-const raceGoalTypeValidator = v.union(
-  v.literal("performance"),
-  v.literal("completion"),
+const raceTargetValidator = v.union(
+  v.object({ type: v.literal("finish") }),
+  v.object({ type: v.literal("time"), seconds: v.number() }),
 );
 
 const createRaceGoalInput = v.object({
-  type: raceGoalTypeValidator,
-  title: v.string(),
+  raceTarget: raceTargetValidator,
   description: v.optional(v.string()),
-  targetValue: v.string(),
 });
 
 const updateRaceGoalInput = v.object({
-  type: v.optional(raceGoalTypeValidator),
-  title: v.optional(v.string()),
+  raceTarget: v.optional(raceTargetValidator),
   description: v.optional(v.string()),
-  targetValue: v.optional(v.string()),
 });
 
 const createMyRaceWithGoalArgs = {
@@ -283,31 +287,9 @@ const updateMyRaceWithGoalArgs = {
   goal: v.optional(updateRaceGoalInput),
 };
 
-function parseTimeTargetSec(target: string): number | null {
-  const trimmed = target.trim();
-  if (!trimmed) return null;
-  if (/^\d+$/.test(trimmed)) {
-    const n = Number.parseInt(trimmed, 10);
-    return Number.isFinite(n) && n > 0 ? n : null;
-  }
-  const parts = trimmed.split(":");
-  if (parts.length < 2 || parts.length > 3) return null;
-  for (const p of parts) if (!/^\d+$/.test(p)) return null;
-  const nums = parts.map((p) => Number.parseInt(p, 10));
-  if (nums.length === 2) {
-    const [m, s] = nums;
-    if (s >= 60) return null;
-    return m * 60 + s;
-  }
-  const [h, m, s] = nums;
-  if (m >= 60 || s >= 60) return null;
-  return h * 3600 + m * 60 + s;
-}
-
 function deriveGoalStatus(
   raceStatus: RaceStatus,
-  goalType: "performance" | "completion",
-  goalTargetValue: string,
+  raceTarget: { type: "finish" } | { type: "time"; seconds: number },
   raceResult: { finishTimeSec?: number } | undefined,
 ): GoalStatus {
   switch (raceStatus) {
@@ -319,12 +301,11 @@ function deriveGoalStatus(
     case "dnf":
       return "missed";
     case "completed":
-      if (goalType === "completion") return "achieved";
+      if (raceTarget.type === "finish") return "achieved";
       if (raceResult?.finishTimeSec != null) {
-        const target = parseTimeTargetSec(goalTargetValue);
-        if (target != null) {
-          return raceResult.finishTimeSec <= target ? "achieved" : "missed";
-        }
+        return raceResult.finishTimeSec <= raceTarget.seconds
+          ? "achieved"
+          : "missed";
       }
       return "achieved";
   }
@@ -397,26 +378,25 @@ export const createMyRaceWithGoal = mutation({
 
     const initialStatus = deriveGoalStatus(
       race.status,
-      goal.type,
-      goal.targetValue,
+      goal.raceTarget,
       race.result,
     );
 
-    await ctx.runMutation(components.agoge.public.createGoal, {
+    const goalId = await ctx.runMutation(components.agoge.public.createGoal, {
       athleteId: auth.athlete._id,
+      category: "race",
       raceId,
-      type: goal.type,
-      title: goal.title,
+      raceTarget: goal.raceTarget,
       description: goal.description,
-      targetValue: goal.targetValue,
       status: initialStatus,
     });
 
-    // Plan ⟺ A-race invariant: an upcoming A-race always has a plan.
+    // Plan ⟺ A-race invariant: an upcoming A-race always has a plan, anchored
+    // to its goal (which carries the raceId).
     if (race.priority === "A" && race.status === "upcoming") {
       await ctx.runMutation(components.agoge.public.createPlan, {
         athleteId: auth.athlete._id,
-        targetRaceId: raceId,
+        goalId,
         startDate: new Date().toISOString().slice(0, 10),
       });
     }
@@ -484,15 +464,25 @@ export const updateMyRaceWithGoal = mutation({
         effectivePriority === "A" &&
         effectiveStatus === "upcoming"
       ) {
-        const plans = await ctx.runQuery(
-          components.agoge.public.getPlansByRace,
+        const goalsForRace = await ctx.runQuery(
+          components.agoge.public.getGoalsByRace,
           { raceId },
         );
-        const hasActivePlan = plans.some((p) => p.archivedAt === undefined);
-        if (!hasActivePlan) {
+        const plansByGoal = await Promise.all(
+          goalsForRace.map((g) =>
+            ctx.runQuery(components.agoge.public.getPlansByGoal, {
+              goalId: g._id,
+            }),
+          ),
+        );
+        const hasActivePlan = plansByGoal
+          .flat()
+          .some((p) => p.archivedAt === undefined);
+        const goalForPlan = goalsForRace[0];
+        if (!hasActivePlan && goalForPlan) {
           await ctx.runMutation(components.agoge.public.createPlan, {
             athleteId: auth.athlete._id,
-            targetRaceId: raceId,
+            goalId: goalForPlan._id,
             startDate: new Date().toISOString().slice(0, 10),
           });
         }
@@ -509,30 +499,26 @@ export const updateMyRaceWithGoal = mutation({
         errors: [{ code: "NOT_FOUND", message: "Goal not found for race" }],
       });
 
-    const effectiveStatus = racePatch?.status ?? existing.status;
-    const effectiveResult =
-      racePatch && "result" in racePatch ? racePatch.result : existing.result;
-    const effectiveGoalType = goalPatch?.type ?? existingGoal.type;
-    const effectiveTargetValue =
-      goalPatch?.targetValue ?? existingGoal.targetValue;
-
-    if (effectiveGoalType !== "performance" && effectiveGoalType !== "completion") {
+    if (existingGoal.category !== "race" || !existingGoal.raceTarget) {
       throw new ConvexError({
         code: "VALIDATION_FAILED",
         errors: [
           {
-            code: "INVALID_INPUT",
-            message:
-              "Race-bound goal type must be 'performance' or 'completion'.",
+            code: "INVALID_STATE",
+            message: "Goal attached to race must be a race-category goal.",
           },
         ],
       });
     }
 
+    const effectiveStatus = racePatch?.status ?? existing.status;
+    const effectiveResult =
+      racePatch && "result" in racePatch ? racePatch.result : existing.result;
+    const effectiveRaceTarget = goalPatch?.raceTarget ?? existingGoal.raceTarget;
+
     const derivedStatus = deriveGoalStatus(
       effectiveStatus,
-      effectiveGoalType,
-      effectiveTargetValue,
+      effectiveRaceTarget,
       effectiveResult,
     );
 

@@ -1,10 +1,9 @@
 /**
  * WeekInsights - "This Week" section for the Plan tab
  *
- * Three side-by-side insight cards:
+ * Two stacked insight cards:
  * - Volume: weekly km + time progress with animated bar
  * - Workouts: completed vs total training workouts with check indicators
- * - Streak: consecutive training days with flame icon
  */
 
 import { useEffect } from "react";
@@ -18,7 +17,7 @@ import Animated, {
   withDelay,
   Easing,
 } from "react-native-reanimated";
-import { Gauge, Check } from "lucide-react-native";
+import { Check } from "lucide-react-native";
 import { Text } from "@/components/ui/text";
 import { COLORS } from "@/lib/design-tokens";
 import type { WorkoutData } from "./types";
@@ -122,27 +121,22 @@ function WorkoutsInsight({ workouts }: { workouts: WorkoutData[] }) {
 
   return (
     <View
-      className="flex-1 py-4 rounded-2xl items-center justify-between bg-w1"
+      className="px-5 py-4 rounded-2xl bg-w1"
       style={CARD_SHADOW}
     >
       <Text
-        className="text-[11px] font-coach-semibold text-wSub uppercase"
+        className="text-[11px] font-coach-semibold text-wSub mb-1.5 uppercase"
         style={{ letterSpacing: 0.05 * 11 }}
       >
         {t("plan.weekInsights.workouts")}
       </Text>
 
-      <View className="items-center mt-2">
-        <View className="flex-row items-baseline">
-          <Text className="text-[28px] font-coach-extrabold leading-none text-wText">
-            {completed}
-          </Text>
-          <Text className="text-[14px] font-coach-medium text-wMute">
-            /{trainingWorkouts.length}
-          </Text>
-        </View>
-        <Text className="text-[11px] font-coach-medium text-wSub mt-0.5">
-          {t("plan.weekInsights.done")}
+      <View className="flex-row items-baseline gap-1">
+        <Text className="text-[28px] font-coach-extrabold text-wText">
+          {completed}
+        </Text>
+        <Text className="text-[14px] font-coach-medium text-wMute">
+          /{trainingWorkouts.length} {t("plan.weekInsights.done")}
         </Text>
       </View>
 
@@ -155,66 +149,12 @@ function WorkoutsInsight({ workouts }: { workouts: WorkoutData[] }) {
   );
 }
 
-// ─── Avg Pace Card ────────────────────────────────────────────────────────────
-
-function AvgPaceInsight({ avgPace }: { avgPace: string }) {
-  const { t } = useTranslation();
-  const numberOpacity = useSharedValue(0);
-  const numberTranslateY = useSharedValue(8);
-
-  useEffect(() => {
-    numberOpacity.value = withDelay(
-      200,
-      withTiming(1, { duration: 400, easing: Easing.out(Easing.cubic) })
-    );
-    numberTranslateY.value = withDelay(
-      200,
-      withTiming(0, { duration: 400, easing: Easing.out(Easing.cubic) })
-    );
-    return () => {
-      cancelAnimation(numberOpacity);
-      cancelAnimation(numberTranslateY);
-    };
-  }, []);
-
-  const numberStyle = useAnimatedStyle(() => ({
-    opacity: numberOpacity.value,
-    transform: [{ translateY: numberTranslateY.value }],
-  }));
-
-  return (
-    <View
-      className="flex-1 py-4 rounded-2xl items-center justify-center bg-wText"
-      style={CARD_SHADOW}
-    >
-      <Gauge size={16} color={COLORS.lime} />
-
-      <Animated.View style={numberStyle} className="mt-1">
-        <Text
-          className="text-[28px] font-coach-extrabold leading-none"
-          style={{ color: COLORS.lime }}
-        >
-          {avgPace}
-        </Text>
-      </Animated.View>
-
-      <Text
-        className="text-[10px] font-coach-medium mt-1 uppercase"
-        style={{ color: "rgba(255,255,255,0.5)", letterSpacing: 0.05 * 10 }}
-      >
-        {t("plan.weekInsights.kmAvg")}
-      </Text>
-    </View>
-  );
-}
-
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 interface WeekInsightsProps {
   volumeCompleted: number;
   volumePlanned: number;
   timeCompleted: string;
-  avgPace: string;
   workouts: WorkoutData[];
 }
 
@@ -222,7 +162,6 @@ export function WeekInsights({
   volumeCompleted,
   volumePlanned,
   timeCompleted,
-  avgPace,
   workouts,
 }: WeekInsightsProps) {
   const { t } = useTranslation();
@@ -241,9 +180,8 @@ export function WeekInsights({
         timeCompleted={timeCompleted}
       />
 
-      <View className="flex-row gap-2.5 mt-2.5">
+      <View className="mt-2.5">
         <WorkoutsInsight workouts={workouts} />
-        <AvgPaceInsight avgPace={avgPace} />
       </View>
     </View>
   );

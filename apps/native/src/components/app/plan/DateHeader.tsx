@@ -1,6 +1,5 @@
 /**
  * DateHeader - Header showing date and greeting
- * Reference: cadence-full-v9.jsx TodayTab header (lines 144-156)
  *
  * Two variants:
  * - full: Complete header with date and greeting
@@ -18,19 +17,11 @@ import {
 import { useLanguage } from "@/lib/i18n";
 
 interface DateHeaderProps {
-  /** Display variant */
   variant: "full" | "collapsed";
-  /** User's name for greeting */
   userName: string;
-  /** Current week number */
-  weekNumber: number;
 }
 
-/**
- * Full DateHeader variant
- * Shows date and personalized greeting
- */
-function FullDateHeader({ userName }: Omit<DateHeaderProps, "variant" | "weekNumber">) {
+function FullDateHeader({ userName }: { userName: string }) {
   const { t } = useTranslation();
   const locale = useLanguage();
   const greeting = formatGreeting(t);
@@ -50,42 +41,22 @@ function FullDateHeader({ userName }: Omit<DateHeaderProps, "variant" | "weekNum
   );
 }
 
-/**
- * Collapsed DateHeader variant
- * Condensed header shown in sticky bar when scrolled
- * Reference: prototype lines 130-141
- */
-function CollapsedDateHeader({ userName, weekNumber }: Omit<DateHeaderProps, "variant">) {
+function CollapsedDateHeader() {
   const { t } = useTranslation();
   const locale = useLanguage();
   const shortDate = formatShortDate(locale);
 
   return (
-    <View className="flex-row items-center justify-between">
-      {/* Left side: Today label and date */}
-      <View className="flex-row items-center gap-2.5">
-        <Text className="text-[17px] font-coach-bold text-g1">{t("plan.today")}</Text>
-        <Text className="text-[13px] font-coach text-g4">{shortDate}</Text>
-      </View>
-
-      {/* Right side: Week indicator */}
-      <View className="flex-row items-center gap-1.5">
-        <View className="w-1.5 h-1.5 rounded-full bg-lime" />
-        <Text className="text-xs font-coach-semibold text-g3">
-          {t("plan.weekN", { week: weekNumber })}
-        </Text>
-      </View>
+    <View className="flex-row items-center gap-2.5">
+      <Text className="text-[17px] font-coach-bold text-g1">{t("plan.today")}</Text>
+      <Text className="text-[13px] font-coach text-g4">{shortDate}</Text>
     </View>
   );
 }
 
-/**
- * DateHeader component
- * Renders either full or collapsed variant based on props
- */
-export function DateHeader({ variant, userName, weekNumber }: DateHeaderProps) {
+export function DateHeader({ variant, userName }: DateHeaderProps) {
   if (variant === "collapsed") {
-    return <CollapsedDateHeader userName={userName} weekNumber={weekNumber} />;
+    return <CollapsedDateHeader />;
   }
   return <FullDateHeader userName={userName} />;
 }

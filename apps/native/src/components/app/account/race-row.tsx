@@ -34,6 +34,16 @@ function formatDate(iso: string): string {
   return `${d}/${m}/${y}`;
 }
 
+function formatSecondsAsClock(seconds: number): string {
+  if (!Number.isFinite(seconds) || seconds <= 0) return "—";
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = Math.round(seconds % 60);
+  const mm = String(m).padStart(2, "0");
+  const ss = String(s).padStart(2, "0");
+  return h > 0 ? `${h}:${mm}:${ss}` : `${m}:${ss}`;
+}
+
 function formatDistance(meters?: number): string | null {
   if (meters == null) return null;
   if (meters >= 1000) {
@@ -63,11 +73,12 @@ export function RaceRow({
       ? t(`account.races.statusPills.${race.status as RaceStatusKey}`)
       : null;
 
-  const targetText = goal
-    ? goal.targetValue === "Finish"
-      ? t("account.races.objective.targetFinish")
-      : goal.targetValue
-    : null;
+  const targetText =
+    goal && goal.category === "race" && goal.raceTarget
+      ? goal.raceTarget.type === "finish"
+        ? t("account.races.goal.targetFinish")
+        : formatSecondsAsClock(goal.raceTarget.seconds)
+      : null;
 
   return (
     <Pressable

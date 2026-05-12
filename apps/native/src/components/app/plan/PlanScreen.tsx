@@ -11,7 +11,15 @@
 
 import { useState, useCallback, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { View, StatusBar, ActivityIndicator, type LayoutChangeEvent } from "react-native";
+import {
+  View,
+  Pressable,
+  StatusBar,
+  ActivityIndicator,
+  type LayoutChangeEvent,
+} from "react-native";
+import Svg, { Path } from "react-native-svg";
+import { Text } from "@/components/ui/text";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -28,15 +36,16 @@ import { api } from "@packages/backend/convex/_generated/api";
 import { DateHeader } from "./DateHeader";
 import { CalendarStrip } from "./CalendarStrip";
 import { TodayCard } from "./TodayCard";
-import { RaceCountdown, EmptyRaceCard } from "./RaceCountdown";
+import { RaceCountdown } from "./RaceCountdown";
 import { WeekInsights } from "./WeekInsights";
 import { QuickActions } from "./QuickActions";
+import { FitnessIntentRecap } from "./FitnessIntentRecap";
 import { ExportToProviderSheet } from "./ExportToProviderSheet";
 import { LIGHT_THEME } from "@/lib/design-tokens";
 import {
   buildWorkoutsByDate,
-  selectPrimaryRace,
   computeWeekInsights,
+  mapRaceToGoalData,
 } from "./utils";
 import type { WorkoutData } from "./types";
 
@@ -66,15 +75,6 @@ function toUtcRangeEnd(d: Date): string {
   return `${toIsoDate(d)}T23:59:59.999Z`;
 }
 
-function computeWeekNumber(planStartDate: string, today: Date): number {
-  const start = new Date(`${planStartDate}T00:00:00`);
-  const diffDays = Math.floor(
-    (today.getTime() - start.getTime()) / (24 * 60 * 60 * 1000),
-  );
-  if (diffDays < 0) return 0;
-  return Math.floor(diffDays / 7) + 1;
-}
-
 export function PlanScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
@@ -100,12 +100,11 @@ export function PlanScreen() {
   }, [today]);
 
   const workouts = useQuery(api.agoge.workouts.listWorkouts, workoutRange);
-  const activePlan = useQuery(api.agoge.plans.getAthletePlan);
-  const races = useQuery(api.agoge.races.listMyRaces);
+  const activeGoal = useQuery(api.agoge.goals.getMyActiveGoal);
 
   const workoutsByDate = useMemo(
     () => (workouts ? buildWorkoutsByDate(workouts, today) : {}),
-    [workouts, today]
+    [workouts, today],
   );
 
   const isSelectedToday =
@@ -120,14 +119,9 @@ export function PlanScreen() {
 
   const weekInsights = useMemo(
     () => (workouts ? computeWeekInsights(workouts, today) : null),
-    [workouts, today]
+    [workouts, today],
   );
 
-  const raceGoal = useMemo(() => selectPrimaryRace(races), [races]);
-
-  const weekNumber = activePlan
-    ? computeWeekNumber(activePlan.plan.startDate, today)
-    : 0;
   const coachMessage = t("plan.coachPreparingPlan");
 
   const exportSheetRef = useRef<BottomSheetModal>(null);
@@ -159,7 +153,7 @@ export function PlanScreen() {
     (e: LayoutChangeEvent) => {
       headerHeight.value = e.nativeEvent.layout.height;
     },
-    [headerHeight]
+    [headerHeight],
   );
 
   const headerAnimatedStyle = useAnimatedStyle(() => {
@@ -190,7 +184,7 @@ export function PlanScreen() {
       if (isLight !== prev) {
         runOnJS(setLightStatusBar)(isLight);
       }
-    }
+    },
   );
 
   const safeAreaCoverStyle = useAnimatedStyle(() => {
@@ -200,19 +194,20 @@ export function PlanScreen() {
     const backgroundColor = interpolateColor(
       progress,
       [0, 0.85, 1],
-      ["#000000", "#000000", LIGHT_THEME.w2]
+      ["#000000", "#000000", LIGHT_THEME.w2],
     );
     return { backgroundColor };
   });
 
-  // Loading state -- wait for the workouts query to resolve
-  if (workouts === undefined) {
+  if (workouts === undefined || activeGoal === undefined) {
     return (
       <View className="flex-1 bg-w2 items-center justify-center">
         <ActivityIndicator size="large" color={LIGHT_THEME.wMute} />
       </View>
     );
   }
+
+  const hasGoal = activeGoal !== null;
 
   return (
     <View className="flex-1 bg-w2">
@@ -232,11 +227,7 @@ export function PlanScreen() {
         <View className="bg-black" onLayout={handleHeaderLayout}>
           <View className="px-6 pb-5" style={{ paddingTop: insets.top + 8 }}>
             <Animated.View style={headerAnimatedStyle}>
-              <DateHeader
-                variant="full"
-                userName={userName}
-                weekNumber={weekNumber}
-              />
+              <DateHeader variant="full" userName={userName} />
             </Animated.View>
           </View>
           <View
@@ -255,63 +246,111 @@ export function PlanScreen() {
           <View className="h-px bg-wBrd mt-3 -mx-4" />
         </View>
 
-        {/* Scrollable content */}
-        <View className="flex-1 bg-w2 pb-6">
-          {/* Today's Workout Card */}
-          <View className="px-4 pt-4">
-            <TodayCard
-              workout={selectedWorkout_}
-              coachMessage={coachMessage}
-              selectedDate={selectedDate}
-              isToday={isSelectedToday}
-              onExportPress={handleOpenExportSheet}
-              onCardPress={handleOpenWorkoutDetail}
-            />
-          </View>
+        {!hasGoal ? (
+          <View className="flex-1 bg-w2 px-6 pt-10 pb-6 items-center">
+            <Text
+              className="text-[11px] font-coach-semibold text-wSub uppercase text-center"
+              style={{ letterSpacing: 0.05 * 11 }}
+            >
+              {t("plan.setGoal.eyebrow")}
+            </Text>
+            <Text
+              className="text-[28px] font-coach-bold text-wText mt-2 text-center"
+              style={{ letterSpacing: -0.02 * 28, lineHeight: 32 }}
+            >
+              {t("plan.setGoal.title")}
+            </Text>
+            <Text
+              className="text-[15px] font-coach-medium text-wSub mt-3 text-center"
+              style={{ lineHeight: 22 }}
+            >
+              {t("plan.setGoal.body")}
+            </Text>
 
-          {/* This Week Insights */}
-          {weekInsights && (
-            <View className="px-4 mt-5">
-              <WeekInsights
-                volumeCompleted={weekInsights.volumeCompleted}
-                volumePlanned={weekInsights.volumePlanned}
-                timeCompleted={weekInsights.timeCompleted}
-                avgPace={weekInsights.avgPace}
-                workouts={weekInsights.currentWeekWorkouts}
+            <Pressable
+              onPress={() => router.push("/(app)/goal/new")}
+              className="mt-10 flex-row items-center justify-center gap-2 rounded-full py-4 px-8 active:opacity-90"
+              style={{ backgroundColor: LIGHT_THEME.wText, alignSelf: "stretch" }}
+            >
+              <Text
+                className="font-coach-bold text-[15px]"
+                style={{ color: "#FFFFFF" }}
+              >
+                {t("plan.setGoal.cta")}
+              </Text>
+              <Svg width={16} height={16} viewBox="0 0 24 24" fill="none">
+                <Path
+                  d="M5 12H19M19 12L13 6M19 12L13 18"
+                  stroke="#FFFFFF"
+                  strokeWidth={2.5}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </Svg>
+            </Pressable>
+          </View>
+        ) : (
+          <View className="flex-1 bg-w2 pb-6">
+            {/* Today's Workout Card */}
+            <View className="px-4 pt-4">
+              <TodayCard
+                workout={selectedWorkout_}
+                coachMessage={coachMessage}
+                selectedDate={selectedDate}
+                isToday={isSelectedToday}
+                onExportPress={handleOpenExportSheet}
+                onCardPress={handleOpenWorkoutDetail}
               />
             </View>
-          )}
 
-          {/* Primary Race Countdown (or empty state) */}
-          <View className="px-4 mt-5">
-            {raceGoal ? (
-              <RaceCountdown race={raceGoal} />
-            ) : (
-              <EmptyRaceCard
-                onAddPress={() => router.push("/(app)/account/races/new")}
+            {activeGoal.goal.category === "race" && activeGoal.race ? (
+              <>
+                <View className="px-4 mt-5">
+                  <RaceCountdown
+                    race={mapRaceToGoalData(
+                      activeGoal.race,
+                      activeGoal.plan,
+                    )}
+                  />
+                </View>
+                {activeGoal.plan && weekInsights && (
+                  <View className="px-4 mt-5">
+                    <WeekInsights
+                      volumeCompleted={weekInsights.volumeCompleted}
+                      volumePlanned={weekInsights.volumePlanned}
+                      timeCompleted={weekInsights.timeCompleted}
+                      workouts={weekInsights.currentWeekWorkouts}
+                    />
+                  </View>
+                )}
+              </>
+            ) : activeGoal.goal.category === "fitness" &&
+              activeGoal.goal.fitnessIntent ? (
+              <View className="px-4 mt-5">
+                <FitnessIntentRecap intent={activeGoal.goal.fitnessIntent} />
+              </View>
+            ) : null}
+
+            {/* Quick Actions: Schedule + Log */}
+            <View className="px-4 mt-5">
+              <QuickActions
+                selectedDateIso={toIsoDate(selectedDate)}
+                onSchedule={(dateIso) =>
+                  router.push({
+                    pathname: "/(app)/workouts/schedule",
+                    params: { date: dateIso },
+                  })
+                }
+                onLog={(dateIso) =>
+                  router.push({
+                    pathname: "/(app)/workouts/log",
+                    params: { date: dateIso },
+                  })
+                }
               />
-            )}
+            </View>
           </View>
-
-          {/* Quick Actions: Schedule + Log */}
-          <View className="px-4 mt-5">
-            <QuickActions
-              selectedDateIso={toIsoDate(selectedDate)}
-              onSchedule={(dateIso) =>
-                router.push({
-                  pathname: "/(app)/workouts/schedule",
-                  params: { date: dateIso },
-                })
-              }
-              onLog={(dateIso) =>
-                router.push({
-                  pathname: "/(app)/workouts/log",
-                  params: { date: dateIso },
-                })
-              }
-            />
-          </View>
-        </View>
+        )}
       </Animated.ScrollView>
 
       {/* Safe area cover */}
@@ -349,12 +388,14 @@ export function PlanScreen() {
         </View>
       </Animated.View>
 
-      {/* Send to Provider Bottom Sheet */}
-      <ExportToProviderSheet
-        sheetRef={exportSheetRef}
-        workoutType={selectedWorkout_.type}
-        workoutId={selectedWorkout_.workoutId}
-      />
+      {/* Send to Provider Bottom Sheet (only when TodayCard can trigger it) */}
+      {hasGoal && (
+        <ExportToProviderSheet
+          sheetRef={exportSheetRef}
+          workoutType={selectedWorkout_.type}
+          workoutId={selectedWorkout_.workoutId}
+        />
+      )}
     </View>
   );
 }
