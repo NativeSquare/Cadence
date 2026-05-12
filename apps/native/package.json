@@ -24,7 +24,7 @@
     "@gorhom/bottom-sheet": "^5.2.8",
     "@hookform/resolvers": "^5.2.2",
     "@kingstinct/react-native-healthkit": "^13.1.4",
-    "@nativesquare/agoge": "2.6.3",
+    "@nativesquare/agoge": "2.7.0",
     "@nativesquare/soma": "0.18.0",
     "@packages/backend": "workspace:*",
     "@packages/shared": "workspace:*",

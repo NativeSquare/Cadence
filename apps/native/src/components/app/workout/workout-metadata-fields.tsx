@@ -1,16 +1,8 @@
 import { FormField, PillSelect } from "@/components/app/form";
-import { TemplatePickerSheet } from "@/components/app/workout/template-picker-sheet";
 import { CADENCE_WORKOUT_TYPES } from "@/components/app/workout/workout-helpers";
-import { Text } from "@/components/ui/text";
 import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
-import { selectionFeedback } from "@/lib/haptics";
-import type { WorkoutTemplateDoc } from "@nativesquare/agoge/schema";
-import {
-  WORKOUT_TYPES_COLORS,
-} from "@packages/shared/colors";
+import { WORKOUT_TYPES_COLORS } from "@packages/shared/colors";
 import type { CadenceWorkoutType } from "@packages/shared/types";
-import { Ionicons } from "@expo/vector-icons";
-import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import React from "react";
 import {
   Controller,
@@ -18,7 +10,7 @@ import {
   type FieldValues,
 } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import { Pressable, TextInput, View } from "react-native";
+import { TextInput, View } from "react-native";
 
 const inputStyle = {
   backgroundColor: LIGHT_THEME.w1,
@@ -31,25 +23,13 @@ const inputStyle = {
 // internally to avoid `Control<T>` invariance issues at the call site.
 export function WorkoutMetadataFields<T extends FieldValues>({
   control,
-  templates,
-  templateId,
-  templateName,
-  onPickTemplate,
-  onClearTemplate,
   hideType = false,
 }: {
   control: Control<T>;
-  templates?: WorkoutTemplateDoc[];
-  templateId: string | null;
-  templateName: string | null;
-  onPickTemplate?: (template: WorkoutTemplateDoc) => void;
-  onClearTemplate: () => void;
   hideType?: boolean;
 }) {
   const { t } = useTranslation();
   const c = control as unknown as Control<FieldValues>;
-  const sheetRef = React.useRef<BottomSheetModal>(null);
-  const showTemplateAffordance = onPickTemplate != null;
 
   const workoutTypeLabels: Record<CadenceWorkoutType, string> = {
     easy: t("workout.types.easy"),
@@ -60,56 +40,6 @@ export function WorkoutMetadataFields<T extends FieldValues>({
 
   return (
     <View className="gap-5">
-      {showTemplateAffordance && (
-        <View className="gap-2">
-          {templateId == null ? (
-            <Pressable
-              onPress={() => {
-                selectionFeedback();
-                sheetRef.current?.present();
-              }}
-              className="flex-row items-center gap-2 self-start rounded-full border px-4 py-2.5 active:opacity-80"
-              style={{
-                backgroundColor: LIGHT_THEME.w1,
-                borderColor: LIGHT_THEME.wBrd,
-              }}
-            >
-              <Ionicons
-                name="albums-outline"
-                size={16}
-                color={LIGHT_THEME.wText}
-              />
-              <Text
-                className="font-coach-semibold text-[13px]"
-                style={{ color: LIGHT_THEME.wText }}
-              >
-                {t("workout.fields.useTemplate")}
-              </Text>
-            </Pressable>
-          ) : (
-            <View
-              className="flex-row items-center gap-2 self-start rounded-full px-3 py-2"
-              style={{ backgroundColor: COLORS.limeDim }}
-            >
-              <Ionicons name="link" size={14} color={LIGHT_THEME.wText} />
-              <Text
-                className="font-coach-semibold text-[12px]"
-                style={{ color: LIGHT_THEME.wText }}
-              >
-                {templateName}
-              </Text>
-              <Pressable
-                onPress={onClearTemplate}
-                className="ml-1 size-5 items-center justify-center rounded-full active:opacity-70"
-                style={{ backgroundColor: "rgba(0,0,0,0.08)" }}
-              >
-                <Ionicons name="close" size={12} color={LIGHT_THEME.wText} />
-              </Pressable>
-            </View>
-          )}
-        </View>
-      )}
-
       <Controller
         control={c}
         name="name"
@@ -171,17 +101,6 @@ export function WorkoutMetadataFields<T extends FieldValues>({
               />
             </FormField>
           )}
-        />
-      )}
-
-      {showTemplateAffordance && (
-        <TemplatePickerSheet
-          sheetRef={sheetRef}
-          templates={templates ?? []}
-          onPick={(template) => {
-            onPickTemplate?.(template);
-            sheetRef.current?.dismiss();
-          }}
         />
       )}
     </View>

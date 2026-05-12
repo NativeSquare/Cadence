@@ -360,7 +360,7 @@ export async function validatePlannedDateInBlock(
   if (plannedYmd < block.startDate || plannedYmd > block.endDate) {
     return {
       code: "DATE_OUT_OF_RANGE",
-      message: `planned.date (${plannedDate}) must fall within the selected block "${block.name}" (${block.startDate} → ${block.endDate})`,
+      message: `planned.date (${plannedDate}) must fall within the selected block (${block.startDate} → ${block.endDate})`,
     };
   }
   return null;
@@ -384,7 +384,7 @@ export async function validateNoBlockOverlap(
   if (conflict) {
     return {
       code: "CONFLICT",
-      message: `Block dates overlap with existing block "${conflict.name}" (${conflict.startDate} → ${conflict.endDate}).`,
+      message: `Block dates overlap with existing block (${conflict.startDate} → ${conflict.endDate}).`,
     };
   }
   return null;

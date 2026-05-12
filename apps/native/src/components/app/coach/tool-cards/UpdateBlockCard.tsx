@@ -11,19 +11,20 @@ import { View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { api } from "@packages/backend/convex/_generated/api";
 import { Text } from "@/components/ui/text";
-import { blockTypeLabel } from "@/components/app/workout/workout-helpers";
+import {
+  blockLabel,
+  blockTypeLabel,
+} from "@/components/app/workout/workout-helpers";
 import { ProposalCard } from "./ProposalCard";
 import { formatDate } from "./format";
 import type { ToolCardProps } from "./types";
 
 interface UpdateBlockInput {
   blockId: string;
-  name?: string;
   type?: string;
   startDate?: string;
   endDate?: string;
   focus?: string;
-  order?: number;
 }
 
 interface DiffRow {
@@ -41,13 +42,6 @@ export function UpdateBlockCard(props: ToolCardProps) {
   );
 
   const rows: DiffRow[] = [];
-  if (input.name !== undefined) {
-    rows.push({
-      label: t("coach.tools.card.rows.name"),
-      before: block?.name,
-      after: input.name,
-    });
-  }
   if (input.type !== undefined) {
     rows.push({
       label: t("coach.tools.card.rows.type"),
@@ -76,13 +70,6 @@ export function UpdateBlockCard(props: ToolCardProps) {
       after: input.focus || "—",
     });
   }
-  if (input.order !== undefined) {
-    rows.push({
-      label: t("coach.tools.card.rows.order"),
-      before: block?.order != null ? String(block.order) : null,
-      after: String(input.order),
-    });
-  }
 
   return (
     <ProposalCard
@@ -99,7 +86,7 @@ export function UpdateBlockCard(props: ToolCardProps) {
           className="text-[14px] font-coach-semibold text-wText"
           style={{ lineHeight: 14 * 1.4 }}
         >
-          {block?.name ?? t("coach.tools.card.blockFallback")}
+          {block ? blockLabel(t, block) : t("coach.tools.card.blockFallback")}
         </Text>
         {rows.length === 0 ? (
           <Text className="text-[12px] font-coach text-wMute">

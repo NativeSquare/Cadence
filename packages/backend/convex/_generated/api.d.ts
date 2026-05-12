@@ -5496,8 +5496,6 @@ export declare const components: {
         {
           endDate: string;
           focus?: string;
-          name: string;
-          order: number;
           planId: string;
           startDate: string;
           type:
@@ -5839,8 +5837,6 @@ export declare const components: {
           _id: string;
           endDate: string;
           focus?: string;
-          name: string;
-          order: number;
           planId: string;
           startDate: string;
           type:
@@ -5862,8 +5858,6 @@ export declare const components: {
           _id: string;
           endDate: string;
           focus?: string;
-          name: string;
-          order: number;
           planId: string;
           startDate: string;
           type:
@@ -6912,8 +6906,6 @@ export declare const components: {
           blockId: string;
           endDate?: string;
           focus?: string;
-          name?: string;
-          order?: number;
           planId?: string;
           startDate?: string;
           type?:

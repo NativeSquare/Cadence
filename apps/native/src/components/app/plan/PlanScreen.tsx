@@ -139,19 +139,6 @@ export function PlanScreen() {
     }
   }, [router, baseSelectedWorkout.workoutId]);
 
-  const selectedDateIso = toIsoDate(selectedDate);
-  const todayIso = toIsoDate(today);
-  const canAddOnSelectedDate = selectedDateIso >= todayIso;
-  const handleAddOnSelectedDate = useCallback(() => {
-    const isFuture = selectedDateIso > todayIso;
-    router.push({
-      pathname: isFuture
-        ? "/(app)/workouts/schedule"
-        : "/(app)/workouts/log",
-      params: { date: selectedDateIso },
-    });
-  }, [router, selectedDateIso, todayIso]);
-
   const handleOpenExportSheet = useCallback(() => {
     exportSheetRef.current?.present();
   }, []);
@@ -277,7 +264,6 @@ export function PlanScreen() {
               isToday={isSelectedToday}
               onExportPress={handleOpenExportSheet}
               onCardPress={handleOpenWorkoutDetail}
-              onAddPress={canAddOnSelectedDate ? handleAddOnSelectedDate : undefined}
             />
           </View>
 

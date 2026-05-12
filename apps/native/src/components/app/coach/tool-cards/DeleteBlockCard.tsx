@@ -1,7 +1,7 @@
 /**
  * Approval card for the `deleteBlock` writing tool.
  *
- * Shows the block name + date range being deleted. Workouts attached to it
+ * Shows the block label + date range being deleted. Workouts attached to it
  * are detached, not deleted — that's worth surfacing in the body so the user
  * understands the blast radius.
  */
@@ -12,7 +12,7 @@ import { View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { api } from "@packages/backend/convex/_generated/api";
 import { Text } from "@/components/ui/text";
-import { blockTypeLabel } from "@/components/app/workout/workout-helpers";
+import { blockLabel } from "@/components/app/workout/workout-helpers";
 import { ProposalCard } from "./ProposalCard";
 import { formatDateRange } from "./format";
 import type { ToolCardProps } from "./types";
@@ -49,16 +49,15 @@ export function DeleteBlockCard(props: ToolCardProps) {
               className="text-[14px] font-coach-semibold text-wText"
               style={{ lineHeight: 14 * 1.4 }}
             >
-              {block?.name ?? t("coach.tools.card.blockFallback")}
-            </Text>
-            <Text className="text-[12px] font-coach text-wMute">
               {block
-                ? blockTypeLabel(t, block.type)
+                ? blockLabel(t, block)
                 : t("coach.tools.card.loading")}
-              {block?.startDate && block.endDate
-                ? ` · ${formatDateRange(block.startDate, block.endDate)}`
-                : ""}
             </Text>
+            {block?.startDate && block.endDate && (
+              <Text className="text-[12px] font-coach text-wMute">
+                {formatDateRange(block.startDate, block.endDate)}
+              </Text>
+            )}
           </View>
         </View>
         <Text className="text-[11px] font-coach text-wMute italic">

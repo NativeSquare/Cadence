@@ -41,22 +41,18 @@ export default function EditBlockScreen() {
       title={t("account.blocks.editTitle")}
       submitLabel={t("account.blocks.saveSubmit")}
       initial={{
-        name: block.name,
         type: block.type,
         startDate: block.startDate,
         endDate: block.endDate,
         focus: block.focus,
-        order: block.order,
       }}
       onSubmit={async (values) => {
         await updateBlock({
           blockId: id,
-          name: values.name,
           type: values.type,
           startDate: values.startDate,
           endDate: values.endDate,
           focus: values.focus,
-          order: values.order,
         });
       }}
       onDelete={async () => {

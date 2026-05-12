@@ -11,6 +11,10 @@ import {
   nowIso,
   workoutFaceSchema,
 } from "@/components/app/workout/workout-form-helpers";
+import {
+  TemplateHeaderButton,
+  TemplatePickerSheet,
+} from "@/components/app/workout/template-picker-sheet";
 import { selectionFeedback } from "@/lib/haptics";
 import { getConvexErrorMessage } from "@/utils/getConvexErrorMessage";
 import { type Workout as WorkoutStructure } from "@nativesquare/agoge";
@@ -21,6 +25,7 @@ import type {
 import { getCadenceWorkoutType } from "@packages/shared/utils";
 import type { CadenceWorkoutType } from "@packages/shared/types";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { useRouter } from "expo-router";
 import React from "react";
 import { useForm, useWatch } from "react-hook-form";
@@ -69,9 +74,8 @@ export function ScheduleWorkoutForm({
     },
   });
 
-  const [templateId, setTemplateId] = React.useState<string | null>(null);
-  const [templateName, setTemplateName] = React.useState<string | null>(null);
   const [submitError, setSubmitError] = React.useState<string | null>(null);
+  const templateSheetRef = React.useRef<BottomSheetModal>(null);
 
   const planned = useWatch({ control: form.control, name: "planned" });
   const name = useWatch({ control: form.control, name: "name" });
@@ -108,14 +112,7 @@ export function ScheduleWorkoutForm({
       type: getCadenceWorkoutType(template.type),
       planned: { ...current.planned, structure: pickedStructure },
     });
-    setTemplateId(template._id);
-    setTemplateName(template.name);
-  };
-
-  const clearTemplateLink = () => {
-    selectionFeedback();
-    setTemplateId(null);
-    setTemplateName(null);
+    templateSheetRef.current?.dismiss();
   };
 
   const handleSave = form.handleSubmit(
@@ -147,16 +144,14 @@ export function ScheduleWorkoutForm({
       isSubmitting={isSubmitting}
       submitError={submitError}
       onSubmit={() => handleSave()}
+      headerRight={
+        <TemplateHeaderButton
+          onPress={() => templateSheetRef.current?.present()}
+        />
+      }
     >
       <FormSection title={t("workout.fields.workoutSection")}>
-        <WorkoutMetadataFields
-          control={form.control}
-          templates={templates}
-          templateId={templateId}
-          templateName={templateName}
-          onPickTemplate={handlePickTemplate}
-          onClearTemplate={clearTemplateLink}
-        />
+        <WorkoutMetadataFields control={form.control} />
         <WorkoutBlockField control={form.control} blocks={blocks} />
       </FormSection>
 
@@ -169,6 +164,12 @@ export function ScheduleWorkoutForm({
           structureError={plannedError}
         />
       </FormSection>
+
+      <TemplatePickerSheet
+        sheetRef={templateSheetRef}
+        templates={templates ?? []}
+        onPick={handlePickTemplate}
+      />
     </WorkoutFormShell>
   );
 }

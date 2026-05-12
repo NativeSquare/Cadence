@@ -30,65 +30,53 @@ import { BLOCK_TYPES } from "@packages/shared/types";
 import { instantToCalendar } from "@packages/shared/utils";
 
 export type BlockFormInitial = {
-  name: string;
   type: BlockType;
   startDate: string;
   endDate: string;
   focus?: string;
-  order: number;
 };
 
 export type BlockFormSubmit = {
-  name: string;
   type: BlockType;
   startDate: string;
   endDate: string;
   focus?: string;
-  order: number;
 };
 
 type FormState = {
-  name: string;
   type: BlockType;
   startDate: string;
   endDate: string;
   focus: string;
-  orderText: string;
 };
 
 const EMPTY_FORM: FormState = {
-  name: "",
   type: "base",
   startDate: "",
   endDate: "",
   focus: "",
-  orderText: "1",
 };
 
 function initialToForm(initial: BlockFormInitial): FormState {
   // instantToCalendar tolerates both shapes: legacy `T00:00:00.000Z` rows from
   // before the calendar/instant split, and the new bare YYYY-MM-DD form.
   return {
-    name: initial.name,
     type: initial.type,
     startDate: instantToCalendar(initial.startDate),
     endDate: instantToCalendar(initial.endDate),
     focus: initial.focus ?? "",
-    orderText: String(initial.order),
   };
 }
 
 export function BlockForm({
   title,
   initial,
-  defaultOrder,
   submitLabel,
   onSubmit,
   onDelete,
 }: {
   title: string;
   initial?: BlockFormInitial;
-  defaultOrder?: number;
   submitLabel: string;
   onSubmit: (values: BlockFormSubmit) => Promise<void>;
   onDelete?: () => Promise<void>;
@@ -103,12 +91,9 @@ export function BlockForm({
       ),
     [t],
   );
-  const [form, setForm] = React.useState<FormState>(() => {
-    if (initial) return initialToForm(initial);
-    return defaultOrder != null
-      ? { ...EMPTY_FORM, orderText: String(defaultOrder) }
-      : EMPTY_FORM;
-  });
+  const [form, setForm] = React.useState<FormState>(() =>
+    initial ? initialToForm(initial) : EMPTY_FORM,
+  );
   const [isLoading, setIsLoading] = React.useState(false);
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
@@ -118,15 +103,8 @@ export function BlockForm({
   const endValid = form.endDate.length === 10;
   const datesOrdered =
     !startValid || !endValid || form.endDate >= form.startDate;
-  const orderNum = Number.parseInt(form.orderText, 10);
-  const orderValid = Number.isFinite(orderNum) && orderNum > 0;
 
-  const canSave =
-    form.name.trim().length > 0 &&
-    startValid &&
-    endValid &&
-    datesOrdered &&
-    orderValid;
+  const canSave = startValid && endValid && datesOrdered;
 
   const handleSave = async () => {
     setError(null);
@@ -142,12 +120,10 @@ export function BlockForm({
     setIsLoading(true);
     try {
       await onSubmit({
-        name: form.name.trim(),
         type: form.type,
         startDate: form.startDate,
         endDate: form.endDate,
         focus: form.focus.trim() || undefined,
-        order: orderNum,
       });
       router.back();
     } catch (err) {
@@ -204,21 +180,6 @@ export function BlockForm({
       >
         <View className="w-full max-w-md gap-8 self-center">
           <FormSection title={t("account.blocks.section")}>
-            <FormField label={t("account.blocks.name")}>
-              <TextInput
-                className="h-12 rounded-xl border px-4 font-coach-medium text-[15px]"
-                style={inputStyle}
-                placeholder={t("account.blocks.namePlaceholder")}
-                placeholderTextColor={LIGHT_THEME.wMute}
-                value={form.name}
-                onChangeText={(v) => setForm((f) => ({ ...f, name: v }))}
-                autoCapitalize="words"
-                returnKeyType="next"
-                selectionColor={COLORS.lime}
-                cursorColor={COLORS.lime}
-              />
-            </FormField>
-
             <FormField label={t("account.blocks.type")}>
               <PillSelect
                 options={BLOCK_TYPES}
@@ -256,27 +217,6 @@ export function BlockForm({
               onChange={(v) => setForm((f) => ({ ...f, endDate: v }))}
               minDate={form.startDate || undefined}
             />
-          </FormSection>
-
-          <FormSection title={t("account.blocks.orderSection")}>
-            <FormField label={t("account.blocks.positionInPlan")}>
-              <TextInput
-                className="h-12 rounded-xl border px-4 font-coach-medium text-[15px]"
-                style={inputStyle}
-                placeholder="1"
-                placeholderTextColor={LIGHT_THEME.wMute}
-                keyboardType="number-pad"
-                value={form.orderText}
-                onChangeText={(v) =>
-                  setForm((f) => ({
-                    ...f,
-                    orderText: v.replace(/[^0-9]/g, ""),
-                  }))
-                }
-                selectionColor={COLORS.lime}
-                cursorColor={COLORS.lime}
-              />
-            </FormField>
           </FormSection>
 
           {onDelete && (

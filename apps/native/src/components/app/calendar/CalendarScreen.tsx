@@ -222,16 +222,24 @@ export function CalendarScreen() {
             )}
             hitSlop={6}
             className={cn(
-              "w-9 h-9 rounded-full items-center justify-center border bg-[rgba(255,255,255,0.06)] border-[rgba(255,255,255,0.08)] active:opacity-70",
+              "h-9 px-3 flex-row items-center justify-center gap-1.5 rounded-full border bg-[rgba(255,255,255,0.06)] border-[rgba(255,255,255,0.08)] active:opacity-70",
               isBlocksMode &&
                 "bg-[rgba(168,217,0,0.15)] border-[rgba(168,217,0,0.4)]",
             )}
           >
             <Layers
-              size={16}
+              size={14}
               color={isBlocksMode ? COLORS.lime : GRAYS.g3}
               strokeWidth={1.75}
             />
+            <Text
+              className={cn(
+                "text-[13px] font-coach-medium text-g3",
+                isBlocksMode && "text-lime",
+              )}
+            >
+              {t("calendar.toggleBlocks.label")}
+            </Text>
           </Pressable>
         </View>
       </View>

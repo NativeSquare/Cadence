@@ -190,13 +190,7 @@ export function ModifyWorkoutForm({
       onDelete={onDelete}
     >
       <FormSection title={t("workout.fields.workoutSection")}>
-        <WorkoutMetadataFields
-          control={form.control}
-          templateId={null}
-          templateName={null}
-          onClearTemplate={() => {}}
-          hideType
-        />
+        <WorkoutMetadataFields control={form.control} hideType />
         <WorkoutBlockField control={form.control} blocks={blocks} />
       </FormSection>
 

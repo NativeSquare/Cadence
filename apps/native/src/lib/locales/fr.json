@@ -139,6 +139,7 @@
     "title": "Calendrier",
     "subtitle": "Votre mois d'entraînement en un coup d'œil",
     "toggleBlocks": {
+      "label": "Blocs",
       "show": "Afficher les blocs d'entraînement",
       "hide": "Masquer les blocs d'entraînement"
     },
@@ -248,8 +249,7 @@
           "block": "Bloc",
           "start": "Début",
           "end": "Fin",
-          "focus": "Objectif",
-          "order": "Ordre"
+          "focus": "Objectif"
         }
       },
       "reading": {
@@ -332,7 +332,6 @@
       "exportToWatch": "Envoyer à la montre",
       "restDay": "Jour de repos",
       "noWorkoutScheduled": "Aucune séance prévue",
-      "addWorkout": "+ Ajouter une séance",
       "totalSuffix": "Total · {{total}}",
       "moreItems": "+ {{count}} de plus",
       "syncing": "Synchronisation",
@@ -908,19 +907,15 @@
       "notFound": "Bloc introuvable",
       "section": "Bloc",
       "datesSection": "Dates",
-      "orderSection": "Ordre",
-      "name": "Nom",
-      "namePlaceholder": "ex. Construction marathon 1",
       "type": "Type",
       "focusOptional": "Objectif (optionnel)",
       "focusPlaceholder": "ex. Capacité aérobie, seuil",
       "startDate": "Date de début",
       "endDate": "Date de fin",
-      "positionInPlan": "Position dans le plan",
       "deleteBlock": "Supprimer le bloc",
       "deleteDescription": "Cela supprimera également toutes les séances du bloc. Cette action est irréversible.",
       "errorEndBeforeStart": "La date de fin doit être identique ou postérieure à la date de début.",
-      "errorRequired": "Le nom, les dates et l'ordre sont requis."
+      "errorRequired": "Les dates sont requises."
     },
     "notifications": {
       "title": "Notifications",

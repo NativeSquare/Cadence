@@ -139,6 +139,7 @@
     "title": "Calendar",
     "subtitle": "Your training month at a glance",
     "toggleBlocks": {
+      "label": "Blocks",
       "show": "Show training blocks",
       "hide": "Hide training blocks"
     },
@@ -248,8 +249,7 @@
           "block": "Block",
           "start": "Start",
           "end": "End",
-          "focus": "Focus",
-          "order": "Order"
+          "focus": "Focus"
         }
       },
       "reading": {
@@ -332,7 +332,6 @@
       "exportToWatch": "Export to Watch",
       "restDay": "Rest Day",
       "noWorkoutScheduled": "No workout scheduled",
-      "addWorkout": "+ Add a workout",
       "totalSuffix": "Total · {{total}}",
       "moreItems": "+ {{count}} more",
       "syncing": "Syncing",
@@ -908,19 +907,15 @@
       "notFound": "Block not found",
       "section": "Block",
       "datesSection": "Dates",
-      "orderSection": "Order",
-      "name": "Name",
-      "namePlaceholder": "e.g. Marathon Build 1",
       "type": "Type",
       "focusOptional": "Focus (optional)",
       "focusPlaceholder": "e.g. Aerobic capacity, threshold",
       "startDate": "Start date",
       "endDate": "End date",
-      "positionInPlan": "Position in plan",
       "deleteBlock": "Delete block",
       "deleteDescription": "This will also delete every workout in the block. This cannot be undone.",
       "errorEndBeforeStart": "End date must be on or after start date.",
-      "errorRequired": "Name, dates and order are required."
+      "errorRequired": "Dates are required."
     },
     "notifications": {
       "title": "Notifications",

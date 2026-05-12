@@ -2,26 +2,13 @@ import { BottomSheetModal } from "@/components/custom/bottom-sheet";
 import { Text } from "@/components/ui/text";
 import { LIGHT_THEME } from "@/lib/design-tokens";
 import { selectionFeedback } from "@/lib/haptics";
+import { WorkoutTemplateRow } from "@/components/app/workout-templates/workout-template-row";
 import { Ionicons } from "@expo/vector-icons";
 import { BottomSheetModal as GorhomBottomSheetModal } from "@gorhom/bottom-sheet";
 import { useRouter } from "expo-router";
 import React from "react";
 import { Pressable, View } from "react-native";
 import { WorkoutTemplateDoc } from "@nativesquare/agoge/schema";
-
-function formatDuration(sec?: number): string | null {
-  if (sec == null || sec <= 0) return null;
-  const h = Math.floor(sec / 3600);
-  const m = Math.floor((sec % 3600) / 60);
-  if (h > 0) return `${h}h${String(m).padStart(2, "0")}`;
-  return `${m}min`;
-}
-
-function formatDistance(m?: number): string | null {
-  if (m == null || m <= 0) return null;
-  const km = Math.round((m / 1000) * 10) / 10;
-  return `${km} km`;
-}
 
 export function TemplatePickerSheet({
   sheetRef,
@@ -74,49 +61,36 @@ export function TemplatePickerSheet({
           </View>
         ) : (
           <View className="gap-2">
-            {templates.map((t) => {
-              const distance = formatDistance(t.content?.distanceMeters);
-              const duration = formatDuration(t.content?.durationSeconds);
-              const summary = [distance, duration].filter(Boolean).join(" · ");
-              return (
-                <Pressable
-                  key={t._id}
-                  onPress={() => onPick(t)}
-                  className="flex-row items-center gap-3 rounded-2xl border p-4 active:opacity-80"
-                  style={{
-                    backgroundColor: LIGHT_THEME.w1,
-                    borderColor: LIGHT_THEME.wBrd,
-                  }}
-                >
-                  <View className="flex-1 gap-0.5">
-                    <Text
-                      className="font-coach-bold text-[15px]"
-                      style={{ color: LIGHT_THEME.wText }}
-                      numberOfLines={1}
-                    >
-                      {t.name}
-                    </Text>
-                    {summary.length > 0 && (
-                      <Text
-                        className="font-coach text-[12px]"
-                        style={{ color: LIGHT_THEME.wMute }}
-                        numberOfLines={1}
-                      >
-                        {summary}
-                      </Text>
-                    )}
-                  </View>
-                  <Ionicons
-                    name="chevron-forward"
-                    size={18}
-                    color={LIGHT_THEME.wMute}
-                  />
-                </Pressable>
-              );
-            })}
+            {templates.map((tpl) => (
+              <WorkoutTemplateRow
+                key={tpl._id}
+                template={tpl}
+                onPress={() => onPick(tpl)}
+              />
+            ))}
           </View>
         )}
       </View>
     </BottomSheetModal>
+  );
+}
+
+/**
+ * Header affordance for opening the template picker. Picking a template only
+ * pre-fills the form — there's no persistent link to the source template, so
+ * this button stays visually identical regardless of whether one was applied.
+ */
+export function TemplateHeaderButton({ onPress }: { onPress: () => void }) {
+  return (
+    <Pressable
+      onPress={() => {
+        selectionFeedback();
+        onPress();
+      }}
+      className="size-9 items-center justify-center rounded-full active:opacity-70"
+      style={{ backgroundColor: LIGHT_THEME.w3 }}
+    >
+      <Ionicons name="albums-outline" size={18} color={LIGHT_THEME.wText} />
+    </Pressable>
   );
 }

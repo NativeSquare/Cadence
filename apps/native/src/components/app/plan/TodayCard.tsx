@@ -48,8 +48,6 @@ interface TodayCardProps {
   isToday?: boolean;
   onExportPress?: () => void;
   onCardPress?: () => void;
-  /** Pass to show a "+ Add a workout" button on rest days (today / future). */
-  onAddPress?: () => void;
 }
 
 // ─── Animation primitives ───────────────────────────────────────────────────
@@ -631,11 +629,9 @@ function CompletedView({
 function RestDayCard({
   dateLabel,
   onCardPress,
-  onAddPress,
 }: {
   dateLabel: string;
   onCardPress?: () => void;
-  onAddPress?: () => void;
 }) {
   const { t } = useTranslation();
   return (
@@ -683,23 +679,6 @@ function RestDayCard({
           >
             {t("plan.todayCard.noWorkoutScheduled")}
           </Text>
-
-          {onAddPress && (
-            <Pressable
-              onPress={onAddPress}
-              className="mt-4 flex-row items-center gap-2 self-start rounded-full px-4 py-2.5 active:opacity-85"
-              style={{
-                backgroundColor: LIGHT_THEME.wText,
-              }}
-            >
-              <Text
-                className="font-coach-bold text-[13px]"
-                style={{ color: "#FFFFFF" }}
-              >
-                {t("plan.todayCard.addWorkout")}
-              </Text>
-            </Pressable>
-          )}
         </View>
       </Pressable>
     </View>
@@ -715,7 +694,6 @@ export function TodayCard({
   isToday = true,
   onExportPress,
   onCardPress,
-  onAddPress,
 }: TodayCardProps) {
   const { t } = useTranslation();
   const locale = useLanguage();
@@ -730,7 +708,6 @@ export function TodayCard({
       <RestDayCard
         dateLabel={dateLabel}
         onCardPress={onCardPress}
-        onAddPress={onAddPress}
       />
     );
   }

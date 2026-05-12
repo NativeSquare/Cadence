@@ -102,10 +102,7 @@ export const MonthGrid = React.memo(function MonthGrid({
             const selectedStyle = isSelected
               ? { borderWidth: 2, borderColor: LIGHT_THEME.wText }
               : undefined;
-            const isActive =
-              !isSelected &&
-              !isToday &&
-              ((isBlocksMode && block) || (!isBlocksMode && hasWorkout));
+            const isActive = !isSelected && !isToday && hasWorkout;
 
             return (
               <View key={day.key} className="items-center">
@@ -130,18 +127,7 @@ export const MonthGrid = React.memo(function MonthGrid({
                       {day.day}
                     </Text>
 
-                    {isBlocksMode ? (
-                      block && day.key === block.startDate ? (
-                        <View className="flex-row items-center mt-1 gap-[3px]">
-                          <View
-                            className="w-1.5 h-1.5 rounded-full"
-                            style={{ backgroundColor: blockColor }}
-                          />
-                        </View>
-                      ) : (
-                        <View className="h-2.5" />
-                      )
-                    ) : hasWorkout ? (
+                    {hasWorkout ? (
                       <View className="flex-row items-center mt-1 gap-[3px]">
                         {dayWorkouts!.map((w, di) => (
                           <View

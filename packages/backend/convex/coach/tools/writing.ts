@@ -351,7 +351,6 @@ export const writingTools = {
       "the user's 'New block' form. Args are validated server-side before " +
       "the approval card is shown — silent retry on { ok: false, errors }.",
     inputSchema: z.object({
-      name: z.string().min(1),
       type: blockTypeSchema,
       startDate: z
         .string()
@@ -360,11 +359,6 @@ export const writingTools = {
         .string()
         .describe("UTC ISO 8601 timestamp for the block's last day."),
       focus: z.string().optional(),
-      order: z
-        .number()
-        .int()
-        .nonnegative()
-        .describe("Sort order within the plan, 0-indexed."),
     }),
     needsApproval: async (ctx, input): Promise<boolean> => {
       const a = await ctx.runQuery(api.agoge.blocks.dryRunCreateBlock, input);
@@ -396,18 +390,15 @@ export const writingTools = {
 
   updateBlock: createTool({
     description:
-      "Update fields on an existing block (name, type, dates, focus, " +
-      "order). Maps to the user's 'Edit block' form. Args are validated " +
-      "server-side before the approval card is shown — silent retry on " +
-      "{ ok: false, errors }.",
+      "Update fields on an existing block (type, dates, focus). Maps to " +
+      "the user's 'Edit block' form. Args are validated server-side before " +
+      "the approval card is shown — silent retry on { ok: false, errors }.",
     inputSchema: z.object({
       blockId: z.string(),
-      name: z.string().min(1).optional(),
       type: blockTypeSchema.optional(),
       startDate: z.string().optional(),
       endDate: z.string().optional(),
       focus: z.string().optional(),
-      order: z.number().int().nonnegative().optional(),
     }),
     needsApproval: async (ctx, input): Promise<boolean> => {
       const a = await ctx.runQuery(api.agoge.blocks.dryRunUpdateBlock, input);

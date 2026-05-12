@@ -68,10 +68,7 @@ export default function TrainingPlanScreen() {
 
   const sortedBlocks = React.useMemo(() => {
     if (!blocks) return [];
-    return [...blocks].sort((a, b) => {
-      if (a.order !== b.order) return a.order - b.order;
-      return a.startDate.localeCompare(b.startDate);
-    });
+    return [...blocks].sort((a, b) => a.startDate.localeCompare(b.startDate));
   }, [blocks]);
 
   const workoutsByBlock = React.useMemo(() => {
@@ -287,7 +284,7 @@ function BlockSection({
             className="font-coach-extrabold text-[11px] uppercase"
             style={{ color: LIGHT_THEME.wSub, letterSpacing: 1.2 }}
           >
-            {blockTypeLabel(t, block.type)} · {block.name}
+            {blockTypeLabel(t, block.type)}
           </Text>
           <Text
             className="mt-0.5 font-coach text-[11px]"

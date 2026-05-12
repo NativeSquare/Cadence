@@ -27,6 +27,7 @@ export function WorkoutFormShell({
   onDelete,
   deleteLabel,
   deleteDescription,
+  headerRight,
   children,
 }: {
   title: string;
@@ -38,6 +39,7 @@ export function WorkoutFormShell({
   onDelete?: () => Promise<void>;
   deleteLabel?: string;
   deleteDescription?: string;
+  headerRight?: React.ReactNode;
   children: React.ReactNode;
 }) {
   const { t } = useTranslation();
@@ -88,6 +90,7 @@ export function WorkoutFormShell({
         >
           {title}
         </Text>
+        {headerRight}
       </View>
 
       <ScrollView

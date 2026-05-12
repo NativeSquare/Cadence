@@ -1,24 +1,22 @@
 /**
  * Approval card for the `createBlock` writing tool.
  *
- * Renders the proposed block: name, type, date range, focus.
+ * Renders the proposed block: type (+ optional focus), date range.
  */
 
 import { View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { Text } from "@/components/ui/text";
-import { blockTypeLabel } from "@/components/app/workout/workout-helpers";
+import { blockLabel } from "@/components/app/workout/workout-helpers";
 import { ProposalCard } from "./ProposalCard";
 import { formatDateRange } from "./format";
 import type { ToolCardProps } from "./types";
 
 interface CreateBlockInput {
-  name: string;
   type: string;
   startDate: string;
   endDate: string;
   focus?: string;
-  order?: number;
 }
 
 export function CreateBlockCard(props: ToolCardProps) {
@@ -40,17 +38,13 @@ export function CreateBlockCard(props: ToolCardProps) {
           className="text-[14px] font-coach-semibold text-wText"
           style={{ lineHeight: 14 * 1.4 }}
         >
-          {input.name ?? t("coach.tools.card.blockFallback")}
+          {input.type
+            ? blockLabel(t, { type: input.type, focus: input.focus })
+            : t("coach.tools.card.blockFallback")}
         </Text>
-        <Text className="text-[12px] font-coach text-wMute">
-          {input.type ? blockTypeLabel(t, input.type) : "—"}
-          {input.startDate && input.endDate
-            ? ` · ${formatDateRange(input.startDate, input.endDate)}`
-            : ""}
-        </Text>
-        {input.focus && (
-          <Text className="text-[12px] font-coach text-wText mt-1">
-            {input.focus}
+        {input.startDate && input.endDate && (
+          <Text className="text-[12px] font-coach text-wMute">
+            {formatDateRange(input.startDate, input.endDate)}
           </Text>
         )}
       </View>
