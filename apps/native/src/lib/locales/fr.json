@@ -890,7 +890,8 @@
       "empty": {
         "noPlan": {
           "title": "Aucun plan d'entraînement actif",
-          "description": "Votre coach construit le plan une fois votre objectif défini. Discutez avec lui pour commencer."
+          "description": "Un plan démarre dès que vous fixez votre prochaine course A. Ajoutez une course pour commencer à vous y préparer.",
+          "addRace": "Ajouter votre prochaine course"
         },
         "noBlocks": {
           "title": "Aucun bloc pour le moment",

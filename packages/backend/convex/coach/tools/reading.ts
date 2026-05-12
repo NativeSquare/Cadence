@@ -70,9 +70,10 @@ export const readingTools = {
 
   getAthletePlan: createTool({
     description:
-      "Read the athlete's currently active training plan (one container " +
-      "with start/end dates, target race, status). Returns null if no " +
-      "active plan exists.",
+      "Read the athlete's currently active training plan joined with its " +
+      "target A-priority race. Returns `{ plan, race }` where the plan's " +
+      "effective end date is `race.date`, or null if the athlete has no " +
+      "current plan (planless state — no upcoming A-race).",
     inputSchema: z.object({}),
     needsApproval: false,
     execute: async (ctx): Promise<unknown> => {

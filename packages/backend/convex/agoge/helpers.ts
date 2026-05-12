@@ -1,6 +1,11 @@
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { safeParseWorkout, type Workout } from "@nativesquare/agoge";
-import type { RaceStatus, WorkoutStatus } from "@nativesquare/agoge/schema";
+import type {
+  PlanDoc,
+  RaceDoc,
+  RaceStatus,
+  WorkoutStatus,
+} from "@nativesquare/agoge/schema";
 import { Infer, v } from "convex/values";
 import { components } from "../_generated/api";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
@@ -97,7 +102,11 @@ export async function loadOwnedBlock(
     planId: block.planId,
   });
   if (!plan || plan.athleteId !== auth.athlete._id) return null;
-  return { userId: auth.userId, athlete: auth.athlete, block, plan };
+  const race = await ctx.runQuery(components.agoge.public.getRace, {
+    raceId: plan.targetRaceId,
+  });
+  if (!race) return null;
+  return { userId: auth.userId, athlete: auth.athlete, block, plan, race };
 }
 
 export async function loadOwnedRace(
@@ -139,15 +148,47 @@ export async function loadOwnedWorkoutTemplate(
   return { userId: auth.userId, template };
 }
 
-export async function loadActiveAthletePlan(
+export async function loadOwnedPlan(
+  ctx: QueryCtx | MutationCtx,
+  planId: string,
+) {
+  const [auth, plan] = await Promise.all([
+    loadAthlete(ctx),
+    ctx.runQuery(components.agoge.public.getPlan, { planId }),
+  ]);
+  if (!auth || !plan) return null;
+  if (plan.athleteId !== auth.athlete._id) return null;
+  return { userId: auth.userId, athlete: auth.athlete, plan };
+}
+
+/**
+ * The athlete's *current* plan — non-archived, with today between
+ * `plan.startDate` (inclusive) and `race.date` (inclusive). Returns the plan
+ * joined with its target race, since callers almost always need both.
+ *
+ * Returns null when no plan is current (planless state is legitimate).
+ */
+export async function loadCurrentAthletePlan(
   ctx: QueryCtx | MutationCtx,
   athleteId: string,
-) {
+): Promise<{ plan: PlanDoc; race: RaceDoc } | null> {
   const plans = await ctx.runQuery(
-    components.agoge.public.getPlansByAthleteAndStatus,
-    { athleteId, status: "active" },
+    components.agoge.public.getPlansByAthlete,
+    { athleteId },
   );
-  return plans[0] ?? null;
+  const todayYmd = new Date().toISOString().slice(0, 10);
+  for (const plan of plans) {
+    if (plan.archivedAt !== undefined) continue;
+    const race = await ctx.runQuery(components.agoge.public.getRace, {
+      raceId: plan.targetRaceId,
+    });
+    if (!race) continue;
+    const raceYmd = race.date.slice(0, 10);
+    if (todayYmd >= plan.startDate && todayYmd <= raceYmd) {
+      return { plan, race };
+    }
+  }
+  return null;
 }
 
 // ---------------------------------------------------------------------------
@@ -155,9 +196,9 @@ export async function loadActiveAthletePlan(
 // ---------------------------------------------------------------------------
 
 export const requireAuthError: ValidationError = notAuthorized("Not authorized");
-export const noActivePlanError: ValidationError = {
+export const noCurrentPlanError: ValidationError = {
   code: "INVALID_STATE",
-  message: "Athlete has no active plan",
+  message: "Athlete has no current plan",
 };
 
 // ---------------------------------------------------------------------------
@@ -300,39 +341,44 @@ export function validateBlockDateRange(
   return null;
 }
 
-export function validatePlanDateRange(
+/**
+ * A plan's startDate is user-chosen; the endDate is always `race.date` (the
+ * plan target). Validate the start lands on a real day and is on/before the
+ * race day.
+ */
+export function validatePlanStart(
   startDate: string,
-  endDate?: string,
+  raceDate: string,
 ): ValidationError | null {
   const start = validateIsoCalendarDate(startDate, "Plan startDate");
   if (start) return start;
-  if (endDate !== undefined) {
-    const end = validateIsoCalendarDate(endDate, "Plan endDate");
-    if (end) return end;
-    if (endDate < startDate) {
-      return {
-        code: "DATE_OUT_OF_RANGE",
-        message: "Plan endDate must be on or after startDate.",
-      };
-    }
+  // race.date is an instant; compare on the YMD prefix.
+  const raceYmd = raceDate.slice(0, 10);
+  if (startDate > raceYmd) {
+    return {
+      code: "DATE_OUT_OF_RANGE",
+      message: `Plan startDate (${startDate}) cannot be after race date (${raceYmd}).`,
+    };
   }
   return null;
 }
 
 export function validateBlockWithinPlan(
   range: { startDate: string; endDate: string },
-  plan: { startDate: string; endDate?: string; name: string },
+  plan: { startDate: string },
+  race: { name: string; date: string },
 ): ValidationError | null {
+  const raceYmd = race.date.slice(0, 10);
   if (range.startDate < plan.startDate) {
     return {
       code: "DATE_OUT_OF_RANGE",
-      message: `Block startDate (${range.startDate}) cannot be before plan "${plan.name}" startDate (${plan.startDate}).`,
+      message: `Block startDate (${range.startDate}) cannot be before plan startDate (${plan.startDate}) for "${race.name}".`,
     };
   }
-  if (plan.endDate && range.endDate > plan.endDate) {
+  if (range.endDate > raceYmd) {
     return {
       code: "DATE_OUT_OF_RANGE",
-      message: `Block endDate (${range.endDate}) cannot be after plan "${plan.name}" endDate (${plan.endDate}).`,
+      message: `Block endDate (${range.endDate}) cannot be after race date (${raceYmd}) for "${race.name}".`,
     };
   }
   return null;

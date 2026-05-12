@@ -12,7 +12,6 @@ import type * as agoge_athletes from "../agoge/athletes.js";
 import type * as agoge_blocks from "../agoge/blocks.js";
 import type * as agoge_goals from "../agoge/goals.js";
 import type * as agoge_helpers from "../agoge/helpers.js";
-import type * as agoge_migrations from "../agoge/migrations.js";
 import type * as agoge_plans from "../agoge/plans.js";
 import type * as agoge_races from "../agoge/races.js";
 import type * as agoge_sync from "../agoge/sync.js";
@@ -80,7 +79,6 @@ declare const fullApi: ApiFromModules<{
   "agoge/blocks": typeof agoge_blocks;
   "agoge/goals": typeof agoge_goals;
   "agoge/helpers": typeof agoge_helpers;
-  "agoge/migrations": typeof agoge_migrations;
   "agoge/plans": typeof agoge_plans;
   "agoge/races": typeof agoge_races;
   "agoge/sync": typeof agoge_sync;
@@ -5535,13 +5533,11 @@ export declare const components: {
         "mutation",
         "internal",
         {
+          archivedAt?: string;
           athleteId: string;
-          endDate?: string;
-          name: string;
           notes?: string;
           startDate: string;
-          status: "draft" | "active" | "completed" | "archived";
-          targetRaceId?: string;
+          targetRaceId: string;
         },
         string
       >;
@@ -6022,13 +6018,11 @@ export declare const components: {
         {
           _creationTime: number;
           _id: string;
+          archivedAt?: string;
           athleteId: string;
-          endDate?: string;
-          name: string;
           notes?: string;
           startDate: string;
-          status: "draft" | "active" | "completed" | "archived";
-          targetRaceId?: string;
+          targetRaceId: string;
         } | null
       >;
       getPlannedWorkoutsByAthlete: FunctionReference<
@@ -6101,23 +6095,18 @@ export declare const components: {
             | "other";
         }>
       >;
-      getPlansByAthleteAndStatus: FunctionReference<
+      getPlansByAthlete: FunctionReference<
         "query",
         "internal",
-        {
-          athleteId: string;
-          status: "draft" | "active" | "completed" | "archived";
-        },
+        { athleteId: string },
         Array<{
           _creationTime: number;
           _id: string;
+          archivedAt?: string;
           athleteId: string;
-          endDate?: string;
-          name: string;
           notes?: string;
           startDate: string;
-          status: "draft" | "active" | "completed" | "archived";
-          targetRaceId?: string;
+          targetRaceId: string;
         }>
       >;
       getPlansByRace: FunctionReference<
@@ -6127,13 +6116,11 @@ export declare const components: {
         Array<{
           _creationTime: number;
           _id: string;
+          archivedAt?: string;
           athleteId: string;
-          endDate?: string;
-          name: string;
           notes?: string;
           startDate: string;
-          status: "draft" | "active" | "completed" | "archived";
-          targetRaceId?: string;
+          targetRaceId: string;
         }>
       >;
       getRace: FunctionReference<
@@ -6946,13 +6933,11 @@ export declare const components: {
         "mutation",
         "internal",
         {
+          archivedAt?: string;
           athleteId?: string;
-          endDate?: string;
-          name?: string;
           notes?: string;
           planId: string;
           startDate?: string;
-          status?: "draft" | "active" | "completed" | "archived";
           targetRaceId?: string;
         },
         null

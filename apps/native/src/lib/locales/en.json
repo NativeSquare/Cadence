@@ -890,7 +890,8 @@
       "empty": {
         "noPlan": {
           "title": "No active training plan",
-          "description": "Your coach builds the plan once you set a target. Talk to your coach to get started."
+          "description": "A plan starts when you set your next A-priority race. Add a race to begin training toward it.",
+          "addRace": "Add your next race"
         },
         "noBlocks": {
           "title": "No blocks yet",

@@ -11,13 +11,13 @@
  */
 
 import { v, type Infer } from "convex/values";
-import type { QueryCtx } from "../../_generated/server";
 import type {
-  loadActiveAthletePlan,
-  loadAthlete,
-  loadOwnedBlock,
-  loadOwnedRace,
-} from "../../agoge/helpers";
+  AthleteDoc,
+  BlockDoc,
+  PlanDoc,
+  RaceDoc,
+} from "@nativesquare/agoge/schema";
+import type { QueryCtx } from "../../_generated/server";
 
 export type PhilosophySeverity = "block" | "warn";
 
@@ -35,15 +35,10 @@ export type PhilosophyViolation = {
   message: string;
 };
 
-type AthleteDoc = NonNullable<Awaited<ReturnType<typeof loadAthlete>>>["athlete"];
-type ActivePlan = NonNullable<Awaited<ReturnType<typeof loadActiveAthletePlan>>>;
-type BlockDoc = NonNullable<Awaited<ReturnType<typeof loadOwnedBlock>>>["block"];
-type RaceDoc = NonNullable<Awaited<ReturnType<typeof loadOwnedRace>>>["race"];
-
 export type PhilosophyContext = {
   athleteId: string;
   athlete: AthleteDoc;
-  activePlan: ActivePlan | null;
+  activePlan: PlanDoc | null;
   currentBlock: BlockDoc | null;
   /** Active plan's target race (if any). Used by taper rules. */
   goalRace: RaceDoc | null;

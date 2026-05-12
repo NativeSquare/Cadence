@@ -9,10 +9,9 @@ import {
 } from "../_generated/server";
 import {
   fail,
-  loadActiveAthletePlan,
   loadAthlete,
+  loadCurrentAthletePlan,
   loadOwnedWorkout,
-  noActivePlanError,
   push,
   requireAuthError,
   result,
@@ -48,9 +47,6 @@ async function validateCreateWorkout(
 ): Promise<ValidationResult> {
   const auth = await loadAthlete(ctx);
   if (!auth) return fail([requireAuthError]);
-
-  const plan = await loadActiveAthletePlan(ctx, auth.athlete._id);
-  if (!plan) return fail([noActivePlanError]);
 
   const errors: ValidationError[] = [];
   push(errors, validateIsoInstantDate(args.planned?.date, "planned.date"));
@@ -448,19 +444,25 @@ export const createWorkout = mutation({
         code: "VALIDATION_FAILED",
         errors: [requireAuthError],
       });
-    const plan = await loadActiveAthletePlan(ctx, auth.athlete._id);
-    if (!plan)
-      throw new ConvexError({
-        code: "VALIDATION_FAILED",
-        errors: [noActivePlanError],
-      });
+
+    // Attach to the current plan only if the workout date sits inside its
+    // window. Off-window workouts stay planId-less ("free workouts").
+    const current = await loadCurrentAthletePlan(ctx, auth.athlete._id);
+    const plannedYmd = args.planned?.date?.slice(0, 10);
+    const planId =
+      current &&
+      plannedYmd &&
+      plannedYmd >= current.plan.startDate &&
+      plannedYmd <= current.race.date.slice(0, 10)
+        ? current.plan._id
+        : undefined;
 
     const workoutId = await ctx.runMutation(
       components.agoge.public.createWorkout,
       {
         ...args,
         athleteId: auth.athlete._id,
-        planId: plan._id,
+        planId,
       },
     );
 

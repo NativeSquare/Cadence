@@ -125,7 +125,9 @@ export function PlanScreen() {
 
   const raceGoal = useMemo(() => selectPrimaryRace(races), [races]);
 
-  const weekNumber = activePlan ? computeWeekNumber(activePlan.startDate, today) : 0;
+  const weekNumber = activePlan
+    ? computeWeekNumber(activePlan.plan.startDate, today)
+    : 0;
   const coachMessage = t("plan.coachPreparingPlan");
 
   const exportSheetRef = useRef<BottomSheetModal>(null);

@@ -9,10 +9,10 @@ import {
 } from "../_generated/server";
 import {
   fail,
-  loadActiveAthletePlan,
   loadAthlete,
+  loadCurrentAthletePlan,
   loadOwnedBlock,
-  noActivePlanError,
+  noCurrentPlanError,
   push,
   requireAuthError,
   result,
@@ -36,13 +36,13 @@ async function validateCreateBlock(
 ): Promise<ValidationResult> {
   const auth = await loadAthlete(ctx);
   if (!auth) return fail([requireAuthError]);
-  const plan = await loadActiveAthletePlan(ctx, auth.athlete._id);
-  if (!plan) return fail([noActivePlanError]);
+  const current = await loadCurrentAthletePlan(ctx, auth.athlete._id);
+  if (!current) return fail([noCurrentPlanError]);
 
   const errors: ValidationError[] = [];
   push(errors, validateBlockDateRange(args.startDate, args.endDate));
-  push(errors, validateBlockWithinPlan(args, plan));
-  push(errors, await validateNoBlockOverlap(ctx, plan._id, args));
+  push(errors, validateBlockWithinPlan(args, current.plan, current.race));
+  push(errors, await validateNoBlockOverlap(ctx, current.plan._id, args));
   return result(errors);
 }
 
@@ -58,7 +58,7 @@ async function validateUpdateBlock(
   const { blockId, ...patch } = args;
   const owned = await loadOwnedBlock(ctx, blockId);
   if (!owned) return fail([requireAuthError]);
-  const { block, plan } = owned;
+  const { block, plan, race } = owned;
 
   const nextStart = patch.startDate ?? block.startDate;
   const nextEnd = patch.endDate ?? block.endDate;
@@ -67,7 +67,11 @@ async function validateUpdateBlock(
   push(errors, validateBlockDateRange(nextStart, nextEnd));
   push(
     errors,
-    validateBlockWithinPlan({ startDate: nextStart, endDate: nextEnd }, plan),
+    validateBlockWithinPlan(
+      { startDate: nextStart, endDate: nextEnd },
+      plan,
+      race,
+    ),
   );
   push(
     errors,
@@ -109,16 +113,12 @@ export const listBlocks = query({
 export const listBlocksForActiveAthletePlan = query({
   args: {},
   handler: async (ctx) => {
-    const result = await loadAthlete(ctx);
-    if (!result) return [];
-    const plans = await ctx.runQuery(
-      components.agoge.public.getPlansByAthleteAndStatus,
-      { athleteId: result.athlete._id, status: "active" },
-    );
-    const plan = plans[0];
-    if (!plan) return [];
+    const auth = await loadAthlete(ctx);
+    if (!auth) return [];
+    const current = await loadCurrentAthletePlan(ctx, auth.athlete._id);
+    if (!current) return [];
     return await ctx.runQuery(components.agoge.public.getBlocksByPlan, {
-      planId: plan._id,
+      planId: current.plan._id,
     });
   },
 });
@@ -151,16 +151,16 @@ export const createBlock = mutation({
         code: "VALIDATION_FAILED",
         errors: [requireAuthError],
       });
-    const plan = await loadActiveAthletePlan(ctx, auth.athlete._id);
-    if (!plan)
+    const current = await loadCurrentAthletePlan(ctx, auth.athlete._id);
+    if (!current)
       throw new ConvexError({
         code: "VALIDATION_FAILED",
-        errors: [noActivePlanError],
+        errors: [noCurrentPlanError],
       });
 
     return await ctx.runMutation(components.agoge.public.createBlock, {
       ...args,
-      planId: plan._id,
+      planId: current.plan._id,
     });
   },
 });

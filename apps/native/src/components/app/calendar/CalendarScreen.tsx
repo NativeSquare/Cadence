@@ -113,7 +113,7 @@ export function CalendarScreen() {
   const activePlan = useQuery(api.agoge.plans.getAthletePlan);
   const blocks = useQuery(
     api.agoge.blocks.listBlocks,
-    activePlan ? { planId: activePlan._id } : "skip",
+    activePlan ? { planId: activePlan.plan._id } : "skip",
   );
 
   const workoutsByDate = useMemo(() => {

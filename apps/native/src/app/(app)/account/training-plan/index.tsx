@@ -132,6 +132,13 @@ export default function TrainingPlanScreen() {
         <EmptyState
           title={t("account.trainingPlan.empty.noPlan.title")}
           description={t("account.trainingPlan.empty.noPlan.description")}
+          action={{
+            label: t("account.trainingPlan.empty.noPlan.addRace"),
+            onPress: () => {
+              selectionFeedback();
+              router.push("/(app)/account/races/new");
+            },
+          }}
         />
       ) : hasNoBlocks ? (
         <EmptyState

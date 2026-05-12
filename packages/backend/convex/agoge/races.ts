@@ -26,6 +26,11 @@ import {
   type ValidationResult,
   validationResultValidator,
 } from "./helpers";
+import {
+  archivePlansForRace,
+  deletePlansForRace,
+  findOverlappingPlan,
+} from "./plans";
 
 // ---------------------------------------------------------------------------
 // Guards
@@ -88,6 +93,33 @@ async function validateUpdateMyRace(
       }),
     );
   }
+
+  // If a non-archived plan exists for this race and the date moves, ensure
+  // the plan's new window doesn't overlap another plan.
+  if (patch.date && patch.date !== race.date) {
+    const plans = await ctx.runQuery(components.agoge.public.getPlansByRace, {
+      raceId,
+    });
+    const plan = plans.find((p) => p.archivedAt === undefined);
+    if (plan) {
+      const conflict = await findOverlappingPlan(
+        ctx,
+        auth.athlete._id,
+        {
+          startDate: plan.startDate,
+          endYmd: effectiveDate.slice(0, 10),
+        },
+        { excludePlanId: plan._id },
+      );
+      if (conflict) {
+        push(errors, {
+          code: "CONFLICT",
+          message: `New race date would cause this plan to overlap an existing plan (${conflict.startDate} → ${conflict.endYmd}).`,
+        });
+      }
+    }
+  }
+
   return result(errors);
 }
 
@@ -192,8 +224,12 @@ export const deleteMyRace = mutation({
         code: "VALIDATION_FAILED",
         errors: [ownership],
       });
-    // Agoge's deleteRace cascades to attached goals (and detaches the race
-    // from any plans) — see @nativesquare/agoge cascadeDeleteRace.
+    // Cascade-delete plans first. Agoge's `cascadeDeleteRace` would otherwise
+    // try to detach the race from plans by patching `targetRaceId: undefined`,
+    // which trips the now-required field. Deleting plans up front sidesteps
+    // that path; `cascadeDeletePlan` also orphans the plan's workouts cleanly
+    // (sets `planId`/`blockId` to undefined).
+    await deletePlansForRace(ctx, raceId);
     await ctx.runMutation(components.agoge.public.deleteRace, { raceId });
     return null;
   },
@@ -376,6 +412,15 @@ export const createMyRaceWithGoal = mutation({
       status: initialStatus,
     });
 
+    // Plan ⟺ A-race invariant: an upcoming A-race always has a plan.
+    if (race.priority === "A" && race.status === "upcoming") {
+      await ctx.runMutation(components.agoge.public.createPlan, {
+        athleteId: auth.athlete._id,
+        targetRaceId: raceId,
+        startDate: new Date().toISOString().slice(0, 10),
+      });
+    }
+
     return raceId;
   },
 });
@@ -424,6 +469,34 @@ export const updateMyRaceWithGoal = mutation({
         raceId,
         ...racePatch,
       });
+
+      // Plan lifecycle reactions to race edits.
+      const effectivePriority = racePatch.priority ?? existing.priority;
+      const effectiveStatus = racePatch.status ?? existing.status;
+      const priorityChanged =
+        racePatch.priority !== undefined &&
+        racePatch.priority !== existing.priority;
+      if (priorityChanged && existing.priority === "A") {
+        await archivePlansForRace(ctx, raceId);
+      }
+      if (
+        priorityChanged &&
+        effectivePriority === "A" &&
+        effectiveStatus === "upcoming"
+      ) {
+        const plans = await ctx.runQuery(
+          components.agoge.public.getPlansByRace,
+          { raceId },
+        );
+        const hasActivePlan = plans.some((p) => p.archivedAt === undefined);
+        if (!hasActivePlan) {
+          await ctx.runMutation(components.agoge.public.createPlan, {
+            athleteId: auth.athlete._id,
+            targetRaceId: raceId,
+            startDate: new Date().toISOString().slice(0, 10),
+          });
+        }
+      }
     }
 
     const goals = await ctx.runQuery(components.agoge.public.getGoalsByRace, {
