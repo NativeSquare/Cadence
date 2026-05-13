@@ -1,0 +1,251 @@
+/**
+ * Race-plan generator. Fills a freshly-created Plan with Blocks + planned
+ * Workouts using Daniels VDOT + 80/20 polarized periodization.
+ *
+ * Scope: race-category goals only (finish + time targets). Fitness goals and
+ * ultra/relay formats are skipped. Math is in `./periodization.ts`.
+ *
+ * Idempotent: if Blocks already exist for the plan, the action returns early
+ * (handles scheduler retries and accidental double-fires).
+ */
+
+import type { BlockType } from "@nativesquare/agoge/schema";
+import { v } from "convex/values";
+import { api, components } from "../_generated/api";
+import type { Id } from "../_generated/dataModel";
+import { type ActionCtx, internalAction } from "../_generated/server";
+
+// Agoge tables live in a Convex component, so their IDs aren't part of the
+// host-app `Id<>` brand. They cross the wire as plain strings.
+type ComponentId = string;
+import {
+  addDaysYmd,
+  computeVdot,
+  daysBetweenYmd,
+  distancePeakKm,
+  isSupportedFormat,
+  type Locale,
+  microcycle,
+  type Paces,
+  splitPhases,
+  taperWeeksForFormat,
+  trainingPaces,
+  weeklyVolumeCurve,
+  workoutName,
+  ymdToNoonUtc,
+} from "./periodization";
+
+const GENERATOR_VERSION = "v1";
+const BASELINE_LOOKBACK_DAYS = 56;
+const FALLBACK_WEEKLY_KM = 20;
+const MAX_PLAN_WEEKS = 20;
+
+export const generate = internalAction({
+  args: { planId: v.string() },
+  handler: async (ctx, { planId }): Promise<void> => {
+    const plan = await ctx.runQuery(components.agoge.public.getPlan, { planId });
+    if (!plan) return;
+
+    // Idempotency: another invocation already populated this plan.
+    const existingBlocks = await ctx.runQuery(
+      components.agoge.public.getBlocksByPlan,
+      { planId: plan._id },
+    );
+    if (existingBlocks.length > 0) return;
+
+    const goal = await ctx.runQuery(components.agoge.public.getGoal, {
+      goalId: plan.goalId,
+    });
+    if (!goal || goal.category !== "race" || !goal.raceId) return;
+
+    const race = await ctx.runQuery(components.agoge.public.getRace, {
+      raceId: goal.raceId,
+    });
+    if (!race) return;
+
+    if (!isSupportedFormat(race.format)) {
+      await markGenerated(ctx, plan._id, plan.notes, "unsupported-format");
+      return;
+    }
+
+    const athlete = await ctx.runQuery(components.agoge.public.getAthlete, {
+      athleteId: plan.athleteId,
+    });
+    if (!athlete) return;
+
+    const user = await ctx.runQuery(api.table.users.get, {
+      id: athlete.userId as Id<"users">,
+    });
+    const locale: Locale = user?.locale ?? "en";
+
+    const raceYmd = race.date.slice(0, 10);
+    const totalDays = daysBetweenYmd(plan.startDate, raceYmd);
+    if (totalDays < 1) {
+      await markGenerated(ctx, plan._id, plan.notes, "race-too-soon");
+      return;
+    }
+
+    // Cap planning window at 20 weeks ending at race.date. Earlier weeks of
+    // the original plan window remain unplanned (revisit on next refresh).
+    const weeksAvailable = Math.max(1, Math.ceil((totalDays + 1) / 7));
+    const planWeeks = Math.min(weeksAvailable, MAX_PLAN_WEEKS);
+    const planStart =
+      planWeeks < weeksAvailable
+        ? addDaysYmd(raceYmd, -(planWeeks * 7 - 1))
+        : plan.startDate;
+
+    const currentKm = await loadBaselineVolume(ctx, plan.athleteId);
+    const peakKm = distancePeakKm(race.format, race.distanceMeters);
+    const taperWeeks = Math.min(taperWeeksForFormat(race.format), planWeeks);
+    const maxBuildMultiple = planWeeks < 6 ? 1.2 : 2.5;
+
+    const volumeCurve = weeklyVolumeCurve({
+      weeks: planWeeks,
+      currentKm,
+      peakKm,
+      taperWeeks,
+      maxBuildMultiple,
+    });
+
+    const phaseByWeek = expandPhases(splitPhases(planWeeks, race.format));
+
+    const paces: Paces | undefined =
+      goal.raceTarget?.type === "time" && goal.raceTarget.seconds > 0
+        ? trainingPaces(
+            computeVdot(race.distanceMeters, goal.raceTarget.seconds),
+          )
+        : undefined;
+
+    const blockIds = await createBlocks(ctx, plan._id, planStart, phaseByWeek);
+
+    for (let w = 0; w < planWeeks; w++) {
+      const phase = phaseByWeek[w];
+      if (!phase) continue;
+      const blockId = blockIds[phase];
+      if (!blockId) continue;
+      const weekKm = volumeCurve[w] ?? 0;
+      const weekStart = addDaysYmd(planStart, w * 7);
+
+      for (const session of microcycle(phase, weekKm)) {
+        const dateYmd = addDaysYmd(weekStart, session.dayOffset);
+        if (dateYmd < planStart || dateYmd > raceYmd) continue;
+        const distanceMeters = Math.round(session.distanceKm * 1000);
+        if (distanceMeters < 500) continue;
+        const avgPaceMps = paces ? paces[session.intensity] : undefined;
+        const durationSeconds = avgPaceMps
+          ? Math.round(distanceMeters / avgPaceMps)
+          : undefined;
+
+        await ctx.runMutation(components.agoge.public.createWorkout, {
+          athleteId: plan.athleteId,
+          planId: plan._id,
+          blockId,
+          name: workoutName(session.type, locale),
+          type: session.type,
+          sport: "run",
+          status: "planned",
+          planned: {
+            date: ymdToNoonUtc(dateYmd),
+            distanceMeters,
+            ...(avgPaceMps !== undefined ? { avgPaceMps } : {}),
+            ...(durationSeconds !== undefined ? { durationSeconds } : {}),
+          },
+        });
+      }
+    }
+
+    await markGenerated(ctx, plan._id, plan.notes, undefined);
+  },
+});
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+async function loadBaselineVolume(
+  ctx: ActionCtx,
+  athleteId: ComponentId,
+): Promise<number> {
+  const today = new Date().toISOString().slice(0, 10);
+  const lookbackStart = addDaysYmd(today, -BASELINE_LOOKBACK_DAYS);
+  const completed = await ctx.runQuery(
+    components.agoge.public.getCompletedWorkoutsByAthlete,
+    {
+      athleteId,
+      startDate: ymdToNoonUtc(lookbackStart),
+      endDate: ymdToNoonUtc(today),
+    },
+  );
+  const totalKm = completed.reduce((acc, w) => {
+    const d = w.actual?.distanceMeters ?? w.planned?.distanceMeters ?? 0;
+    return acc + d / 1000;
+  }, 0);
+  if (totalKm <= 0) return FALLBACK_WEEKLY_KM;
+  const weeklyKm = totalKm / (BASELINE_LOOKBACK_DAYS / 7);
+  return Math.max(5, weeklyKm);
+}
+
+async function createBlocks(
+  ctx: ActionCtx,
+  planId: ComponentId,
+  planStart: string,
+  phaseByWeek: BlockType[],
+): Promise<Partial<Record<BlockType, ComponentId>>> {
+  const blockIds: Partial<Record<BlockType, ComponentId>> = {};
+  const order: BlockType[] = ["base", "build", "peak", "taper"];
+
+  for (const phase of order) {
+    const startIdx = phaseByWeek.indexOf(phase);
+    if (startIdx === -1) continue;
+    let endIdx = startIdx;
+    while (endIdx + 1 < phaseByWeek.length && phaseByWeek[endIdx + 1] === phase) {
+      endIdx++;
+    }
+    const startDate = addDaysYmd(planStart, startIdx * 7);
+    const endDate = addDaysYmd(planStart, (endIdx + 1) * 7 - 1);
+    const blockId = await ctx.runMutation(
+      components.agoge.public.createBlock,
+      {
+        planId,
+        type: phase,
+        startDate,
+        endDate,
+      },
+    );
+    blockIds[phase] = blockId;
+  }
+
+  return blockIds;
+}
+
+async function markGenerated(
+  ctx: ActionCtx,
+  planId: ComponentId,
+  existingNotes: string | undefined,
+  flag: string | undefined,
+): Promise<void> {
+  const dateStamp = new Date().toISOString().slice(0, 10);
+  const marker = flag
+    ? `generator:${flag}@${dateStamp}`
+    : `generator:${GENERATOR_VERSION}@${dateStamp}`;
+  const notes = existingNotes ? `${existingNotes}\n${marker}` : marker;
+  await ctx.runMutation(components.agoge.public.updatePlan, {
+    planId,
+    notes,
+  });
+}
+
+function expandPhases(phases: {
+  base: number;
+  build: number;
+  peak: number;
+  taper: number;
+}): BlockType[] {
+  const out: BlockType[] = [];
+  for (let i = 0; i < phases.base; i++) out.push("base");
+  for (let i = 0; i < phases.build; i++) out.push("build");
+  for (let i = 0; i < phases.peak; i++) out.push("peak");
+  for (let i = 0; i < phases.taper; i++) out.push("taper");
+  return out;
+}
+

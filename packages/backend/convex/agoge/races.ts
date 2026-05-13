@@ -4,7 +4,7 @@ import {
   type RaceStatus,
 } from "@nativesquare/agoge/schema";
 import { ConvexError, v } from "convex/values";
-import { components } from "../_generated/api";
+import { components, internal } from "../_generated/api";
 import {
   type MutationCtx,
   mutation,
@@ -394,11 +394,16 @@ export const createMyRaceWithGoal = mutation({
     // Plan ⟺ A-race invariant: an upcoming A-race always has a plan, anchored
     // to its goal (which carries the raceId).
     if (race.priority === "A" && race.status === "upcoming") {
-      await ctx.runMutation(components.agoge.public.createPlan, {
+      const planId = await ctx.runMutation(components.agoge.public.createPlan, {
         athleteId: auth.athlete._id,
         goalId,
         startDate: new Date().toISOString().slice(0, 10),
       });
+      await ctx.scheduler.runAfter(
+        0,
+        internal.agoge.planGenerator.generate,
+        { planId },
+      );
     }
 
     return raceId;
@@ -480,11 +485,19 @@ export const updateMyRaceWithGoal = mutation({
           .some((p) => p.archivedAt === undefined);
         const goalForPlan = goalsForRace[0];
         if (!hasActivePlan && goalForPlan) {
-          await ctx.runMutation(components.agoge.public.createPlan, {
-            athleteId: auth.athlete._id,
-            goalId: goalForPlan._id,
-            startDate: new Date().toISOString().slice(0, 10),
-          });
+          const planId = await ctx.runMutation(
+            components.agoge.public.createPlan,
+            {
+              athleteId: auth.athlete._id,
+              goalId: goalForPlan._id,
+              startDate: new Date().toISOString().slice(0, 10),
+            },
+          );
+          await ctx.scheduler.runAfter(
+            0,
+            internal.agoge.planGenerator.generate,
+            { planId },
+          );
         }
       }
     }

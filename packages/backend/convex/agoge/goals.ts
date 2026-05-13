@@ -216,10 +216,9 @@ const fitnessIntentValidator = v.union(
 );
 
 /**
- * The athlete's active goal, joined with its race and current plan when
- * applicable. Powers the Home tab — the primary axis is goal, with plan as a
- * sub-state of the race-goal branch. Plan is returned only when it's "current"
- * (today between startDate and race.date), matching getAthletePlan semantics.
+ * The athlete's active goal — the most recently created active goal, race-
+ * anchored or not — joined with its race (null for fitness goals) and its
+ * non-archived plan. Powers the Home tab.
  */
 export const getMyActiveGoal = query({
   args: {},
@@ -233,32 +232,21 @@ export const getMyActiveGoal = query({
     );
     if (activeGoals.length === 0) return null;
 
-    // Race goal wins if both exist (athlete invariant: at most one of each).
-    const goal =
-      activeGoals.find((g) => g.category === "race") ?? activeGoals[0];
-
-    if (goal.category !== "race" || !goal.raceId) {
-      return { goal, race: null, plan: null };
-    }
-
-    const race = await ctx.runQuery(components.agoge.public.getRace, {
-      raceId: goal.raceId,
-    });
-    if (!race) return { goal, race: null, plan: null };
+    const goal = activeGoals.reduce((latest, g) =>
+      g._creationTime > latest._creationTime ? g : latest,
+    );
 
     const plansForGoal = await ctx.runQuery(
       components.agoge.public.getPlansByGoal,
       { goalId: goal._id },
     );
-    const todayYmd = new Date().toISOString().slice(0, 10);
-    const raceYmd = race.date.slice(0, 10);
-    const plan =
-      plansForGoal.find(
-        (p) =>
-          p.archivedAt === undefined &&
-          todayYmd >= p.startDate &&
-          todayYmd <= raceYmd,
-      ) ?? null;
+    const plan = plansForGoal.find((p) => p.archivedAt === undefined) ?? null;
+
+    const race = goal.raceId
+      ? await ctx.runQuery(components.agoge.public.getRace, {
+          raceId: goal.raceId,
+        })
+      : null;
 
     return { goal, race, plan };
   },
@@ -293,12 +281,23 @@ export const createMyFitnessGoal = mutation({
       });
     }
 
-    return await ctx.runMutation(components.agoge.public.createGoal, {
+    const goalId = await ctx.runMutation(components.agoge.public.createGoal, {
       athleteId: auth.athlete._id,
       category: "fitness",
       fitnessIntent: args.fitnessIntent,
       description: args.description,
       status: "active",
     });
+
+    // Goal ⟺ Plan invariant: every active goal — race or fitness — gets a plan
+    // anchored to today. Blocks remain optional; fitness plans typically skip
+    // periodization.
+    await ctx.runMutation(components.agoge.public.createPlan, {
+      athleteId: auth.athlete._id,
+      goalId,
+      startDate: new Date().toISOString().slice(0, 10),
+    });
+
+    return goalId;
   },
 });

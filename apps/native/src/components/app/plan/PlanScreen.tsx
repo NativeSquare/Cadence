@@ -104,9 +104,17 @@ export function PlanScreen() {
   const workouts = useQuery(api.agoge.workouts.listWorkouts, workoutRange);
   const activeGoal = useQuery(api.agoge.goals.getMyActiveGoal);
 
+  const activePlanId = activeGoal?.plan?._id ?? null;
+
+  const planWorkouts = useMemo(() => {
+    if (!workouts) return undefined;
+    if (!activePlanId) return [];
+    return workouts.filter((w) => w.planId === activePlanId);
+  }, [workouts, activePlanId]);
+
   const workoutsByDate = useMemo(
-    () => (workouts ? buildWorkoutsByDate(workouts, today) : {}),
-    [workouts, today],
+    () => (planWorkouts ? buildWorkoutsByDate(planWorkouts, today) : {}),
+    [planWorkouts, today],
   );
 
   const isSelectedToday =
@@ -120,13 +128,13 @@ export function PlanScreen() {
     workoutsByDate[selectedDateKey] ?? REST_FALLBACK;
 
   const weekInsights = useMemo(
-    () => (workouts ? computeWeekInsights(workouts, today) : null),
-    [workouts, today],
+    () => (planWorkouts ? computeWeekInsights(planWorkouts, today) : null),
+    [planWorkouts, today],
   );
 
   const trainingPulse = useMemo(
-    () => (workouts ? computeTrainingPulse(workouts, today) : null),
-    [workouts, today],
+    () => (planWorkouts ? computeTrainingPulse(planWorkouts, today) : null),
+    [planWorkouts, today],
   );
 
   const coachMessage = t("plan.coachPreparingPlan");

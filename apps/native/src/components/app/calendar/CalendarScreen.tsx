@@ -116,17 +116,20 @@ export function CalendarScreen() {
     activePlan ? { planId: activePlan.plan._id } : "skip",
   );
 
+  const activePlanId = activePlan?.plan._id ?? null;
+
   const workoutsByDate = useMemo(() => {
     const map: Record<string, WorkoutDoc[]> = {};
-    if (!workouts) return map;
+    if (!workouts || !activePlanId) return map;
     for (const w of workouts) {
+      if (w.planId !== activePlanId) continue;
       const dateIso = w.planned?.date ?? w.actual?.date;
       if (!dateIso) continue;
       const key = dateIso.slice(0, 10);
       (map[key] ??= []).push(w);
     }
     return map;
-  }, [workouts]);
+  }, [workouts, activePlanId]);
 
   const blockLookup = useMemo(() => buildBlockLookup(blocks ?? []), [blocks]);
 
@@ -181,7 +184,7 @@ export function CalendarScreen() {
 
   const isBlocksMode = viewMode === "blocks";
 
-  if (workouts === undefined) {
+  if (workouts === undefined || activePlan === undefined) {
     return (
       <View className="flex-1 bg-black items-center justify-center">
         <ActivityIndicator size="large" color={GRAYS.g3} />

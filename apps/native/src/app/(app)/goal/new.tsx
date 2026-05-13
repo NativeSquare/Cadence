@@ -18,7 +18,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { api } from "@packages/backend/convex/_generated/api";
 import { useMutation } from "convex/react";
 import { useRouter } from "expo-router";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
@@ -31,8 +31,6 @@ import {
 } from "react-native";
 
 type Step = 1 | 2 | 3 | 4;
-
-const MOCK_PLAN_GENERATION_MS = 2500;
 
 function todayIso(): string {
   const d = new Date();
@@ -94,9 +92,8 @@ export default function NewGoalScreen() {
   const [fitnessGoal, setFitnessGoalState] = useState<FitnessGoal | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [generatingPlan, setGeneratingPlan] = useState(false);
 
-  const totalSteps = branch === "fitness" ? 2 : 4;
+  const totalSteps = branch === "fitness" ? 3 : 4;
 
   const canProceed = useMemo(() => {
     if (step === 1) return branch != null;
@@ -116,12 +113,13 @@ export default function NewGoalScreen() {
       if (raceGoal.type === "performance") return hasNonZeroTime(raceGoal);
       return false;
     }
+    if (step === 3 && branch === "fitness") return plan.startDate !== "";
     if (step === 4 && branch === "race") return plan.startDate !== "";
     return false;
   }, [step, branch, raceDetails, raceGoal, plan, fitnessGoal]);
 
   const isFinalStep =
-    (step === 4 && branch === "race") || (step === 2 && branch === "fitness");
+    (step === 4 && branch === "race") || (step === 3 && branch === "fitness");
 
   const handleClose = () => {
     router.back();
@@ -175,7 +173,7 @@ export default function NewGoalScreen() {
             raceTarget: buildRaceTarget(raceGoal),
           },
         });
-        setGeneratingPlan(true);
+        router.replace("/(app)/(tabs)");
         return;
       }
     } catch (err) {
@@ -186,14 +184,6 @@ export default function NewGoalScreen() {
       setSubmitting(false);
     }
   };
-
-  useEffect(() => {
-    if (!generatingPlan) return;
-    const id = setTimeout(() => {
-      router.replace("/(app)/(tabs)");
-    }, MOCK_PLAN_GENERATION_MS);
-    return () => clearTimeout(id);
-  }, [generatingPlan, router]);
 
   return (
     <KeyboardAvoidingView
@@ -255,10 +245,19 @@ export default function NewGoalScreen() {
           {step === 3 && branch === "race" && (
             <StepRaceGoal value={raceGoal} onChange={setRaceGoal} />
           )}
+          {step === 3 && branch === "fitness" && (
+            <StepPlan
+              value={plan}
+              onChange={setPlan}
+              branch="fitness"
+              minDate={todayIso()}
+            />
+          )}
           {step === 4 && branch === "race" && (
             <StepPlan
               value={plan}
               onChange={setPlan}
+              branch="race"
               minDate={todayIso()}
               maxDate={raceDetails.date || undefined}
             />
@@ -326,38 +325,6 @@ export default function NewGoalScreen() {
         </Pressable>
       </View>
 
-      {generatingPlan && (
-        <View
-          className="absolute inset-0 items-center justify-center px-8"
-          style={{ backgroundColor: LIGHT_THEME.w2 }}
-        >
-          <View className="w-full max-w-md items-center gap-6">
-            <ActivityIndicator size="large" color={LIGHT_THEME.wText} />
-            <View className="items-center gap-2">
-              <Text
-                className="font-coach-extrabold text-[22px]"
-                style={{
-                  color: LIGHT_THEME.wText,
-                  letterSpacing: -0.02 * 22,
-                  textAlign: "center",
-                }}
-              >
-                {t("goal.plan.generating.title")}
-              </Text>
-              <Text
-                className="font-coach-medium text-[14px]"
-                style={{
-                  color: LIGHT_THEME.wSub,
-                  lineHeight: 20,
-                  textAlign: "center",
-                }}
-              >
-                {t("goal.plan.generating.subtitle")}
-              </Text>
-            </View>
-          </View>
-        </View>
-      )}
     </KeyboardAvoidingView>
   );
 }

@@ -160,15 +160,41 @@ export const dryRunCreatePlan = query({
 // ---------------------------------------------------------------------------
 
 /**
- * The athlete's *current* plan (non-archived, today between startDate and
- * race.date), joined with its race. Returns null when planless.
+ * The athlete's *current* plan — resolved from the last-created active goal,
+ * race-anchored or not. Returns `{ plan, race }` where `race` is null for
+ * fitness goals. Returns null when there's no active goal, or the active goal
+ * has no non-archived plan.
  */
 export const getAthletePlan = query({
   args: {},
   handler: async (ctx) => {
     const auth = await loadAthlete(ctx);
     if (!auth) return null;
-    return await loadCurrentAthletePlan(ctx, auth.athlete._id);
+
+    const activeGoals = await ctx.runQuery(
+      components.agoge.public.getGoalsByAthleteAndStatus,
+      { athleteId: auth.athlete._id, status: "active" },
+    );
+    if (activeGoals.length === 0) return null;
+
+    const goal = activeGoals.reduce((latest, g) =>
+      g._creationTime > latest._creationTime ? g : latest,
+    );
+
+    const plansForGoal = await ctx.runQuery(
+      components.agoge.public.getPlansByGoal,
+      { goalId: goal._id },
+    );
+    const plan = plansForGoal.find((p) => p.archivedAt === undefined) ?? null;
+    if (!plan) return null;
+
+    const race = goal.raceId
+      ? await ctx.runQuery(components.agoge.public.getRace, {
+          raceId: goal.raceId,
+        })
+      : null;
+
+    return { plan, race };
   },
 });
 

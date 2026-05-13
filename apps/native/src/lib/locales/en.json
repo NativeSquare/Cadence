@@ -423,10 +423,12 @@
     "plan": {
       "heading": "Your training plan",
       "helper": "We'll build a personalized plan that leads up to race day. Pick when you'd like it to start.",
+      "helperFitness": "We'll build a personalized plan around your focus. Pick when you'd like it to start.",
       "startDate": "Plan start date",
       "generating": {
         "title": "Building your plan",
-        "subtitle": "Mapping out your weeks toward race day. This usually takes a moment."
+        "subtitle": "Mapping out your weeks toward race day. This usually takes a moment.",
+        "subtitleFitness": "Mapping out your weeks ahead. This usually takes a moment."
       }
     },
     "fitness": {
