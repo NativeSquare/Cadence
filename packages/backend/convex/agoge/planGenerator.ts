@@ -38,7 +38,6 @@ import {
 const GENERATOR_VERSION = "v1";
 const BASELINE_LOOKBACK_DAYS = 56;
 const FALLBACK_WEEKLY_KM = 20;
-const MAX_PLAN_WEEKS = 20;
 
 export const generate = internalAction({
   args: { planId: v.string() },
@@ -85,14 +84,8 @@ export const generate = internalAction({
       return;
     }
 
-    // Cap planning window at 20 weeks ending at race.date. Earlier weeks of
-    // the original plan window remain unplanned (revisit on next refresh).
-    const weeksAvailable = Math.max(1, Math.ceil((totalDays + 1) / 7));
-    const planWeeks = Math.min(weeksAvailable, MAX_PLAN_WEEKS);
-    const planStart =
-      planWeeks < weeksAvailable
-        ? addDaysYmd(raceYmd, -(planWeeks * 7 - 1))
-        : plan.startDate;
+    const planWeeks = Math.max(1, Math.ceil((totalDays + 1) / 7));
+    const planStart = plan.startDate;
 
     const currentKm = await loadBaselineVolume(ctx, plan.athleteId);
     const peakKm = distancePeakKm(race.format, race.distanceMeters);
