@@ -20,6 +20,7 @@ import { type ActionCtx, internalAction } from "../_generated/server";
 type ComponentId = string;
 import {
   addDaysYmd,
+  buildStructure,
   computeVdot,
   daysBetweenYmd,
   distancePeakKm,
@@ -28,6 +29,7 @@ import {
   microcycle,
   type Paces,
   splitPhases,
+  summarizeStructure,
   taperWeeksForFormat,
   trainingPaces,
   weeklyVolumeCurve,
@@ -124,10 +126,31 @@ export const generate = internalAction({
         if (dateYmd < planStart || dateYmd > raceYmd) continue;
         const distanceMeters = Math.round(session.distanceKm * 1000);
         if (distanceMeters < 500) continue;
-        const avgPaceMps = paces ? paces[session.intensity] : undefined;
-        const durationSeconds = avgPaceMps
-          ? Math.round(distanceMeters / avgPaceMps)
-          : undefined;
+        const structure = buildStructure(
+          session.type,
+          session.intensity,
+          distanceMeters,
+          paces,
+        );
+
+        // When a structure exists it's the source of truth — derive the
+        // top-level summary fields from it so they reflect the mixed-intensity
+        // reality (e.g. a peak-phase long run is mostly E-paced, not M-paced).
+        let plannedDistance: number;
+        let plannedAvgPace: number | undefined;
+        let plannedDuration: number | undefined;
+        if (structure) {
+          const s = summarizeStructure(structure);
+          plannedDistance = s.distanceMeters;
+          plannedAvgPace = s.avgPaceMps;
+          plannedDuration = s.durationSeconds;
+        } else {
+          plannedDistance = distanceMeters;
+          plannedAvgPace = paces ? paces[session.intensity] : undefined;
+          plannedDuration = plannedAvgPace
+            ? Math.round(plannedDistance / plannedAvgPace)
+            : undefined;
+        }
 
         await ctx.runMutation(components.agoge.public.createWorkout, {
           athleteId: plan.athleteId,
@@ -139,9 +162,10 @@ export const generate = internalAction({
           status: "planned",
           planned: {
             date: ymdToNoonUtc(dateYmd),
-            distanceMeters,
-            ...(avgPaceMps !== undefined ? { avgPaceMps } : {}),
-            ...(durationSeconds !== undefined ? { durationSeconds } : {}),
+            distanceMeters: plannedDistance,
+            ...(plannedAvgPace !== undefined ? { avgPaceMps: plannedAvgPace } : {}),
+            ...(plannedDuration !== undefined ? { durationSeconds: plannedDuration } : {}),
+            ...(structure ? { structure } : {}),
           },
         });
       }

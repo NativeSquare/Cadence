@@ -14,6 +14,11 @@
  */
 
 import type {
+  Repeat,
+  Step,
+  Workout as WorkoutStructure,
+} from "@nativesquare/agoge";
+import type {
   BlockType,
   RaceFormat,
   WorkoutType,
@@ -283,6 +288,207 @@ export function microcycle(phase: BlockType, weekKm: number): SessionSpec[] {
         { type: "easy", intensity: "E", distanceKm: round1(km * 0.25), dayOffset: DAY_LONG },
       ];
   }
+}
+
+// ---------------------------------------------------------------------------
+// Structured workout builder
+// ---------------------------------------------------------------------------
+
+const WARMUP_M = 2000;
+const COOLDOWN_M = 1000;
+
+// ± tolerance around the point pace per intensity anchor. Tighter for hard
+// efforts (T/I) where pace discipline drives the adaptation; looser at E.
+const PACE_BAND: Record<IntensityAnchor, number> = {
+  E: 0.08,
+  M: 0.04,
+  T: 0.03,
+  I: 0.03,
+  R: 0.04,
+};
+
+function paceTarget(
+  intensity: IntensityAnchor,
+  paces: Paces | undefined,
+): Step["target"] {
+  if (!paces) return { type: "none" };
+  const v = paces[intensity];
+  const band = PACE_BAND[intensity];
+  return {
+    type: "pace_range",
+    min_speed_mps: round2(v * (1 - band)),
+    max_speed_mps: round2(v * (1 + band)),
+  };
+}
+
+function distanceStep(
+  intent: Step["intent"],
+  meters: number,
+  intensity: IntensityAnchor,
+  paces: Paces | undefined,
+): Step {
+  return {
+    kind: "step",
+    intent,
+    duration: { type: "distance", meters: Math.round(meters) },
+    target: paceTarget(intensity, paces),
+  };
+}
+
+function clamp(n: number, lo: number, hi: number): number {
+  return Math.max(lo, Math.min(hi, n));
+}
+
+function round2(n: number): number {
+  return Math.round(n * 100) / 100;
+}
+
+/**
+ * Build a FIT-shaped Workout for a single session. Returns undefined for
+ * continuous efforts where the top-level distance + pace already say it all
+ * (plain easy/recovery runs, base/build/taper long runs).
+ */
+export function buildStructure(
+  type: WorkoutType,
+  intensity: IntensityAnchor,
+  totalMeters: number,
+  paces: Paces | undefined,
+): WorkoutStructure | undefined {
+  if (totalMeters < 500) return undefined;
+
+  const blocks: (Step | Repeat)[] = (() => {
+    switch (type) {
+      case "long": {
+        // Only peak-phase long runs carry a structured M-pace block.
+        if (intensity !== "M" || totalMeters < 8000) return [];
+        const work = Math.max(2000, totalMeters - WARMUP_M - COOLDOWN_M);
+        return [
+          distanceStep("warmup", WARMUP_M, "E", paces),
+          distanceStep("work", work, "M", paces),
+          distanceStep("cooldown", COOLDOWN_M, "E", paces),
+        ];
+      }
+
+      case "threshold": {
+        const workBudget = Math.max(2000, totalMeters - WARMUP_M - COOLDOWN_M);
+        const repDist = 1200;
+        const recDist = 400;
+        const reps = clamp(Math.round(workBudget / (repDist + recDist)), 3, 5);
+        return [
+          distanceStep("warmup", WARMUP_M, "E", paces),
+          {
+            kind: "repeat",
+            count: reps,
+            children: [
+              distanceStep("work", repDist, "T", paces),
+              distanceStep("recovery", recDist, "E", paces),
+            ],
+          },
+          distanceStep("cooldown", COOLDOWN_M, "E", paces),
+        ];
+      }
+
+      case "intervals": {
+        const workBudget = Math.max(2000, totalMeters - WARMUP_M - COOLDOWN_M);
+        const repDist = 1000;
+        const recDist = 400;
+        const reps = clamp(Math.round(workBudget / (repDist + recDist)), 4, 6);
+        return [
+          distanceStep("warmup", WARMUP_M, "E", paces),
+          {
+            kind: "repeat",
+            count: reps,
+            children: [
+              distanceStep("work", repDist, "I", paces),
+              distanceStep("recovery", recDist, "E", paces),
+            ],
+          },
+          distanceStep("cooldown", COOLDOWN_M, "E", paces),
+        ];
+      }
+
+      case "race_pace": {
+        const work = Math.max(2000, totalMeters - WARMUP_M - COOLDOWN_M);
+        return [
+          distanceStep("warmup", WARMUP_M, "E", paces),
+          distanceStep("work", work, "M", paces),
+          distanceStep("cooldown", COOLDOWN_M, "E", paces),
+        ];
+      }
+
+      case "progression":
+        return [
+          distanceStep("active", totalMeters * 0.4, "E", paces),
+          distanceStep("active", totalMeters * 0.3, "M", paces),
+          distanceStep("active", totalMeters * 0.3, "T", paces),
+        ];
+
+      default:
+        return [];
+    }
+  })();
+
+  if (blocks.length === 0) return undefined;
+
+  return {
+    schema_version: 1,
+    discipline: "endurance",
+    sport: "run",
+    blocks,
+  };
+}
+
+export type StructureSummary = {
+  distanceMeters: number;
+  durationSeconds?: number;
+  avgPaceMps?: number;
+};
+
+/**
+ * Walk a structure tree and return total distance + distance-weighted
+ * duration/pace. Duration/pace are omitted if any step lacks a pace target
+ * or uses a non-distance duration (we can't aggregate cleanly).
+ */
+export function summarizeStructure(
+  structure: WorkoutStructure,
+): StructureSummary {
+  let totalMeters = 0;
+  let totalSeconds = 0;
+  let timeKnown = true;
+
+  const visit = (block: Step | Repeat, multiplier: number): void => {
+    if (block.kind === "repeat") {
+      for (const child of block.children) {
+        visit(child, multiplier * block.count);
+      }
+      return;
+    }
+    if (block.duration.type !== "distance") {
+      timeKnown = false;
+      return;
+    }
+    const meters = block.duration.meters * multiplier;
+    totalMeters += meters;
+    if (block.target?.type === "pace_range") {
+      const speed =
+        (block.target.min_speed_mps + block.target.max_speed_mps) / 2;
+      if (speed > 0) {
+        totalSeconds += meters / speed;
+        return;
+      }
+    }
+    timeKnown = false;
+  };
+
+  for (const block of structure.blocks) visit(block, 1);
+
+  const distanceMeters = Math.round(totalMeters);
+  if (!timeKnown || totalSeconds <= 0) return { distanceMeters };
+  return {
+    distanceMeters,
+    durationSeconds: Math.round(totalSeconds),
+    avgPaceMps: round2(totalMeters / totalSeconds),
+  };
 }
 
 // ---------------------------------------------------------------------------
