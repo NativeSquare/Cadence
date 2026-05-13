@@ -9,7 +9,7 @@
 
 import { goalsValidator } from "@nativesquare/agoge/schema";
 import { ConvexError, v } from "convex/values";
-import { components } from "../_generated/api";
+import { components, internal } from "../_generated/api";
 import {
   type MutationCtx,
   mutation,
@@ -212,7 +212,6 @@ const fitnessIntentValidator = v.union(
   v.literal("restart_running"),
   v.literal("build_base"),
   v.literal("maintain_fitness"),
-  v.literal("general_health"),
 );
 
 /**
@@ -290,13 +289,17 @@ export const createMyFitnessGoal = mutation({
     });
 
     // Goal ⟺ Plan invariant: every active goal — race or fitness — gets a plan
-    // anchored to today. Blocks remain optional; fitness plans typically skip
-    // periodization.
-    await ctx.runMutation(components.agoge.public.createPlan, {
+    // anchored to today.
+    const planId = await ctx.runMutation(components.agoge.public.createPlan, {
       athleteId: auth.athlete._id,
       goalId,
       startDate: new Date().toISOString().slice(0, 10),
     });
+    await ctx.scheduler.runAfter(
+      0,
+      internal.agoge.planGenerator.generateFitness,
+      { planId },
+    );
 
     return goalId;
   },

@@ -14,6 +14,6 @@
     "typecheck": "tsc --noEmit -p ."
   },
   "dependencies": {
-    "@nativesquare/agoge": "3.2.2"
+    "@nativesquare/agoge": "3.2.3"
   }
 }

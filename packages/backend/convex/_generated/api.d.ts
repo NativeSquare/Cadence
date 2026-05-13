@@ -5515,8 +5515,7 @@ export declare const components: {
             | "start_running"
             | "restart_running"
             | "build_base"
-            | "maintain_fitness"
-            | "general_health";
+            | "maintain_fitness";
           raceId?: string;
           raceTarget?: { type: "finish" } | { seconds: number; type: "time" };
           status: "active" | "achieved" | "missed" | "abandoned" | "paused";
@@ -5903,8 +5902,7 @@ export declare const components: {
             | "start_running"
             | "restart_running"
             | "build_base"
-            | "maintain_fitness"
-            | "general_health";
+            | "maintain_fitness";
           raceId?: string;
           raceTarget?: { type: "finish" } | { seconds: number; type: "time" };
           status: "active" | "achieved" | "missed" | "abandoned" | "paused";
@@ -5928,8 +5926,7 @@ export declare const components: {
             | "start_running"
             | "restart_running"
             | "build_base"
-            | "maintain_fitness"
-            | "general_health";
+            | "maintain_fitness";
           raceId?: string;
           raceTarget?: { type: "finish" } | { seconds: number; type: "time" };
           status: "active" | "achieved" | "missed" | "abandoned" | "paused";
@@ -5950,8 +5947,7 @@ export declare const components: {
             | "start_running"
             | "restart_running"
             | "build_base"
-            | "maintain_fitness"
-            | "general_health";
+            | "maintain_fitness";
           raceId?: string;
           raceTarget?: { type: "finish" } | { seconds: number; type: "time" };
           status: "active" | "achieved" | "missed" | "abandoned" | "paused";
@@ -6792,8 +6788,7 @@ export declare const components: {
             | "start_running"
             | "restart_running"
             | "build_base"
-            | "maintain_fitness"
-            | "general_health";
+            | "maintain_fitness";
           goalId: string;
           raceId?: string;
           raceTarget?: { type: "finish" } | { seconds: number; type: "time" };

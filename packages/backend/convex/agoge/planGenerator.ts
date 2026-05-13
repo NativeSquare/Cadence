@@ -1,12 +1,14 @@
 /**
- * Race-plan generator. Fills a freshly-created Plan with Blocks + planned
- * Workouts using Daniels VDOT + 80/20 polarized periodization.
+ * Plan generators. Fill a freshly-created Plan with Blocks + planned Workouts.
  *
- * Scope: race-category goals only (finish + time targets). Fitness goals and
- * ultra/relay formats are skipped. Math is in `./periodization.ts`.
+ * - `generate`: race-category goals (finish + time targets) using Daniels
+ *   VDOT + 80/20 polarized periodization. Ultra/relay formats are skipped.
+ * - `generateFitness`: fitness-category goals — single base block, no peak,
+ *   no taper, no paces. Length + volume tuned per `fitnessIntent`.
  *
- * Idempotent: if Blocks already exist for the plan, the action returns early
- * (handles scheduler retries and accidental double-fires).
+ * Math is in `./periodization.ts`. Both actions are idempotent: if Blocks
+ * already exist for the plan, the action returns early (handles scheduler
+ * retries and accidental double-fires).
  */
 
 import type { BlockType } from "@nativesquare/agoge/schema";
@@ -25,6 +27,9 @@ import {
   computeVdot,
   daysBetweenYmd,
   distancePeakKm,
+  type FitnessIntent,
+  fitnessPlanShape,
+  fitnessVolumeCurve,
   isSupportedFormat,
   type Locale,
   microcycle,
@@ -244,6 +249,76 @@ export const generate = internalAction({
         ...(raceGoalSeconds !== undefined ? { durationSeconds: raceGoalSeconds } : {}),
       },
     });
+
+    await markGenerated(ctx, plan._id, plan.notes, undefined);
+  },
+});
+
+export const generateFitness = internalAction({
+  args: { planId: v.string() },
+  handler: async (ctx, { planId }): Promise<void> => {
+    const plan = await ctx.runQuery(components.agoge.public.getPlan, { planId });
+    if (!plan) return;
+
+    const existingBlocks = await ctx.runQuery(
+      components.agoge.public.getBlocksByPlan,
+      { planId: plan._id },
+    );
+    if (existingBlocks.length > 0) return;
+
+    const goal = await ctx.runQuery(components.agoge.public.getGoal, {
+      goalId: plan.goalId,
+    });
+    if (!goal || goal.category !== "fitness" || !goal.fitnessIntent) return;
+
+    const athlete = await ctx.runQuery(components.agoge.public.getAthlete, {
+      athleteId: plan.athleteId,
+    });
+    if (!athlete) return;
+
+    const user = await ctx.runQuery(api.table.users.get, {
+      id: athlete.userId as Id<"users">,
+    });
+    const locale: Locale = user?.locale ?? "en";
+
+    const baselineKm = await loadBaselineVolume(ctx, plan.athleteId);
+    const shape = fitnessPlanShape(
+      goal.fitnessIntent as FitnessIntent,
+      baselineKm,
+    );
+    const volumeCurve = fitnessVolumeCurve(shape);
+    const planStart = plan.startDate;
+
+    // Fitness has no phases — one base block spans the whole plan.
+    const blockId = await ctx.runMutation(components.agoge.public.createBlock, {
+      planId: plan._id,
+      type: "base",
+      startDate: planStart,
+      endDate: addDaysYmd(planStart, shape.weeks * 7 - 1),
+    });
+
+    for (let w = 0; w < shape.weeks; w++) {
+      const weekKm = volumeCurve[w] ?? 0;
+      const weekStart = addDaysYmd(planStart, w * 7);
+      for (const session of microcycle("base", weekKm)) {
+        const dateYmd = addDaysYmd(weekStart, session.dayOffset);
+        const distanceMeters = Math.round(session.distanceKm * 1000);
+        if (distanceMeters < 500) continue;
+        await ctx.runMutation(components.agoge.public.createWorkout, {
+          athleteId: plan.athleteId,
+          planId: plan._id,
+          blockId,
+          name: workoutName({ type: session.type, distanceMeters, locale }),
+          type: session.type,
+          sport: "run",
+          status: "planned",
+          planned: {
+            date: ymdToNoonUtc(dateYmd),
+            distanceMeters,
+          },
+        });
+      }
+    }
 
     await markGenerated(ctx, plan._id, plan.notes, undefined);
   },
