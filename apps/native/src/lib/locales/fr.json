@@ -420,6 +420,15 @@
       "targetMinutes": "MM",
       "targetSeconds": "SS"
     },
+    "plan": {
+      "heading": "Votre plan d'entraînement",
+      "helper": "Nous construisons un plan personnalisé jusqu'au jour de course. Choisissez quand le démarrer.",
+      "startDate": "Date de début du plan",
+      "generating": {
+        "title": "Construction du plan",
+        "subtitle": "Nous orchestrons vos semaines jusqu'au jour J. Quelques instants…"
+      }
+    },
     "fitness": {
       "heading": "Choisissez votre orientation",
       "helper": "Vous pourrez ajouter une course plus tard — c'est pour adapter nos suggestions.",

@@ -33,3 +33,7 @@ export type RaceGoalValue = {
   targetMinutes: string;
   targetSeconds: string;
 };
+
+export type PlanValue = {
+  startDate: string;
+};

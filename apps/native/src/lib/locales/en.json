@@ -420,6 +420,15 @@
       "targetMinutes": "MM",
       "targetSeconds": "SS"
     },
+    "plan": {
+      "heading": "Your training plan",
+      "helper": "We'll build a personalized plan that leads up to race day. Pick when you'd like it to start.",
+      "startDate": "Plan start date",
+      "generating": {
+        "title": "Building your plan",
+        "subtitle": "Mapping out your weeks toward race day. This usually takes a moment."
+      }
+    },
     "fitness": {
       "heading": "Pick your focus",
       "helper": "You can add a race later — this just helps us tailor suggestions.",

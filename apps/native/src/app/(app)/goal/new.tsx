@@ -2,10 +2,12 @@ import { FORMAT_DISTANCE_METERS } from "@/components/app/account/race-form";
 import {
   StepChooseType,
   StepFitnessGoal,
+  StepPlan,
   StepRaceDetails,
   StepRaceGoal,
   type FitnessGoal,
   type GoalBranch,
+  type PlanValue,
   type RaceDetailsValue,
   type RaceGoalValue,
 } from "@/components/app/goal";
@@ -16,7 +18,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { api } from "@packages/backend/convex/_generated/api";
 import { useMutation } from "convex/react";
 import { useRouter } from "expo-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
@@ -28,7 +30,17 @@ import {
   View,
 } from "react-native";
 
-type Step = 1 | 2 | 3;
+type Step = 1 | 2 | 3 | 4;
+
+const MOCK_PLAN_GENERATION_MS = 2500;
+
+function todayIso(): string {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${dd}`;
+}
 
 const EMPTY_RACE_DETAILS: RaceDetailsValue = {
   name: "",
@@ -44,6 +56,8 @@ const EMPTY_RACE_GOAL: RaceGoalValue = {
   targetMinutes: "",
   targetSeconds: "",
 };
+
+const emptyPlan = (): PlanValue => ({ startDate: todayIso() });
 
 function targetSeconds(g: RaceGoalValue): number {
   const total =
@@ -76,11 +90,13 @@ export default function NewGoalScreen() {
   const [raceDetails, setRaceDetails] =
     useState<RaceDetailsValue>(EMPTY_RACE_DETAILS);
   const [raceGoal, setRaceGoal] = useState<RaceGoalValue>(EMPTY_RACE_GOAL);
+  const [plan, setPlan] = useState<PlanValue>(emptyPlan);
   const [fitnessGoal, setFitnessGoalState] = useState<FitnessGoal | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [generatingPlan, setGeneratingPlan] = useState(false);
 
-  const totalSteps = branch === "fitness" ? 2 : 3;
+  const totalSteps = branch === "fitness" ? 2 : 4;
 
   const canProceed = useMemo(() => {
     if (step === 1) return branch != null;
@@ -100,11 +116,12 @@ export default function NewGoalScreen() {
       if (raceGoal.type === "performance") return hasNonZeroTime(raceGoal);
       return false;
     }
+    if (step === 4 && branch === "race") return plan.startDate !== "";
     return false;
-  }, [step, branch, raceDetails, raceGoal, fitnessGoal]);
+  }, [step, branch, raceDetails, raceGoal, plan, fitnessGoal]);
 
   const isFinalStep =
-    (step === 3 && branch === "race") || (step === 2 && branch === "fitness");
+    (step === 4 && branch === "race") || (step === 2 && branch === "fitness");
 
   const handleClose = () => {
     router.back();
@@ -116,7 +133,7 @@ export default function NewGoalScreen() {
       return;
     }
     setSubmitError(null);
-    setStep((s) => (s === 3 ? 2 : 1) as Step);
+    setStep((s) => (s - 1) as Step);
   };
 
   const handleNext = async () => {
@@ -134,7 +151,10 @@ export default function NewGoalScreen() {
     try {
       if (branch === "fitness" && fitnessGoal) {
         await createFitnessGoal({ fitnessIntent: fitnessGoal });
-      } else if (branch === "race") {
+        router.replace("/(app)/(tabs)");
+        return;
+      }
+      if (branch === "race") {
         const format = raceDetails.format;
         if (format === "" || raceDetails.discipline === "") return;
         const distanceMeters =
@@ -155,10 +175,9 @@ export default function NewGoalScreen() {
             raceTarget: buildRaceTarget(raceGoal),
           },
         });
-      } else {
+        setGeneratingPlan(true);
         return;
       }
-      router.replace("/(app)/(tabs)");
     } catch (err) {
       setSubmitError(
         getConvexErrorMessage(err) || t("goal.errors.submitFailed"),
@@ -167,6 +186,14 @@ export default function NewGoalScreen() {
       setSubmitting(false);
     }
   };
+
+  useEffect(() => {
+    if (!generatingPlan) return;
+    const id = setTimeout(() => {
+      router.replace("/(app)/(tabs)");
+    }, MOCK_PLAN_GENERATION_MS);
+    return () => clearTimeout(id);
+  }, [generatingPlan, router]);
 
   return (
     <KeyboardAvoidingView
@@ -227,6 +254,14 @@ export default function NewGoalScreen() {
           )}
           {step === 3 && branch === "race" && (
             <StepRaceGoal value={raceGoal} onChange={setRaceGoal} />
+          )}
+          {step === 4 && branch === "race" && (
+            <StepPlan
+              value={plan}
+              onChange={setPlan}
+              minDate={todayIso()}
+              maxDate={raceDetails.date || undefined}
+            />
           )}
 
           {submitError && (
@@ -290,6 +325,39 @@ export default function NewGoalScreen() {
           )}
         </Pressable>
       </View>
+
+      {generatingPlan && (
+        <View
+          className="absolute inset-0 items-center justify-center px-8"
+          style={{ backgroundColor: LIGHT_THEME.w2 }}
+        >
+          <View className="w-full max-w-md items-center gap-6">
+            <ActivityIndicator size="large" color={LIGHT_THEME.wText} />
+            <View className="items-center gap-2">
+              <Text
+                className="font-coach-extrabold text-[22px]"
+                style={{
+                  color: LIGHT_THEME.wText,
+                  letterSpacing: -0.02 * 22,
+                  textAlign: "center",
+                }}
+              >
+                {t("goal.plan.generating.title")}
+              </Text>
+              <Text
+                className="font-coach-medium text-[14px]"
+                style={{
+                  color: LIGHT_THEME.wSub,
+                  lineHeight: 20,
+                  textAlign: "center",
+                }}
+              >
+                {t("goal.plan.generating.subtitle")}
+              </Text>
+            </View>
+          </View>
+        </View>
+      )}
     </KeyboardAvoidingView>
   );
 }
