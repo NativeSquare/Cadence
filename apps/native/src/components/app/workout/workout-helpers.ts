@@ -1,17 +1,13 @@
 import type { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
-import {
-  CADENCE_WORKOUT_TYPES,
-  type CadenceWorkoutType,
-} from "@packages/shared/types";
+import { WORKOUT_TYPES } from "@packages/shared/types";
+import type { WorkoutType } from "@nativesquare/agoge/schema";
 import type {
   Duration,
   Step,
   Target,
   Workout as WorkoutStructure,
 } from "@nativesquare/agoge";
-
-export { CADENCE_WORKOUT_TYPES, type CadenceWorkoutType };
 
 export const EMPTY_STRUCTURE: WorkoutStructure = {
   schema_version: 1,
@@ -20,21 +16,17 @@ export const EMPTY_STRUCTURE: WorkoutStructure = {
   blocks: [],
 };
 
-export function useWorkoutCategoryLabels(): Record<CadenceWorkoutType, string> {
+export function useWorkoutTypeLabels(): Record<WorkoutType, string> {
   const { t } = useTranslation();
-  return {
-    easy: t("workout.types.easy"),
-    tempo: t("workout.types.tempo"),
-    long: t("workout.types.long"),
-    race: t("workout.types.race"),
-  };
+  return Object.fromEntries(
+    WORKOUT_TYPES.map((type) => [type, t(`workout.types.${type}`)]),
+  ) as Record<WorkoutType, string>;
 }
 
 /**
- * Translate any agoge WorkoutType enum value (full 18-member set) to a
- * locale-aware label. Falls back to capitalize-and-replace for values not
- * covered by translations — useful if the schema gains a new variant before
- * the locale file is updated.
+ * Translate an agoge WorkoutType enum value to a locale-aware label. Falls
+ * back to capitalize-and-replace for values not covered by translations —
+ * useful if the schema gains a new variant before the locale file is updated.
  */
 export function workoutTypeLabel(t: TFunction, type: string): string {
   const key = `workout.types.${type}`;

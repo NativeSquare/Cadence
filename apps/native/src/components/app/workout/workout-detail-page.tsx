@@ -13,7 +13,6 @@
 import { ConfirmationSheet } from "@/components/shared/confirmation-sheet";
 import { Text } from "@/components/ui/text";
 import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
-import { getCadenceWorkoutType } from "@packages/shared/utils";
 import { WORKOUT_TYPES_COLORS } from "@packages/shared/colors";
 import { useLanguage, type Language } from "@/lib/i18n";
 import { selectionFeedback } from "@/lib/haptics";
@@ -144,7 +143,7 @@ function formatLoad(load?: number): string | null {
 }
 
 function getTypeColor(type: WorkoutType): string {
-  return WORKOUT_TYPES_COLORS[getCadenceWorkoutType(type)];
+  return WORKOUT_TYPES_COLORS[type];
 }
 
 function computeBlockProgress(

@@ -44,6 +44,13 @@ export function BottomSheetModal({
     ? GorhomBottomSheetScrollView
     : GorhomBottomSheetView;
 
+  // BottomSheetView positions children via `style`; BottomSheetScrollView needs
+  // padding on `contentContainerStyle` for it to actually push content above
+  // the home indicator.
+  const paddingProps = scrollable
+    ? { contentContainerStyle: { paddingBottom: insets.bottom + 10 } }
+    : { style: { paddingBottom: insets.bottom + 10 } };
+
   return (
     <GorhomBottomSheetModal
       ref={ref}
@@ -72,9 +79,7 @@ export function BottomSheetModal({
         />
       )}
     >
-      <ContentWrapper style={{ paddingBottom: insets.bottom + 10 }}>
-        {children}
-      </ContentWrapper>
+      <ContentWrapper {...paddingProps}>{children}</ContentWrapper>
     </GorhomBottomSheetModal>
   );
 }

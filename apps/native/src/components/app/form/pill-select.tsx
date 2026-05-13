@@ -32,14 +32,14 @@ export function PillSelect<T extends string>({
               selectionFeedback();
               onChange(opt);
             }}
-            className="rounded-full border px-[14px] py-2 active:opacity-80"
+            className="rounded-full border px-4 py-2.5 active:opacity-80"
             style={{
               backgroundColor: selected ? selectedBg : LIGHT_THEME.w1,
               borderColor: selected ? selectedBg : LIGHT_THEME.wBrd,
             }}
           >
             <Text
-              className="font-coach-semibold text-[13px]"
+              className="font-coach-semibold text-[14px]"
               style={{ color: selected ? "#FFFFFF" : LIGHT_THEME.wText }}
             >
               {labels[opt]}

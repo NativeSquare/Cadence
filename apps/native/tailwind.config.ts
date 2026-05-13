@@ -1,9 +1,5 @@
 import type { Config } from "tailwindcss";
 import {
-  WORKOUT_TYPES_COLORS,
-  WORKOUT_TYPES_COLORS_DIM,
-} from "@packages/shared/colors";
-import {
   COLORS,
   GRAYS,
   SURFACES,
@@ -98,23 +94,6 @@ export default {
         wMute: LIGHT_THEME.wMute,
         wBrd: LIGHT_THEME.wBrd,
 
-        // Workout type colors (4-color scheme)
-        "workout-easy": {
-          DEFAULT: WORKOUT_TYPES_COLORS.easy,
-          dim: WORKOUT_TYPES_COLORS_DIM.easy,
-        },
-        "workout-tempo": {
-          DEFAULT: WORKOUT_TYPES_COLORS.tempo,
-          dim: WORKOUT_TYPES_COLORS_DIM.tempo,
-        },
-        "workout-long": {
-          DEFAULT: WORKOUT_TYPES_COLORS.long,
-          dim: WORKOUT_TYPES_COLORS_DIM.long,
-        },
-        "workout-race": {
-          DEFAULT: WORKOUT_TYPES_COLORS.race,
-          dim: WORKOUT_TYPES_COLORS_DIM.race,
-        },
       },
       fontFamily: {
         // ═══════════════════════════════════════════════════════════════

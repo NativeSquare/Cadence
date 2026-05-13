@@ -138,19 +138,14 @@
   "calendar": {
     "title": "Calendar",
     "subtitle": "Your training month at a glance",
-    "toggleBlocks": {
-      "label": "Blocks",
-      "show": "Show training blocks",
-      "hide": "Hide training blocks"
+    "legend": {
+      "open": "Show legend",
+      "title": "Legend",
+      "workoutTypes": "Workout types",
+      "blockTypes": "Training blocks"
     },
     "selectedDay": {
       "empty": "No workouts scheduled"
-    },
-    "types": {
-      "easy": "Easy",
-      "tempo": "Tempo",
-      "long": "Long Run",
-      "race": "Race"
     }
   },
   "coach": {
@@ -523,32 +518,19 @@
     },
     "types": {
       "easy": "Easy",
-      "long": "Long",
-      "tempo": "Tempo",
       "threshold": "Threshold",
       "intervals": "Intervals",
-      "vo2max": "VO2 max",
-      "fartlek": "Fartlek",
-      "progression": "Progression",
+      "long": "Long",
       "race_pace": "Race pace",
       "recovery": "Recovery",
-      "strides": "Strides",
-      "hills": "Hills",
       "race": "Race",
-      "test": "Test",
-      "cross_training": "Cross-training",
-      "strength": "Strength",
-      "rest": "Rest",
-      "other": "Other"
+      "test": "Test"
     },
     "blockTypes": {
       "base": "Base",
       "build": "Build",
       "peak": "Peak",
-      "taper": "Taper",
-      "recovery": "Recovery",
-      "maintenance": "Maintenance",
-      "transition": "Transition"
+      "taper": "Taper"
     },
     "intents": {
       "warmup": {

@@ -1,8 +1,8 @@
 import { FormField, PillSelect } from "@/components/app/form";
-import { CADENCE_WORKOUT_TYPES } from "@/components/app/workout/workout-helpers";
+import { useWorkoutTypeLabels } from "@/components/app/workout/workout-helpers";
 import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
 import { WORKOUT_TYPES_COLORS } from "@packages/shared/colors";
-import type { CadenceWorkoutType } from "@packages/shared/types";
+import { WORKOUT_TYPES } from "@packages/shared/types";
 import React from "react";
 import {
   Controller,
@@ -19,7 +19,7 @@ const inputStyle = {
 };
 
 // The owning form's shape must include `name: string`, `description?: string`,
-// `type: CadenceWorkoutType` fields. We keep the generic constraint loose and cast
+// `type: WorkoutType` fields. We keep the generic constraint loose and cast
 // internally to avoid `Control<T>` invariance issues at the call site.
 export function WorkoutMetadataFields<T extends FieldValues>({
   control,
@@ -31,12 +31,7 @@ export function WorkoutMetadataFields<T extends FieldValues>({
   const { t } = useTranslation();
   const c = control as unknown as Control<FieldValues>;
 
-  const workoutTypeLabels: Record<CadenceWorkoutType, string> = {
-    easy: t("workout.types.easy"),
-    tempo: t("workout.types.tempo"),
-    long: t("workout.types.long"),
-    race: t("workout.types.race"),
-  };
+  const workoutTypeLabels = useWorkoutTypeLabels();
 
   return (
     <View className="gap-5">
@@ -93,7 +88,7 @@ export function WorkoutMetadataFields<T extends FieldValues>({
           render={({ field, fieldState }) => (
             <FormField label={t("workout.fields.type")} error={fieldState.error?.message}>
               <PillSelect
-                options={CADENCE_WORKOUT_TYPES}
+                options={WORKOUT_TYPES}
                 labels={workoutTypeLabels}
                 value={field.value}
                 onChange={field.onChange}

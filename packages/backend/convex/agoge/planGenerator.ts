@@ -21,6 +21,7 @@ type ComponentId = string;
 import {
   addDaysYmd,
   buildStructure,
+  buildTestStructure,
   computeVdot,
   daysBetweenYmd,
   distancePeakKm,
@@ -36,6 +37,17 @@ import {
   workoutName,
   ymdToNoonUtc,
 } from "./periodization";
+
+const TEST_PLAN_WEEKS_MIN = 4;
+const TEST_DISTANCE_METERS = 8000;
+const TEST_NAME: Record<Locale, string> = {
+  en: "5K time trial",
+  fr: "Test 5 km",
+};
+const TEST_DESCRIPTION: Record<Locale, string> = {
+  en: "Run 5 km as fast as you can sustain. Your finish time sets the pace targets for the rest of your plan.",
+  fr: "Cours 5 km aussi vite que tu peux le maintenir. Ton temps déterminera les allures cibles du reste du plan.",
+};
 
 const GENERATOR_VERSION = "v1";
 const BASELINE_LOOKBACK_DAYS = 56;
@@ -113,6 +125,11 @@ export const generate = internalAction({
 
     const blockIds = await createBlocks(ctx, plan._id, planStart, phaseByWeek);
 
+    // Baseline test: no paces (= no time goal, no VDOT) and enough runway
+    // for a 5K TT to be useful. Lands on day 1, replaces that day's easy run.
+    const needsTest = !paces && planWeeks >= TEST_PLAN_WEEKS_MIN;
+    const testYmd = needsTest ? planStart : undefined;
+
     for (let w = 0; w < planWeeks; w++) {
       const phase = phaseByWeek[w];
       if (!phase) continue;
@@ -123,7 +140,10 @@ export const generate = internalAction({
 
       for (const session of microcycle(phase, weekKm)) {
         const dateYmd = addDaysYmd(weekStart, session.dayOffset);
-        if (dateYmd < planStart || dateYmd > raceYmd) continue;
+        // Race day is reserved for the race workout itself.
+        if (dateYmd < planStart || dateYmd >= raceYmd) continue;
+        // Test day (if any) is reserved for the baseline test.
+        if (testYmd && dateYmd === testYmd) continue;
         const distanceMeters = Math.round(session.distanceKm * 1000);
         if (distanceMeters < 500) continue;
         const structure = buildStructure(
@@ -156,7 +176,12 @@ export const generate = internalAction({
           athleteId: plan.athleteId,
           planId: plan._id,
           blockId,
-          name: workoutName(session.type, locale),
+          name: workoutName({
+            type: session.type,
+            distanceMeters: plannedDistance,
+            structure,
+            locale,
+          }),
           type: session.type,
           sport: "run",
           status: "planned",
@@ -170,6 +195,55 @@ export const generate = internalAction({
         });
       }
     }
+
+    // Baseline test workout (when needed): attached to the first block in
+    // phase order, sitting on day 1 of the plan.
+    if (testYmd) {
+      const testBlockId =
+        blockIds.base ?? blockIds.build ?? blockIds.peak ?? blockIds.taper;
+      if (testBlockId) {
+        await ctx.runMutation(components.agoge.public.createWorkout, {
+          athleteId: plan.athleteId,
+          planId: plan._id,
+          blockId: testBlockId,
+          name: TEST_NAME[locale],
+          description: TEST_DESCRIPTION[locale],
+          type: "test",
+          sport: "run",
+          status: "planned",
+          planned: {
+            date: ymdToNoonUtc(testYmd),
+            distanceMeters: TEST_DISTANCE_METERS,
+            structure: buildTestStructure(),
+          },
+        });
+      }
+    }
+
+    // Race day: emit the race itself as a workout so it shows up alongside
+    // training and can collect `actual` data once completed.
+    const raceGoalSeconds =
+      goal.raceTarget?.type === "time" && goal.raceTarget.seconds > 0
+        ? goal.raceTarget.seconds
+        : undefined;
+    const racePaceMps = raceGoalSeconds
+      ? race.distanceMeters / raceGoalSeconds
+      : undefined;
+    await ctx.runMutation(components.agoge.public.createWorkout, {
+      athleteId: plan.athleteId,
+      planId: plan._id,
+      ...(blockIds.taper ? { blockId: blockIds.taper } : {}),
+      name: race.name,
+      type: "race",
+      sport: "run",
+      status: "planned",
+      planned: {
+        date: ymdToNoonUtc(raceYmd),
+        distanceMeters: race.distanceMeters,
+        ...(racePaceMps !== undefined ? { avgPaceMps: racePaceMps } : {}),
+        ...(raceGoalSeconds !== undefined ? { durationSeconds: raceGoalSeconds } : {}),
+      },
+    });
 
     await markGenerated(ctx, plan._id, plan.notes, undefined);
   },

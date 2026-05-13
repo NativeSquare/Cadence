@@ -10,27 +10,21 @@ import {
   type LayoutChangeEvent,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Layers } from "lucide-react-native";
+import { Info } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import { useQuery } from "convex/react";
 import { useRouter } from "expo-router";
+import { BottomSheetModal as GorhomBottomSheetModal } from "@gorhom/bottom-sheet";
 import { api } from "@packages/backend/convex/_generated/api";
 
-import { cn } from "@/lib/utils";
-import { COLORS, GRAYS } from "@/lib/design-tokens";
-import {
-  formatDayLabelShort,
-  formatLongDate,
-  formatMonthName,
-} from "@/lib/format";
+import { GRAYS } from "@/lib/design-tokens";
+import { formatDayLabelShort, formatMonthName } from "@/lib/format";
 import { useLanguage } from "@/lib/i18n";
 import { buildBlockLookup, dateKey } from "./helpers";
 import { MonthGrid, GRID_GAP } from "./MonthGrid";
-import { AddWorkoutButton } from "@/components/app/workout/add-workout-button";
-import { WorkoutCard } from "@/components/app/workout/workout-card";
+import { CalendarLegendSheet } from "./CalendarLegendSheet";
+import { CalendarDaySheet } from "./CalendarDaySheet";
 import type { WorkoutDoc } from "@nativesquare/agoge/schema";
-
-type ViewMode = "workouts" | "blocks";
 
 const GRID_PADDING = 10;
 const MONTHS_BEFORE = 6;
@@ -106,7 +100,6 @@ export function CalendarScreen() {
     };
   }, [monthsList]);
 
-  const [viewMode, setViewMode] = useState<ViewMode>("workouts");
   const [selectedDate, setSelectedDate] = useState<string>(mountTodayKey);
 
   const workouts = useQuery(api.agoge.workouts.listWorkouts, monthRange);
@@ -152,11 +145,17 @@ export function CalendarScreen() {
     [todayMonthIndex],
   );
 
+  // ─── Sheets ───────────────────────────────────────────────────────
+
+  const legendSheetRef = useRef<GorhomBottomSheetModal>(null);
+  const daySheetRef = useRef<GorhomBottomSheetModal>(null);
+
   // ─── Interaction handlers ─────────────────────────────────────────
 
   const handleDayPress = useCallback((dateKey: string) => {
     Haptics.selectionAsync();
     setSelectedDate(dateKey);
+    daySheetRef.current?.present();
   }, []);
 
   const handleWorkoutPress = useCallback(
@@ -167,9 +166,9 @@ export function CalendarScreen() {
     [router],
   );
 
-  const handleToggleBlocks = useCallback(() => {
+  const handleShowLegend = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setViewMode((m) => (m === "workouts" ? "blocks" : "workouts"));
+    legendSheetRef.current?.present();
   }, []);
 
   const handleAddWorkout = useCallback(() => {
@@ -182,8 +181,6 @@ export function CalendarScreen() {
 
   // ─── Render ───────────────────────────────────────────────────────
 
-  const isBlocksMode = viewMode === "blocks";
-
   if (workouts === undefined || activePlan === undefined) {
     return (
       <View className="flex-1 bg-black items-center justify-center">
@@ -192,12 +189,11 @@ export function CalendarScreen() {
     );
   }
 
-  const selectedDateObj = new Date(selectedDate + "T00:00:00");
   const selectedWorkouts = workoutsByDate[selectedDate] ?? [];
 
   return (
     <View className="flex-1 bg-black">
-      {/* Dark header — title + subtitle + blocks toggle */}
+      {/* Dark header — title + subtitle + legend info */}
       <View
         className="bg-black px-6 pb-4"
         style={{ paddingTop: insets.top + 8 }}
@@ -215,34 +211,13 @@ export function CalendarScreen() {
             </Text>
           </View>
           <Pressable
-            onPress={handleToggleBlocks}
-            accessibilityRole="switch"
-            accessibilityState={{ checked: isBlocksMode }}
-            accessibilityLabel={t(
-              isBlocksMode
-                ? "calendar.toggleBlocks.hide"
-                : "calendar.toggleBlocks.show",
-            )}
-            hitSlop={6}
-            className={cn(
-              "h-9 px-3 flex-row items-center justify-center gap-1.5 rounded-full border bg-[rgba(255,255,255,0.06)] border-[rgba(255,255,255,0.08)] active:opacity-70",
-              isBlocksMode &&
-                "bg-[rgba(168,217,0,0.15)] border-[rgba(168,217,0,0.4)]",
-            )}
+            onPress={handleShowLegend}
+            accessibilityRole="button"
+            accessibilityLabel={t("calendar.legend.open")}
+            hitSlop={10}
+            className="h-9 w-9 items-center justify-center rounded-full border bg-[rgba(255,255,255,0.06)] border-[rgba(255,255,255,0.08)] active:opacity-70"
           >
-            <Layers
-              size={14}
-              color={isBlocksMode ? COLORS.lime : GRAYS.g3}
-              strokeWidth={1.75}
-            />
-            <Text
-              className={cn(
-                "text-[13px] font-coach-medium text-g3",
-                isBlocksMode && "text-lime",
-              )}
-            >
-              {t("calendar.toggleBlocks.label")}
-            </Text>
+            <Info size={16} color={GRAYS.g2} strokeWidth={1.75} />
           </Pressable>
         </View>
       </View>
@@ -250,7 +225,7 @@ export function CalendarScreen() {
       {/* Rounded transition from dark header to light content */}
       <View className="h-6 bg-w2 rounded-t-3xl" />
 
-      {/* Light area: day-of-week headers + scrollable month list + bottom panel */}
+      {/* Light area: day-of-week headers + scrollable month list */}
       <View className="flex-1 bg-w2">
         <View
           className="flex-row pb-2"
@@ -270,7 +245,7 @@ export function CalendarScreen() {
           className="flex-1"
           contentContainerStyle={{
             paddingHorizontal: GRID_PADDING,
-            paddingBottom: 16,
+            paddingBottom: insets.bottom + 16,
           }}
           showsVerticalScrollIndicator={false}
         >
@@ -294,46 +269,21 @@ export function CalendarScreen() {
                 workoutsByDate={workoutsByDate}
                 blockLookup={blockLookup}
                 todayKey={todayKey}
-                isBlocksMode={isBlocksMode}
-                selectedDate={selectedDate}
                 onDayPress={handleDayPress}
               />
             </View>
           ))}
         </ScrollView>
-
-        <View className="min-h-[220px] max-h-[280px] bg-w2 border-t-hairline border-wBrd pt-3.5">
-          <View className="flex-row items-center px-5 pb-3 gap-2">
-            <Text className="flex-1 text-base font-coach-semibold text-wText capitalize">
-              {formatLongDate(locale, selectedDateObj)}
-            </Text>
-          </View>
-
-          <ScrollView
-            className="flex-1"
-            contentContainerClassName="px-4 pb-4 gap-2.5"
-            showsVerticalScrollIndicator={false}
-          >
-            {selectedWorkouts.length === 0 ? (
-              <Text className="text-sm font-coach text-wMute text-center py-4">
-                {t("calendar.selectedDay.empty")}
-              </Text>
-            ) : (
-              selectedWorkouts.map((w) => (
-                <WorkoutCard
-                  key={w._id}
-                  workout={w}
-                  onPress={() => handleWorkoutPress(w._id)}
-                />
-              ))
-            )}
-            <AddWorkoutButton
-              label={t("account.trainingPlan.addWorkout")}
-              onPress={handleAddWorkout}
-            />
-          </ScrollView>
-        </View>
       </View>
+
+      <CalendarLegendSheet sheetRef={legendSheetRef} />
+      <CalendarDaySheet
+        sheetRef={daySheetRef}
+        selectedDate={selectedDate}
+        workouts={selectedWorkouts}
+        onWorkoutPress={handleWorkoutPress}
+        onAddWorkout={handleAddWorkout}
+      />
     </View>
   );
 }

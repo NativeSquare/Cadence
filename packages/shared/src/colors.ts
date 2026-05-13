@@ -1,13 +1,10 @@
-import { CadenceBlockType, CadenceWorkoutType } from "./types";
+import type { BlockType, WorkoutType } from "@nativesquare/agoge/schema";
 
-export const BLOCK_TYPE_COLORS: Record<CadenceBlockType, string> = {
+export const BLOCK_TYPE_COLORS: Record<BlockType, string> = {
   base: "#6B9E3A",
   build: "#E8A030",
   peak: "#E64D4D",
   taper: "#5B9EFF",
-  recovery: "#8BC34A",
-  maintenance: "#9E9E9E",
-  transition: "#AB47BC",
 } as const;
 
 export const BRAND_NEUTRALS = {
@@ -39,16 +36,27 @@ export const SYSTEM_COLORS = {
   grnDim: "rgba(74,222,128,0.12)",
 } as const;
 
-export const WORKOUT_TYPES_COLORS: Record<CadenceWorkoutType, string> = {
+const WORKOUT_GRAY = "#A3A3A0";
+const WORKOUT_GRAY_DIM = "rgba(163, 163, 160, 0.15)";
+
+export const WORKOUT_TYPES_COLORS: Record<WorkoutType, string> = {
   easy: "#00E676",
-  tempo: "#FF6D00",
+  threshold: "#FF6D00",
+  intervals: "#FFC400",
   long: "#00B0FF",
   race: "#FF0040",
+  race_pace: WORKOUT_GRAY,
+  recovery: WORKOUT_GRAY,
+  test: WORKOUT_GRAY,
 } as const;
 
-export const WORKOUT_TYPES_COLORS_DIM: Record<CadenceWorkoutType, string> = {
+export const WORKOUT_TYPES_COLORS_DIM: Record<WorkoutType, string> = {
   easy: "rgba(0, 230, 118, 0.15)",
-  tempo: "rgba(255, 109, 0, 0.15)",
+  threshold: "rgba(255, 109, 0, 0.15)",
+  intervals: "rgba(255, 196, 0, 0.15)",
   long: "rgba(0, 176, 255, 0.15)",
   race: "rgba(255, 0, 64, 0.15)",
+  race_pace: WORKOUT_GRAY_DIM,
+  recovery: WORKOUT_GRAY_DIM,
+  test: WORKOUT_GRAY_DIM,
 } as const;

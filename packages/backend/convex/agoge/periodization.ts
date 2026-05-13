@@ -416,13 +416,6 @@ export function buildStructure(
         ];
       }
 
-      case "progression":
-        return [
-          distanceStep("active", totalMeters * 0.4, "E", paces),
-          distanceStep("active", totalMeters * 0.3, "M", paces),
-          distanceStep("active", totalMeters * 0.3, "T", paces),
-        ];
-
       default:
         return [];
     }
@@ -435,6 +428,39 @@ export function buildStructure(
     discipline: "endurance",
     sport: "run",
     blocks,
+  };
+}
+
+/**
+ * A 5K time trial: easy warmup + 5km all-out (RPE 10) + easy cooldown. Used
+ * as a baseline workout when the runner has no time goal — the result lets
+ * downstream code compute VDOT and re-pace the rest of the plan.
+ */
+export function buildTestStructure(): WorkoutStructure {
+  return {
+    schema_version: 1,
+    discipline: "endurance",
+    sport: "run",
+    blocks: [
+      {
+        kind: "step",
+        intent: "warmup",
+        duration: { type: "distance", meters: 2000 },
+        target: { type: "none" },
+      },
+      {
+        kind: "step",
+        intent: "work",
+        duration: { type: "distance", meters: 5000 },
+        target: { type: "rpe", value: 10 },
+      },
+      {
+        kind: "step",
+        intent: "cooldown",
+        duration: { type: "distance", meters: 1000 },
+        target: { type: "none" },
+      },
+    ],
   };
 }
 
@@ -518,32 +544,100 @@ export function ymdToNoonUtc(ymd: string): string {
 }
 
 // ---------------------------------------------------------------------------
-// Workout name localization
+// Workout name (structure-aware summary)
 // ---------------------------------------------------------------------------
 
 export type Locale = "en" | "fr";
 
-const NAME_BY_TYPE: Record<WorkoutType, { en: string; fr: string }> = {
-  easy: { en: "Easy run", fr: "Course facile" },
-  long: { en: "Long run", fr: "Sortie longue" },
-  tempo: { en: "Tempo run", fr: "Tempo" },
+const TYPE_LABEL: Record<WorkoutType, { en: string; fr: string }> = {
+  easy: { en: "Easy", fr: "Facile" },
+  long: { en: "Long", fr: "Long" },
   threshold: { en: "Threshold", fr: "Seuil" },
   intervals: { en: "Intervals", fr: "Intervalles" },
-  vo2max: { en: "VO2 max", fr: "VO2 max" },
-  fartlek: { en: "Fartlek", fr: "Fartlek" },
-  progression: { en: "Progression run", fr: "Course progressive" },
   race_pace: { en: "Race pace", fr: "Allure de course" },
-  recovery: { en: "Recovery run", fr: "Récupération" },
-  strides: { en: "Strides", fr: "Lignes droites" },
-  hills: { en: "Hill repeats", fr: "Côtes" },
+  recovery: { en: "Recovery", fr: "Récup" },
   race: { en: "Race", fr: "Course" },
-  test: { en: "Fitness test", fr: "Test de forme" },
-  cross_training: { en: "Cross-training", fr: "Cross-training" },
-  strength: { en: "Strength", fr: "Renforcement" },
-  rest: { en: "Rest", fr: "Repos" },
-  other: { en: "Workout", fr: "Séance" },
+  test: { en: "Fitness test", fr: "Test" },
 };
 
-export function workoutName(type: WorkoutType, locale: Locale): string {
-  return NAME_BY_TYPE[type][locale];
+const WITH: Record<Locale, string> = { en: "w/", fr: "avec" };
+
+function formatKm(meters: number): string {
+  const km = Math.round((meters / 1000) * 10) / 10;
+  return Number.isInteger(km) ? `${km} km` : `${km.toFixed(1)} km`;
+}
+
+function formatRepMeters(meters: number): string {
+  return `${Math.round(meters)}m`;
+}
+
+function formatPaceMinPerKm(mps: number): string {
+  const secPerKm = 1000 / mps;
+  let min = Math.floor(secPerKm / 60);
+  let sec = Math.round(secPerKm - min * 60);
+  if (sec === 60) {
+    min += 1;
+    sec = 0;
+  }
+  return `${min}:${sec.toString().padStart(2, "0")}`;
+}
+
+function paceFromStep(step: Step): number | undefined {
+  if (step.target?.type !== "pace_range") return undefined;
+  return (step.target.min_speed_mps + step.target.max_speed_mps) / 2;
+}
+
+/**
+ * Build a human-readable summary name for a generated workout.
+ *
+ *   "5 km - Easy"                       continuous easy/recovery/long
+ *   "5×1200m @ 3:42"                    threshold/intervals (repeat)
+ *   "20 km - Long w/ 8 km @ 5:00"       long run with M-pace block
+ *   "8 km @ 5:00"                       race-pace tune-up
+ *   "12 km - Progression"               progression
+ *
+ * Pace clause omitted when there's no goal time.
+ */
+export function workoutName(args: {
+  type: WorkoutType;
+  distanceMeters: number;
+  structure?: WorkoutStructure;
+  locale: Locale;
+}): string {
+  const { type, distanceMeters, structure, locale } = args;
+  const label = TYPE_LABEL[type][locale];
+  const totalKm = formatKm(distanceMeters);
+
+  // Repeat-based session (threshold, intervals): "N×{dist} @ {pace}".
+  const repeat = structure?.blocks.find(
+    (b): b is Repeat => b.kind === "repeat",
+  );
+  if (repeat) {
+    const work = repeat.children.find((c) => c.intent === "work");
+    if (work && work.duration.type === "distance") {
+      const dist = formatRepMeters(work.duration.meters);
+      const pace = paceFromStep(work);
+      return pace
+        ? `${repeat.count}×${dist} @ ${formatPaceMinPerKm(pace)}`
+        : `${repeat.count}×${dist} - ${label}`;
+    }
+  }
+
+  // Single work step (long w/ M block, race_pace).
+  const workStep = structure?.blocks.find(
+    (b): b is Step => b.kind === "step" && b.intent === "work",
+  );
+  if (workStep && workStep.duration.type === "distance") {
+    const workKm = formatKm(workStep.duration.meters);
+    const pace = paceFromStep(workStep);
+    if (type === "long") {
+      return pace
+        ? `${totalKm} - ${label} ${WITH[locale]} ${workKm} @ ${formatPaceMinPerKm(pace)}`
+        : `${totalKm} - ${label}`;
+    }
+    return pace ? `${workKm} @ ${formatPaceMinPerKm(pace)}` : `${workKm} - ${label}`;
+  }
+
+  // No structure (or no work block) → "{km} - {Label}".
+  return `${totalKm} - ${label}`;
 }

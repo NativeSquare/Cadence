@@ -14,7 +14,6 @@ import { LIGHT_THEME } from "@/lib/design-tokens";
 import { useLanguage, type Language } from "@/lib/i18n";
 import { Ionicons } from "@expo/vector-icons";
 import type { WorkoutDoc } from "@nativesquare/agoge/schema";
-import { getCadenceWorkoutType } from "@packages/shared/utils";
 import {
   WORKOUT_TYPES_COLORS,
   WORKOUT_TYPES_COLORS_DIM,
@@ -65,9 +64,8 @@ export function WorkoutCard({ workout, onPress }: WorkoutCardProps) {
   const day = date ? formatWorkoutDay(locale, date) : null;
   const duration = formatDuration(workout.planned?.durationSeconds);
   const distance = formatDistance(workout.planned?.distanceMeters);
-  const category = getCadenceWorkoutType(workout.type);
-  const typeColor = WORKOUT_TYPES_COLORS[category];
-  const typeColorDim = WORKOUT_TYPES_COLORS_DIM[category];
+  const typeColor = WORKOUT_TYPES_COLORS[workout.type];
+  const typeColorDim = WORKOUT_TYPES_COLORS_DIM[workout.type];
   const dimmed = workout.status === "skipped" || workout.status === "missed";
 
   const subtitleParts = [workoutTypeLabel(t, workout.type)];

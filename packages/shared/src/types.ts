@@ -1,21 +1,19 @@
-import type { WorkoutType, BlockType } from "@nativesquare/agoge/schema";
+import type { BlockType, WorkoutType } from "@nativesquare/agoge/schema";
 
-
-export const CADENCE_WORKOUT_TYPES = [
+export const WORKOUT_TYPES = [
     "easy",
-    "tempo",
+    "threshold",
+    "intervals",
     "long",
     "race",
+    "race_pace",
+    "recovery",
+    "test",
 ] as const satisfies readonly WorkoutType[];
-export type CadenceWorkoutType = (typeof CADENCE_WORKOUT_TYPES)[number];
 
 export const BLOCK_TYPES = [
     "base",
     "build",
     "peak",
     "taper",
-    "recovery",
-    "maintenance",
-    "transition",
 ] as const satisfies readonly BlockType[];
-export type CadenceBlockType = (typeof BLOCK_TYPES)[number];

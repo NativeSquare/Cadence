@@ -1,7 +1,7 @@
 import type { GoalType } from "@/components/app/account/race-form";
 import { DatePart, FormField } from "@/components/app/form";
 import { Text } from "@/components/ui/text";
-import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
+import { LIGHT_THEME } from "@/lib/design-tokens";
 import { selectionFeedback } from "@/lib/haptics";
 import { useTranslation } from "react-i18next";
 import { Pressable, View } from "react-native";
@@ -43,7 +43,7 @@ export function StepRaceGoal({
               className="rounded-2xl border p-4 active:opacity-90"
               style={{
                 backgroundColor: LIGHT_THEME.w1,
-                borderColor: selected ? COLORS.lime : LIGHT_THEME.wBrd,
+                borderColor: selected ? LIGHT_THEME.wText : LIGHT_THEME.wBrd,
                 borderWidth: selected ? 2 : 1,
               }}
             >

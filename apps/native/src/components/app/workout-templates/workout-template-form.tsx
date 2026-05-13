@@ -6,9 +6,8 @@ import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
 import { selectionFeedback } from "@/lib/haptics";
 import { getConvexErrorMessage } from "@/utils/getConvexErrorMessage";
 import { safeParseWorkout, workoutSchemaValidated } from "@nativesquare/agoge";
-import type { WorkoutTemplateDoc } from "@nativesquare/agoge/schema";
-import { getCadenceWorkoutType } from "@packages/shared/utils";
-import type { CadenceWorkoutType } from "@packages/shared/types";
+import type { WorkoutTemplateDoc, WorkoutType } from "@nativesquare/agoge/schema";
+import { WORKOUT_TYPES } from "@packages/shared/types";
 import { WORKOUT_TYPES_COLORS } from "@packages/shared/colors";
 import { Ionicons } from "@expo/vector-icons";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
@@ -30,8 +29,7 @@ import {
 import { z } from "zod";
 import {
   EMPTY_STRUCTURE,
-  CADENCE_WORKOUT_TYPES,
-  useWorkoutCategoryLabels,
+  useWorkoutTypeLabels,
 } from "../workout/workout-helpers";
 
 const templateWorkoutFaceSchema = z.object({
@@ -50,7 +48,7 @@ const templateWorkoutFaceSchema = z.object({
 const formSchema = z.object({
   name: z.string().trim().min(1, "Name is required"),
   description: z.string().optional(),
-  type: z.custom<CadenceWorkoutType>(),
+  type: z.custom<WorkoutType>(),
   content: templateWorkoutFaceSchema,
 });
 export type FormValues = z.infer<typeof formSchema>;
@@ -76,7 +74,7 @@ export function WorkoutTemplateForm({
 }) {
   const { t } = useTranslation();
   const router = useRouter();
-  const workoutTypeLabels = useWorkoutCategoryLabels();
+  const workoutTypeLabels = useWorkoutTypeLabels();
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     mode: "onSubmit",
@@ -84,7 +82,7 @@ export function WorkoutTemplateForm({
     defaultValues: {
       name: initial?.name ?? "",
       description: initial?.description ?? "",
-      type: initial?.type ? getCadenceWorkoutType(initial.type) : "easy",
+      type: initial?.type ?? "easy",
       content: {
         structure: initial?.content?.structure ?? EMPTY_STRUCTURE,
         notes: initial?.content?.notes,
@@ -263,7 +261,7 @@ export function WorkoutTemplateForm({
                   error={fieldState.error?.message}
                 >
                   <PillSelect
-                    options={CADENCE_WORKOUT_TYPES}
+                    options={WORKOUT_TYPES}
                     labels={workoutTypeLabels}
                     value={field.value}
                     onChange={field.onChange}

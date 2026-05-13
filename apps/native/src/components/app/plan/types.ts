@@ -3,7 +3,7 @@
  */
 
 import type { Workout as WorkoutStructure } from "@nativesquare/agoge";
-import type { CadenceWorkoutType } from "@packages/shared/types";
+import type { WorkoutType } from "@nativesquare/agoge/schema";
 
 /**
  * Workout intensity level determines the visual color
@@ -35,9 +35,10 @@ export interface WorkoutData {
    * Historically called `type` for legacy reasons — it is the *name*, not the
    * taxonomic kind. Use `kind` for the agoge-defined taxonomy. */
   type: string;
-  /** Workout category (`easy` | `tempo` | `long` | `race`). Used for the
-   * small quiet type label on the home card. */
-  kind?: CadenceWorkoutType;
+  /** Agoge workout type (`easy` | `threshold` | `intervals` | `long` |
+   * `race_pace` | `recovery` | `race` | `test`). Drives the type label and
+   * accent color on the home card. */
+  kind?: WorkoutType;
   /** Distance in kilometers (or "-" for rest days) */
   km: string;
   /** Duration (e.g., "48min", "1h35", or "-" for rest) */

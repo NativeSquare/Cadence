@@ -20,9 +20,7 @@ import { LIGHT_THEME } from "@/lib/design-tokens";
 import { selectionFeedback } from "@/lib/haptics";
 import { getConvexErrorMessage } from "@/utils/getConvexErrorMessage";
 import { type Workout as WorkoutStructure } from "@nativesquare/agoge";
-import type { WorkoutTemplateDoc } from "@nativesquare/agoge/schema";
-import { getCadenceWorkoutType } from "@packages/shared/utils";
-import type { CadenceWorkoutType } from "@packages/shared/types";
+import type { WorkoutTemplateDoc, WorkoutType } from "@nativesquare/agoge/schema";
 import { Ionicons } from "@expo/vector-icons";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
@@ -36,7 +34,7 @@ import { z } from "zod";
 const formSchema = z.object({
   name: z.string().trim().min(1, "Name is required"),
   description: z.string().optional(),
-  type: z.custom<CadenceWorkoutType>(),
+  type: z.custom<WorkoutType>(),
   actual: workoutFaceSchema,
   planned: workoutFaceSchema,
 });
@@ -45,7 +43,7 @@ type LogWorkoutFormShape = z.infer<typeof formSchema>;
 export type LogWorkoutFormValues = {
   name: string;
   description?: string;
-  type: CadenceWorkoutType;
+  type: WorkoutType;
   actual: LogWorkoutFormShape["actual"];
   planned?: LogWorkoutFormShape["planned"];
 };
@@ -128,7 +126,7 @@ export function LogWorkoutForm({
       ...current,
       name: template.name,
       description: template.description ?? "",
-      type: getCadenceWorkoutType(template.type),
+      type: template.type,
       actual: { ...current.actual, structure: pickedStructure },
     });
     templateSheetRef.current?.dismiss();

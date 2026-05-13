@@ -138,23 +138,13 @@ const workoutFaceSchema = z
 
 const workoutTypeSchema = z.enum([
   "easy",
-  "long",
-  "tempo",
   "threshold",
   "intervals",
-  "vo2max",
-  "fartlek",
-  "progression",
+  "long",
   "race_pace",
   "recovery",
-  "strides",
-  "hills",
   "race",
   "test",
-  "cross_training",
-  "strength",
-  "rest",
-  "other",
 ]);
 
 const workoutStatusSchema = z.enum([
@@ -164,15 +154,7 @@ const workoutStatusSchema = z.enum([
   "skipped",
 ]);
 
-const blockTypeSchema = z.enum([
-  "base",
-  "build",
-  "peak",
-  "taper",
-  "recovery",
-  "maintenance",
-  "transition",
-]);
+const blockTypeSchema = z.enum(["base", "build", "peak", "taper"]);
 
 // ---------------------------------------------------------------------------
 // Tools

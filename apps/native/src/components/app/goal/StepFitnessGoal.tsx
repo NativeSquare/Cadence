@@ -1,5 +1,5 @@
 import { Text } from "@/components/ui/text";
-import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
+import { LIGHT_THEME } from "@/lib/design-tokens";
 import { selectionFeedback } from "@/lib/haptics";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
@@ -52,7 +52,7 @@ export function StepFitnessGoal({
               className="rounded-2xl border p-4 active:opacity-90"
               style={{
                 backgroundColor: LIGHT_THEME.w1,
-                borderColor: selected ? COLORS.lime : LIGHT_THEME.wBrd,
+                borderColor: selected ? LIGHT_THEME.wText : LIGHT_THEME.wBrd,
                 borderWidth: selected ? 2 : 1,
               }}
             >
@@ -61,14 +61,14 @@ export function StepFitnessGoal({
                   className="rounded-full p-2.5"
                   style={{
                     backgroundColor: selected
-                      ? `${COLORS.lime}33`
+                      ? LIGHT_THEME.wText
                       : LIGHT_THEME.w2,
                   }}
                 >
                   <Ionicons
                     name={ICONS[goal]}
                     size={20}
-                    color={selected ? COLORS.lime : LIGHT_THEME.wText}
+                    color={selected ? LIGHT_THEME.w1 : LIGHT_THEME.wText}
                   />
                 </View>
                 <View className="flex-1 gap-0.5">
@@ -89,7 +89,7 @@ export function StepFitnessGoal({
                   <Ionicons
                     name="checkmark-circle"
                     size={22}
-                    color={COLORS.lime}
+                    color={LIGHT_THEME.wText}
                   />
                 )}
               </View>

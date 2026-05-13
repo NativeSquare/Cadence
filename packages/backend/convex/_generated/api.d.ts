@@ -5500,14 +5500,7 @@ export declare const components: {
           focus?: string;
           planId: string;
           startDate: string;
-          type:
-            | "base"
-            | "build"
-            | "peak"
-            | "taper"
-            | "recovery"
-            | "maintenance"
-            | "transition";
+          type: "base" | "build" | "peak" | "taper";
         },
         string
       >;
@@ -5659,23 +5652,13 @@ export declare const components: {
           templateId?: string;
           type:
             | "easy"
-            | "long"
-            | "tempo"
             | "threshold"
             | "intervals"
-            | "vo2max"
-            | "fartlek"
-            | "progression"
+            | "long"
             | "race_pace"
             | "recovery"
-            | "strides"
-            | "hills"
             | "race"
-            | "test"
-            | "cross_training"
-            | "strength"
-            | "rest"
-            | "other";
+            | "test";
         },
         string
       >;
@@ -5701,23 +5684,13 @@ export declare const components: {
           sport: "run";
           type:
             | "easy"
-            | "long"
-            | "tempo"
             | "threshold"
             | "intervals"
-            | "vo2max"
-            | "fartlek"
-            | "progression"
+            | "long"
             | "race_pace"
             | "recovery"
-            | "strides"
-            | "hills"
             | "race"
-            | "test"
-            | "cross_training"
-            | "strength"
-            | "rest"
-            | "other";
+            | "test";
         },
         string
       >;
@@ -5838,14 +5811,7 @@ export declare const components: {
           focus?: string;
           planId: string;
           startDate: string;
-          type:
-            | "base"
-            | "build"
-            | "peak"
-            | "taper"
-            | "recovery"
-            | "maintenance"
-            | "transition";
+          type: "base" | "build" | "peak" | "taper";
         } | null
       >;
       getBlocksByPlan: FunctionReference<
@@ -5859,14 +5825,7 @@ export declare const components: {
           focus?: string;
           planId: string;
           startDate: string;
-          type:
-            | "base"
-            | "build"
-            | "peak"
-            | "taper"
-            | "recovery"
-            | "maintenance"
-            | "transition";
+          type: "base" | "build" | "peak" | "taper";
         }>
       >;
       getCompletedWorkoutsByAthlete: FunctionReference<
@@ -5921,23 +5880,13 @@ export declare const components: {
           templateId?: string;
           type:
             | "easy"
-            | "long"
-            | "tempo"
             | "threshold"
             | "intervals"
-            | "vo2max"
-            | "fartlek"
-            | "progression"
+            | "long"
             | "race_pace"
             | "recovery"
-            | "strides"
-            | "hills"
             | "race"
-            | "test"
-            | "cross_training"
-            | "strength"
-            | "rest"
-            | "other";
+            | "test";
         }>
       >;
       getGoal: FunctionReference<
@@ -6075,23 +6024,13 @@ export declare const components: {
           templateId?: string;
           type:
             | "easy"
-            | "long"
-            | "tempo"
             | "threshold"
             | "intervals"
-            | "vo2max"
-            | "fartlek"
-            | "progression"
+            | "long"
             | "race_pace"
             | "recovery"
-            | "strides"
-            | "hills"
             | "race"
-            | "test"
-            | "cross_training"
-            | "strength"
-            | "rest"
-            | "other";
+            | "test";
         }>
       >;
       getPlansByAthlete: FunctionReference<
@@ -6453,23 +6392,13 @@ export declare const components: {
           templateId?: string;
           type:
             | "easy"
-            | "long"
-            | "tempo"
             | "threshold"
             | "intervals"
-            | "vo2max"
-            | "fartlek"
-            | "progression"
+            | "long"
             | "race_pace"
             | "recovery"
-            | "strides"
-            | "hills"
             | "race"
-            | "test"
-            | "cross_training"
-            | "strength"
-            | "rest"
-            | "other";
+            | "test";
         } | null
       >;
       getWorkoutProviderRef: FunctionReference<
@@ -6569,23 +6498,13 @@ export declare const components: {
           templateId?: string;
           type:
             | "easy"
-            | "long"
-            | "tempo"
             | "threshold"
             | "intervals"
-            | "vo2max"
-            | "fartlek"
-            | "progression"
+            | "long"
             | "race_pace"
             | "recovery"
-            | "strides"
-            | "hills"
             | "race"
-            | "test"
-            | "cross_training"
-            | "strength"
-            | "rest"
-            | "other";
+            | "test";
         }>
       >;
       getWorkoutsByBlock: FunctionReference<
@@ -6640,23 +6559,13 @@ export declare const components: {
           templateId?: string;
           type:
             | "easy"
-            | "long"
-            | "tempo"
             | "threshold"
             | "intervals"
-            | "vo2max"
-            | "fartlek"
-            | "progression"
+            | "long"
             | "race_pace"
             | "recovery"
-            | "strides"
-            | "hills"
             | "race"
-            | "test"
-            | "cross_training"
-            | "strength"
-            | "rest"
-            | "other";
+            | "test";
         }>
       >;
       getWorkoutsByPlan: FunctionReference<
@@ -6711,23 +6620,13 @@ export declare const components: {
           templateId?: string;
           type:
             | "easy"
-            | "long"
-            | "tempo"
             | "threshold"
             | "intervals"
-            | "vo2max"
-            | "fartlek"
-            | "progression"
+            | "long"
             | "race_pace"
             | "recovery"
-            | "strides"
-            | "hills"
             | "race"
-            | "test"
-            | "cross_training"
-            | "strength"
-            | "rest"
-            | "other";
+            | "test";
         }>
       >;
       getWorkoutTemplate: FunctionReference<
@@ -6755,23 +6654,13 @@ export declare const components: {
           sport: "run";
           type:
             | "easy"
-            | "long"
-            | "tempo"
             | "threshold"
             | "intervals"
-            | "vo2max"
-            | "fartlek"
-            | "progression"
+            | "long"
             | "race_pace"
             | "recovery"
-            | "strides"
-            | "hills"
             | "race"
-            | "test"
-            | "cross_training"
-            | "strength"
-            | "rest"
-            | "other";
+            | "test";
         } | null
       >;
       getWorkoutTemplatesByAthlete: FunctionReference<
@@ -6799,23 +6688,13 @@ export declare const components: {
           sport: "run";
           type:
             | "easy"
-            | "long"
-            | "tempo"
             | "threshold"
             | "intervals"
-            | "vo2max"
-            | "fartlek"
-            | "progression"
+            | "long"
             | "race_pace"
             | "recovery"
-            | "strides"
-            | "hills"
             | "race"
-            | "test"
-            | "cross_training"
-            | "strength"
-            | "rest"
-            | "other";
+            | "test";
         }>
       >;
       getZone: FunctionReference<
@@ -6898,14 +6777,7 @@ export declare const components: {
           focus?: string;
           planId?: string;
           startDate?: string;
-          type?:
-            | "base"
-            | "build"
-            | "peak"
-            | "taper"
-            | "recovery"
-            | "maintenance"
-            | "transition";
+          type?: "base" | "build" | "peak" | "taper";
         },
         null
       >;
@@ -7060,23 +6932,13 @@ export declare const components: {
           templateId?: string;
           type?:
             | "easy"
-            | "long"
-            | "tempo"
             | "threshold"
             | "intervals"
-            | "vo2max"
-            | "fartlek"
-            | "progression"
+            | "long"
             | "race_pace"
             | "recovery"
-            | "strides"
-            | "hills"
             | "race"
-            | "test"
-            | "cross_training"
-            | "strength"
-            | "rest"
-            | "other";
+            | "test";
           workoutId: string;
         },
         null
@@ -7104,23 +6966,13 @@ export declare const components: {
           templateId: string;
           type?:
             | "easy"
-            | "long"
-            | "tempo"
             | "threshold"
             | "intervals"
-            | "vo2max"
-            | "fartlek"
-            | "progression"
+            | "long"
             | "race_pace"
             | "recovery"
-            | "strides"
-            | "hills"
             | "race"
-            | "test"
-            | "cross_training"
-            | "strength"
-            | "rest"
-            | "other";
+            | "test";
         },
         null
       >;

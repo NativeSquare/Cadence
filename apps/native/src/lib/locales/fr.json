@@ -138,19 +138,14 @@
   "calendar": {
     "title": "Calendrier",
     "subtitle": "Votre mois d'entraînement en un coup d'œil",
-    "toggleBlocks": {
-      "label": "Blocs",
-      "show": "Afficher les blocs d'entraînement",
-      "hide": "Masquer les blocs d'entraînement"
+    "legend": {
+      "open": "Afficher la légende",
+      "title": "Légende",
+      "workoutTypes": "Types de séances",
+      "blockTypes": "Blocs d'entraînement"
     },
     "selectedDay": {
       "empty": "Aucune séance prévue"
-    },
-    "types": {
-      "easy": "Facile",
-      "tempo": "Tempo",
-      "long": "Sortie longue",
-      "race": "Course"
     }
   },
   "coach": {
@@ -523,32 +518,19 @@
     },
     "types": {
       "easy": "Facile",
-      "long": "Long",
-      "tempo": "Tempo",
       "threshold": "Seuil",
       "intervals": "Intervalles",
-      "vo2max": "VO2 max",
-      "fartlek": "Fartlek",
-      "progression": "Progression",
+      "long": "Long",
       "race_pace": "Allure de course",
       "recovery": "Récupération",
-      "strides": "Lignes droites",
-      "hills": "Côtes",
       "race": "Course",
-      "test": "Test",
-      "cross_training": "Cross-training",
-      "strength": "Renforcement",
-      "rest": "Repos",
-      "other": "Autre"
+      "test": "Test"
     },
     "blockTypes": {
       "base": "Base",
       "build": "Construction",
       "peak": "Pic",
-      "taper": "Affûtage",
-      "recovery": "Récupération",
-      "maintenance": "Maintien",
-      "transition": "Transition"
+      "taper": "Affûtage"
     },
     "intents": {
       "warmup": {

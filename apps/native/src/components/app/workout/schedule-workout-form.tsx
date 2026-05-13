@@ -22,9 +22,8 @@ import { type Workout as WorkoutStructure } from "@nativesquare/agoge";
 import type {
   BlockDoc,
   WorkoutTemplateDoc,
+  WorkoutType,
 } from "@nativesquare/agoge/schema";
-import { getCadenceWorkoutType } from "@packages/shared/utils";
-import type { CadenceWorkoutType } from "@packages/shared/types";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { useRouter } from "expo-router";
@@ -37,7 +36,7 @@ import { z } from "zod";
 const formSchema = z.object({
   name: z.string().trim().min(1, "Name is required"),
   description: z.string().optional(),
-  type: z.custom<CadenceWorkoutType>(),
+  type: z.custom<WorkoutType>(),
   blockId: z.string().nullable().optional(),
   planned: workoutFaceSchema,
 });
@@ -110,7 +109,7 @@ export function ScheduleWorkoutForm({
       ...current,
       name: template.name,
       description: template.description ?? "",
-      type: getCadenceWorkoutType(template.type),
+      type: template.type,
       planned: { ...current.planned, structure: pickedStructure },
     });
     templateSheetRef.current?.dismiss();

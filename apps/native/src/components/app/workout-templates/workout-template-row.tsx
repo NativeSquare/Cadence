@@ -1,6 +1,5 @@
 import { Text } from "@/components/ui/text";
 import { LIGHT_THEME } from "@/lib/design-tokens";
-import { getCadenceWorkoutType } from "@packages/shared/utils";
 import {
   WORKOUT_TYPES_COLORS,
   WORKOUT_TYPES_COLORS_DIM,
@@ -8,7 +7,7 @@ import {
 import type { WorkoutTemplateDoc } from "@nativesquare/agoge/schema";
 import { Ionicons } from "@expo/vector-icons";
 import { Pressable, View } from "react-native";
-import { useWorkoutCategoryLabels } from "../workout/workout-helpers";
+import { useWorkoutTypeLabels } from "../workout/workout-helpers";
 
 export function WorkoutTemplateRow({
   template,
@@ -17,11 +16,10 @@ export function WorkoutTemplateRow({
   template: Pick<WorkoutTemplateDoc, "name" | "type">;
   onPress: () => void;
 }) {
-  const categoryLabels = useWorkoutCategoryLabels();
-  const category = getCadenceWorkoutType(template.type);
-  const typeLabel = categoryLabels[category];
-  const typeColor = WORKOUT_TYPES_COLORS[category];
-  const typeColorDim = WORKOUT_TYPES_COLORS_DIM[category];
+  const typeLabels = useWorkoutTypeLabels();
+  const typeLabel = typeLabels[template.type];
+  const typeColor = WORKOUT_TYPES_COLORS[template.type];
+  const typeColorDim = WORKOUT_TYPES_COLORS_DIM[template.type];
 
   return (
     <Pressable

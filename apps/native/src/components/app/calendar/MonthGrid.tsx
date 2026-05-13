@@ -5,7 +5,6 @@ import type { BlockDoc, WorkoutDoc } from "@nativesquare/agoge/schema";
 import { cn } from "@/lib/utils";
 import { LIGHT_THEME } from "@/lib/design-tokens";
 import { BLOCK_TYPE_COLORS, WORKOUT_TYPES_COLORS } from "@packages/shared/colors";
-import { getCadenceWorkoutType } from "@packages/shared/utils";
 import { buildWeeks, blendWithBg } from "./helpers";
 
 /**
@@ -21,8 +20,6 @@ interface MonthGridProps {
   workoutsByDate: Record<string, WorkoutDoc[]>;
   blockLookup: Map<string, BlockDoc>;
   todayKey: string;
-  isBlocksMode: boolean;
-  selectedDate: string;
   onDayPress: (dateKey: string) => void;
 }
 
@@ -33,8 +30,6 @@ export const MonthGrid = React.memo(function MonthGrid({
   workoutsByDate,
   blockLookup,
   todayKey,
-  isBlocksMode,
-  selectedDate,
   onDayPress,
 }: MonthGridProps) {
   const weeks = useMemo(() => buildWeeks(year, month), [year, month]);
@@ -53,7 +48,6 @@ export const MonthGrid = React.memo(function MonthGrid({
             );
             const hasWorkout = dayWorkouts && dayWorkouts.length > 0;
             const isToday = day.key === todayKey;
-            const isSelected = day.key === selectedDate;
             const block = blockLookup.get(day.key);
             const blockColor = block ? BLOCK_TYPE_COLORS[block.type] : undefined;
             const tileSizeStyle = { width: tileSize, height: tileSize };
@@ -76,11 +70,11 @@ export const MonthGrid = React.memo(function MonthGrid({
             }
 
             const blockTint =
-              isBlocksMode && block && blockColor
+              block && blockColor
                 ? {
-                    backgroundColor: blendWithBg(blockColor, 0.18),
+                    backgroundColor: blendWithBg(blockColor, 0.1),
                     borderWidth: 1,
-                    borderColor: blendWithBg(blockColor, 0.25),
+                    borderColor: blendWithBg(blockColor, 0.16),
                   }
                 : undefined;
             const baseTileStyle =
@@ -89,38 +83,24 @@ export const MonthGrid = React.memo(function MonthGrid({
                 borderWidth: 1,
                 borderColor: LIGHT_THEME.wBrd,
               };
-            // Gray today-marker only applies when no block tint is active,
-            // so block coloring still wins in blocks mode.
-            const isTodayMarker = isToday && !isSelected && !blockTint;
-            const todayStyle = isTodayMarker
-              ? {
-                  backgroundColor: LIGHT_THEME.w3,
-                  borderWidth: 1,
-                  borderColor: LIGHT_THEME.wBrd,
-                }
-              : undefined;
-            const selectedStyle = isSelected
+            // Today always wears the black ring, overlaid on top of any
+            // block tint background so it remains visible regardless of mode.
+            const todayStyle = isToday
               ? { borderWidth: 2, borderColor: LIGHT_THEME.wText }
               : undefined;
-            const isActive = !isSelected && !isToday && hasWorkout;
+            const isActive = !isToday && hasWorkout;
 
             return (
               <View key={day.key} className="items-center">
                 <Pressable onPress={() => onDayPress(day.key)}>
                   <View
                     className="rounded-[14px] items-center justify-center overflow-hidden"
-                    style={[
-                      tileSizeStyle,
-                      baseTileStyle,
-                      todayStyle,
-                      selectedStyle,
-                    ]}
+                    style={[tileSizeStyle, baseTileStyle, todayStyle]}
                   >
                     <Text
                       className={cn(
                         "text-base font-coach text-wMute",
-                        isSelected && "font-coach-bold text-wText",
-                        !isSelected && isToday && "font-coach-bold text-wText",
+                        isToday && "font-coach-bold text-wText",
                         isActive && "font-coach-semibold text-wText",
                       )}
                     >
@@ -137,10 +117,7 @@ export const MonthGrid = React.memo(function MonthGrid({
                               w.status === "completed" && "opacity-[0.45]",
                             )}
                             style={{
-                              backgroundColor:
-                                WORKOUT_TYPES_COLORS[
-                                  getCadenceWorkoutType(w.type)
-                                ],
+                              backgroundColor: WORKOUT_TYPES_COLORS[w.type],
                             }}
                           />
                         ))}

@@ -6,7 +6,6 @@
  * totals) remains optional until the plan generator writes richer `plan.notes`.
  */
 
-import { getCadenceWorkoutType } from "@packages/shared/utils";
 import { WORKOUT_TYPES_COLORS } from "@packages/shared/colors";
 import { summarizeWorkout } from "@/components/app/workout/workout-summary";
 import type { PlanDoc, RaceDoc, WorkoutType } from "@nativesquare/agoge/schema";
@@ -88,11 +87,19 @@ function formatDurationLong(seconds: number): string {
 }
 
 function intensityFromType(type: WorkoutType): WorkoutIntensity {
-  const category = getCadenceWorkoutType(type);
-  if (category === "race") return "key";
-  if (category === "long") return "key";
-  if (category === "easy") return "low";
-  return "high";
+  switch (type) {
+    case "race":
+    case "long":
+      return "key";
+    case "easy":
+    case "recovery":
+      return "low";
+    case "threshold":
+    case "intervals":
+    case "race_pace":
+    case "test":
+      return "high";
+  }
 }
 
 export function workoutToWorkoutData(
@@ -118,7 +125,7 @@ export function workoutToWorkoutData(
   return {
     workoutId: workout._id,
     type: workout.name,
-    kind: getCadenceWorkoutType(workout.type),
+    kind: workout.type,
     km: formatDistance(distanceMeters),
     dur: formatDurationShort(durationSeconds),
     done: workout.status === "completed",
@@ -244,7 +251,7 @@ export function computeWeekInsights(
 }
 
 export function getWorkoutColor(workout: WorkoutData): string {
-  return WORKOUT_TYPES_COLORS[workout.kind ?? "tempo"];
+  return WORKOUT_TYPES_COLORS[workout.kind ?? "easy"];
 }
 
 // ─── Training pulse (fitness-goal home) ─────────────────────────────────────

@@ -262,7 +262,7 @@ export function PlanScreen() {
         </View>
 
         {!hasGoal ? (
-          <View className="flex-1 bg-w2 px-6 pt-10 pb-6 items-center">
+          <View className="flex-1 bg-w2 px-6 py-10 items-center justify-center">
             <Text
               className="text-[11px] font-coach-semibold text-wSub uppercase text-center"
               style={{ letterSpacing: 0.05 * 11 }}
