@@ -24,6 +24,7 @@ import {
   Platform,
   Pressable,
   ScrollView,
+  StatusBar,
   View,
 } from "react-native";
 
@@ -72,9 +73,8 @@ export default function NewGoalScreen() {
 
   const [step, setStep] = useState<Step>(1);
   const [branch, setBranch] = useState<GoalBranch | null>(null);
-  const [raceDetails, setRaceDetails] = useState<RaceDetailsValue>(
-    EMPTY_RACE_DETAILS,
-  );
+  const [raceDetails, setRaceDetails] =
+    useState<RaceDetailsValue>(EMPTY_RACE_DETAILS);
   const [raceGoal, setRaceGoal] = useState<RaceGoalValue>(EMPTY_RACE_GOAL);
   const [fitnessGoal, setFitnessGoalState] = useState<FitnessGoal | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -123,7 +123,7 @@ export default function NewGoalScreen() {
     if (!canProceed || submitting) return;
     setSubmitError(null);
     if (!isFinalStep) {
-      setStep((s) => ((s + 1) as Step));
+      setStep((s) => (s + 1) as Step);
       return;
     }
     await submit();
@@ -139,9 +139,7 @@ export default function NewGoalScreen() {
         if (format === "" || raceDetails.discipline === "") return;
         const distanceMeters =
           format === "custom"
-            ? Math.round(
-                Number.parseFloat(raceDetails.customDistanceKm) * 1000,
-              )
+            ? Math.round(Number.parseFloat(raceDetails.customDistanceKm) * 1000)
             : FORMAT_DISTANCE_METERS[format];
         await createRace({
           race: {
@@ -176,6 +174,7 @@ export default function NewGoalScreen() {
       className="pt-safe flex-1"
       style={{ backgroundColor: LIGHT_THEME.w2 }}
     >
+      <StatusBar barStyle="dark-content" />
       <View
         className="flex-row items-center gap-3 px-4 pb-3 pt-4"
         style={{ borderBottomWidth: 1, borderBottomColor: LIGHT_THEME.wBrd }}
@@ -209,7 +208,13 @@ export default function NewGoalScreen() {
       >
         <View className="w-full max-w-md gap-6 self-center">
           {step === 1 && (
-            <StepChooseType value={branch} onChange={setBranch} />
+            <StepChooseType
+              onSelect={(b) => {
+                setBranch(b);
+                setSubmitError(null);
+                setStep(2);
+              }}
+            />
           )}
           {step === 2 && branch === "race" && (
             <StepRaceDetails value={raceDetails} onChange={setRaceDetails} />

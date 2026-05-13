@@ -1,5 +1,5 @@
 import { Text } from "@/components/ui/text";
-import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
+import { LIGHT_THEME } from "@/lib/design-tokens";
 import { selectionFeedback } from "@/lib/haptics";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
@@ -7,13 +7,16 @@ import { Pressable, View } from "react-native";
 import type { GoalBranch } from "./types";
 
 export function StepChooseType({
-  value,
-  onChange,
+  onSelect,
 }: {
-  value: GoalBranch | null;
-  onChange: (branch: GoalBranch) => void;
+  onSelect: (branch: GoalBranch) => void;
 }) {
   const { t } = useTranslation();
+
+  const handleSelect = (branch: GoalBranch) => {
+    selectionFeedback();
+    onSelect(branch);
+  };
 
   return (
     <View className="gap-5">
@@ -34,28 +37,16 @@ export function StepChooseType({
 
       <View className="gap-3">
         <BranchCard
-          branch="race"
           icon="flag-outline"
-          accent={COLORS.lime}
           title={t("goal.chooseType.race.title")}
           desc={t("goal.chooseType.race.desc")}
-          selected={value === "race"}
-          onPress={() => {
-            selectionFeedback();
-            onChange("race");
-          }}
+          onPress={() => handleSelect("race")}
         />
         <BranchCard
-          branch="fitness"
           icon="fitness-outline"
-          accent={LIGHT_THEME.wText}
           title={t("goal.chooseType.fitness.title")}
           desc={t("goal.chooseType.fitness.desc")}
-          selected={value === "fitness"}
-          onPress={() => {
-            selectionFeedback();
-            onChange("fitness");
-          }}
+          onPress={() => handleSelect("fitness")}
         />
       </View>
     </View>
@@ -64,18 +55,13 @@ export function StepChooseType({
 
 function BranchCard({
   icon,
-  accent,
   title,
   desc,
-  selected,
   onPress,
 }: {
-  branch: GoalBranch;
   icon: keyof typeof Ionicons.glyphMap;
-  accent: string;
   title: string;
   desc: string;
-  selected: boolean;
   onPress: () => void;
 }) {
   return (
@@ -84,16 +70,16 @@ function BranchCard({
       className="rounded-2xl border p-4 active:opacity-90"
       style={{
         backgroundColor: LIGHT_THEME.w1,
-        borderColor: selected ? accent : LIGHT_THEME.wBrd,
-        borderWidth: selected ? 2 : 1,
+        borderColor: LIGHT_THEME.wBrd,
+        borderWidth: 1,
       }}
     >
-      <View className="flex-row items-start gap-3">
+      <View className="flex-row items-center gap-3">
         <View
-          className="rounded-full p-2.5"
-          style={{ backgroundColor: `${accent}1A` }}
+          className="size-[34px] items-center justify-center rounded-[10px]"
+          style={{ backgroundColor: LIGHT_THEME.w3 }}
         >
-          <Ionicons name={icon} size={20} color={accent} />
+          <Ionicons name={icon} size={16} color={LIGHT_THEME.wSub} />
         </View>
         <View className="flex-1 gap-1">
           <Text
@@ -109,9 +95,11 @@ function BranchCard({
             {desc}
           </Text>
         </View>
-        {selected && (
-          <Ionicons name="checkmark-circle" size={22} color={accent} />
-        )}
+        <Ionicons
+          name="chevron-forward"
+          size={16}
+          color={LIGHT_THEME.wSub}
+        />
       </View>
     </Pressable>
   );

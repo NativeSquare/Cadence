@@ -319,6 +319,28 @@
     "fitnessIntent": {
       "eyebrow": "Your focus"
     },
+    "trainingPulse": {
+      "eyebrow": "Your focus",
+      "streakWeeks_one": "{{count}} wk streak",
+      "streakWeeks_other": "{{count}} wks streak",
+      "noStreak": "Build a streak",
+      "streakLabel": "consecutive weeks",
+      "thisWeek": "this week",
+      "thisWeekFraction": "{{count}} / {{target}} sessions",
+      "trend": "Last 4 weeks",
+      "trendDeltaUp": "+{{percent}}% vs prior 4 wks",
+      "trendDeltaDown": "{{percent}}% vs prior 4 wks",
+      "trendDeltaFlat": "Steady vs prior 4 wks",
+      "noHistory": "No history yet",
+      "emptyTitle": "Log your first workout",
+      "emptyBody": "Once you start training, you'll see your streak, frequency, and 4-week volume trend here."
+    },
+    "raceUpgrade": {
+      "eyebrow": "Ready for a race?",
+      "title": "Training for something specific?",
+      "body": "Pick a race and we'll tailor a plan around it.",
+      "cta": "Choose a race"
+    },
     "quickActions": {
       "title": "Quick Actions",
       "schedule": "Schedule",

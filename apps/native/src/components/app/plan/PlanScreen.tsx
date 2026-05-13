@@ -39,11 +39,13 @@ import { TodayCard } from "./TodayCard";
 import { RaceCountdown } from "./RaceCountdown";
 import { WeekInsights } from "./WeekInsights";
 import { QuickActions } from "./QuickActions";
-import { FitnessIntentRecap } from "./FitnessIntentRecap";
+import { TrainingPulseCard } from "./TrainingPulseCard";
+import { RaceUpgradeCTA } from "./RaceUpgradeCTA";
 import { ExportToProviderSheet } from "./ExportToProviderSheet";
 import { LIGHT_THEME } from "@/lib/design-tokens";
 import {
   buildWorkoutsByDate,
+  computeTrainingPulse,
   computeWeekInsights,
   mapRaceToGoalData,
 } from "./utils";
@@ -119,6 +121,11 @@ export function PlanScreen() {
 
   const weekInsights = useMemo(
     () => (workouts ? computeWeekInsights(workouts, today) : null),
+    [workouts, today],
+  );
+
+  const trainingPulse = useMemo(
+    () => (workouts ? computeTrainingPulse(workouts, today) : null),
     [workouts, today],
   );
 
@@ -270,7 +277,10 @@ export function PlanScreen() {
             <Pressable
               onPress={() => router.push("/(app)/goal/new")}
               className="mt-10 flex-row items-center justify-center gap-2 rounded-full py-4 px-8 active:opacity-90"
-              style={{ backgroundColor: LIGHT_THEME.wText, alignSelf: "stretch" }}
+              style={{
+                backgroundColor: LIGHT_THEME.wText,
+                alignSelf: "stretch",
+              }}
             >
               <Text
                 className="font-coach-bold text-[15px]"
@@ -307,10 +317,7 @@ export function PlanScreen() {
               <>
                 <View className="px-4 mt-5">
                   <RaceCountdown
-                    race={mapRaceToGoalData(
-                      activeGoal.race,
-                      activeGoal.plan,
-                    )}
+                    race={mapRaceToGoalData(activeGoal.race, activeGoal.plan)}
                   />
                 </View>
                 {activeGoal.plan && weekInsights && (
@@ -324,12 +331,26 @@ export function PlanScreen() {
                   </View>
                 )}
               </>
-            ) : activeGoal.goal.category === "fitness" &&
-              activeGoal.goal.fitnessIntent ? (
-              <View className="px-4 mt-5">
-                <FitnessIntentRecap intent={activeGoal.goal.fitnessIntent} />
-              </View>
             ) : null}
+
+            {activeGoal.goal.category === "fitness" &&
+              activeGoal.goal.fitnessIntent &&
+              trainingPulse && (
+                <View className="px-4 mt-5">
+                  <TrainingPulseCard
+                    intent={activeGoal.goal.fitnessIntent}
+                    pulse={trainingPulse}
+                  />
+                </View>
+              )}
+
+            {activeGoal.goal.category === "fitness" && (
+              <View className="px-4 mt-5">
+                <RaceUpgradeCTA
+                  onPress={() => router.push("/(app)/goal/new")}
+                />
+              </View>
+            )}
 
             {/* Quick Actions: Schedule + Log */}
             <View className="px-4 mt-5">

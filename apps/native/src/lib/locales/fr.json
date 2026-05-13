@@ -319,6 +319,28 @@
     "fitnessIntent": {
       "eyebrow": "Ton focus"
     },
+    "trainingPulse": {
+      "eyebrow": "Ton focus",
+      "streakWeeks_one": "Série de {{count}} sem.",
+      "streakWeeks_other": "Série de {{count}} sem.",
+      "noStreak": "Lance une série",
+      "streakLabel": "semaines d'affilée",
+      "thisWeek": "cette semaine",
+      "thisWeekFraction": "{{count}} / {{target}} séances",
+      "trend": "4 dernières semaines",
+      "trendDeltaUp": "+{{percent}}% vs 4 sem. précédentes",
+      "trendDeltaDown": "{{percent}}% vs 4 sem. précédentes",
+      "trendDeltaFlat": "Stable vs 4 sem. précédentes",
+      "noHistory": "Pas encore d'historique",
+      "emptyTitle": "Enregistre ta première séance",
+      "emptyBody": "Dès que tu commences à t'entraîner, tu verras ici ta série, ta fréquence et l'évolution de ton volume sur 4 semaines."
+    },
+    "raceUpgrade": {
+      "eyebrow": "Prêt·e pour une course ?",
+      "title": "Tu prépares quelque chose de précis ?",
+      "body": "Choisis une course et on te bâtit un plan autour.",
+      "cta": "Choisir une course"
+    },
     "quickActions": {
       "title": "Actions rapides",
       "schedule": "Planifier",

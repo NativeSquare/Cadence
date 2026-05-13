@@ -12,7 +12,8 @@ export { TodayCard } from "./TodayCard";
 export { RaceCountdown } from "./RaceCountdown";
 export { WeekInsights } from "./WeekInsights";
 export { QuickActions } from "./QuickActions";
-export { FitnessIntentRecap } from "./FitnessIntentRecap";
+export { TrainingPulseCard } from "./TrainingPulseCard";
+export { RaceUpgradeCTA } from "./RaceUpgradeCTA";
 
 // Types
 export type { WorkoutData, RaceGoalData, WorkoutIntensity } from "./types";
