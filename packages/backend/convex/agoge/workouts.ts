@@ -466,11 +466,12 @@ export const createWorkout = mutation({
       },
     );
 
-    await ctx.scheduler.runAfter(
-      0,
-      internal.agoge.sync.syncWorkoutToProviders,
-      { userId: auth.userId, workoutId, operation: "upsert" },
-    );
+    // Auto-sync to providers disabled — re-enable when ready.
+    // await ctx.scheduler.runAfter(
+    //   0,
+    //   internal.agoge.sync.syncWorkoutToProviders,
+    //   { userId: auth.userId, workoutId, operation: "upsert" },
+    // );
     return workoutId;
   },
 });
@@ -510,11 +511,12 @@ export const rescheduleWorkout = mutation({
       workoutId,
       planned: { ...planned, date },
     });
-    await ctx.scheduler.runAfter(
-      0,
-      internal.agoge.sync.syncWorkoutToProviders,
-      { userId, workoutId, operation: "upsert" },
-    );
+    // Auto-sync to providers disabled — re-enable when ready.
+    // await ctx.scheduler.runAfter(
+    //   0,
+    //   internal.agoge.sync.syncWorkoutToProviders,
+    //   { userId, workoutId, operation: "upsert" },
+    // );
   },
 });
 
@@ -548,11 +550,12 @@ export const updateWorkout = mutation({
       ...(blockId !== undefined ? { blockId: nextBlockId } : {}),
       workoutId,
     });
-    await ctx.scheduler.runAfter(
-      0,
-      internal.agoge.sync.syncWorkoutToProviders,
-      { userId, workoutId, operation: "upsert" },
-    );
+    // Auto-sync to providers disabled — re-enable when ready.
+    // await ctx.scheduler.runAfter(
+    //   0,
+    //   internal.agoge.sync.syncWorkoutToProviders,
+    //   { userId, workoutId, operation: "upsert" },
+    // );
   },
 });
 
@@ -602,18 +605,19 @@ export const swapWorkouts = mutation({
         planned: { ...plannedB, date: plannedA.date },
       }),
     ]);
-    await Promise.all([
-      ctx.scheduler.runAfter(0, internal.agoge.sync.syncWorkoutToProviders, {
-        userId: a.userId,
-        workoutId: workoutAId,
-        operation: "upsert",
-      }),
-      ctx.scheduler.runAfter(0, internal.agoge.sync.syncWorkoutToProviders, {
-        userId: a.userId,
-        workoutId: workoutBId,
-        operation: "upsert",
-      }),
-    ]);
+    // Auto-sync to providers disabled — re-enable when ready.
+    // await Promise.all([
+    //   ctx.scheduler.runAfter(0, internal.agoge.sync.syncWorkoutToProviders, {
+    //     userId: a.userId,
+    //     workoutId: workoutAId,
+    //     operation: "upsert",
+    //   }),
+    //   ctx.scheduler.runAfter(0, internal.agoge.sync.syncWorkoutToProviders, {
+    //     userId: a.userId,
+    //     workoutId: workoutBId,
+    //     operation: "upsert",
+    //   }),
+    // ]);
   },
 });
 
@@ -627,26 +631,27 @@ export const deleteWorkout = mutation({
         errors: [requireAuthError],
       });
     }
-    const { userId } = owned;
-    const ref = await ctx.runQuery(
-      components.agoge.public.getWorkoutProviderRef,
-      { workoutId, provider: "garmin" },
-    );
     await ctx.runMutation(components.agoge.public.deleteWorkout, { workoutId });
-    if (ref) {
-      await ctx.scheduler.runAfter(
-        0,
-        internal.agoge.sync.syncWorkoutToProviders,
-        {
-          userId,
-          workoutId,
-          operation: "delete",
-          deletePayload: {
-            externalWorkoutId: ref.externalWorkoutId,
-            externalScheduleId: ref.externalScheduleId,
-          },
-        },
-      );
-    }
+    // Auto-sync to providers disabled — re-enable when ready.
+    // const { userId } = owned;
+    // const ref = await ctx.runQuery(
+    //   components.agoge.public.getWorkoutProviderRef,
+    //   { workoutId, provider: "garmin" },
+    // );
+    // if (ref) {
+    //   await ctx.scheduler.runAfter(
+    //     0,
+    //     internal.agoge.sync.syncWorkoutToProviders,
+    //     {
+    //       userId,
+    //       workoutId,
+    //       operation: "delete",
+    //       deletePayload: {
+    //         externalWorkoutId: ref.externalWorkoutId,
+    //         externalScheduleId: ref.externalScheduleId,
+    //       },
+    //     },
+    //   );
+    // }
   },
 });
