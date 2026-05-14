@@ -45,6 +45,9 @@ export interface WorkoutData {
   dur: string;
   /** Whether the workout has been completed */
   done: boolean;
+  /** Derived: planned date has passed without an actual face. Persisted status
+   * stays "planned" — this is surfaced lazily for UI. */
+  missed?: boolean;
   /** Intensity level determines the accent color */
   intensity: WorkoutIntensity;
   /** Detailed description of the workout */

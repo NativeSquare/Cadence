@@ -1,7 +1,7 @@
 import type { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
 import { WORKOUT_TYPES } from "@packages/shared/types";
-import type { WorkoutType } from "@nativesquare/agoge/schema";
+import type { WorkoutStatus, WorkoutType } from "@nativesquare/agoge/schema";
 import type {
   Duration,
   Step,
@@ -68,6 +68,43 @@ export function workoutStatusLabel(t: TFunction, status: string): string {
   const translated = t(key);
   if (translated && translated !== key) return translated;
   return status.charAt(0).toUpperCase() + status.slice(1);
+}
+
+/**
+ * Today as YYYY-MM-DD in the user's local timezone. Compares against the
+ * YYYY-MM-DD prefix of workout dates, which are noon-anchored UTC ISO and
+ * therefore round-trip safely through string comparison.
+ */
+export function localTodayYmd(now: Date = new Date()): string {
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, "0");
+  const d = String(now.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+/**
+ * Derive the effective workout status. The DB only ever stores transitions
+ * the user has explicitly made (planned → completed/skipped); `missed` is
+ * surfaced lazily at read time when a planned workout's date has passed
+ * without an actual face. Backend rules continue to read the persisted
+ * status — they treat planned/missed/skipped as equivalent "not completed".
+ */
+export function deriveWorkoutStatus(
+  workout: {
+    status: WorkoutStatus;
+    planned?: { date: string } | undefined;
+    actual?: { date: string } | undefined;
+  },
+  todayYmd: string,
+): WorkoutStatus {
+  if (workout.status === "completed" || workout.status === "skipped") {
+    return workout.status;
+  }
+  if (workout.actual) return "completed";
+  if (workout.planned && workout.planned.date.slice(0, 10) < todayYmd) {
+    return "missed";
+  }
+  return "planned";
 }
 
 // ── Step intent ─────────────────────────────────────────────────────────────

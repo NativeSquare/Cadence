@@ -9,6 +9,7 @@
     "save": "Save",
     "edit": "Edit",
     "confirm": "Confirm",
+    "close": "Close",
     "relativeShort": {
       "justNow": "just now",
       "minutes": "{{count}}m ago",
@@ -286,8 +287,6 @@
     "today": "Today",
     "weekN": "Week {{week}}",
     "defaultName": "there",
-    "coachPreparingPlan": "Your coach is preparing your plan...",
-    "coachLabel": "Coach",
     "noWorkoutToday": "No workout scheduled for today.",
     "yourRace": "Your Race",
     "setGoal": {
@@ -351,6 +350,7 @@
       "pace": "Pace",
       "adherence": "Adherence",
       "exportToWatch": "Export to Watch",
+      "markAsDone": "Mark as done",
       "restDay": "Rest Day",
       "noWorkoutScheduled": "No workout scheduled",
       "totalSuffix": "Total · {{total}}",
@@ -498,9 +498,18 @@
       "tapToClear": "Tap again to clear"
     },
     "markDone": {
-      "titleFormat": "Mark \"{{name}}\" as done",
       "submit": "Mark as done",
-      "helper": "Recording what you actually did. The plan stays as-is — use Edit to tweak name, type, or the planned version."
+      "howDidItFeel": "How did it feel?",
+      "tapToRate": "Tap a number from 1 to 10",
+      "rpeValueLabel": "Rate {{value}} out of 10",
+      "tiers": {
+        "easy": "Easy",
+        "moderate": "Moderate",
+        "hard": "Hard",
+        "max": "Max effort"
+      },
+      "notesQuestion": "Anything to note? (optional)",
+      "notesPlaceholder": "How it felt, anything off, what you skipped…"
     },
     "fields": {
       "workoutSection": "Workout",

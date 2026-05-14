@@ -11,6 +11,7 @@
  */
 
 import { ConfirmationSheet } from "@/components/shared/confirmation-sheet";
+import { MarkDoneBottomSheet } from "@/components/app/workout/mark-done-bottom-sheet";
 import { Text } from "@/components/ui/text";
 import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
 import { WORKOUT_TYPES_COLORS } from "@packages/shared/colors";
@@ -19,6 +20,8 @@ import { selectionFeedback } from "@/lib/haptics";
 import { getConvexErrorMessage } from "@/utils/getConvexErrorMessage";
 import {
   blockTypeLabel,
+  deriveWorkoutStatus,
+  localTodayYmd,
   mpsToPaceString,
   workoutTypeLabel,
 } from "@/components/app/workout/workout-helpers";
@@ -170,6 +173,7 @@ export function WorkoutDetailPage({ workoutId }: WorkoutDetailPageProps) {
   });
   const deleteWorkout = useMutation(api.agoge.workouts.deleteWorkout);
   const deleteSheetRef = React.useRef<BottomSheetModal>(null);
+  const markDoneSheetRef = React.useRef<BottomSheetModal>(null);
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
@@ -216,6 +220,7 @@ export function WorkoutDetailPage({ workoutId }: WorkoutDetailPageProps) {
   const heroDate = workout.planned?.date ?? workout.actual?.date;
   const blockProgress =
     block && heroDate ? computeBlockProgress(block, heroDate) : null;
+  const effectiveStatus = deriveWorkoutStatus(workout, localTodayYmd());
 
   const handleEdit = () => {
     selectionFeedback();
@@ -227,14 +232,11 @@ export function WorkoutDetailPage({ workoutId }: WorkoutDetailPageProps) {
 
   const handleMarkAsDone = () => {
     selectionFeedback();
-    router.push({
-      pathname: "/(app)/workouts/[id]/mark-done",
-      params: { id: workout._id },
-    });
+    markDoneSheetRef.current?.present();
   };
 
   const canMarkAsDone =
-    workout.status === "planned" &&
+    (effectiveStatus === "planned" || effectiveStatus === "missed") &&
     workout.planned != null &&
     !isFutureDay(workout.planned.date);
 
@@ -303,16 +305,16 @@ export function WorkoutDetailPage({ workoutId }: WorkoutDetailPageProps) {
                 <View
                   className="size-2 rounded-full"
                   style={{
-                    backgroundColor: STATUS_COLOR[workout.status] ?? LIGHT_THEME.wMute,
+                    backgroundColor: STATUS_COLOR[effectiveStatus] ?? LIGHT_THEME.wMute,
                   }}
                 />
                 <Text
                   className="font-coach-semibold text-[12px] uppercase tracking-wider"
                   style={{
-                    color: STATUS_COLOR[workout.status] ?? LIGHT_THEME.wMute,
+                    color: STATUS_COLOR[effectiveStatus] ?? LIGHT_THEME.wMute,
                   }}
                 >
-                  {statusLabel(t, workout.status)}
+                  {statusLabel(t, effectiveStatus)}
                 </Text>
               </View>
               {heroDate && (
@@ -466,6 +468,12 @@ export function WorkoutDetailPage({ workoutId }: WorkoutDetailPageProps) {
         destructive
         loading={isDeleting}
         onConfirm={handleDelete}
+      />
+
+      <MarkDoneBottomSheet
+        sheetRef={markDoneSheetRef}
+        workoutId={workout._id}
+        workoutName={workout.name}
       />
     </View>
   );

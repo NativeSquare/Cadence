@@ -9,6 +9,7 @@
     "save": "Enregistrer",
     "edit": "Modifier",
     "confirm": "Confirmer",
+    "close": "Fermer",
     "relativeShort": {
       "justNow": "à l'instant",
       "minutes": "il y a {{count}} min",
@@ -286,8 +287,6 @@
     "today": "Aujourd'hui",
     "weekN": "Semaine {{week}}",
     "defaultName": "à toi",
-    "coachPreparingPlan": "Votre coach prépare votre plan...",
-    "coachLabel": "Coach",
     "noWorkoutToday": "Aucune séance prévue aujourd'hui.",
     "yourRace": "Votre course",
     "setGoal": {
@@ -351,6 +350,7 @@
       "pace": "Allure",
       "adherence": "Conformité",
       "exportToWatch": "Envoyer à la montre",
+      "markAsDone": "Marquer comme terminée",
       "restDay": "Jour de repos",
       "noWorkoutScheduled": "Aucune séance prévue",
       "totalSuffix": "Total · {{total}}",
@@ -498,9 +498,18 @@
       "tapToClear": "Appuyez à nouveau pour effacer"
     },
     "markDone": {
-      "titleFormat": "Marquer « {{name}} » comme terminée",
       "submit": "Marquer comme terminée",
-      "helper": "Enregistrez ce que vous avez réellement fait. Le plan reste tel quel — utilisez Modifier pour ajuster le nom, le type ou la version planifiée."
+      "howDidItFeel": "Comment ça s'est passé ?",
+      "tapToRate": "Appuyez sur un chiffre de 1 à 10",
+      "rpeValueLabel": "Noter {{value}} sur 10",
+      "tiers": {
+        "easy": "Facile",
+        "moderate": "Modéré",
+        "hard": "Difficile",
+        "max": "Effort max"
+      },
+      "notesQuestion": "Une remarque ? (facultatif)",
+      "notesPlaceholder": "Comment c'était, ce qui clochait, ce que vous avez sauté…"
     },
     "fields": {
       "workoutSection": "Séance",

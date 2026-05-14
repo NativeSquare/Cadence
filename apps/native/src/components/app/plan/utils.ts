@@ -8,6 +8,10 @@
 
 import { WORKOUT_TYPES_COLORS } from "@packages/shared/colors";
 import { summarizeWorkout } from "@/components/app/workout/workout-summary";
+import {
+  deriveWorkoutStatus,
+  localTodayYmd,
+} from "@/components/app/workout/workout-helpers";
 import type { PlanDoc, RaceDoc, WorkoutType } from "@nativesquare/agoge/schema";
 import type {
   RaceGoalData,
@@ -121,6 +125,7 @@ export function workoutToWorkoutData(
     face?.durationSeconds ?? summary.totalDurationSeconds ?? undefined;
 
   const exportedRef = workout.providerRefs?.[0];
+  const derivedStatus = deriveWorkoutStatus(workout, localTodayYmd(today));
 
   return {
     workoutId: workout._id,
@@ -128,7 +133,8 @@ export function workoutToWorkoutData(
     kind: workout.type,
     km: formatDistance(distanceMeters),
     dur: formatDurationShort(durationSeconds),
-    done: workout.status === "completed",
+    done: derivedStatus === "completed",
+    missed: derivedStatus === "missed",
     intensity: intensityFromType(workout.type),
     desc: workout.description ?? "",
     zone: "-",

@@ -2,7 +2,7 @@
  * TodayCard - Main card showing today's (or selected day's) workout.
  *
  * Two internal layouts:
- * - PlannedView   — pre-workout. Compact structure preview + coach + CTA.
+ * - PlannedView   — pre-workout. Compact structure preview + CTAs.
  * - CompletedView — post-workout. Big metrics + adherence; structure deferred
  *                   to the detail page.
  *
@@ -39,52 +39,18 @@ import {
 import { type WorkoutData, type SyncStatus } from "./types";
 import { formatShortDate } from "@/lib/format";
 import { useLanguage } from "@/lib/i18n";
-import { useStream } from "./use-stream";
 
 interface TodayCardProps {
   workout: WorkoutData;
-  coachMessage: string;
   selectedDate?: Date;
   isToday?: boolean;
   onExportPress?: () => void;
   onCardPress?: () => void;
+  onMarkDonePress?: () => void;
+  canMarkDone?: boolean;
 }
 
 // ─── Animation primitives ───────────────────────────────────────────────────
-
-function CoachPulsingDot({ isStreaming, color = "#000000" }: { isStreaming: boolean; color?: string }) {
-  const opacity = useSharedValue(0.25);
-  useEffect(() => {
-    if (isStreaming) {
-      opacity.value = withRepeat(
-        withTiming(1, { duration: 750, easing: Easing.inOut(Easing.ease) }),
-        -1, true
-      );
-    } else {
-      opacity.value = 0.25;
-    }
-  }, [isStreaming, opacity]);
-  const animatedStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
-  return (
-    <Animated.View
-      style={[animatedStyle, { backgroundColor: color }]}
-      className="w-1.5 h-1.5 rounded-full"
-    />
-  );
-}
-
-function BlinkingCursor() {
-  const opacity = useSharedValue(1);
-  useEffect(() => {
-    opacity.value = withRepeat(withTiming(0, { duration: 400 }), -1, true);
-  }, [opacity]);
-  const animatedStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
-  return (
-    <Animated.View
-      style={[animatedStyle, { width: 2, height: 14, backgroundColor: COLORS.black, marginLeft: 2 }]}
-    />
-  );
-}
 
 function SpinningSyncIcon({ color, size = 12 }: { color: string; size?: number }) {
   const rotation = useSharedValue(0);
@@ -168,26 +134,6 @@ function AlertIcon({ size = 10, color }: { size?: number; color: string }) {
   );
 }
 
-function QuoteMark({ position }: { position: "open" | "close" }) {
-  const isOpen = position === "open";
-  return (
-    <Text
-      className="font-coach"
-      style={{
-        position: "absolute",
-        top: isOpen ? 8 : undefined,
-        bottom: isOpen ? undefined : 4,
-        left: isOpen ? 12 : undefined,
-        right: isOpen ? undefined : 12,
-        fontSize: 48, fontWeight: "800",
-        color: "rgba(0,0,0,0.08)", lineHeight: 48,
-      }}
-    >
-      {isOpen ? "“" : "”"}
-    </Text>
-  );
-}
-
 // ─── Sync badge (inline) ────────────────────────────────────────────────────
 
 const PROVIDER_DISPLAY_NAMES: Record<string, string> = {
@@ -262,6 +208,28 @@ function SyncBadge({ workout }: { workout: WorkoutData }) {
         style={{ color: content.color }}
       >
         {content.label}
+      </Text>
+    </View>
+  );
+}
+
+function MissedBadge() {
+  const { t } = useTranslation();
+  return (
+    <View
+      className="flex-row items-center gap-1.5 rounded-full px-2.5 py-1"
+      style={{
+        backgroundColor: "rgba(255,90,90,0.14)",
+        borderWidth: 1,
+        borderColor: "rgba(255,90,90,0.30)",
+      }}
+    >
+      <AlertIcon color={COLORS.red} />
+      <Text
+        className="text-[11px] font-coach-semibold uppercase tracking-wider"
+        style={{ color: COLORS.red }}
+      >
+        {t("workout.status.missed")}
       </Text>
     </View>
   );
@@ -404,7 +372,11 @@ function CardHeader({
         ) : (
           <View />
         )}
-        {showSyncBadge && <SyncBadge workout={workout} />}
+        {workout.missed ? (
+          <MissedBadge />
+        ) : (
+          showSyncBadge && <SyncBadge workout={workout} />
+        )}
       </View>
       <View className="flex-row items-center justify-between">
         <Text
@@ -415,37 +387,6 @@ function CardHeader({
           {workout.type}
         </Text>
         <ChevronRight />
-      </View>
-    </View>
-  );
-}
-
-// ─── Coach quote ────────────────────────────────────────────────────────────
-
-function CoachQuote({
-  displayed, done, started,
-}: {
-  displayed: string; done: boolean; started: boolean;
-}) {
-  const { t } = useTranslation();
-  return (
-    <View
-      className="mx-3.5 mb-3 p-4 rounded-2xl bg-lime"
-      style={{ position: "relative", overflow: "hidden" }}
-    >
-      <QuoteMark position="open" />
-      <QuoteMark position="close" />
-      <View className="flex-row items-center gap-1.5 mb-2.5" style={{ position: "relative", zIndex: 2 }}>
-        <CoachPulsingDot isStreaming={!done && started} />
-        <Text className="text-[11px] font-coach-semibold" style={{ color: "rgba(0,0,0,0.4)" }}>
-          {t("plan.coachLabel")}
-        </Text>
-      </View>
-      <View className="flex-row flex-wrap items-end" style={{ position: "relative", zIndex: 2 }}>
-        <Text className="text-[15px] font-coach-medium text-black" style={{ lineHeight: 23 }}>
-          {displayed}
-        </Text>
-        {!done && started && <BlinkingCursor />}
       </View>
     </View>
   );
@@ -558,21 +499,38 @@ function CompletedMetrics({ workout }: { workout: WorkoutData }) {
 function ExportToWatchCTA({ onPress }: { onPress?: () => void }) {
   const { t } = useTranslation();
   return (
-    <View className="px-4 pb-4">
-      <Pressable
-        className="py-[14px] px-5 rounded-[14px] flex-row items-center justify-center gap-2 active:scale-[0.98]"
-        style={{ backgroundColor: "#FFFFFF" }}
-        onPress={(e) => {
-          e.stopPropagation();
-          onPress?.();
-        }}
-      >
-        <WatchIcon />
-        <Text className="text-[15px] font-coach-semibold" style={{ color: "#1A1A1A" }}>
-          {t("plan.todayCard.exportToWatch")}
-        </Text>
-      </Pressable>
-    </View>
+    <Pressable
+      className="py-[14px] px-5 rounded-[14px] flex-row items-center justify-center gap-2 active:scale-[0.98]"
+      style={{ backgroundColor: "#FFFFFF" }}
+      onPress={(e) => {
+        e.stopPropagation();
+        onPress?.();
+      }}
+    >
+      <WatchIcon />
+      <Text className="text-[15px] font-coach-semibold" style={{ color: "#1A1A1A" }}>
+        {t("plan.todayCard.exportToWatch")}
+      </Text>
+    </Pressable>
+  );
+}
+
+function MarkAsDoneCTA({ onPress }: { onPress?: () => void }) {
+  const { t } = useTranslation();
+  return (
+    <Pressable
+      className="py-[14px] px-5 rounded-[14px] flex-row items-center justify-center gap-2 active:scale-[0.98]"
+      style={{ backgroundColor: COLORS.lime }}
+      onPress={(e) => {
+        e.stopPropagation();
+        onPress?.();
+      }}
+    >
+      <CheckIcon color="#1A1A1A" size={14} />
+      <Text className="text-[15px] font-coach-semibold" style={{ color: "#1A1A1A" }}>
+        {t("plan.todayCard.markAsDone")}
+      </Text>
+    </Pressable>
   );
 }
 
@@ -580,46 +538,45 @@ function ExportToWatchCTA({ onPress }: { onPress?: () => void }) {
 
 function PlannedView({
   workout,
-  coachMessage,
   onExportPress,
+  onMarkDonePress,
+  canMarkDone,
 }: {
   workout: WorkoutData;
-  coachMessage: string;
   onExportPress?: () => void;
+  onMarkDonePress?: () => void;
+  canMarkDone?: boolean;
 }) {
-  const { displayed, done, started } = useStream(coachMessage, {
-    speed: 20, delay: 800,
-  });
   const isExported =
     workout.syncStatus === "exported" || workout.syncStatus === "synced";
+  const showMarkDone = !!canMarkDone && !!onMarkDonePress;
+  const showExport = !isExported;
 
   return (
     <>
       <CardHeader workout={workout} showSyncBadge />
       <StructurePreview workout={workout} />
       <StructureTotal workout={workout} />
-      <CoachQuote displayed={displayed} done={done} started={started} />
-      {!isExported && <ExportToWatchCTA onPress={onExportPress} />}
+      {(showMarkDone || showExport) && (
+        <View className="px-4 pb-4 pt-2 gap-2">
+          {showMarkDone && <MarkAsDoneCTA onPress={onMarkDonePress} />}
+          {showExport && <ExportToWatchCTA onPress={onExportPress} />}
+        </View>
+      )}
     </>
   );
 }
 
 function CompletedView({
   workout,
-  coachMessage,
 }: {
   workout: WorkoutData;
-  coachMessage: string;
 }) {
-  const { displayed, done, started } = useStream(coachMessage, {
-    speed: 20, delay: 800,
-  });
   return (
     <>
       <CompletedHeaderBanner workout={workout} />
       <CardHeader workout={workout} showSyncBadge={false} />
       <CompletedMetrics workout={workout} />
-      <CoachQuote displayed={displayed} done={done} started={started} />
     </>
   );
 }
@@ -689,11 +646,12 @@ function RestDayCard({
 
 export function TodayCard({
   workout,
-  coachMessage,
   selectedDate,
   isToday = true,
   onExportPress,
   onCardPress,
+  onMarkDonePress,
+  canMarkDone,
 }: TodayCardProps) {
   const { t } = useTranslation();
   const locale = useLanguage();
@@ -736,12 +694,13 @@ export function TodayCard({
           }}
         >
           {isCompleted ? (
-            <CompletedView workout={workout} coachMessage={coachMessage} />
+            <CompletedView workout={workout} />
           ) : (
             <PlannedView
               workout={workout}
-              coachMessage={coachMessage}
               onExportPress={onExportPress}
+              onMarkDonePress={onMarkDonePress}
+              canMarkDone={canMarkDone}
             />
           )}
         </View>

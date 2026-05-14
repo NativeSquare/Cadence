@@ -42,6 +42,7 @@ import { QuickActions } from "./QuickActions";
 import { TrainingPulseCard } from "./TrainingPulseCard";
 import { RaceUpgradeCTA } from "./RaceUpgradeCTA";
 import { ExportToProviderSheet } from "./ExportToProviderSheet";
+import { MarkDoneBottomSheet } from "@/components/app/workout/mark-done-bottom-sheet";
 import { LIGHT_THEME } from "@/lib/design-tokens";
 import {
   buildWorkoutsByDate,
@@ -137,9 +138,8 @@ export function PlanScreen() {
     [planWorkouts, today],
   );
 
-  const coachMessage = t("plan.coachPreparingPlan");
-
   const exportSheetRef = useRef<BottomSheetModal>(null);
+  const markDoneSheetRef = useRef<BottomSheetModal>(null);
 
   const selectedWorkout_: WorkoutData = baseSelectedWorkout;
 
@@ -153,6 +153,30 @@ export function PlanScreen() {
   const handleOpenExportSheet = useCallback(() => {
     exportSheetRef.current?.present();
   }, []);
+
+  const handleMarkDone = useCallback(() => {
+    if (baseSelectedWorkout.workoutId) {
+      markDoneSheetRef.current?.present();
+    }
+  }, [baseSelectedWorkout.workoutId]);
+
+  const startOfToday = useMemo(() => {
+    const d = new Date(today);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }, [today]);
+
+  const selectedDayStart = useMemo(() => {
+    const d = new Date(selectedDate);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }, [selectedDate]);
+
+  const canMarkDone =
+    !!baseSelectedWorkout.workoutId &&
+    !baseSelectedWorkout.done &&
+    baseSelectedWorkout.intensity !== "rest" &&
+    selectedDayStart.getTime() <= startOfToday.getTime();
 
   const handleScroll = useAnimatedScrollHandler({
     onScroll: (event) => {
@@ -313,11 +337,12 @@ export function PlanScreen() {
             <View className="px-4 pt-4">
               <TodayCard
                 workout={selectedWorkout_}
-                coachMessage={coachMessage}
                 selectedDate={selectedDate}
                 isToday={isSelectedToday}
                 onExportPress={handleOpenExportSheet}
                 onCardPress={handleOpenWorkoutDetail}
+                onMarkDonePress={handleMarkDone}
+                canMarkDone={canMarkDone}
               />
             </View>
 
@@ -423,6 +448,14 @@ export function PlanScreen() {
           sheetRef={exportSheetRef}
           workoutType={selectedWorkout_.type}
           workoutId={selectedWorkout_.workoutId}
+        />
+      )}
+
+      {hasGoal && selectedWorkout_.workoutId && (
+        <MarkDoneBottomSheet
+          sheetRef={markDoneSheetRef}
+          workoutId={selectedWorkout_.workoutId}
+          workoutName={selectedWorkout_.type}
         />
       )}
     </View>

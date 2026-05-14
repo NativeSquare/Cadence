@@ -6,6 +6,8 @@
  */
 
 import {
+  deriveWorkoutStatus,
+  localTodayYmd,
   workoutStatusLabel,
   workoutTypeLabel,
 } from "@/components/app/workout/workout-helpers";
@@ -66,17 +68,18 @@ export function WorkoutCard({ workout, onPress }: WorkoutCardProps) {
   const distance = formatDistance(workout.planned?.distanceMeters);
   const typeColor = WORKOUT_TYPES_COLORS[workout.type];
   const typeColorDim = WORKOUT_TYPES_COLORS_DIM[workout.type];
-  const dimmed = workout.status === "skipped" || workout.status === "missed";
+  const effectiveStatus = deriveWorkoutStatus(workout, localTodayYmd());
+  const dimmed = effectiveStatus === "skipped" || effectiveStatus === "missed";
 
   const subtitleParts = [workoutTypeLabel(t, workout.type)];
   const meta = [duration, distance].filter(Boolean).join(" · ");
   if (meta) subtitleParts.push(meta);
   if (
-    workout.status === "completed" ||
-    workout.status === "skipped" ||
-    workout.status === "missed"
+    effectiveStatus === "completed" ||
+    effectiveStatus === "skipped" ||
+    effectiveStatus === "missed"
   ) {
-    subtitleParts.push(workoutStatusLabel(t, workout.status));
+    subtitleParts.push(workoutStatusLabel(t, effectiveStatus));
   }
 
   return (
