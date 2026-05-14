@@ -71,6 +71,9 @@ export interface WorkoutData {
   syncSource?: string;
   /** Actual recorded values after sync completes */
   syncedData?: SyncedData;
+  /** True when an active (non-reverted) coach intervention has modified this
+   *  workout. Surfaces a "coach adjusted" badge in place of the sync badge. */
+  coachAdjusted?: boolean;
 }
 
 /**

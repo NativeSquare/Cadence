@@ -235,6 +235,33 @@ function MissedBadge() {
   );
 }
 
+function CoachAdjustedBadge() {
+  const { t } = useTranslation();
+  return (
+    <View
+      className="flex-row items-center gap-1.5 rounded-full px-2.5 py-1"
+      style={{
+        backgroundColor: "rgba(200,255,0,0.16)",
+        borderWidth: 1,
+        borderColor: "rgba(200,255,0,0.35)",
+      }}
+    >
+      <Svg width={11} height={11} viewBox="0 0 24 24" fill="none">
+        <Path
+          d="M12 2L13.5 8.5L20 10L13.5 11.5L12 18L10.5 11.5L4 10L10.5 8.5L12 2Z"
+          fill={COLORS.lime}
+        />
+      </Svg>
+      <Text
+        className="text-[11px] font-coach-semibold"
+        style={{ color: COLORS.lime }}
+      >
+        {t("plan.todayCard.coachAdjusted")}
+      </Text>
+    </View>
+  );
+}
+
 // ─── Structure preview ──────────────────────────────────────────────────────
 
 const MAX_STRUCTURE_LINES = 4;
@@ -374,6 +401,8 @@ function CardHeader({
         )}
         {workout.missed ? (
           <MissedBadge />
+        ) : workout.coachAdjusted ? (
+          <CoachAdjustedBadge />
         ) : (
           showSyncBadge && <SyncBadge workout={workout} />
         )}

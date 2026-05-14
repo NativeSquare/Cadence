@@ -356,7 +356,8 @@
       "totalSuffix": "Total · {{total}}",
       "moreItems": "+ {{count}} de plus",
       "syncing": "Synchronisation",
-      "syncFailed": "Échec de la synchronisation"
+      "syncFailed": "Échec de la synchronisation",
+      "coachAdjusted": "Ajustée par le coach"
     },
     "exportSheet": {
       "title": "Envoyer la séance",
@@ -685,6 +686,22 @@
         "intensity": "Intensité",
         "structure": "Structure"
       }
+    },
+    "coachIntervention": {
+      "cardTitle": "Ajustée par ton coach",
+      "subtitle": "Pourquoi j'ai changé",
+      "signals": {
+        "hrv": "HRV aujourd'hui {{today}} ms · moyenne 14 j {{baseline}} ms",
+        "sleep": "Sommeil cette nuit {{hours}} h",
+        "rhr": "FC repos aujourd'hui {{bpm}} bpm"
+      },
+      "diffOriginal": "Prévu initialement",
+      "diffNew": "Ce que j'ai mis à la place",
+      "revert": "Revenir à la version initiale",
+      "revertConfirmTitle": "Annuler ce changement ?",
+      "revertConfirmBody": "Ta séance initiale remplacera la séance facile.",
+      "revertedLabel": "Tu es revenu à la version initiale.",
+      "revertError": "Impossible d'annuler. Réessaie."
     }
   },
   "tabs": {
@@ -781,6 +798,11 @@
           "label": "Détaillé",
           "description": "Explique brièvement le raisonnement des suggestions."
         }
+      },
+      "interventionsSection": "Coaching proactif",
+      "interventionsToggle": {
+        "label": "Ajuster mes séances si la récupération est basse",
+        "description": "Si ta HRV est nettement sous ta moyenne, je remplace ta prochaine séance dure par une sortie facile et je te dis pourquoi."
       }
     },
     "language": {

@@ -32,6 +32,9 @@ const documentSchema = {
   role: v.optional(v.union(v.literal("user"), v.literal("admin"))),
   locale: v.optional(v.union(v.literal("en"), v.literal("fr"))),
   coachPrefs: v.optional(coachPrefs),
+  // Default ON: absence / undefined is treated as enabled. Explicit `false`
+  // opts out of proactive plan modifications (HRV-readiness trigger etc.).
+  coachInterventionsEnabled: v.optional(v.boolean()),
 
   // Ban fields
   banned: v.optional(v.boolean()),
@@ -56,6 +59,9 @@ const partialSchema = {
   role: v.optional(v.union(v.literal("user"), v.literal("admin"))),
   locale: v.optional(v.union(v.literal("en"), v.literal("fr"))),
   coachPrefs: v.optional(coachPrefs),
+  // Default ON: absence / undefined is treated as enabled. Explicit `false`
+  // opts out of proactive plan modifications (HRV-readiness trigger etc.).
+  coachInterventionsEnabled: v.optional(v.boolean()),
 
   // Ban fields
   banned: v.optional(v.boolean()),
@@ -117,6 +123,17 @@ export const setCoachPrefs = mutation({
       throw new Error("Not authenticated");
     }
     await ctx.db.patch(userId, { coachPrefs: args.prefs });
+  },
+});
+
+export const setCoachInterventionsEnabled = mutation({
+  args: { enabled: v.boolean() },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) {
+      throw new Error("Not authenticated");
+    }
+    await ctx.db.patch(userId, { coachInterventionsEnabled: args.enabled });
   },
 });
 

@@ -129,6 +129,39 @@ export const sendCoachMessageNotification = internalAction({
 });
 
 /**
+ * Coach-intervention push — fired after the HRV-readiness rule auto-modifies
+ * a workout. Tap deep-links to the modified workout's detail screen, where
+ * the intervention card renders the before/after diff and a revert link.
+ */
+export const sendCoachInterventionNotification = internalAction({
+  args: {
+    userId: v.id("users"),
+    workoutId: v.string(),
+    interventionId: v.id("coachInterventions"),
+    title: v.string(),
+    body: v.string(),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    await pushNotifications.sendPushNotification(ctx, {
+      userId: args.userId,
+      notification: {
+        title: args.title,
+        body: args.body,
+        data: {
+          screen: "workout",
+          workoutId: args.workoutId,
+          type: "coachIntervention",
+          interventionId: args.interventionId,
+        },
+        sound: "default",
+      },
+    });
+    return null;
+  },
+});
+
+/**
  * Workout-completion push, scheduled from the Soma webhook when an activity
  * matches a planned session. Tap deep-links to the workout detail screen.
  */

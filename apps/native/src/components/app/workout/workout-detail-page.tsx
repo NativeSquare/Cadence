@@ -10,6 +10,7 @@
  * compose on top of this readout.
  */
 
+import { CoachInterventionCard } from "@/components/app/workout/coach-intervention-card";
 import { ConfirmationSheet } from "@/components/shared/confirmation-sheet";
 import { MarkDoneBottomSheet } from "@/components/app/workout/mark-done-bottom-sheet";
 import { Text } from "@/components/ui/text";
@@ -171,6 +172,10 @@ export function WorkoutDetailPage({ workoutId }: WorkoutDetailPageProps) {
   const result = useQuery(api.agoge.workouts.getWorkout, {
     workoutId,
   });
+  const intervention = useQuery(
+    api.coach.triggers.hrvLowReadiness.activeForWorkout,
+    { workoutId },
+  );
   const deleteWorkout = useMutation(api.agoge.workouts.deleteWorkout);
   const deleteSheetRef = React.useRef<BottomSheetModal>(null);
   const markDoneSheetRef = React.useRef<BottomSheetModal>(null);
@@ -368,6 +373,10 @@ export function WorkoutDetailPage({ workoutId }: WorkoutDetailPageProps) {
                 {workout.description}
               </Text>
             </Card>
+          )}
+
+          {intervention && (
+            <CoachInterventionCard intervention={intervention} />
           )}
 
           {workout.planned && (

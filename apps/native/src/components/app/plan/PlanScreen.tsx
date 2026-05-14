@@ -128,6 +128,15 @@ export function PlanScreen() {
   const baseSelectedWorkout: WorkoutData =
     workoutsByDate[selectedDateKey] ?? REST_FALLBACK;
 
+  // Hydrate the "coach adjusted" badge for the currently-selected workout.
+  // The query is skipped when no workout is selected (rest day fallback).
+  const selectedIntervention = useQuery(
+    api.coach.triggers.hrvLowReadiness.activeForWorkout,
+    baseSelectedWorkout.workoutId
+      ? { workoutId: baseSelectedWorkout.workoutId }
+      : "skip",
+  );
+
   const weekInsights = useMemo(
     () => (planWorkouts ? computeWeekInsights(planWorkouts, today) : null),
     [planWorkouts, today],
@@ -141,7 +150,10 @@ export function PlanScreen() {
   const exportSheetRef = useRef<BottomSheetModal>(null);
   const markDoneSheetRef = useRef<BottomSheetModal>(null);
 
-  const selectedWorkout_: WorkoutData = baseSelectedWorkout;
+  const selectedWorkout_: WorkoutData =
+    selectedIntervention && selectedIntervention.revertedAt == null
+      ? { ...baseSelectedWorkout, coachAdjusted: true }
+      : baseSelectedWorkout;
 
   const handleOpenWorkoutDetail = useCallback(() => {
     const sid = baseSelectedWorkout.workoutId;
