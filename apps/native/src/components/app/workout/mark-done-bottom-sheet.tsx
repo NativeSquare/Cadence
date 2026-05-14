@@ -25,6 +25,9 @@ import { z } from "zod";
 const formSchema = z.object({
   rpe: z.number().int().min(1).max(10).optional(),
   notes: z.string().optional(),
+  testDistanceKm: z.number().positive().optional(),
+  testDurationMinutes: z.number().int().min(0).optional(),
+  testDurationSeconds: z.number().int().min(0).max(59).optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -47,12 +50,22 @@ export interface MarkDoneBottomSheetProps {
   sheetRef: React.RefObject<GorhomBottomSheetModal | null>;
   workoutId: string;
   workoutName: string;
+  isTest?: boolean;
 }
+
+const DEFAULTS: FormValues = {
+  rpe: undefined,
+  notes: "",
+  testDistanceKm: undefined,
+  testDurationMinutes: undefined,
+  testDurationSeconds: undefined,
+};
 
 export function MarkDoneBottomSheet({
   sheetRef,
   workoutId,
   workoutName,
+  isTest,
 }: MarkDoneBottomSheetProps) {
   const { t } = useTranslation();
   const updateWorkout = useMutation(api.agoge.workouts.updateWorkout);
@@ -60,7 +73,7 @@ export function MarkDoneBottomSheet({
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     mode: "onSubmit",
-    defaultValues: { rpe: undefined, notes: "" },
+    defaultValues: DEFAULTS,
   });
 
   const [submitError, setSubmitError] = React.useState<string | null>(null);
@@ -69,6 +82,39 @@ export function MarkDoneBottomSheet({
   const handleSubmit = form.handleSubmit(async (data) => {
     setSubmitError(null);
     Keyboard.dismiss();
+
+    if (isTest) {
+      const km = data.testDistanceKm;
+      if (km == null || !(km > 0)) {
+        setSubmitError(t("workout.markDone.errorDistanceRequired"));
+        return;
+      }
+      const minutes = data.testDurationMinutes ?? 0;
+      const seconds = data.testDurationSeconds ?? 0;
+      const totalSeconds = minutes * 60 + seconds;
+      if (totalSeconds <= 0) {
+        setSubmitError(t("workout.markDone.errorTimeRequired"));
+        return;
+      }
+
+      try {
+        const trimmedNotes = data.notes?.trim();
+        const actual = {
+          date: nowIso(),
+          distanceMeters: Math.round(km * 1000),
+          durationSeconds: totalSeconds,
+          ...(data.rpe != null ? { rpe: data.rpe } : {}),
+          ...(trimmedNotes ? { notes: trimmedNotes } : {}),
+        };
+        await updateWorkout({ workoutId, status: "completed", actual });
+        sheetRef.current?.dismiss();
+        form.reset(DEFAULTS);
+      } catch (err) {
+        setSubmitError(getConvexErrorMessage(err));
+      }
+      return;
+    }
+
     try {
       const trimmedNotes = data.notes?.trim();
       const actual = {
@@ -78,14 +124,14 @@ export function MarkDoneBottomSheet({
       };
       await updateWorkout({ workoutId, status: "completed", actual });
       sheetRef.current?.dismiss();
-      form.reset({ rpe: undefined, notes: "" });
+      form.reset(DEFAULTS);
     } catch (err) {
       setSubmitError(getConvexErrorMessage(err));
     }
   });
 
   const handleDismiss = React.useCallback(() => {
-    form.reset({ rpe: undefined, notes: "" });
+    form.reset(DEFAULTS);
     setSubmitError(null);
   }, [form]);
 
@@ -99,6 +145,58 @@ export function MarkDoneBottomSheet({
         >
           {workoutName}
         </Text>
+
+        {isTest && (
+          <View className="gap-4">
+            <Text
+              className="font-coach-bold text-base"
+              style={{ color: LIGHT_THEME.wText }}
+            >
+              {t("workout.markDone.testHeader")}
+            </Text>
+            <Controller
+              control={form.control}
+              name="testDistanceKm"
+              render={({ field }) => (
+                <DistanceField
+                  value={field.value}
+                  onChange={field.onChange}
+                />
+              )}
+            />
+            <View className="flex-row gap-3">
+              <View className="flex-1">
+                <Controller
+                  control={form.control}
+                  name="testDurationMinutes"
+                  render={({ field }) => (
+                    <TimePartField
+                      label={t("workout.markDone.testTimeLabel")}
+                      suffix={t("workout.markDone.testTimeMinutes")}
+                      value={field.value}
+                      onChange={field.onChange}
+                    />
+                  )}
+                />
+              </View>
+              <View className="flex-1">
+                <Controller
+                  control={form.control}
+                  name="testDurationSeconds"
+                  render={({ field }) => (
+                    <TimePartField
+                      label=" "
+                      suffix={t("workout.markDone.testTimeSeconds")}
+                      value={field.value}
+                      onChange={field.onChange}
+                      maxLength={2}
+                    />
+                  )}
+                />
+              </View>
+            </View>
+          </View>
+        )}
 
         <Controller
           control={form.control}
@@ -223,6 +321,130 @@ function RpeField({
             {t("workout.markDone.tapToRate")}
           </Text>
         )}
+      </View>
+    </View>
+  );
+}
+
+function DistanceField({
+  value,
+  onChange,
+}: {
+  value: number | undefined;
+  onChange: (v: number | undefined) => void;
+}) {
+  const { t } = useTranslation();
+  const [text, setText] = React.useState<string>(
+    value == null ? "" : String(value),
+  );
+  React.useEffect(() => {
+    setText(value == null ? "" : String(value));
+  }, [value]);
+
+  return (
+    <View className="gap-2">
+      <Text
+        className="font-coach-bold text-sm"
+        style={{ color: LIGHT_THEME.wText }}
+      >
+        {t("workout.markDone.testDistanceLabel")}
+      </Text>
+      <View
+        className="flex-row items-center"
+        style={{
+          paddingHorizontal: 14,
+          borderRadius: 16,
+          borderWidth: 1,
+          borderColor: LIGHT_THEME.wBrd,
+          backgroundColor: LIGHT_THEME.w2,
+        }}
+      >
+        <BottomSheetTextInput
+          value={text}
+          onChangeText={(raw) => {
+            const normalized = raw.replace(",", ".");
+            setText(normalized);
+            const parsed = Number.parseFloat(normalized);
+            onChange(Number.isFinite(parsed) ? parsed : undefined);
+          }}
+          keyboardType="decimal-pad"
+          inputMode="decimal"
+          placeholder="5.0"
+          placeholderTextColor={LIGHT_THEME.wMute}
+          className="flex-1 font-coach text-[15px]"
+          style={{ paddingVertical: 12, color: LIGHT_THEME.wText }}
+        />
+        <Text
+          className="font-coach text-sm"
+          style={{ color: LIGHT_THEME.wMute }}
+        >
+          {t("workout.markDone.testDistanceUnit")}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+function TimePartField({
+  label,
+  suffix,
+  value,
+  onChange,
+  maxLength,
+}: {
+  label: string;
+  suffix: string;
+  value: number | undefined;
+  onChange: (v: number | undefined) => void;
+  maxLength?: number;
+}) {
+  const [text, setText] = React.useState<string>(
+    value == null ? "" : String(value),
+  );
+  React.useEffect(() => {
+    setText(value == null ? "" : String(value));
+  }, [value]);
+
+  return (
+    <View className="gap-2">
+      <Text
+        className="font-coach-bold text-sm"
+        style={{ color: LIGHT_THEME.wText }}
+      >
+        {label}
+      </Text>
+      <View
+        className="flex-row items-center"
+        style={{
+          paddingHorizontal: 14,
+          borderRadius: 16,
+          borderWidth: 1,
+          borderColor: LIGHT_THEME.wBrd,
+          backgroundColor: LIGHT_THEME.w2,
+        }}
+      >
+        <BottomSheetTextInput
+          value={text}
+          onChangeText={(raw) => {
+            const digits = raw.replace(/\D/g, "");
+            setText(digits);
+            const parsed = Number.parseInt(digits, 10);
+            onChange(Number.isFinite(parsed) ? parsed : undefined);
+          }}
+          keyboardType="number-pad"
+          inputMode="numeric"
+          maxLength={maxLength}
+          placeholder="0"
+          placeholderTextColor={LIGHT_THEME.wMute}
+          className="flex-1 font-coach text-[15px]"
+          style={{ paddingVertical: 12, color: LIGHT_THEME.wText }}
+        />
+        <Text
+          className="font-coach text-sm"
+          style={{ color: LIGHT_THEME.wMute }}
+        >
+          {suffix}
+        </Text>
       </View>
     </View>
   );

@@ -510,7 +510,27 @@
         "max": "Max effort"
       },
       "notesQuestion": "Anything to note? (optional)",
-      "notesPlaceholder": "How it felt, anything off, what you skipped…"
+      "notesPlaceholder": "How it felt, anything off, what you skipped…",
+      "testHeader": "Log your result",
+      "testDistanceLabel": "Distance",
+      "testDistanceUnit": "km",
+      "testTimeLabel": "Time",
+      "testTimeMinutes": "min",
+      "testTimeSeconds": "sec",
+      "errorDistanceRequired": "Enter the distance you covered.",
+      "errorTimeRequired": "Enter your finish time."
+    },
+    "baseline": {
+      "manualCta": "I already know my threshold pace",
+      "sheetTitle": "Set your threshold pace",
+      "sheetDescription": "Enter your lactate-threshold pace (roughly your 10K to half-marathon race pace). We'll use it to build your plan.",
+      "paceLabel": "Threshold pace",
+      "paceMinutes": "min",
+      "paceSeconds": "sec",
+      "paceUnit": "/km",
+      "submit": "Save pace and start plan",
+      "errorPaceRequired": "Enter a valid pace.",
+      "errorPaceUnrealistic": "That pace looks off — check the minutes and seconds."
     },
     "fields": {
       "workoutSection": "Workout",

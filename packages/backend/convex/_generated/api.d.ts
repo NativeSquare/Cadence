@@ -9,6 +9,7 @@
  */
 
 import type * as agoge_athletes from "../agoge/athletes.js";
+import type * as agoge_baselineTest from "../agoge/baselineTest.js";
 import type * as agoge_blocks from "../agoge/blocks.js";
 import type * as agoge_goals from "../agoge/goals.js";
 import type * as agoge_helpers from "../agoge/helpers.js";
@@ -81,6 +82,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   "agoge/athletes": typeof agoge_athletes;
+  "agoge/baselineTest": typeof agoge_baselineTest;
   "agoge/blocks": typeof agoge_blocks;
   "agoge/goals": typeof agoge_goals;
   "agoge/helpers": typeof agoge_helpers;

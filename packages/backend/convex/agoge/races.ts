@@ -4,13 +4,14 @@ import {
   type RaceStatus,
 } from "@nativesquare/agoge/schema";
 import { ConvexError, v } from "convex/values";
-import { components, internal } from "../_generated/api";
+import { components } from "../_generated/api";
 import {
   type MutationCtx,
   mutation,
   query,
   type QueryCtx,
 } from "../_generated/server";
+import { gatePlanGeneration } from "./baselineTest";
 import {
   fail,
   loadAthlete,
@@ -394,16 +395,19 @@ export const createMyRaceWithGoal = mutation({
     // Plan ⟺ A-race invariant: an upcoming A-race always has a plan, anchored
     // to its goal (which carries the raceId).
     if (race.priority === "A" && race.status === "upcoming") {
+      const startDate = new Date().toISOString().slice(0, 10);
       const planId = await ctx.runMutation(components.agoge.public.createPlan, {
         athleteId: auth.athlete._id,
         goalId,
-        startDate: new Date().toISOString().slice(0, 10),
+        startDate,
       });
-      await ctx.scheduler.runAfter(
-        0,
-        internal.agoge.planGenerator.generate,
-        { planId },
-      );
+      await gatePlanGeneration(ctx, {
+        athleteId: auth.athlete._id,
+        userId: auth.userId,
+        planId,
+        planStartDate: startDate,
+        category: "race",
+      });
     }
 
     return raceId;
@@ -485,19 +489,22 @@ export const updateMyRaceWithGoal = mutation({
           .some((p) => p.archivedAt === undefined);
         const goalForPlan = goalsForRace[0];
         if (!hasActivePlan && goalForPlan) {
+          const startDate = new Date().toISOString().slice(0, 10);
           const planId = await ctx.runMutation(
             components.agoge.public.createPlan,
             {
               athleteId: auth.athlete._id,
               goalId: goalForPlan._id,
-              startDate: new Date().toISOString().slice(0, 10),
+              startDate,
             },
           );
-          await ctx.scheduler.runAfter(
-            0,
-            internal.agoge.planGenerator.generate,
-            { planId },
-          );
+          await gatePlanGeneration(ctx, {
+            athleteId: auth.athlete._id,
+            userId: auth.userId,
+            planId,
+            planStartDate: startDate,
+            category: "race",
+          });
         }
       }
     }

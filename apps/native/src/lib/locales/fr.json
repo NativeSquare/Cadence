@@ -510,7 +510,27 @@
         "max": "Effort max"
       },
       "notesQuestion": "Une remarque ? (facultatif)",
-      "notesPlaceholder": "Comment c'était, ce qui clochait, ce que vous avez sauté…"
+      "notesPlaceholder": "Comment c'était, ce qui clochait, ce que vous avez sauté…",
+      "testHeader": "Enregistre ton résultat",
+      "testDistanceLabel": "Distance",
+      "testDistanceUnit": "km",
+      "testTimeLabel": "Temps",
+      "testTimeMinutes": "min",
+      "testTimeSeconds": "sec",
+      "errorDistanceRequired": "Indique la distance parcourue.",
+      "errorTimeRequired": "Indique ton temps d'arrivée."
+    },
+    "baseline": {
+      "manualCta": "Je connais déjà mon allure seuil",
+      "sheetTitle": "Renseigne ton allure seuil",
+      "sheetDescription": "Indique ton allure au seuil lactique (à peu près ton allure de course sur 10 km à semi-marathon). On l'utilisera pour construire ton plan.",
+      "paceLabel": "Allure seuil",
+      "paceMinutes": "min",
+      "paceSeconds": "sec",
+      "paceUnit": "/km",
+      "submit": "Enregistrer et lancer le plan",
+      "errorPaceRequired": "Renseigne une allure valide.",
+      "errorPaceUnrealistic": "Cette allure semble erronée — vérifie les minutes et secondes."
     },
     "fields": {
       "workoutSection": "Séance",
