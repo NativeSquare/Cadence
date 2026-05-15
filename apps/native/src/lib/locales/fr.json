@@ -779,19 +779,36 @@
     "errorFallback": "Une erreur est survenue",
     "tryAgain": "Réessayer",
     "title": "Analyses",
-    "subtitle": "Tout ce que nous suivons, organisé par source",
-    "sections": {
-      "training": "Entraînement",
-      "health": "Santé"
-    },
+    "subtitle": "Comment se passe ton entraînement",
     "timeWindow": {
-      "title": "Période",
-      "today": "Aujourd'hui",
-      "yesterday": "Hier",
-      "all": "Tout",
-      "block": "Bloc",
-      "plan": "Plan",
-      "na": "—"
+      "title": "Période"
+    },
+    "empty": {
+      "noCompleted": "Aucune sortie terminée sur cette période.",
+      "noEasy": "Enregistre quelques footings pour voir l'évolution de ton allure.",
+      "noPlanned": "Quand ton plan contiendra des séances, prévu vs réalisé apparaîtra ici."
+    },
+    "cards": {
+      "weeklyDistance": {
+        "title": "Distance hebdomadaire",
+        "subtitle": "Par type de séance",
+        "peakLabel": "Semaine la plus longue"
+      },
+      "typeMix": {
+        "title": "Répartition des séances",
+        "subtitle": "Comment se découpent tes sorties"
+      },
+      "easyPaceDrift": {
+        "title": "Évolution de l'allure facile",
+        "subtitle": "Allure des footings dans le temps",
+        "medianLabel": "Allure médiane"
+      },
+      "plannedVsActual": {
+        "title": "Prévu vs réalisé",
+        "subtitle": "Distance hebdomadaire",
+        "legendPlanned": "Prévu",
+        "legendActual": "Réalisé"
+      }
     }
   },
   "profile": {

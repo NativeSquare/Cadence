@@ -4,12 +4,12 @@ import { Modal, Pressable, View } from "react-native";
 import { ChevronDown } from "lucide-react-native";
 import { Text } from "@/components/ui/text";
 import { LIGHT_THEME } from "@/lib/design-tokens";
-import { getWindowLabel, type WindowKey } from "../inventory";
+import { windowLabel, type WeekWindow } from "../lib/window";
 
 type Props = {
-  value: WindowKey;
-  options: WindowKey[];
-  onChange: (next: WindowKey) => void;
+  value: WeekWindow;
+  options: WeekWindow[];
+  onChange: (next: WeekWindow) => void;
 };
 
 export function TimeWindowPill({ value, options, onChange }: Props) {
@@ -26,7 +26,7 @@ export function TimeWindowPill({ value, options, onChange }: Props) {
         className="flex-row items-center gap-1.5 px-3.5 py-2 rounded-full bg-w3"
       >
         <Text className="text-[13px] font-coach-medium text-wSub">
-          {getWindowLabel(t, value)}
+          {windowLabel(t, value)}
         </Text>
         {interactive ? (
           <ChevronDown size={14} color={LIGHT_THEME.wMute} strokeWidth={2.5} />
@@ -69,7 +69,7 @@ export function TimeWindowPill({ value, options, onChange }: Props) {
                         : "font-coach text-wText"
                     }`}
                   >
-                    {getWindowLabel(t, opt)}
+                    {windowLabel(t, opt)}
                   </Text>
                 </Pressable>
               );

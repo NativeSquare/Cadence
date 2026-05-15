@@ -779,19 +779,36 @@
     "errorFallback": "Something went wrong",
     "tryAgain": "Try Again",
     "title": "Analytics",
-    "subtitle": "Everything we track, organized by source",
-    "sections": {
-      "training": "Training",
-      "health": "Health"
-    },
+    "subtitle": "How your training is going",
     "timeWindow": {
-      "title": "Time window",
-      "today": "Today",
-      "yesterday": "Yesterday",
-      "all": "All",
-      "block": "Block",
-      "plan": "Plan",
-      "na": "—"
+      "title": "Time window"
+    },
+    "empty": {
+      "noCompleted": "No completed runs in this window yet.",
+      "noEasy": "Log a few easy runs to see how your pace is trending.",
+      "noPlanned": "Once your plan has workouts, planned vs actual shows up here."
+    },
+    "cards": {
+      "weeklyDistance": {
+        "title": "Weekly distance",
+        "subtitle": "By workout type",
+        "peakLabel": "Peak week"
+      },
+      "typeMix": {
+        "title": "Workout mix",
+        "subtitle": "How your sessions break down"
+      },
+      "easyPaceDrift": {
+        "title": "Easy-pace drift",
+        "subtitle": "Pace on easy runs over time",
+        "medianLabel": "Median pace"
+      },
+      "plannedVsActual": {
+        "title": "Planned vs actual",
+        "subtitle": "Weekly distance",
+        "legendPlanned": "Planned",
+        "legendActual": "Actual"
+      }
     }
   },
   "profile": {
