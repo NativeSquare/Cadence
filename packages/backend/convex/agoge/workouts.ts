@@ -7,7 +7,7 @@ import {
   query,
   type QueryCtx,
 } from "../_generated/server";
-import { deriveAndWriteZonesFromTest } from "./baselineTest";
+import { recordVdotFromCompletedTest } from "./baselineTest";
 import {
   fail,
   loadAthlete,
@@ -552,14 +552,14 @@ export const updateWorkout = mutation({
       workoutId,
     });
 
-    // Baseline test completion → derive pace zone, kick off plan generation.
+    // Baseline test completion → record VDOT metric, kick off plan generation.
     const effectiveStatus = rest.status ?? existing.status;
     const effectiveType = rest.type ?? existing.type;
     const justCompleted =
       existing.status !== "completed" && effectiveStatus === "completed";
     if (justCompleted && effectiveType === "test") {
       const effectiveActual = rest.actual ?? existing.actual;
-      await deriveAndWriteZonesFromTest(ctx, {
+      await recordVdotFromCompletedTest(ctx, {
         athleteId: existing.athleteId,
         planId: existing.planId,
         actual: effectiveActual,

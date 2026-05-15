@@ -579,16 +579,16 @@
       "errorTimeRequired": "Enter your finish time."
     },
     "baseline": {
-      "manualCta": "I already know my threshold pace",
-      "sheetTitle": "Set your threshold pace",
-      "sheetDescription": "Enter your lactate-threshold pace (roughly your 10K to half-marathon race pace). We'll use it to build your plan.",
-      "paceLabel": "Threshold pace",
-      "paceMinutes": "min",
-      "paceSeconds": "sec",
-      "paceUnit": "/km",
-      "submit": "Save pace and start plan",
-      "errorPaceRequired": "Enter a valid pace.",
-      "errorPaceUnrealistic": "That pace looks off — check the minutes and seconds."
+      "manualCta": "I have a recent race result",
+      "sheetTitle": "Skip the test",
+      "sheetDescription": "Report a recent race result. We'll use it to estimate your fitness and pace your plan.",
+      "distanceLabel": "Race distance",
+      "timeLabel": "Finish time",
+      "timeHours": "h",
+      "timeMinutes": "min",
+      "timeSeconds": "sec",
+      "submit": "Save and start plan",
+      "errorRaceResultRequired": "Pick a distance and enter your finish time."
     },
     "fields": {
       "workoutSection": "Workout",
@@ -658,10 +658,6 @@
       "open": {
         "label": "Open",
         "description": "Step ends when you press the lap button on your watch."
-      },
-      "hr_gate": {
-        "label": "HR gate",
-        "description": "Step ends when HR crosses the threshold. Use 'above' for warmups, 'below' for recoveries."
       }
     },
     "targets": {
@@ -672,14 +668,6 @@
       "pace_range": {
         "label": "Pace",
         "description": "Hold a pace inside this window."
-      },
-      "hr_range": {
-        "label": "HR range",
-        "description": "Keep heart rate in this range."
-      },
-      "hr_zone": {
-        "label": "HR zone",
-        "description": "Hit an HR zone, computed from your threshold."
       },
       "cadence_range": {
         "label": "Cadence",
@@ -718,9 +706,6 @@
         "message": "This can't be undone. If it's the only step inside a Repeat, the Repeat is removed too.",
         "confirm": "Delete"
       },
-      "untilAbove": "Until above",
-      "untilBelow": "Until below",
-      "hrZonesHint": "Set up HR zones in Account → Zones to use HR zone targets.",
       "to": "to",
       "pacePerKm": "min/km"
     },
@@ -824,7 +809,7 @@
       "subscription": "Subscription",
       "trainingPlan": "Training Plan",
       "races": "Races",
-      "zones": "Zones",
+      "fitness": "Fitness",
       "workoutTemplates": "Workout Templates",
       "appsAndDevices": "Apps & Devices",
       "calendars": "Calendars",
@@ -1061,31 +1046,44 @@
         }
       }
     },
-    "zones": {
-      "title": "Zones",
-      "hrZones": "HR Zones",
-      "paceZones": "Pace Zones",
-      "errorThresholdRequired": "Set a threshold before re-syncing zones.",
-      "yourThresholds": "Your Thresholds",
-      "hrThresholdLabel": "Heart Rate Threshold (LTHR)",
-      "paceThresholdLabel": "Pace Threshold",
-      "unitBpm": "bpm",
-      "unitPerKm": "/km",
-      "fillAllBoundaries": "Fill in all four boundaries to save.",
-      "invalidBoundaries": "Invalid zone boundaries",
-      "resync": {
-        "message": "These zones use custom boundaries — they won't recompute when your threshold changes. Re-sync to recalculate them from your current threshold.",
-        "cta": "Re-sync from threshold"
+    "fitness": {
+      "title": "Fitness",
+      "racesTitle": "What you could run today",
+      "pacesTitle": "Your training paces",
+      "vdotTitle": "Fitness over time",
+      "perKm": " /km",
+      "lastMeasured": "Last measured {{relative}}",
+      "vdotExplainer": "VDOT is your fitness score — higher is fitter. A trained marathoner sits around 50, an elite is 80+.",
+      "reportRaceCta": "Report a recent race result",
+      "emptyTitle": "Set your fitness",
+      "emptyDescription": "We don't know your fitness yet. Report a recent race result, or complete the baseline test in your plan to get started.",
+      "races": {
+        "5k": "5K",
+        "10k": "10K",
+        "half": "Half marathon",
+        "marathon": "Marathon"
       },
-      "validation": {
-        "wholeNumber": "Enter a whole number",
-        "paceFormat": "Use min:sec per km (e.g. 3:45)",
-        "hrThresholdRange": "Enter a value between 61 and 250 bpm",
-        "hrOrdering": "Each zone must be higher than the one below",
-        "paceOrdering": "Each zone must be faster than the one below",
-        "hrFormat": "Enter whole numbers in bpm",
-        "hrCap": "Must be below {{cap}} bpm",
-        "paceCap": "Pace is implausibly fast"
+      "paces": {
+        "E": {
+          "label": "Easy",
+          "description": "Conversational. The bulk of your training should live here."
+        },
+        "M": {
+          "label": "Marathon",
+          "description": "Marathon race effort — relaxed but committed."
+        },
+        "T": {
+          "label": "Threshold",
+          "description": "Comfortably hard, roughly an hour-long race effort."
+        },
+        "I": {
+          "label": "Intervals",
+          "description": "VO₂max work — typically 3-5 minute reps."
+        },
+        "R": {
+          "label": "Repetition",
+          "description": "Sprint pace for speed and running economy."
+        }
       }
     },
     "trainingPlan": {

@@ -218,9 +218,9 @@ export default function Profile() {
                   onPress: () => router.push("/account/races"),
                 },
                 {
-                  label: t("profile.items.zones"),
+                  label: t("profile.items.fitness"),
                   icon: "pulse-outline",
-                  onPress: () => router.push("/account/zones"),
+                  onPress: () => router.push("/account/fitness"),
                 },
                 {
                   label: t("profile.items.workoutTemplates"),

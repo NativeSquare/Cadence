@@ -11,6 +11,7 @@
 import type * as agoge_athletes from "../agoge/athletes.js";
 import type * as agoge_baselineTest from "../agoge/baselineTest.js";
 import type * as agoge_blocks from "../agoge/blocks.js";
+import type * as agoge_fitness from "../agoge/fitness.js";
 import type * as agoge_goals from "../agoge/goals.js";
 import type * as agoge_helpers from "../agoge/helpers.js";
 import type * as agoge_periodization from "../agoge/periodization.js";
@@ -20,7 +21,6 @@ import type * as agoge_races from "../agoge/races.js";
 import type * as agoge_sync from "../agoge/sync.js";
 import type * as agoge_workoutTemplates from "../agoge/workoutTemplates.js";
 import type * as agoge_workouts from "../agoge/workouts.js";
-import type * as agoge_zones from "../agoge/zones.js";
 import type * as audiences from "../audiences.js";
 import type * as auth from "../auth.js";
 import type * as auth_ResendOTP from "../auth/ResendOTP.js";
@@ -84,6 +84,7 @@ declare const fullApi: ApiFromModules<{
   "agoge/athletes": typeof agoge_athletes;
   "agoge/baselineTest": typeof agoge_baselineTest;
   "agoge/blocks": typeof agoge_blocks;
+  "agoge/fitness": typeof agoge_fitness;
   "agoge/goals": typeof agoge_goals;
   "agoge/helpers": typeof agoge_helpers;
   "agoge/periodization": typeof agoge_periodization;
@@ -93,7 +94,6 @@ declare const fullApi: ApiFromModules<{
   "agoge/sync": typeof agoge_sync;
   "agoge/workoutTemplates": typeof agoge_workoutTemplates;
   "agoge/workouts": typeof agoge_workouts;
-  "agoge/zones": typeof agoge_zones;
   audiences: typeof audiences;
   auth: typeof auth;
   "auth/ResendOTP": typeof auth_ResendOTP;
@@ -5719,22 +5719,6 @@ export declare const components: {
         },
         string
       >;
-      createZone: FunctionReference<
-        "mutation",
-        "internal",
-        {
-          athleteId: string;
-          boundaries: Array<number>;
-          effectiveFrom: string;
-          kind: "hr" | "pace";
-          maxHr?: number;
-          restingHr?: number;
-          source?: string;
-          sport: "run";
-          threshold?: number;
-        },
-        string
-      >;
       deleteAthlete: FunctionReference<
         "mutation",
         "internal",
@@ -5787,12 +5771,6 @@ export declare const components: {
         "mutation",
         "internal",
         { templateId: string },
-        null
-      >;
-      deleteZone: FunctionReference<
-        "mutation",
-        "internal",
-        { zoneId: string },
         null
       >;
       getAthlete: FunctionReference<
@@ -6783,60 +6761,6 @@ export declare const components: {
             | "test";
         }>
       >;
-      getZone: FunctionReference<
-        "query",
-        "internal",
-        { zoneId: string },
-        {
-          _creationTime: number;
-          _id: string;
-          athleteId: string;
-          boundaries: Array<number>;
-          effectiveFrom: string;
-          kind: "hr" | "pace";
-          maxHr?: number;
-          restingHr?: number;
-          source?: string;
-          sport: "run";
-          threshold?: number;
-        } | null
-      >;
-      getZoneByAthleteEffectiveFrom: FunctionReference<
-        "query",
-        "internal",
-        { athleteId: string; effectiveFrom: string; kind: "hr" | "pace" },
-        {
-          _creationTime: number;
-          _id: string;
-          athleteId: string;
-          boundaries: Array<number>;
-          effectiveFrom: string;
-          kind: "hr" | "pace";
-          maxHr?: number;
-          restingHr?: number;
-          source?: string;
-          sport: "run";
-          threshold?: number;
-        } | null
-      >;
-      getZoneByAthleteKind: FunctionReference<
-        "query",
-        "internal",
-        { athleteId: string; kind: "hr" | "pace" },
-        {
-          _creationTime: number;
-          _id: string;
-          athleteId: string;
-          boundaries: Array<number>;
-          effectiveFrom: string;
-          kind: "hr" | "pace";
-          maxHr?: number;
-          restingHr?: number;
-          source?: string;
-          sport: "run";
-          threshold?: number;
-        } | null
-      >;
       updateAthlete: FunctionReference<
         "mutation",
         "internal",
@@ -7077,23 +7001,6 @@ export declare const components: {
             | "recovery"
             | "race"
             | "test";
-        },
-        null
-      >;
-      updateZone: FunctionReference<
-        "mutation",
-        "internal",
-        {
-          athleteId?: string;
-          boundaries?: Array<number>;
-          effectiveFrom?: string;
-          kind?: "hr" | "pace";
-          maxHr?: number;
-          restingHr?: number;
-          source?: string;
-          sport?: "run";
-          threshold?: number;
-          zoneId: string;
         },
         null
       >;

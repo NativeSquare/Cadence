@@ -126,19 +126,6 @@ export async function loadOwnedRace(
   return { userId: auth.userId, race };
 }
 
-export async function loadOwnedZone(
-  ctx: QueryCtx | MutationCtx,
-  zoneId: string,
-) {
-  const [auth, zone] = await Promise.all([
-    loadAthlete(ctx),
-    ctx.runQuery(components.agoge.public.getZone, { zoneId }),
-  ]);
-  if (!auth || !zone) return null;
-  if (zone.athleteId !== auth.athlete._id) return null;
-  return { userId: auth.userId, zone };
-}
-
 export async function loadOwnedWorkoutTemplate(
   ctx: QueryCtx | MutationCtx,
   templateId: string,
@@ -499,31 +486,22 @@ function collectZoneTargetTypes(structure: Workout): Set<string> {
 }
 
 export async function validateZonesAvailableForStructure(
-  ctx: QueryCtx | MutationCtx,
-  athleteId: string,
+  _ctx: QueryCtx | MutationCtx,
+  _athleteId: string,
   structure: Workout,
 ): Promise<ValidationError | null> {
   const targetTypes = collectZoneTargetTypes(structure);
-  if (targetTypes.size === 0) return null;
   if (targetTypes.has("power_zone")) {
     return {
       code: "INVALID_INPUT",
-      message:
-        "This workout uses power zones, but power zones are not configured.",
+      message: "Power zones are not supported.",
     };
   }
   if (targetTypes.has("hr_zone")) {
-    const hrZone = await ctx.runQuery(
-      components.agoge.public.getZoneByAthleteKind,
-      { athleteId, kind: "hr" },
-    );
-    if (!hrZone) {
-      return {
-        code: "INVALID_INPUT",
-        message:
-          "This workout uses HR zones, but you have no HR zone configured.",
-      };
-    }
+    return {
+      code: "INVALID_INPUT",
+      message: "Heart-rate zones are not supported.",
+    };
   }
   return null;
 }
@@ -608,47 +586,3 @@ export async function validateWorkoutTemplateOwnership(
   return null;
 }
 
-// ---------------------------------------------------------------------------
-// Zone primitives (pure)
-// ---------------------------------------------------------------------------
-
-export function validateZoneBoundariesLength(
-  boundaries: number[],
-): ValidationError | null {
-  if (boundaries.length !== 6) {
-    return {
-      code: "INVALID_INPUT",
-      message:
-        "Zone boundaries must have 6 values (Z1 floor + 4 inner bounds + Z5 cap).",
-    };
-  }
-  return null;
-}
-
-export function validateZoneBoundariesOrder(
-  boundaries: number[],
-): ValidationError | null {
-  for (let i = 1; i < boundaries.length; i++) {
-    if (boundaries[i] <= boundaries[i - 1]) {
-      return {
-        code: "INVALID_INPUT",
-        message: "Zone boundaries must be strictly ascending.",
-      };
-    }
-  }
-  return null;
-}
-
-export function validateZoneBoundariesExtremes(
-  boundaries: number[],
-): ValidationError | null {
-  for (const b of boundaries) {
-    if (!Number.isFinite(b) || b < 0) {
-      return {
-        code: "INVALID_INPUT",
-        message: "Zone boundaries must be finite and non-negative.",
-      };
-    }
-  }
-  return null;
-}

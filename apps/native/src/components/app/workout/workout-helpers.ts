@@ -166,7 +166,6 @@ export const ALLOWED_DURATIONS_FOR_RUN = [
   "time",
   "distance",
   "open",
-  "hr_gate",
 ] as const satisfies readonly DurationKind[];
 export type DurationKindOption = (typeof ALLOWED_DURATIONS_FOR_RUN)[number];
 
@@ -176,27 +175,22 @@ export function useDurationLabels(): Record<DurationKindOption, string> {
     time: t("workout.durations.time.label"),
     distance: t("workout.durations.distance.label"),
     open: t("workout.durations.open.label"),
-    hr_gate: t("workout.durations.hr_gate.label"),
   };
 }
 
-// Live helper text for the picker. The hr_gate copy doubles as a hint about
-// when to use "above" vs "below" so we can keep those toggle labels terse.
 export function useDurationDescriptions(): Record<DurationKindOption, string> {
   const { t } = useTranslation();
   return {
     time: t("workout.durations.time.description"),
     distance: t("workout.durations.distance.description"),
     open: t("workout.durations.open.description"),
-    hr_gate: t("workout.durations.hr_gate.description"),
   };
 }
 
 // Returns a "blank" duration of the given kind. Time/distance use 0 as the
 // "user hasn't filled this in yet" sentinel — the schema requires positive
 // values, so the Step editor disables Save until the user enters a real
-// number. hr_gate keeps a sensible bpm default since the comparator chip
-// is meaningful even before the value is set.
+// number.
 export function emptyDurationOf(kind: DurationKindOption): Duration {
   switch (kind) {
     case "time":
@@ -205,8 +199,6 @@ export function emptyDurationOf(kind: DurationKindOption): Duration {
       return { type: "distance", meters: 0 };
     case "open":
       return { type: "open" };
-    case "hr_gate":
-      return { type: "hr_gate", bpm: 120, comparator: "below" };
   }
 }
 
@@ -249,8 +241,6 @@ export type TargetKind = Target["type"];
 export const ALLOWED_TARGETS_FOR_RUN = [
   "none",
   "pace_range",
-  "hr_range",
-  "hr_zone",
   "cadence_range",
   "rpe",
 ] as const satisfies readonly TargetKind[];
@@ -261,23 +251,16 @@ export function useTargetLabels(): Record<TargetKindOption, string> {
   return {
     none: t("workout.targets.none.label"),
     pace_range: t("workout.targets.pace_range.label"),
-    hr_range: t("workout.targets.hr_range.label"),
-    hr_zone: t("workout.targets.hr_zone.label"),
     cadence_range: t("workout.targets.cadence_range.label"),
     rpe: t("workout.targets.rpe.label"),
   };
 }
 
-// Live helper text for the picker. Tells the athlete what each target does
-// during the step (intensity guidance, NOT the end condition — that's the
-// duration's job).
 export function useTargetDescriptions(): Record<TargetKindOption, string> {
   const { t } = useTranslation();
   return {
     none: t("workout.targets.none.description"),
     pace_range: t("workout.targets.pace_range.description"),
-    hr_range: t("workout.targets.hr_range.description"),
-    hr_zone: t("workout.targets.hr_zone.description"),
     cadence_range: t("workout.targets.cadence_range.description"),
     rpe: t("workout.targets.rpe.description"),
   };
@@ -294,10 +277,6 @@ export function emptyTargetOf(kind: TargetKindOption): Target {
         max_speed_mps: 1000 / (4 * 60 + 30),
         min_speed_mps: 1000 / (5 * 60),
       };
-    case "hr_range":
-      return { type: "hr_range", min_bpm: 140, max_bpm: 160 };
-    case "hr_zone":
-      return { type: "hr_zone", zone: 3 };
     case "cadence_range":
       return { type: "cadence_range", min_spm: 170, max_spm: 180 };
     case "rpe":

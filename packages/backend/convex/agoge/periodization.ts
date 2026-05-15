@@ -79,6 +79,35 @@ export function trainingPaces(vdot: number): Paces {
   };
 }
 
+/**
+ * Predict the finish time (seconds) for `distanceMeters` at the athlete's
+ * current `vdot` — the inverse of `computeVdot`. Race effort means the
+ * %VO2max curve is solved as a function of time (not a fixed intensity), so
+ * we bisect on t: VDOT(t) is monotonically decreasing at fixed distance, so
+ * convergence is clean. Bracket [100s, 30000s] covers everything from a
+ * 1:40 5K (above world-class) to a 6-hour marathon walk.
+ */
+export function predictRaceTime(vdot: number, distanceMeters: number): number {
+  if (!(vdot > 0) || !(distanceMeters > 0)) return 0;
+  let lo = 100;
+  let hi = 30000;
+  for (let i = 0; i < 60; i++) {
+    const mid = (lo + hi) / 2;
+    const vMpm = distanceMeters / (mid / 60);
+    const vo2 = -4.6 + 0.182258 * vMpm + 0.000104 * vMpm * vMpm;
+    const tMin = mid / 60;
+    const pct =
+      0.8 +
+      0.1894393 * Math.exp(-0.012778 * tMin) +
+      0.2989558 * Math.exp(-0.1932605 * tMin);
+    const guess = vo2 / pct;
+    if (guess > vdot) lo = mid;
+    else hi = mid;
+    if (hi - lo < 0.05) break;
+  }
+  return (lo + hi) / 2;
+}
+
 // ---------------------------------------------------------------------------
 // Format-driven volume targets
 // ---------------------------------------------------------------------------

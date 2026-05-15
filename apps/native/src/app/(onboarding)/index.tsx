@@ -87,8 +87,8 @@ export default function Onboarding() {
   const upsertAthlete = useMutation(api.agoge.athletes.upsertAthlete);
   const createRaceWithGoal = useMutation(api.agoge.races.createMyRaceWithGoal);
   const createFitnessGoal = useMutation(api.agoge.goals.createMyFitnessGoal);
-  const setPaceZoneFromRaceResult = useMutation(
-    api.agoge.baselineTest.setPaceZoneFromRaceResult,
+  const setVdotFromRaceResult = useMutation(
+    api.agoge.baselineTest.setVdotFromRaceResult,
   );
 
   // Step indexing is 1-based and unified across branches. Concrete screen per
@@ -208,9 +208,9 @@ export default function Onboarding() {
         await createFitnessGoal({ fitnessIntent: fitnessGoal });
       }
 
-      // 3. Optionally seed pace zone from a recent race — skips the in-app 5K test
+      // 3. Optionally seed VDOT from a recent race — skips the in-app 5K test
       if (withRaceResult) {
-        await setPaceZoneFromRaceResult({
+        await setVdotFromRaceResult({
           distanceMeters: recentRaceToDistanceMeters(recentRace),
           timeSeconds: recentRaceToSeconds(recentRace),
         });

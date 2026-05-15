@@ -23,10 +23,8 @@ import {
   useTargetLabels,
 } from "@/components/app/workout/workout-helpers";
 import type { Step } from "@nativesquare/agoge";
-import { api } from "@packages/backend/convex/_generated/api";
 import { Ionicons } from "@expo/vector-icons";
 import { BottomSheetModal as GorhomBottomSheetModal } from "@gorhom/bottom-sheet";
-import { useQuery } from "convex/react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { Alert, Pressable, TextInput, View } from "react-native";
@@ -74,44 +72,25 @@ export function StepEditorSheet({
   );
 }
 
-// Cross-axis rules: certain (intent, duration, target) combinations don't
-// make physical sense for run sport. We enforce them in the picker by
-// disabling chips rather than blocking save, so the user is guided into a
-// coherent state without ever seeing a "you can't save this" error.
-//
-// - rest is stationary → no distance Duration, no pace/cadence Target.
-// - hr_gate Duration paired with HR-based Target makes the watch alert on
-//   the same metric for both end-condition and intensity → suppressed.
+// Cross-axis rules: rest is stationary → no distance Duration, no
+// pace/cadence Target. Forbidden chips are disabled in the picker rather
+// than blocking save, so the user is guided into a coherent state.
 function isDurationKindForbidden(
   kind: DurationKindOption,
   intent: Step["intent"],
-  targetKind: NonNullable<Step["target"]>["type"],
+  _targetKind: NonNullable<Step["target"]>["type"],
 ): boolean {
-  if (intent === "rest" && kind === "distance") return true;
-  if (
-    kind === "hr_gate" &&
-    (targetKind === "hr_range" || targetKind === "hr_zone")
-  )
-    return true;
-  return false;
+  return intent === "rest" && kind === "distance";
 }
 
 function isTargetKindForbidden(
   kind: TargetKindOption,
   intent: Step["intent"],
-  durationKind: Step["duration"]["type"],
+  _durationKind: Step["duration"]["type"],
 ): boolean {
-  if (
-    intent === "rest" &&
-    (kind === "pace_range" || kind === "cadence_range")
-  )
-    return true;
-  if (
-    durationKind === "hr_gate" &&
-    (kind === "hr_range" || kind === "hr_zone")
-  )
-    return true;
-  return false;
+  return (
+    intent === "rest" && (kind === "pace_range" || kind === "cadence_range")
+  );
 }
 
 function StepEditorBody({
@@ -139,11 +118,6 @@ function StepEditorBody({
     },
   );
 
-  // Drives whether the user can pick "HR zone" as a target. Until zones are
-  // configured, a zone-based target wouldn't resolve to anything for them.
-  const zones = useQuery(api.agoge.zones.listAthleteZones);
-  const hasHrZones = !!zones?.find((z) => z.kind === "hr");
-
   // The schema requires positive numeric values everywhere. We carry 0 in
   // the working state to support blank inputs, then refuse to save until
   // every field the user populated is real.
@@ -151,7 +125,6 @@ function StepEditorBody({
     const d = step.duration;
     if (d.type === "time") return d.seconds > 0;
     if (d.type === "distance") return d.meters > 0;
-    if (d.type === "hr_gate") return d.bpm > 0;
     return true;
   })();
 
@@ -160,9 +133,7 @@ function StepEditorBody({
     if (!t || t.type === "none") return true;
     if (t.type === "pace_range")
       return t.min_speed_mps > 0 && t.max_speed_mps > 0;
-    if (t.type === "hr_range") return t.min_bpm > 0 && t.max_bpm > 0;
     if (t.type === "cadence_range") return t.min_spm > 0 && t.max_spm > 0;
-    if (t.type === "hr_zone") return t.zone >= 1 && t.zone <= 7;
     if (t.type === "rpe") return t.value >= 1 && t.value <= 10;
     return true;
   })();
@@ -261,7 +232,6 @@ function StepEditorBody({
         value={step.target ?? { type: "none" }}
         intent={step.intent}
         durationKind={step.duration.type}
-        hasHrZones={hasHrZones}
         onChange={(target) =>
           setStep((s) => ({
             ...s,
@@ -392,13 +362,12 @@ function DurationField({
   const { t } = useTranslation();
   const durationLabels = useDurationLabels();
   const durationDescriptions = useDurationDescriptions();
-  // Only the four run-allowed kinds have descriptions; older imported steps
-  // (calories, power_gate) get a blank line rather than crashing the lookup.
+  // Only run-allowed kinds have descriptions; older imported steps (calories,
+  // hr_gate, power_gate) get a blank line rather than crashing the lookup.
   const description =
     value.type === "time" ||
     value.type === "distance" ||
-    value.type === "open" ||
-    value.type === "hr_gate"
+    value.type === "open"
       ? durationDescriptions[value.type]
       : null;
 
@@ -476,61 +445,6 @@ function DurationInputs({
       />
     );
   }
-  if (value.type === "hr_gate" || value.type === "power_gate") {
-    const isHr = value.type === "hr_gate";
-    const numericValue = isHr ? value.bpm : value.watts;
-    const suffix = isHr ? "bpm" : "W";
-    return (
-      <View className="gap-2">
-        <View className="flex-row gap-2">
-          {(["above", "below"] as const).map((cmp) => {
-            const selected = value.comparator === cmp;
-            return (
-              <Pressable
-                key={cmp}
-                onPress={() => {
-                  selectionFeedback();
-                  onChange({ ...value, comparator: cmp });
-                }}
-                className="flex-1 items-center rounded-xl border py-2.5 active:opacity-80"
-                style={{
-                  backgroundColor: selected ? LIGHT_THEME.wText : LIGHT_THEME.w1,
-                  borderColor: selected ? LIGHT_THEME.wText : LIGHT_THEME.wBrd,
-                }}
-              >
-                <Text
-                  className="font-coach-semibold text-[13px]"
-                  style={{ color: selected ? "#FFFFFF" : LIGHT_THEME.wText }}
-                >
-                  {cmp === "above"
-                    ? t("workout.stepEditor.untilAbove")
-                    : t("workout.stepEditor.untilBelow")}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
-        <NumericInput
-          value={numericValue > 0 ? String(numericValue) : ""}
-          placeholder={suffix}
-          suffix={suffix}
-          onChangeText={(t) => {
-            const n = Number.parseInt(t || "0", 10);
-            const next = Math.max(1, n);
-            onChange(
-              isHr
-                ? { type: "hr_gate", bpm: next, comparator: value.comparator }
-                : {
-                    type: "power_gate",
-                    watts: next,
-                    comparator: value.comparator,
-                  },
-            );
-          }}
-        />
-      </View>
-    );
-  }
   return null;
 }
 
@@ -538,25 +452,22 @@ function TargetField({
   value,
   intent,
   durationKind,
-  hasHrZones,
   onChange,
 }: {
   value: NonNullable<Step["target"]>;
   intent: Step["intent"];
   durationKind: Step["duration"]["type"];
-  hasHrZones: boolean;
   onChange: (target: NonNullable<Step["target"]>) => void;
 }) {
   const { t } = useTranslation();
   const targetLabels = useTargetLabels();
   const targetDescriptions = useTargetDescriptions();
-  // Only the six run-allowed kinds have descriptions; older imported steps
-  // (power_range, power_zone) get no helper text rather than crashing.
+  // Only run-allowed kinds have descriptions; older imported steps
+  // (hr_range, hr_zone, power_range, power_zone) get no helper text rather
+  // than crashing.
   const description =
     value.type === "none" ||
     value.type === "pace_range" ||
-    value.type === "hr_range" ||
-    value.type === "hr_zone" ||
     value.type === "cadence_range" ||
     value.type === "rpe"
       ? targetDescriptions[value.type]
@@ -568,12 +479,7 @@ function TargetField({
         <View className="flex-row flex-wrap gap-2">
           {ALLOWED_TARGETS_FOR_RUN.map((kind) => {
             const selected = value.type === kind;
-            // Two reasons a chip is unavailable: missing HR zones (only
-            // affects hr_zone) or a forbidden combo with the current intent
-            // / duration (e.g. pace target on a rest step).
-            const disabled =
-              (kind === "hr_zone" && !hasHrZones) ||
-              isTargetKindForbidden(kind, intent, durationKind);
+            const disabled = isTargetKindForbidden(kind, intent, durationKind);
             return (
               <Pressable
                 key={kind}
@@ -605,14 +511,6 @@ function TargetField({
             style={{ color: LIGHT_THEME.wMute }}
           >
             {description}
-          </Text>
-        )}
-        {!hasHrZones && (
-          <Text
-            className="font-coach text-[12px]"
-            style={{ color: LIGHT_THEME.wMute }}
-          >
-            {t("workout.stepEditor.hrZonesHint")}
           </Text>
         )}
         <TargetInputs value={value} onChange={onChange} />
@@ -672,51 +570,6 @@ function TargetInputs({
             {t("workout.stepEditor.pacePerKm")}
           </Text>
         </View>
-      </View>
-    );
-  }
-  if (value.type === "hr_range") {
-    return (
-      <RangeInput
-        min={value.min_bpm}
-        max={value.max_bpm}
-        suffix="bpm"
-        maxLength={3}
-        onChange={({ min, max }) =>
-          onChange({ type: "hr_range", min_bpm: min, max_bpm: max })
-        }
-      />
-    );
-  }
-  if (value.type === "hr_zone") {
-    // Cadence defines 5 zones (Z1–Z5) even though the agoge schema accepts 1–7
-    // for Garmin/COROS interop. Keep the picker aligned with the Zones screen.
-    return (
-      <View className="flex-row gap-2">
-        {[1, 2, 3, 4, 5].map((z) => {
-          const selected = value.zone === z;
-          return (
-            <Pressable
-              key={z}
-              onPress={() => {
-                selectionFeedback();
-                onChange({ type: "hr_zone", zone: z });
-              }}
-              className="h-10 min-w-[44px] items-center justify-center rounded-xl border px-2 active:opacity-80"
-              style={{
-                backgroundColor: selected ? LIGHT_THEME.wText : LIGHT_THEME.w1,
-                borderColor: selected ? LIGHT_THEME.wText : LIGHT_THEME.wBrd,
-              }}
-            >
-              <Text
-                className="font-coach-bold text-[14px]"
-                style={{ color: selected ? "#FFFFFF" : LIGHT_THEME.wText }}
-              >
-                Z{z}
-              </Text>
-            </Pressable>
-          );
-        })}
       </View>
     );
   }

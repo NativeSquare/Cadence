@@ -1,14 +1,13 @@
 /**
  * Pre-plan baseline assessment.
  *
- * Plan generation is gated on the athlete having a pace zone. If they do, the
- * appropriate plan generator is scheduled immediately. If not, a single test
- * workout (5K time trial) is created under the empty plan. Completing the test
- * — or entering a threshold pace manually — writes the pace zone and triggers
- * plan generation.
+ * Plan generation is gated on the athlete having a recorded VDOT metric. If
+ * they do, the appropriate plan generator is scheduled immediately. If not, a
+ * single test workout (5K time trial) is created under the empty plan.
+ * Completing the test — or reporting a recent race result — writes a VDOT
+ * metric and triggers plan generation.
  */
 
-import { computeZoneBoundaries } from "@nativesquare/agoge";
 import { ConvexError, v } from "convex/values";
 import { api, components, internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
@@ -18,7 +17,6 @@ import {
   buildTestStructure,
   computeVdot,
   type Locale,
-  trainingPaces,
   ymdToNoonUtc,
 } from "./periodization";
 
@@ -36,23 +34,12 @@ export const TEST_DESCRIPTION: Record<Locale, string> = {
 
 export type PlanCategory = "race" | "fitness";
 
-/**
- * Derive a pace zone (threshold + boundaries) from a completed time-trial.
- * Distance doesn't have to be exactly 5K — any (distance, time) pair yields a
- * valid VDOT.
- *
- * Returns VDOT alongside the zone data so callers can persist it as a metric
- * (VDOT is the canonical fitness measurement; the zone is its cached
- * projection — see Agoge metrics vs zones distinction).
- */
-export function derivePaceZoneFromTest(
+/** Pure: (distance, time) → VDOT. Works for any pair, not just 5K. */
+export function deriveVdotFromTest(
   distanceMeters: number,
   timeSeconds: number,
-): { vdot: number; threshold: number; boundaries: number[] } {
-  const vdot = computeVdot(distanceMeters, timeSeconds);
-  const threshold = trainingPaces(vdot).T;
-  const { boundaries } = computeZoneBoundaries("pace", threshold, "coggan-pace");
-  return { vdot, threshold, boundaries };
+): number {
+  return computeVdot(distanceMeters, timeSeconds);
 }
 
 export async function scheduleGenerate(
@@ -71,10 +58,10 @@ export async function scheduleGenerate(
 
 /**
  * Hook for the workout-completion path. When a "test" workout is marked
- * completed with valid actuals, derive a pace zone from the result, write it
- * (idempotently), and kick off plan generation if the plan is still empty.
+ * completed with valid actuals, derive a VDOT from the result, record it as
+ * a metric, and kick off plan generation if the plan is still empty.
  */
-export async function deriveAndWriteZonesFromTest(
+export async function recordVdotFromCompletedTest(
   ctx: MutationCtx,
   workout: {
     athleteId: string;
@@ -86,13 +73,8 @@ export async function deriveAndWriteZonesFromTest(
   const duration = workout.actual?.durationSeconds;
   if (!distance || distance <= 0 || !duration || duration <= 0) return;
 
-  const { vdot, threshold, boundaries } = derivePaceZoneFromTest(
-    distance,
-    duration,
-  );
+  const vdot = deriveVdotFromTest(distance, duration);
 
-  // VDOT is a time-series measurement — persist every test result, even when
-  // the derived zone already exists. The zone is just a cached projection.
   await ctx.runMutation(components.agoge.public.createMetric, {
     athleteId: workout.athleteId,
     kind: "vdot",
@@ -100,28 +82,10 @@ export async function deriveAndWriteZonesFromTest(
     source: "time_trial",
   });
 
-  const existing = await ctx.runQuery(
-    components.agoge.public.getZoneByAthleteKind,
-    { athleteId: workout.athleteId, kind: "pace" },
-  );
-  if (existing) return;
-
-  const today = new Date().toISOString().slice(0, 10);
-  await ctx.runMutation(components.agoge.public.createZone, {
-    athleteId: workout.athleteId,
-    sport: "run",
-    kind: "pace",
-    threshold,
-    boundaries,
-    source: "system",
-    effectiveFrom: today,
-  });
-
   if (!workout.planId) return;
-  const blocks = await ctx.runQuery(
-    components.agoge.public.getBlocksByPlan,
-    { planId: workout.planId },
-  );
+  const blocks = await ctx.runQuery(components.agoge.public.getBlocksByPlan, {
+    planId: workout.planId,
+  });
   if (blocks.length > 0) return;
 
   const plan = await ctx.runQuery(components.agoge.public.getPlan, {
@@ -140,11 +104,11 @@ export async function deriveAndWriteZonesFromTest(
 /**
  * Decide whether to start plan generation now or wait for a baseline test.
  *
- * - Pace zone present: schedule the appropriate generator (current behaviour).
- * - Pace zone missing: create a single baseline test workout under the plan
- *   (no blockId yet — plan has no blocks until generation runs) and do NOT
- *   schedule the generator. Completing the test (workouts.ts) or the manual
- *   pace mutation will schedule it.
+ * - Latest VDOT metric present: schedule the appropriate generator.
+ * - No VDOT yet: create a single baseline test workout under the plan (no
+ *   blockId — plan has no blocks until generation runs) and do NOT schedule
+ *   the generator. Completing the test (workouts.ts) or reporting a recent
+ *   race result will schedule it.
  */
 export async function gatePlanGeneration(
   ctx: MutationCtx,
@@ -156,12 +120,12 @@ export async function gatePlanGeneration(
     category: PlanCategory;
   },
 ): Promise<void> {
-  const paceZone = await ctx.runQuery(
-    components.agoge.public.getZoneByAthleteKind,
-    { athleteId: args.athleteId, kind: "pace" },
+  const latestVdot = await ctx.runQuery(
+    components.agoge.public.getMetricByAthleteKind,
+    { athleteId: args.athleteId, kind: "vdot" },
   );
 
-  if (paceZone) {
+  if (latestVdot) {
     await scheduleGenerate(ctx, args.planId, args.category);
     return;
   }
@@ -190,38 +154,23 @@ export async function gatePlanGeneration(
 // ---------------------------------------------------------------------------
 
 /**
- * Apply a freshly derived pace zone for the current athlete and (re)trigger
- * plan generation for any pending plan. Shared by `setManualPaceZone` and
- * `setPaceZoneFromRaceResult` — the only difference is how the zone is
- * derived.
+ * Record a fresh VDOT for the current athlete and (re)trigger plan generation
+ * for any pending plan. Drops pending baseline-test workouts since they're no
+ * longer needed once VDOT is known.
  */
-async function applyPaceZoneAndKickPlans(
+async function applyVdotAndKickPlans(
   ctx: MutationCtx,
   athleteId: string,
-  threshold: number,
-  boundaries: number[],
-  source: "manual" | "system",
+  vdot: number,
+  source: "race" | "self_reported",
 ): Promise<void> {
-  const existing = await ctx.runQuery(
-    components.agoge.public.getZoneByAthleteKind,
-    { athleteId, kind: "pace" },
-  );
-  if (!existing) {
-    const today = new Date().toISOString().slice(0, 10);
-    await ctx.runMutation(components.agoge.public.createZone, {
-      athleteId,
-      sport: "run",
-      kind: "pace",
-      threshold,
-      boundaries,
-      source,
-      effectiveFrom: today,
-    });
-  }
+  await ctx.runMutation(components.agoge.public.createMetric, {
+    athleteId,
+    kind: "vdot",
+    value: vdot,
+    source,
+  });
 
-  // Find active goals → pending plans (no blocks) → drop pending tests and
-  // schedule the generator. Typically exactly one plan; loop covers edge
-  // cases (race + fitness coexisting).
   const activeGoals = await ctx.runQuery(
     components.agoge.public.getGoalsByAthleteAndStatus,
     { athleteId, status: "active" },
@@ -258,56 +207,12 @@ async function applyPaceZoneAndKickPlans(
 }
 
 /**
- * Manual-entry alternative to running the baseline test. Writes a pace zone
- * from a user-supplied threshold pace, deletes any pending test workout under
- * empty plans, and schedules plan generation for those plans.
+ * Set fitness from a user-reported race result. Same downstream effect as a
+ * completed baseline test — writes a VDOT metric and (re)triggers plan
+ * generation for any pending plan. The result doesn't need to be a standard
+ * distance; any (distance, time) pair yields a valid VDOT.
  */
-export const setManualPaceZone = mutation({
-  args: { thresholdMps: v.number() },
-  handler: async (ctx, { thresholdMps }) => {
-    const auth = await loadAthlete(ctx);
-    if (!auth)
-      throw new ConvexError({
-        code: "VALIDATION_FAILED",
-        errors: [requireAuthError],
-      });
-    if (!(thresholdMps > 0)) {
-      throw new ConvexError({
-        code: "VALIDATION_FAILED",
-        errors: [
-          {
-            code: "INVALID_INPUT",
-            message: "thresholdMps must be a positive number (m/s).",
-          },
-        ],
-      });
-    }
-
-    const { boundaries } = computeZoneBoundaries(
-      "pace",
-      thresholdMps,
-      "coggan-pace",
-    );
-    await applyPaceZoneAndKickPlans(
-      ctx,
-      auth.athlete._id,
-      thresholdMps,
-      boundaries,
-      "manual",
-    );
-  },
-});
-
-/**
- * Seed pace zone from a user-reported race result. Same downstream effect as
- * a completed baseline test, exposed as a mutation so onboarding can offer
- * "have you raced recently?" as an alternative to the in-app 5K time trial.
- *
- * `derivePaceZoneFromTest` works for any (distance, time) pair — the result
- * doesn't need to be exactly 5K. Onboarding presents a distance picker
- * matching the race-form formats.
- */
-export const setPaceZoneFromRaceResult = mutation({
+export const setVdotFromRaceResult = mutation({
   args: { distanceMeters: v.number(), timeSeconds: v.number() },
   handler: async (ctx, { distanceMeters, timeSeconds }) => {
     const auth = await loadAthlete(ctx);
@@ -329,27 +234,7 @@ export const setPaceZoneFromRaceResult = mutation({
       });
     }
 
-    const { vdot, threshold, boundaries } = derivePaceZoneFromTest(
-      distanceMeters,
-      timeSeconds,
-    );
-
-    // VDOT is the time-series measurement; the zone is its cached projection.
-    // Persisted even if a zone already exists so the fitness curve stays
-    // honest (every fresh datapoint we have should be in the history).
-    await ctx.runMutation(components.agoge.public.createMetric, {
-      athleteId: auth.athlete._id,
-      kind: "vdot",
-      value: vdot,
-      source: "race",
-    });
-
-    await applyPaceZoneAndKickPlans(
-      ctx,
-      auth.athlete._id,
-      threshold,
-      boundaries,
-      "system",
-    );
+    const vdot = deriveVdotFromTest(distanceMeters, timeSeconds);
+    await applyVdotAndKickPlans(ctx, auth.athlete._id, vdot, "race");
   },
 });

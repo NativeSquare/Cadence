@@ -579,16 +579,16 @@
       "errorTimeRequired": "Indique ton temps d'arrivée."
     },
     "baseline": {
-      "manualCta": "Je connais déjà mon allure seuil",
-      "sheetTitle": "Renseigne ton allure seuil",
-      "sheetDescription": "Indique ton allure au seuil lactique (à peu près ton allure de course sur 10 km à semi-marathon). On l'utilisera pour construire ton plan.",
-      "paceLabel": "Allure seuil",
-      "paceMinutes": "min",
-      "paceSeconds": "sec",
-      "paceUnit": "/km",
+      "manualCta": "J'ai un résultat de course récent",
+      "sheetTitle": "Passer le test",
+      "sheetDescription": "Renseigne un résultat de course récent. On l'utilisera pour estimer ta forme et caler ton plan.",
+      "distanceLabel": "Distance de la course",
+      "timeLabel": "Temps réalisé",
+      "timeHours": "h",
+      "timeMinutes": "min",
+      "timeSeconds": "sec",
       "submit": "Enregistrer et lancer le plan",
-      "errorPaceRequired": "Renseigne une allure valide.",
-      "errorPaceUnrealistic": "Cette allure semble erronée — vérifie les minutes et secondes."
+      "errorRaceResultRequired": "Choisis une distance et renseigne ton temps."
     },
     "fields": {
       "workoutSection": "Séance",
@@ -658,10 +658,6 @@
       "open": {
         "label": "Libre",
         "description": "L'étape se termine quand vous appuyez sur le bouton lap de votre montre."
-      },
-      "hr_gate": {
-        "label": "Seuil FC",
-        "description": "L'étape se termine quand la FC franchit le seuil. Utilisez « au-dessus » pour l'échauffement, « en dessous » pour la récupération."
       }
     },
     "targets": {
@@ -672,14 +668,6 @@
       "pace_range": {
         "label": "Allure",
         "description": "Tenir une allure dans cette fenêtre."
-      },
-      "hr_range": {
-        "label": "Plage FC",
-        "description": "Garder la fréquence cardiaque dans cette plage."
-      },
-      "hr_zone": {
-        "label": "Zone FC",
-        "description": "Atteindre une zone FC, calculée à partir de votre seuil."
       },
       "cadence_range": {
         "label": "Cadence",
@@ -718,9 +706,6 @@
         "message": "Cette action est irréversible. Si c'est la seule étape d'une Répétition, la Répétition est aussi supprimée.",
         "confirm": "Supprimer"
       },
-      "untilAbove": "Jusqu'à au-dessus",
-      "untilBelow": "Jusqu'à en-dessous",
-      "hrZonesHint": "Configurez les zones de FC dans Compte → Zones pour utiliser des cibles par zone.",
       "to": "à",
       "pacePerKm": "min/km"
     },
@@ -824,7 +809,7 @@
       "subscription": "Abonnement",
       "trainingPlan": "Plan d'entraînement",
       "races": "Courses",
-      "zones": "Zones",
+      "fitness": "Forme",
       "workoutTemplates": "Modèles de séance",
       "appsAndDevices": "Apps et appareils",
       "calendars": "Calendriers",
@@ -1061,31 +1046,44 @@
         }
       }
     },
-    "zones": {
-      "title": "Zones",
-      "hrZones": "Zones FC",
-      "paceZones": "Zones d'allure",
-      "errorThresholdRequired": "Définissez un seuil avant de resynchroniser les zones.",
-      "yourThresholds": "Vos seuils",
-      "hrThresholdLabel": "Seuil de fréquence cardiaque (LTHR)",
-      "paceThresholdLabel": "Seuil d'allure",
-      "unitBpm": "bpm",
-      "unitPerKm": "/km",
-      "fillAllBoundaries": "Renseignez les quatre limites pour enregistrer.",
-      "invalidBoundaries": "Limites de zones invalides",
-      "resync": {
-        "message": "Ces zones utilisent des limites personnalisées — elles ne seront pas recalculées si votre seuil change. Resynchronisez pour les recalculer depuis votre seuil actuel.",
-        "cta": "Resynchroniser depuis le seuil"
+    "fitness": {
+      "title": "Forme",
+      "racesTitle": "Ce que tu peux courir aujourd'hui",
+      "pacesTitle": "Tes allures d'entraînement",
+      "vdotTitle": "Forme dans le temps",
+      "perKm": " /km",
+      "lastMeasured": "Dernière mesure {{relative}}",
+      "vdotExplainer": "Le VDOT est ton score de forme — plus il est élevé, mieux c'est. Un marathonien aguerri tourne autour de 50, une élite à 80+.",
+      "reportRaceCta": "Renseigner un résultat de course",
+      "emptyTitle": "Renseigne ta forme",
+      "emptyDescription": "On ne connaît pas encore ta forme. Renseigne un résultat récent, ou complète le test initial de ton plan pour démarrer.",
+      "races": {
+        "5k": "5 km",
+        "10k": "10 km",
+        "half": "Semi-marathon",
+        "marathon": "Marathon"
       },
-      "validation": {
-        "wholeNumber": "Saisissez un nombre entier",
-        "paceFormat": "Utilisez min:sec par km (ex. 3:45)",
-        "hrThresholdRange": "Saisissez une valeur entre 61 et 250 bpm",
-        "hrOrdering": "Chaque zone doit être supérieure à la précédente",
-        "paceOrdering": "Chaque zone doit être plus rapide que la précédente",
-        "hrFormat": "Saisissez des nombres entiers en bpm",
-        "hrCap": "Doit être inférieur à {{cap}} bpm",
-        "paceCap": "Allure invraisemblablement rapide"
+      "paces": {
+        "E": {
+          "label": "Facile",
+          "description": "Conversationnel. La majorité de ton volume doit être à cette allure."
+        },
+        "M": {
+          "label": "Marathon",
+          "description": "Allure marathon — relâchée mais engagée."
+        },
+        "T": {
+          "label": "Seuil",
+          "description": "Difficile mais soutenable, environ une heure d'effort de course."
+        },
+        "I": {
+          "label": "Intervalles",
+          "description": "Travail VO₂max — typiquement des répétitions de 3 à 5 min."
+        },
+        "R": {
+          "label": "Répétitions",
+          "description": "Allure sprint pour la vitesse et l'économie de course."
+        }
       }
     },
     "trainingPlan": {
