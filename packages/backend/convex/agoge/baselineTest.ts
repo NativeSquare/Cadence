@@ -40,15 +40,19 @@ export type PlanCategory = "race" | "fitness";
  * Derive a pace zone (threshold + boundaries) from a completed time-trial.
  * Distance doesn't have to be exactly 5K — any (distance, time) pair yields a
  * valid VDOT.
+ *
+ * Returns VDOT alongside the zone data so callers can persist it as a metric
+ * (VDOT is the canonical fitness measurement; the zone is its cached
+ * projection — see Agoge metrics vs zones distinction).
  */
 export function derivePaceZoneFromTest(
   distanceMeters: number,
   timeSeconds: number,
-): { threshold: number; boundaries: number[] } {
+): { vdot: number; threshold: number; boundaries: number[] } {
   const vdot = computeVdot(distanceMeters, timeSeconds);
   const threshold = trainingPaces(vdot).T;
   const { boundaries } = computeZoneBoundaries("pace", threshold, "coggan-pace");
-  return { threshold, boundaries };
+  return { vdot, threshold, boundaries };
 }
 
 export async function scheduleGenerate(
@@ -82,13 +86,26 @@ export async function deriveAndWriteZonesFromTest(
   const duration = workout.actual?.durationSeconds;
   if (!distance || distance <= 0 || !duration || duration <= 0) return;
 
+  const { vdot, threshold, boundaries } = derivePaceZoneFromTest(
+    distance,
+    duration,
+  );
+
+  // VDOT is a time-series measurement — persist every test result, even when
+  // the derived zone already exists. The zone is just a cached projection.
+  await ctx.runMutation(components.agoge.public.createMetric, {
+    athleteId: workout.athleteId,
+    kind: "vdot",
+    value: vdot,
+    source: "time_trial",
+  });
+
   const existing = await ctx.runQuery(
     components.agoge.public.getZoneByAthleteKind,
     { athleteId: workout.athleteId, kind: "pace" },
   );
   if (existing) return;
 
-  const { threshold, boundaries } = derivePaceZoneFromTest(distance, duration);
   const today = new Date().toISOString().slice(0, 10);
   await ctx.runMutation(components.agoge.public.createZone, {
     athleteId: workout.athleteId,
@@ -173,6 +190,74 @@ export async function gatePlanGeneration(
 // ---------------------------------------------------------------------------
 
 /**
+ * Apply a freshly derived pace zone for the current athlete and (re)trigger
+ * plan generation for any pending plan. Shared by `setManualPaceZone` and
+ * `setPaceZoneFromRaceResult` — the only difference is how the zone is
+ * derived.
+ */
+async function applyPaceZoneAndKickPlans(
+  ctx: MutationCtx,
+  athleteId: string,
+  threshold: number,
+  boundaries: number[],
+  source: "manual" | "system",
+): Promise<void> {
+  const existing = await ctx.runQuery(
+    components.agoge.public.getZoneByAthleteKind,
+    { athleteId, kind: "pace" },
+  );
+  if (!existing) {
+    const today = new Date().toISOString().slice(0, 10);
+    await ctx.runMutation(components.agoge.public.createZone, {
+      athleteId,
+      sport: "run",
+      kind: "pace",
+      threshold,
+      boundaries,
+      source,
+      effectiveFrom: today,
+    });
+  }
+
+  // Find active goals → pending plans (no blocks) → drop pending tests and
+  // schedule the generator. Typically exactly one plan; loop covers edge
+  // cases (race + fitness coexisting).
+  const activeGoals = await ctx.runQuery(
+    components.agoge.public.getGoalsByAthleteAndStatus,
+    { athleteId, status: "active" },
+  );
+
+  for (const goal of activeGoals) {
+    const plans = await ctx.runQuery(
+      components.agoge.public.getPlansByGoal,
+      { goalId: goal._id },
+    );
+    for (const plan of plans) {
+      if (plan.archivedAt !== undefined) continue;
+      const blocks = await ctx.runQuery(
+        components.agoge.public.getBlocksByPlan,
+        { planId: plan._id },
+      );
+      if (blocks.length > 0) continue;
+
+      const workouts = await ctx.runQuery(
+        components.agoge.public.getWorkoutsByPlan,
+        { planId: plan._id },
+      );
+      for (const w of workouts) {
+        if (w.type === "test" && w.status === "planned") {
+          await ctx.runMutation(components.agoge.public.deleteWorkout, {
+            workoutId: w._id,
+          });
+        }
+      }
+
+      await scheduleGenerate(ctx, plan._id, goal.category as PlanCategory);
+    }
+  }
+}
+
+/**
  * Manual-entry alternative to running the baseline test. Writes a pace zone
  * from a user-supplied threshold pace, deletes any pending test workout under
  * empty plans, and schedules plan generation for those plans.
@@ -198,63 +283,73 @@ export const setManualPaceZone = mutation({
       });
     }
 
-    const existing = await ctx.runQuery(
-      components.agoge.public.getZoneByAthleteKind,
-      { athleteId: auth.athlete._id, kind: "pace" },
+    const { boundaries } = computeZoneBoundaries(
+      "pace",
+      thresholdMps,
+      "coggan-pace",
     );
-    if (!existing) {
-      const { boundaries } = computeZoneBoundaries(
-        "pace",
-        thresholdMps,
-        "coggan-pace",
-      );
-      const today = new Date().toISOString().slice(0, 10);
-      await ctx.runMutation(components.agoge.public.createZone, {
-        athleteId: auth.athlete._id,
-        sport: "run",
-        kind: "pace",
-        threshold: thresholdMps,
-        boundaries,
-        source: "manual",
-        effectiveFrom: today,
+    await applyPaceZoneAndKickPlans(
+      ctx,
+      auth.athlete._id,
+      thresholdMps,
+      boundaries,
+      "manual",
+    );
+  },
+});
+
+/**
+ * Seed pace zone from a user-reported race result. Same downstream effect as
+ * a completed baseline test, exposed as a mutation so onboarding can offer
+ * "have you raced recently?" as an alternative to the in-app 5K time trial.
+ *
+ * `derivePaceZoneFromTest` works for any (distance, time) pair — the result
+ * doesn't need to be exactly 5K. Onboarding presents a distance picker
+ * matching the race-form formats.
+ */
+export const setPaceZoneFromRaceResult = mutation({
+  args: { distanceMeters: v.number(), timeSeconds: v.number() },
+  handler: async (ctx, { distanceMeters, timeSeconds }) => {
+    const auth = await loadAthlete(ctx);
+    if (!auth)
+      throw new ConvexError({
+        code: "VALIDATION_FAILED",
+        errors: [requireAuthError],
+      });
+    if (!(distanceMeters > 0) || !(timeSeconds > 0)) {
+      throw new ConvexError({
+        code: "VALIDATION_FAILED",
+        errors: [
+          {
+            code: "INVALID_INPUT",
+            message:
+              "distanceMeters and timeSeconds must be positive numbers.",
+          },
+        ],
       });
     }
 
-    // Find active goals → pending plans (no blocks) → drop pending tests and
-    // schedule the generator. Typically exactly one plan; loop covers edge
-    // cases (race + fitness coexisting).
-    const activeGoals = await ctx.runQuery(
-      components.agoge.public.getGoalsByAthleteAndStatus,
-      { athleteId: auth.athlete._id, status: "active" },
+    const { vdot, threshold, boundaries } = derivePaceZoneFromTest(
+      distanceMeters,
+      timeSeconds,
     );
 
-    for (const goal of activeGoals) {
-      const plans = await ctx.runQuery(
-        components.agoge.public.getPlansByGoal,
-        { goalId: goal._id },
-      );
-      for (const plan of plans) {
-        if (plan.archivedAt !== undefined) continue;
-        const blocks = await ctx.runQuery(
-          components.agoge.public.getBlocksByPlan,
-          { planId: plan._id },
-        );
-        if (blocks.length > 0) continue;
+    // VDOT is the time-series measurement; the zone is its cached projection.
+    // Persisted even if a zone already exists so the fitness curve stays
+    // honest (every fresh datapoint we have should be in the history).
+    await ctx.runMutation(components.agoge.public.createMetric, {
+      athleteId: auth.athlete._id,
+      kind: "vdot",
+      value: vdot,
+      source: "race",
+    });
 
-        const workouts = await ctx.runQuery(
-          components.agoge.public.getWorkoutsByPlan,
-          { planId: plan._id },
-        );
-        for (const w of workouts) {
-          if (w.type === "test" && w.status === "planned") {
-            await ctx.runMutation(components.agoge.public.deleteWorkout, {
-              workoutId: w._id,
-            });
-          }
-        }
-
-        await scheduleGenerate(ctx, plan._id, goal.category as PlanCategory);
-      }
-    }
+    await applyPaceZoneAndKickPlans(
+      ctx,
+      auth.athlete._id,
+      threshold,
+      boundaries,
+      "system",
+    );
   },
 });

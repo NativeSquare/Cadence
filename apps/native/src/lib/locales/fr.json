@@ -133,8 +133,74 @@
     }
   },
   "onboarding": {
-    "comingSoonTitle": "Onboarding — bientôt disponible",
-    "comingSoonHelper": "Appuyez sur Continuer pour ignorer pour l'instant."
+    "title": "Configuration",
+    "stepOf": "Étape {{current}} sur {{total}}",
+    "back": "Retour",
+    "next": "Suivant",
+    "finish": "Terminer",
+    "skip": "Passer",
+    "welcome": {
+      "heading": "Bienvenue sur Cadence",
+      "helper": "Quelques questions rapides pour que ton coach construise un plan qui te convient.",
+      "cta": "Commencer"
+    },
+    "profile": {
+      "heading": "Parle-nous de toi",
+      "helper": "Ces infos servent à calibrer ton entraînement et estimer tes zones quand aucune donnée récente n'est disponible.",
+      "sexLabel": "Sexe",
+      "sexOptions": {
+        "male": "Homme",
+        "female": "Femme",
+        "other": "Autre"
+      },
+      "dobLabel": "Date de naissance"
+    },
+    "experience": {
+      "heading": "Comment décrirais-tu ta course ?",
+      "helper": "Choisis l'option la plus proche de tes derniers mois.",
+      "options": {
+        "beginner": {
+          "label": "Je débute",
+          "desc": "Moins de 3 mois de course, ou retour après une longue pause"
+        },
+        "intermediate": {
+          "label": "Je progresse",
+          "desc": "Je cours 1 à 3 fois par semaine régulièrement"
+        },
+        "advanced": {
+          "label": "Régulier",
+          "desc": "Je cours 4+ fois par semaine avec des objectifs"
+        }
+      }
+    },
+    "schedule": {
+      "heading": "Quand peux-tu t'entraîner ?",
+      "helper": "Choisis les jours où tu peux courir, et combien de séances par semaine te conviennent. On adapte ton plan autour.",
+      "daysLabel": "Jours disponibles",
+      "sessionsLabel": "Séances par semaine",
+      "perWeek": "par semaine",
+      "days": {
+        "mon": "Lun",
+        "tue": "Mar",
+        "wed": "Mer",
+        "thu": "Jeu",
+        "fri": "Ven",
+        "sat": "Sam",
+        "sun": "Dim"
+      },
+      "allDaysUsed": "On utilisera tous les jours disponibles."
+    },
+    "recentRace": {
+      "heading": "As-tu couru une course récemment ?",
+      "helper": "Si tu as un temps récent, on s'en sert pour caler tes allures — et tu sautes le test 5 km de la semaine 1.",
+      "distanceLabel": "Distance",
+      "timeLabel": "Temps final",
+      "hours": "hh",
+      "minutes": "mm",
+      "seconds": "ss",
+      "useResult": "Utiliser ce résultat",
+      "skipForTest": "Passer — je ferai le test 5 km"
+    }
   },
   "calendar": {
     "title": "Calendrier",
@@ -302,14 +368,6 @@
     "phaseSuffix": "phase {{phase}}",
     "percentComplete": "{{percent}}% terminé",
     "goalLabel": "Objectif",
-    "weekInsights": {
-      "thisWeek": "Cette semaine",
-      "volume": "Volume",
-      "kmSuffix": "/ {{planned}} km",
-      "ranSuffix": "{{time}} couru",
-      "workouts": "Séances",
-      "done": "faites"
-    },
     "fitnessIntent": {
       "eyebrow": "Ton focus"
     },
@@ -1085,6 +1143,8 @@
       "title": "Profil",
       "athleteSection": "Athlète",
       "athleteSectionHelper": "Sert à personnaliser les zones d'entraînement et le coaching IA.",
+      "scheduleSection": "Planning d'entraînement",
+      "scheduleSectionHelper": "Jours disponibles et nombre de séances par semaine. Sert aux futurs plans.",
       "fields": {
         "name": "Nom",
         "namePlaceholder": "Jean Dupont",

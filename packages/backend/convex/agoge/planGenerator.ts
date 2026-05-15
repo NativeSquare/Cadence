@@ -1,8 +1,9 @@
 /**
  * Plan generators. Fill a freshly-created Plan with Blocks + planned Workouts.
  *
- * - `generate`: race-category goals (finish + time targets) using Daniels
- *   VDOT + 80/20 polarized periodization. Ultra/relay formats are skipped.
+ * - `generate`: race-category goals (finish + time targets). Paces from
+ *   Daniels VDOT; 80/20 easy/quality split in Base/Build/Taper; Peak goes
+ *   pyramidal to fit race-specific M-pace work. Ultra/relay formats are skipped.
  * - `generateFitness`: fitness-category goals — single base block, no peak,
  *   no taper, no paces. Length + volume tuned per `fitnessIntent`.
  *
@@ -25,14 +26,17 @@ import {
   buildStructure,
   computeVdot,
   daysBetweenYmd,
+  DEFAULT_SCHEDULE,
   distancePeakKm,
   type FitnessIntent,
   fitnessPlanShape,
   fitnessVolumeCurve,
+  isoDayOfWeek,
   isSupportedFormat,
   type Locale,
   microcycle,
   type Paces,
+  type Schedule,
   splitPhases,
   summarizeStructure,
   taperWeeksForFormat,
@@ -45,6 +49,16 @@ import {
 const GENERATOR_VERSION = "v1";
 const BASELINE_LOOKBACK_DAYS = 56;
 const FALLBACK_WEEKLY_KM = 20;
+
+function scheduleFromAthlete(athlete: {
+  availableDays?: number[];
+  sessionsPerWeek?: number;
+}): Schedule {
+  return {
+    availableDays: athlete.availableDays ?? DEFAULT_SCHEDULE.availableDays,
+    sessionsPerWeek: athlete.sessionsPerWeek ?? DEFAULT_SCHEDULE.sessionsPerWeek,
+  };
+}
 
 export const generate = internalAction({
   args: { planId: v.string() },
@@ -117,6 +131,7 @@ export const generate = internalAction({
         : undefined;
 
     const blockIds = await createBlocks(ctx, plan._id, planStart, phaseByWeek);
+    const schedule = scheduleFromAthlete(athlete);
 
     for (let w = 0; w < planWeeks; w++) {
       const phase = phaseByWeek[w];
@@ -125,9 +140,11 @@ export const generate = internalAction({
       if (!blockId) continue;
       const weekKm = volumeCurve[w] ?? 0;
       const weekStart = addDaysYmd(planStart, w * 7);
+      const weekStartDow = isoDayOfWeek(weekStart);
 
-      for (const session of microcycle(phase, weekKm)) {
-        const dateYmd = addDaysYmd(weekStart, session.dayOffset);
+      for (const session of microcycle(phase, weekKm, schedule)) {
+        const dayOffset = (session.dayOfWeek - weekStartDow + 7) % 7;
+        const dateYmd = addDaysYmd(weekStart, dayOffset);
         // Race day is reserved for the race workout itself.
         if (dateYmd < planStart || dateYmd >= raceYmd) continue;
         const distanceMeters = Math.round(session.distanceKm * 1000);
@@ -253,12 +270,15 @@ export const generateFitness = internalAction({
       startDate: planStart,
       endDate: addDaysYmd(planStart, shape.weeks * 7 - 1),
     });
+    const schedule = scheduleFromAthlete(athlete);
 
     for (let w = 0; w < shape.weeks; w++) {
       const weekKm = volumeCurve[w] ?? 0;
       const weekStart = addDaysYmd(planStart, w * 7);
-      for (const session of microcycle("base", weekKm)) {
-        const dateYmd = addDaysYmd(weekStart, session.dayOffset);
+      const weekStartDow = isoDayOfWeek(weekStart);
+      for (const session of microcycle("base", weekKm, schedule)) {
+        const dayOffset = (session.dayOfWeek - weekStartDow + 7) % 7;
+        const dateYmd = addDaysYmd(weekStart, dayOffset);
         const distanceMeters = Math.round(session.distanceKm * 1000);
         if (distanceMeters < 500) continue;
         await ctx.runMutation(components.agoge.public.createWorkout, {

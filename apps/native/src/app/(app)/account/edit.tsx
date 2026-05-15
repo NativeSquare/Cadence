@@ -1,5 +1,10 @@
 import { NameField } from "@/components/app/account/name-field";
 import { ProfilePictureField } from "@/components/app/account/profile-picture-field";
+import {
+  EMPTY_SCHEDULE,
+  ScheduleFields,
+  type ScheduleValue,
+} from "@/components/app/onboarding";
 import { Text } from "@/components/ui/text";
 import { useUploadImage } from "@/hooks/use-upload-image";
 import { getConvexErrorMessage } from "@/utils/getConvexErrorMessage";
@@ -38,6 +43,7 @@ type FormState = {
   dobYear: string;
   heightCm: string;
   weightKg: string;
+  schedule: ScheduleValue;
 };
 
 const EMPTY_FORM: FormState = {
@@ -49,6 +55,7 @@ const EMPTY_FORM: FormState = {
   dobYear: "",
   heightCm: "",
   weightKg: "",
+  schedule: EMPTY_SCHEDULE,
 };
 
 function isValidDate(d: string, m: string, y: string): boolean {
@@ -82,6 +89,8 @@ function buildInitialForm(
         dateOfBirth?: string;
         weightKg?: number;
         heightCm?: number;
+        availableDays?: number[];
+        sessionsPerWeek?: number;
       }
     | null
     | undefined,
@@ -96,6 +105,12 @@ function buildInitialForm(
     dobYear: y ?? "",
     heightCm: athlete?.heightCm != null ? String(athlete.heightCm) : "",
     weightKg: athlete?.weightKg != null ? String(athlete.weightKg) : "",
+    schedule: {
+      availableDays:
+        athlete?.availableDays ?? EMPTY_SCHEDULE.availableDays,
+      sessionsPerWeek:
+        athlete?.sessionsPerWeek ?? EMPTY_SCHEDULE.sessionsPerWeek,
+    },
   };
 }
 
@@ -110,8 +125,16 @@ function isAthleteEqual(a: FormState, b: FormState): boolean {
     a.dobMonth === b.dobMonth &&
     a.dobYear === b.dobYear &&
     a.heightCm === b.heightCm &&
-    a.weightKg === b.weightKg
+    a.weightKg === b.weightKg &&
+    a.schedule.sessionsPerWeek === b.schedule.sessionsPerWeek &&
+    arrayEqual(a.schedule.availableDays, b.schedule.availableDays)
   );
+}
+
+function arrayEqual(a: number[], b: number[]): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+  return true;
 }
 
 export default function EditProfileScreen() {
@@ -193,6 +216,8 @@ export default function EditProfileScreen() {
         : undefined,
       heightCm: parseNumber(form.heightCm),
       weightKg: parseNumber(form.weightKg),
+      availableDays: form.schedule.availableDays,
+      sessionsPerWeek: form.schedule.sessionsPerWeek,
     };
     const athleteParsed = makeAthleteProfileSchema(t).safeParse(athleteCandidate);
     if (!athleteParsed.success) {
@@ -378,8 +403,27 @@ export default function EditProfileScreen() {
                 keyboardType="decimal-pad"
               />
             </Field>
-
           </View>
+
+          <View className="gap-1">
+            <Text
+              className="px-1 font-coach-bold text-[11px] uppercase tracking-wider"
+              style={{ color: LIGHT_THEME.wSub }}
+            >
+              {t("account.profile.scheduleSection")}
+            </Text>
+            <Text
+              className="px-1 font-coach text-[12px]"
+              style={{ color: LIGHT_THEME.wMute }}
+            >
+              {t("account.profile.scheduleSectionHelper")}
+            </Text>
+          </View>
+
+          <ScheduleFields
+            value={form.schedule}
+            onChange={(next) => setForm((f) => ({ ...f, schedule: next }))}
+          />
         </View>
       </ScrollView>
 

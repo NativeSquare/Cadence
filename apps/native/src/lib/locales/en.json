@@ -133,8 +133,74 @@
     }
   },
   "onboarding": {
-    "comingSoonTitle": "Onboarding — coming soon",
-    "comingSoonHelper": "Tap continue to skip for now."
+    "title": "Setup",
+    "stepOf": "Step {{current}} of {{total}}",
+    "back": "Back",
+    "next": "Next",
+    "finish": "Finish",
+    "skip": "Skip",
+    "welcome": {
+      "heading": "Welcome to Cadence",
+      "helper": "A few quick questions so your coach can build a plan that fits you.",
+      "cta": "Get started"
+    },
+    "profile": {
+      "heading": "Tell us about you",
+      "helper": "We use this to size your training and estimate your zones when no recent data is available.",
+      "sexLabel": "Sex",
+      "sexOptions": {
+        "male": "Male",
+        "female": "Female",
+        "other": "Other"
+      },
+      "dobLabel": "Date of birth"
+    },
+    "experience": {
+      "heading": "How would you describe your running?",
+      "helper": "Pick the option closest to your last few months.",
+      "options": {
+        "beginner": {
+          "label": "Just starting",
+          "desc": "Less than 3 months running, or coming back from a long break"
+        },
+        "intermediate": {
+          "label": "Building",
+          "desc": "Running 1–3 times a week consistently"
+        },
+        "advanced": {
+          "label": "Consistent",
+          "desc": "Running 4+ times a week with training goals"
+        }
+      }
+    },
+    "schedule": {
+      "heading": "When can you train?",
+      "helper": "Pick the days you can usually run, and how many sessions per week feels right. We'll fit your plan around it.",
+      "daysLabel": "Available days",
+      "sessionsLabel": "Sessions per week",
+      "perWeek": "per week",
+      "days": {
+        "mon": "Mon",
+        "tue": "Tue",
+        "wed": "Wed",
+        "thu": "Thu",
+        "fri": "Fri",
+        "sat": "Sat",
+        "sun": "Sun"
+      },
+      "allDaysUsed": "We'll use every available day."
+    },
+    "recentRace": {
+      "heading": "Have you raced recently?",
+      "helper": "If you have a recent race time, we'll use it to set your training paces — and you skip the 5K test in week 1.",
+      "distanceLabel": "Distance",
+      "timeLabel": "Finish time",
+      "hours": "hh",
+      "minutes": "mm",
+      "seconds": "ss",
+      "useResult": "Use this result",
+      "skipForTest": "Skip — I'll do the 5K test instead"
+    }
   },
   "calendar": {
     "title": "Calendar",
@@ -302,14 +368,6 @@
     "phaseSuffix": "{{phase}} phase",
     "percentComplete": "{{percent}}% complete",
     "goalLabel": "Goal",
-    "weekInsights": {
-      "thisWeek": "This Week",
-      "volume": "Volume",
-      "kmSuffix": "/ {{planned}} km",
-      "ranSuffix": "{{time}} ran",
-      "workouts": "Workouts",
-      "done": "done"
-    },
     "fitnessIntent": {
       "eyebrow": "Your focus"
     },
@@ -1085,6 +1143,8 @@
       "title": "Profile",
       "athleteSection": "Athlete",
       "athleteSectionHelper": "Used to personalize training zones and AI coaching.",
+      "scheduleSection": "Training schedule",
+      "scheduleSectionHelper": "Days you can train and how many sessions per week. Future plans use this.",
       "fields": {
         "name": "Name",
         "namePlaceholder": "John Smith",

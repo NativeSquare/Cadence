@@ -1,7 +1,9 @@
 /**
  * Pure periodization math for race plan generation.
  *
- * Daniels VDOT + 80/20 polarized — deterministic, no Convex deps, easy to test.
+ * Paces come from Daniels VDOT. Volume distribution is 80/20 (easy/quality) in
+ * Base, Build, and Taper; Peak shifts pyramidal to add race-specific M-pace
+ * volume in the long run. Deterministic, no Convex deps, easy to test.
  *
  * Daniels' equations (Running Formula, 3rd ed.):
  *   v_mpm   = D / (t/60)                                          // m/min
@@ -289,60 +291,146 @@ export type SessionSpec = {
   type: WorkoutType;
   intensity: IntensityAnchor;
   distanceKm: number;
-  /** 0=Mon, 1=Tue, 3=Thu, 5=Sat */
-  dayOffset: 0 | 1 | 3 | 5;
+  /** ISO day-of-week: 0=Mon … 6=Sun. */
+  dayOfWeek: number;
 };
 
-const DAY_EASY1 = 0 as const;
-const DAY_QUALITY = 1 as const;
-const DAY_EASY2 = 3 as const;
-const DAY_LONG = 5 as const;
+export type Schedule = {
+  /** ISO day-of-week (0=Mon … 6=Sun). Deduped + sorted internally. */
+  availableDays: number[];
+  /** Target sessions/week. Clamped to availableDays.length. */
+  sessionsPerWeek: number;
+};
 
-/** 4 sessions/week: Mon easy / Tue quality / Thu easy / Sat long. */
-export function microcycle(phase: BlockType, weekKm: number): SessionSpec[] {
-  const km = Math.max(0, weekKm);
-  switch (phase) {
-    case "base":
-      // 1 long + 3 easy; no quality.
-      return [
-        { type: "easy", intensity: "E", distanceKm: round1(km * 0.25), dayOffset: DAY_EASY1 },
-        { type: "easy", intensity: "E", distanceKm: round1(km * 0.23), dayOffset: DAY_QUALITY },
-        { type: "easy", intensity: "E", distanceKm: round1(km * 0.22), dayOffset: DAY_EASY2 },
-        { type: "long", intensity: "E", distanceKm: round1(km * 0.3), dayOffset: DAY_LONG },
-      ];
-    case "build":
-      // 1 long + 1 threshold + 2 easy.
-      return [
-        { type: "easy", intensity: "E", distanceKm: round1(km * 0.25), dayOffset: DAY_EASY1 },
-        { type: "threshold", intensity: "T", distanceKm: round1(km * 0.2), dayOffset: DAY_QUALITY },
-        { type: "easy", intensity: "E", distanceKm: round1(km * 0.25), dayOffset: DAY_EASY2 },
-        { type: "long", intensity: "E", distanceKm: round1(km * 0.3), dayOffset: DAY_LONG },
-      ];
-    case "peak":
-      // 1 long (with race-pace block) + 1 intervals + 1 threshold + 1 easy.
-      return [
-        { type: "easy", intensity: "E", distanceKm: round1(km * 0.25), dayOffset: DAY_EASY1 },
-        { type: "intervals", intensity: "I", distanceKm: round1(km * 0.2), dayOffset: DAY_QUALITY },
-        { type: "threshold", intensity: "T", distanceKm: round1(km * 0.2), dayOffset: DAY_EASY2 },
-        { type: "long", intensity: "M", distanceKm: round1(km * 0.35), dayOffset: DAY_LONG },
-      ];
-    case "taper":
-      // 1 long (reduced) + 1 short quality + 2 easy. Volume is already cut at week level.
-      return [
-        { type: "easy", intensity: "E", distanceKm: round1(km * 0.25), dayOffset: DAY_EASY1 },
-        { type: "threshold", intensity: "T", distanceKm: round1(km * 0.2), dayOffset: DAY_QUALITY },
-        { type: "easy", intensity: "E", distanceKm: round1(km * 0.25), dayOffset: DAY_EASY2 },
-        { type: "long", intensity: "E", distanceKm: round1(km * 0.3), dayOffset: DAY_LONG },
-      ];
-    default:
-      // Fallback for recovery/maintenance/transition: all easy.
-      return [
-        { type: "easy", intensity: "E", distanceKm: round1(km * 0.25), dayOffset: DAY_EASY1 },
-        { type: "easy", intensity: "E", distanceKm: round1(km * 0.25), dayOffset: DAY_QUALITY },
-        { type: "easy", intensity: "E", distanceKm: round1(km * 0.25), dayOffset: DAY_EASY2 },
-        { type: "easy", intensity: "E", distanceKm: round1(km * 0.25), dayOffset: DAY_LONG },
-      ];
+/** Used when an athlete has no recorded schedule yet (legacy plans). */
+export const DEFAULT_SCHEDULE: Schedule = {
+  availableDays: [1, 2, 3, 5], // Tue, Wed, Thu, Sat — preserves prior behaviour
+  sessionsPerWeek: 4,
+};
+
+type Role = "easy" | "long" | "threshold" | "intervals";
+
+/**
+ * Pick which day-of-week slots receive a session this week.
+ * Spreads picks evenly across `availableDays` to maximise recovery gaps —
+ * e.g. with 7 days available and 3 sessions/week, returns [Mon, Thu, Sun].
+ */
+function pickTrainingDays(schedule: Schedule): number[] {
+  const sorted = [...new Set(schedule.availableDays)]
+    .filter((d) => Number.isInteger(d) && d >= 0 && d <= 6)
+    .sort((a, b) => a - b);
+  if (sorted.length === 0) return [];
+  const n = Math.max(1, Math.min(schedule.sessionsPerWeek, sorted.length));
+  if (n === sorted.length) return sorted;
+  if (n === 1) return [sorted[sorted.length - 1]!]; // single session → long-run only
+  const picked: number[] = [];
+  for (let i = 0; i < n; i++) {
+    const idx = Math.round((i * (sorted.length - 1)) / (n - 1));
+    picked.push(sorted[idx]!);
   }
+  return [...new Set(picked)].sort((a, b) => a - b);
+}
+
+/**
+ * Lay out session roles across `n` picked days, indexed earliest → latest.
+ * Long always lands on the latest pick; quality sits with a recovery gap
+ * from long when possible.
+ */
+function rolesForPhase(phase: BlockType, n: number): Role[] {
+  if (n === 0) return [];
+  const roles: Role[] = Array.from({ length: n }, () => "easy" as Role);
+  roles[n - 1] = "long";
+  if (n === 1) return roles;
+
+  switch (phase) {
+    case "peak":
+      // intervals + threshold, both qualities. Spread them out when there's room.
+      if (n >= 4) {
+        roles[1] = "intervals";
+        roles[n >= 6 ? n - 3 : 2] = "threshold";
+      } else if (n === 3) {
+        roles[0] = "intervals";
+        roles[1] = "threshold";
+      } else {
+        // n === 2
+        roles[0] = "threshold";
+      }
+      return roles;
+    case "build":
+    case "taper":
+      roles[n >= 4 ? 1 : 0] = "threshold";
+      return roles;
+    case "base":
+    default:
+      return roles; // long + easies
+  }
+}
+
+/**
+ * Build the week's session list for `phase` at `weekKm`, placed on the
+ * athlete's `schedule`. Volume is split: long ≈ 30 % (35 % in peak), each
+ * quality ≈ 20 %, easies share what's left. If a role's normal share has
+ * nowhere to land (e.g. 1 session/week), it folds into the long run.
+ */
+export function microcycle(
+  phase: BlockType,
+  weekKm: number,
+  schedule: Schedule = DEFAULT_SCHEDULE,
+): SessionSpec[] {
+  const km = Math.max(0, weekKm);
+  const days = pickTrainingDays(schedule);
+  if (days.length === 0) return [];
+  const roles = rolesForPhase(phase, days.length);
+
+  const longFracBase = phase === "peak" ? 0.35 : 0.30;
+  const qualityFrac = roles.includes("threshold") ? 0.20 : 0;
+  const intervalsFrac = roles.includes("intervals") ? 0.20 : 0;
+  const easyCount = roles.filter((r) => r === "easy").length;
+  const remainder = Math.max(0, 1 - longFracBase - qualityFrac - intervalsFrac);
+  const easyFrac = easyCount > 0 ? remainder / easyCount : 0;
+  // When there are no easies the unallocated share folds back into the long.
+  const longFrac = easyCount > 0 ? longFracBase : longFracBase + remainder;
+
+  return roles.map((role, i) => {
+    const dayOfWeek = days[i]!;
+    switch (role) {
+      case "long":
+        return {
+          type: "long",
+          intensity: phase === "peak" ? "M" : "E",
+          distanceKm: round1(km * longFrac),
+          dayOfWeek,
+        };
+      case "threshold":
+        return {
+          type: "threshold",
+          intensity: "T",
+          distanceKm: round1(km * qualityFrac),
+          dayOfWeek,
+        };
+      case "intervals":
+        return {
+          type: "intervals",
+          intensity: "I",
+          distanceKm: round1(km * intervalsFrac),
+          dayOfWeek,
+        };
+      case "easy":
+        return {
+          type: "easy",
+          intensity: "E",
+          distanceKm: round1(km * easyFrac),
+          dayOfWeek,
+        };
+    }
+  });
+}
+
+/** ISO day-of-week (0=Mon … 6=Sun) for a YYYY-MM-DD calendar date. */
+export function isoDayOfWeek(ymd: string): number {
+  const [y, m, d] = ymd.split("-").map((p) => Number.parseInt(p, 10));
+  // JS getUTCDay returns 0=Sun..6=Sat → convert to ISO 0=Mon..6=Sun.
+  return (new Date(Date.UTC(y, m - 1, d)).getUTCDay() + 6) % 7;
 }
 
 // ---------------------------------------------------------------------------

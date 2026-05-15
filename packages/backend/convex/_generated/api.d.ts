@@ -5488,11 +5488,13 @@ export declare const components: {
         "mutation",
         "internal",
         {
+          availableDays?: Array<number>;
           dateOfBirth?: string;
-          experienceLevel?: string;
+          experienceLevel?: "beginner" | "intermediate" | "advanced";
           heightCm?: number;
           injuryStatus?: string;
           name?: string;
+          sessionsPerWeek?: number;
           sex?: "male" | "female" | "other";
           userId: string;
           weightKg?: number;
@@ -5528,6 +5530,22 @@ export declare const components: {
           raceTarget?: { type: "finish" } | { seconds: number; type: "time" };
           status: "active" | "achieved" | "missed" | "abandoned" | "paused";
           targetDate?: string;
+        },
+        string
+      >;
+      createMetric: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          athleteId: string;
+          kind: "vdot" | "lthr" | "hrmax";
+          source:
+            | "race"
+            | "time_trial"
+            | "garmin_history"
+            | "self_reported"
+            | "estimated";
+          value: number;
         },
         string
       >;
@@ -5735,6 +5753,12 @@ export declare const components: {
         { goalId: string },
         null
       >;
+      deleteMetric: FunctionReference<
+        "mutation",
+        "internal",
+        { metricId: string },
+        null
+      >;
       deletePlan: FunctionReference<
         "mutation",
         "internal",
@@ -5778,11 +5802,13 @@ export declare const components: {
         {
           _creationTime: number;
           _id: string;
+          availableDays?: Array<number>;
           dateOfBirth?: string;
-          experienceLevel?: string;
+          experienceLevel?: "beginner" | "intermediate" | "advanced";
           heightCm?: number;
           injuryStatus?: string;
           name?: string;
+          sessionsPerWeek?: number;
           sex?: "male" | "female" | "other";
           userId: string;
           weightKg?: number;
@@ -5796,11 +5822,13 @@ export declare const components: {
         {
           _creationTime: number;
           _id: string;
+          availableDays?: Array<number>;
           dateOfBirth?: string;
-          experienceLevel?: string;
+          experienceLevel?: "beginner" | "intermediate" | "advanced";
           heightCm?: number;
           injuryStatus?: string;
           name?: string;
+          sessionsPerWeek?: number;
           sex?: "male" | "female" | "other";
           userId: string;
           weightKg?: number;
@@ -5960,6 +5988,60 @@ export declare const components: {
           raceTarget?: { type: "finish" } | { seconds: number; type: "time" };
           status: "active" | "achieved" | "missed" | "abandoned" | "paused";
           targetDate?: string;
+        }>
+      >;
+      getMetric: FunctionReference<
+        "query",
+        "internal",
+        { metricId: string },
+        {
+          _creationTime: number;
+          _id: string;
+          athleteId: string;
+          kind: "vdot" | "lthr" | "hrmax";
+          source:
+            | "race"
+            | "time_trial"
+            | "garmin_history"
+            | "self_reported"
+            | "estimated";
+          value: number;
+        } | null
+      >;
+      getMetricByAthleteKind: FunctionReference<
+        "query",
+        "internal",
+        { athleteId: string; kind: "vdot" | "lthr" | "hrmax" },
+        {
+          _creationTime: number;
+          _id: string;
+          athleteId: string;
+          kind: "vdot" | "lthr" | "hrmax";
+          source:
+            | "race"
+            | "time_trial"
+            | "garmin_history"
+            | "self_reported"
+            | "estimated";
+          value: number;
+        } | null
+      >;
+      getMetricsByAthlete: FunctionReference<
+        "query",
+        "internal",
+        { athleteId: string; kind?: "vdot" | "lthr" | "hrmax" },
+        Array<{
+          _creationTime: number;
+          _id: string;
+          athleteId: string;
+          kind: "vdot" | "lthr" | "hrmax";
+          source:
+            | "race"
+            | "time_trial"
+            | "garmin_history"
+            | "self_reported"
+            | "estimated";
+          value: number;
         }>
       >;
       getPlan: FunctionReference<
@@ -6760,11 +6842,13 @@ export declare const components: {
         "internal",
         {
           athleteId: string;
+          availableDays?: Array<number>;
           dateOfBirth?: string;
-          experienceLevel?: string;
+          experienceLevel?: "beginner" | "intermediate" | "advanced";
           heightCm?: number;
           injuryStatus?: string;
           name?: string;
+          sessionsPerWeek?: number;
           sex?: "male" | "female" | "other";
           userId?: string;
           weightKg?: number;
@@ -6802,6 +6886,23 @@ export declare const components: {
           raceTarget?: { type: "finish" } | { seconds: number; type: "time" };
           status?: "active" | "achieved" | "missed" | "abandoned" | "paused";
           targetDate?: string;
+        },
+        null
+      >;
+      updateMetric: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          athleteId?: string;
+          kind?: "vdot" | "lthr" | "hrmax";
+          metricId: string;
+          source?:
+            | "race"
+            | "time_trial"
+            | "garmin_history"
+            | "self_reported"
+            | "estimated";
+          value?: number;
         },
         null
       >;

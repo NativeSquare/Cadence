@@ -37,7 +37,6 @@ import { DateHeader } from "./DateHeader";
 import { CalendarStrip } from "./CalendarStrip";
 import { TodayCard } from "./TodayCard";
 import { RaceCountdown } from "./RaceCountdown";
-import { WeekInsights } from "./WeekInsights";
 import { QuickActions } from "./QuickActions";
 import { TrainingPulseCard } from "./TrainingPulseCard";
 import { RaceUpgradeCTA } from "./RaceUpgradeCTA";
@@ -47,7 +46,6 @@ import { LIGHT_THEME } from "@/lib/design-tokens";
 import {
   buildWorkoutsByDate,
   computeTrainingPulse,
-  computeWeekInsights,
   mapRaceToGoalData,
 } from "./utils";
 import type { WorkoutData } from "./types";
@@ -135,11 +133,6 @@ export function PlanScreen() {
     baseSelectedWorkout.workoutId
       ? { workoutId: baseSelectedWorkout.workoutId }
       : "skip",
-  );
-
-  const weekInsights = useMemo(
-    () => (planWorkouts ? computeWeekInsights(planWorkouts, today) : null),
-    [planWorkouts, today],
   );
 
   const trainingPulse = useMemo(
@@ -359,23 +352,11 @@ export function PlanScreen() {
             </View>
 
             {activeGoal.goal.category === "race" && activeGoal.race ? (
-              <>
-                <View className="px-4 mt-5">
-                  <RaceCountdown
-                    race={mapRaceToGoalData(activeGoal.race, activeGoal.plan)}
-                  />
-                </View>
-                {activeGoal.plan && weekInsights && (
-                  <View className="px-4 mt-5">
-                    <WeekInsights
-                      volumeCompleted={weekInsights.volumeCompleted}
-                      volumePlanned={weekInsights.volumePlanned}
-                      timeCompleted={weekInsights.timeCompleted}
-                      workouts={weekInsights.currentWeekWorkouts}
-                    />
-                  </View>
-                )}
-              </>
+              <View className="px-4 mt-5">
+                <RaceCountdown
+                  race={mapRaceToGoalData(activeGoal.race, activeGoal.plan)}
+                />
+              </View>
             ) : null}
 
             {activeGoal.goal.category === "fitness" &&

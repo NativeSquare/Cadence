@@ -82,14 +82,6 @@ function formatDurationShort(seconds?: number): string {
   return rem === 0 ? `${h}h` : `${h}h${rem.toString().padStart(2, "0")}`;
 }
 
-function formatDurationLong(seconds: number): string {
-  const m = Math.round(seconds / 60);
-  if (m < 60) return `${m}m`;
-  const h = Math.floor(m / 60);
-  const rem = m % 60;
-  return rem === 0 ? `${h}h` : `${h}h ${rem}m`;
-}
-
 function intensityFromType(type: WorkoutType): WorkoutIntensity {
   switch (type) {
     case "race":
@@ -204,56 +196,6 @@ function isoWeekStart(d: Date): Date {
   const diff = dow === 0 ? -6 : 1 - dow;
   out.setDate(out.getDate() + diff);
   return out;
-}
-
-export function computeWeekInsights(
-  workouts: AgogeWorkout[],
-  today: Date,
-): {
-  volumeCompleted: number;
-  volumePlanned: number;
-  timeCompleted: string;
-  currentWeekWorkouts: WorkoutData[];
-} {
-  const weekStart = isoWeekStart(today);
-  const weekEnd = new Date(weekStart);
-  weekEnd.setDate(weekEnd.getDate() + 6);
-
-  let volumeCompletedMeters = 0;
-  let volumePlannedMeters = 0;
-  let timeCompletedSeconds = 0;
-  const currentWeekWorkouts: WorkoutData[] = [];
-
-  for (const w of workouts) {
-    const dateIso = workoutDate(w);
-    if (!dateIso) continue;
-    const d = localDateFromIso(dateIso);
-    if (d < weekStart || d > weekEnd) continue;
-    currentWeekWorkouts.push(workoutToWorkoutData(w, today));
-
-    const plannedSummary = summarizeWorkout(w.planned);
-    volumePlannedMeters +=
-      w.planned?.distanceMeters ?? plannedSummary.totalDistanceMeters ?? 0;
-    if (w.status === "completed" && w.actual) {
-      const actualSummary = summarizeWorkout(w.actual);
-      volumeCompletedMeters +=
-        w.actual.distanceMeters ??
-        actualSummary.totalDistanceMeters ??
-        w.planned?.distanceMeters ??
-        plannedSummary.totalDistanceMeters ??
-        0;
-      timeCompletedSeconds +=
-        w.actual.durationSeconds ?? actualSummary.totalDurationSeconds ?? 0;
-    }
-  }
-
-  return {
-    volumeCompleted: Math.round((volumeCompletedMeters / 1000) * 10) / 10,
-    volumePlanned: Math.round((volumePlannedMeters / 1000) * 10) / 10,
-    timeCompleted:
-      timeCompletedSeconds > 0 ? formatDurationLong(timeCompletedSeconds) : "0m",
-    currentWeekWorkouts,
-  };
 }
 
 export function getWorkoutColor(workout: WorkoutData): string {

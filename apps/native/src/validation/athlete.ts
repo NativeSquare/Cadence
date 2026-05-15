@@ -21,6 +21,8 @@ export function makeAthleteProfileSchema(t: TFunction) {
       .positive(t("validation.invalidHeight"))
       .max(260, t("validation.invalidHeight"))
       .optional(),
+    availableDays: z.array(z.number().int().min(0).max(6)).optional(),
+    sessionsPerWeek: z.number().int().min(1).max(7).optional(),
   });
 }
 

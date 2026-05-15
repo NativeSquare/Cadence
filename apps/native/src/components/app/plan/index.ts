@@ -10,7 +10,6 @@ export { DateHeader } from "./DateHeader";
 export { CalendarStrip } from "./CalendarStrip";
 export { TodayCard } from "./TodayCard";
 export { RaceCountdown } from "./RaceCountdown";
-export { WeekInsights } from "./WeekInsights";
 export { QuickActions } from "./QuickActions";
 export { TrainingPulseCard } from "./TrainingPulseCard";
 export { RaceUpgradeCTA } from "./RaceUpgradeCTA";
