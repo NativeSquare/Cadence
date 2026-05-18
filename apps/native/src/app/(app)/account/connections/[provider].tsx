@@ -17,6 +17,10 @@ import { Text } from "@/components/ui/text";
 import { useHealthKitSyncProgress } from "@/hooks/use-healthkit-sync-store";
 import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
 import { formatRelativeShort } from "@/lib/format-relative";
+import {
+  DATA_TYPE_ORDER,
+  type DataTypeKey,
+} from "@/lib/providers/capabilities";
 import { getConvexErrorMessage } from "@/utils/getConvexErrorMessage";
 import { Ionicons } from "@expo/vector-icons";
 import { api } from "@packages/backend/convex/_generated/api";
@@ -61,23 +65,6 @@ const PROVIDER_CONFIGS: Record<Slug, ProviderConfig> = {
     logo: AppleHealthLogo,
   },
 };
-
-type DataTypeKey =
-  | "activities"
-  | "body"
-  | "daily"
-  | "menstruation"
-  | "nutrition"
-  | "sleep";
-
-const DATA_TYPE_ORDER: DataTypeKey[] = [
-  "activities",
-  "sleep",
-  "daily",
-  "body",
-  "nutrition",
-  "menstruation",
-];
 
 function formatCount(t: TFunction, key: DataTypeKey, count: number): string {
   switch (key) {

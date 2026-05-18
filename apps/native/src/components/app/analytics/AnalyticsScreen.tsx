@@ -1,15 +1,23 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ActivityIndicator, ScrollView, View } from "react-native";
+import { ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQuery } from "convex/react";
+import { useLocalSearchParams } from "expo-router";
 import { api } from "@packages/backend/convex/_generated/api";
 import { Text } from "@/components/ui/text";
-import { LIGHT_THEME } from "@/lib/design-tokens";
-import { WeeklyDistanceCard } from "./cards/WeeklyDistanceCard";
-import { TypeMixCard } from "./cards/TypeMixCard";
-import { EasyPaceDriftCard } from "./cards/EasyPaceDriftCard";
-import { PlannedVsActualCard } from "./cards/PlannedVsActualCard";
+import {
+  ANALYTICS_DATA_TYPES,
+  PROVIDER_CAPABILITIES,
+  type DataTypeKey,
+  type Provider,
+} from "@/lib/providers/capabilities";
+import { DataTypePill } from "./parts/DataTypePill";
+import { ConnectProviderCTA } from "./parts/ConnectProviderCTA";
+import { TrainingSection } from "./sections/TrainingSection";
+import { SleepSection } from "./sections/SleepSection";
+import { MenstrualSection } from "./sections/MenstrualSection";
+import { NutritionSection } from "./sections/NutritionSection";
 
 const HORIZONTAL_PADDING = 20;
 // Card uses p-5 (20px) on each side, plus 1px border on each side.
@@ -18,11 +26,17 @@ const CARD_INNER_PADDING = 20 * 2 + 1 * 2;
 export function AnalyticsScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
+  const { type: typeParam } = useLocalSearchParams<{ type?: string }>();
+  const initialType = isDataType(typeParam) ? typeParam : "activities";
+  const [selected, setSelected] = useState<DataTypeKey>(initialType);
   const [containerWidth, setContainerWidth] = useState(0);
 
-  // Fetch 52 weeks back; each card slices its own window from this set.
-  const startDate = oneYearAgoIso();
-  const workouts = useQuery(api.agoge.workouts.listWorkouts, { startDate });
+  const connections = useQuery(api.soma.index.listConnections);
+  const lockedTypes = useMemo(
+    () => computeLockedTypes(connections),
+    [connections],
+  );
+  const isLocked = lockedTypes.has(selected);
 
   const chartWidth = Math.max(
     0,
@@ -34,16 +48,22 @@ export function AnalyticsScreen() {
       <View className="absolute top-0 left-0 right-0 h-1/2 bg-black" />
 
       <View className="bg-black">
-        <View className="px-6 pb-5" style={{ paddingTop: insets.top + 12 }}>
-          <Text
-            className="text-[28px] font-coach-bold text-g1"
-            style={{ letterSpacing: -0.03 * 28 }}
-          >
-            {t("analytics.title")}
-          </Text>
-          <Text className="text-[13px] font-coach text-g3 mt-1">
-            {t("analytics.subtitle")}
-          </Text>
+        <View
+          className="px-6 pb-5 flex-row items-end justify-between gap-3"
+          style={{ paddingTop: insets.top + 12 }}
+        >
+          <View className="flex-1 min-w-0">
+            <Text
+              className="text-[28px] font-coach-bold text-g1"
+              style={{ letterSpacing: -0.03 * 28 }}
+            >
+              {t("analytics.title")}
+            </Text>
+            <Text className="text-[13px] font-coach text-g3 mt-1">
+              {t("analytics.subtitle")}
+            </Text>
+          </View>
+          <DataTypePill value={selected} onChange={setSelected} />
         </View>
         <View
           className="bg-w2 h-7"
@@ -62,16 +82,10 @@ export function AnalyticsScreen() {
         }}
         showsVerticalScrollIndicator={false}
       >
-        {workouts === undefined ? (
-          <View className="py-16 items-center">
-            <ActivityIndicator color={LIGHT_THEME.wText} />
-          </View>
-        ) : containerWidth === 0 ? null : (
+        {containerWidth === 0 ? null : (
           <>
-            <WeeklyDistanceCard workouts={workouts} width={chartWidth} />
-            <TypeMixCard workouts={workouts} width={chartWidth} />
-            <EasyPaceDriftCard workouts={workouts} width={chartWidth} />
-            <PlannedVsActualCard workouts={workouts} width={chartWidth} />
+            {isLocked ? <ConnectProviderCTA dataType={selected} /> : null}
+            {renderSection(selected, chartWidth, isLocked)}
           </>
         )}
       </ScrollView>
@@ -79,8 +93,46 @@ export function AnalyticsScreen() {
   );
 }
 
-function oneYearAgoIso(): string {
-  const d = new Date();
-  d.setUTCFullYear(d.getUTCFullYear() - 1);
-  return d.toISOString();
+function renderSection(
+  type: DataTypeKey,
+  width: number,
+  isLocked: boolean,
+) {
+  switch (type) {
+    case "activities":
+      return <TrainingSection width={width} />;
+    case "sleep":
+      return <SleepSection width={width} isLocked={isLocked} />;
+    case "menstruation":
+      return <MenstrualSection width={width} isLocked={isLocked} />;
+    case "nutrition":
+      return <NutritionSection width={width} isLocked={isLocked} />;
+    default:
+      return null;
+  }
+}
+
+function isDataType(v: unknown): v is DataTypeKey {
+  return (
+    typeof v === "string" &&
+    ANALYTICS_DATA_TYPES.some((d) => d.key === v)
+  );
+}
+
+type ConnectionRow = { provider?: string; active?: boolean | null };
+
+function computeLockedTypes(
+  connections: ConnectionRow[] | undefined,
+): Set<DataTypeKey> {
+  const locked = new Set<DataTypeKey>(
+    ANALYTICS_DATA_TYPES.map((d) => d.key),
+  );
+  if (!connections) return locked;
+  for (const conn of connections) {
+    if (!conn.active) continue;
+    const provider = conn.provider as Provider | undefined;
+    if (!provider || !(provider in PROVIDER_CAPABILITIES)) continue;
+    for (const dt of PROVIDER_CAPABILITIES[provider]) locked.delete(dt);
+  }
+  return locked;
 }

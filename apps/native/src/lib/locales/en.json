@@ -794,10 +794,31 @@
     "timeWindow": {
       "title": "Time window"
     },
+    "dataTypes": {
+      "activities": "Training",
+      "sleep": "Sleep",
+      "menstruation": "Cycle",
+      "nutrition": "Nutrition"
+    },
+    "dataTypesPicker": {
+      "title": "View"
+    },
+    "cta": {
+      "eyebrow": "Unlock more data",
+      "title": "Connect a provider that tracks {{dataType}}",
+      "body": "No connected provider currently syncs this data. Add one to see your trends here.",
+      "button": "See providers"
+    },
+    "locked": {
+      "message": "No connected provider for {{dataType}}"
+    },
     "empty": {
       "noCompleted": "No completed runs in this window yet.",
       "noEasy": "Log a few easy runs to see how your pace is trending.",
-      "noPlanned": "Once your plan has workouts, planned vs actual shows up here."
+      "noPlanned": "Once your plan has workouts, planned vs actual shows up here.",
+      "noSleep": "No sleep data in this window yet.",
+      "noNutrition": "No nutrition entries logged in this window.",
+      "noCycle": "No cycle data yet — once a record syncs, your current phase will show here."
     },
     "cards": {
       "weeklyDistance": {
@@ -819,6 +840,29 @@
         "subtitle": "Weekly distance",
         "legendPlanned": "Planned",
         "legendActual": "Actual"
+      },
+      "sleepDuration": {
+        "title": "Sleep duration",
+        "subtitle": "Average hours per week",
+        "avgLabel": "Avg per night"
+      },
+      "dailyCalories": {
+        "title": "Daily calories",
+        "subtitle": "Energy intake per day",
+        "avgLabel": "Avg per day"
+      },
+      "cyclePhase": {
+        "title": "Cycle phase",
+        "subtitle": "Where you are in your cycle",
+        "dayOf": "of {{total}}",
+        "untilNext_one": "{{count}} day until the next phase",
+        "untilNext_other": "{{count}} days until the next phase",
+        "phases": {
+          "menstrual": "Menstrual",
+          "follicular": "Follicular",
+          "ovulatory": "Ovulation",
+          "luteal": "Luteal"
+        }
       }
     }
   },
@@ -1211,6 +1255,10 @@
       "comingSoon": "Coming soon",
       "syncing": "Syncing…",
       "lastSync": "Last sync · {{time}}",
+      "filter": {
+        "label": "Filtered · {{dataType}}",
+        "clear": "Clear"
+      },
       "providers": {
         "strava": {
           "description": "Sync activities, routes & training"

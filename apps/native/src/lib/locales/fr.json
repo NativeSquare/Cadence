@@ -794,10 +794,31 @@
     "timeWindow": {
       "title": "Période"
     },
+    "dataTypes": {
+      "activities": "Entraînement",
+      "sleep": "Sommeil",
+      "menstruation": "Cycle",
+      "nutrition": "Nutrition"
+    },
+    "dataTypesPicker": {
+      "title": "Affichage"
+    },
+    "cta": {
+      "eyebrow": "Débloque plus de données",
+      "title": "Connecte un service qui suit : {{dataType}}",
+      "body": "Aucun service connecté ne synchronise cette donnée. Ajoutes-en un pour voir tes tendances ici.",
+      "button": "Voir les services"
+    },
+    "locked": {
+      "message": "Aucun service connecté pour : {{dataType}}"
+    },
     "empty": {
       "noCompleted": "Aucune sortie terminée sur cette période.",
       "noEasy": "Enregistre quelques footings pour voir l'évolution de ton allure.",
-      "noPlanned": "Quand ton plan contiendra des séances, prévu vs réalisé apparaîtra ici."
+      "noPlanned": "Quand ton plan contiendra des séances, prévu vs réalisé apparaîtra ici.",
+      "noSleep": "Pas encore de données de sommeil sur cette période.",
+      "noNutrition": "Aucune entrée nutrition enregistrée sur cette période.",
+      "noCycle": "Pas encore de données de cycle — ta phase actuelle s'affichera ici dès la première synchro."
     },
     "cards": {
       "weeklyDistance": {
@@ -819,6 +840,29 @@
         "subtitle": "Distance hebdomadaire",
         "legendPlanned": "Prévu",
         "legendActual": "Réalisé"
+      },
+      "sleepDuration": {
+        "title": "Durée de sommeil",
+        "subtitle": "Moyenne d'heures par semaine",
+        "avgLabel": "Moy. par nuit"
+      },
+      "dailyCalories": {
+        "title": "Calories quotidiennes",
+        "subtitle": "Apport énergétique par jour",
+        "avgLabel": "Moy. par jour"
+      },
+      "cyclePhase": {
+        "title": "Phase du cycle",
+        "subtitle": "Où tu en es dans ton cycle",
+        "dayOf": "sur {{total}}",
+        "untilNext_one": "{{count}} jour avant la prochaine phase",
+        "untilNext_other": "{{count}} jours avant la prochaine phase",
+        "phases": {
+          "menstrual": "Menstruation",
+          "follicular": "Folliculaire",
+          "ovulatory": "Ovulation",
+          "luteal": "Lutéale"
+        }
       }
     }
   },
@@ -1211,6 +1255,10 @@
       "comingSoon": "Bientôt disponible",
       "syncing": "Synchronisation…",
       "lastSync": "Dernière sync · {{time}}",
+      "filter": {
+        "label": "Filtré · {{dataType}}",
+        "clear": "Effacer"
+      },
       "providers": {
         "strava": {
           "description": "Synchroniser activités, parcours & entraînements"

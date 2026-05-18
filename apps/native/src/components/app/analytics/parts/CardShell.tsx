@@ -3,7 +3,9 @@ import { View } from "react-native";
 import { Text } from "@/components/ui/text";
 import { LIGHT_THEME } from "@/lib/design-tokens";
 import { TimeWindowPill } from "./TimeWindowPill";
+import { ChartLockedOverlay } from "./ChartLockedOverlay";
 import type { WeekWindow } from "../lib/window";
+import type { DataTypeKey } from "@/lib/providers/capabilities";
 
 type IconCmp = ComponentType<{
   size?: number;
@@ -15,9 +17,14 @@ type Props = {
   title: string;
   subtitle?: string;
   Icon: IconCmp;
-  window: WeekWindow;
-  windows: WeekWindow[];
-  onWindowChange: (next: WeekWindow) => void;
+  // Optional: cards that don't need a time-window dropdown (e.g. a phase
+  // indicator) can omit these and the pill won't render.
+  window?: WeekWindow;
+  windows?: WeekWindow[];
+  onWindowChange?: (next: WeekWindow) => void;
+  // When set, the chart body is covered by an opaque overlay announcing
+  // that no connected provider tracks this data type. Title stays visible.
+  lockedDataType?: DataTypeKey;
   children: ReactNode;
 };
 
@@ -28,8 +35,11 @@ export function CardShell({
   window,
   windows,
   onWindowChange,
+  lockedDataType,
   children,
 }: Props) {
+  const showPill =
+    window !== undefined && windows !== undefined && onWindowChange !== undefined;
   return (
     <View
       className="bg-w1 rounded-2xl p-5"
@@ -65,14 +75,19 @@ export function CardShell({
             ) : null}
           </View>
         </View>
-        <TimeWindowPill
-          value={window}
-          options={windows}
-          onChange={onWindowChange}
-        />
+        {showPill ? (
+          <TimeWindowPill
+            value={window}
+            options={windows}
+            onChange={onWindowChange}
+          />
+        ) : null}
       </View>
 
-      {children}
+      <View className="relative">
+        {children}
+        {lockedDataType ? <ChartLockedOverlay dataType={lockedDataType} /> : null}
+      </View>
     </View>
   );
 }

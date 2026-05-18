@@ -15,10 +15,16 @@ import { useHealthKit } from "@/hooks/use-healthkit";
 import { useHealthKitSyncProgress } from "@/hooks/use-healthkit-sync-store";
 import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
 import { formatRelativeShort } from "@/lib/format-relative";
+import {
+  ANALYTICS_DATA_TYPES,
+  PROVIDER_CAPABILITIES,
+  type DataTypeKey,
+  type Provider,
+} from "@/lib/providers/capabilities";
 import { Ionicons } from "@expo/vector-icons";
 import { api } from "@packages/backend/convex/_generated/api";
 import { useQuery } from "convex/react";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -33,7 +39,14 @@ type ProviderKey = "strava" | "appleHealth" | "garmin";
 type ConnectionDef = {
   key: ProviderKey;
   slug: "strava" | "apple-health" | "garmin";
-  provider: "STRAVA" | "HEALTHKIT" | "GARMIN";
+  provider: Extract<Provider, "STRAVA" | "HEALTHKIT" | "GARMIN">;
+  name: string;
+  logo: (props: { size?: number; color?: string }) => React.ReactNode;
+};
+
+type ComingSoonDef = {
+  key: "coros";
+  provider: Extract<Provider, "COROS">;
   name: string;
   logo: (props: { size?: number; color?: string }) => React.ReactNode;
 };
@@ -63,9 +76,10 @@ const CONNECTIONS: ConnectionDef[] = [
   },
 ];
 
-const COMING_SOON_PROVIDERS = [
+const COMING_SOON_PROVIDERS: ComingSoonDef[] = [
   {
-    key: "coros" as const,
+    key: "coros",
+    provider: "COROS",
     name: "COROS",
     logo: CorosLogo,
   },
@@ -74,6 +88,10 @@ const COMING_SOON_PROVIDERS = [
 export default function ConnectionsScreen() {
   const { t } = useTranslation();
   const router = useRouter();
+  const { filter: filterParam } = useLocalSearchParams<{ filter?: string }>();
+  const activeFilter: DataTypeKey | null = isDataType(filterParam)
+    ? filterParam
+    : null;
   const connections = useQuery(api.soma.index.listConnections);
   const {
     connect: connectStrava,
@@ -138,12 +156,22 @@ export default function ConnectionsScreen() {
     permissionSheetRef.current?.present("appleHealth", runConnect);
   };
 
+  const passesFilter = (provider: Provider): boolean =>
+    activeFilter === null
+      ? true
+      : PROVIDER_CAPABILITIES[provider].includes(activeFilter);
+
+  const visibleConnections = CONNECTIONS.filter((c) => passesFilter(c.provider));
+  const visibleComingSoon = COMING_SOON_PROVIDERS.filter((c) =>
+    passesFilter(c.provider),
+  );
+
   const connectedProviders = connections
-    ? CONNECTIONS.filter(isConnected)
+    ? visibleConnections.filter(isConnected)
     : [];
   const notConnectedProviders = connections
-    ? CONNECTIONS.filter((c) => !isConnected(c))
-    : CONNECTIONS;
+    ? visibleConnections.filter((c) => !isConnected(c))
+    : visibleConnections;
 
   return (
     <View className="pt-safe flex-1" style={{ backgroundColor: LIGHT_THEME.w2 }}>
@@ -171,6 +199,36 @@ export default function ConnectionsScreen() {
         contentContainerClassName="px-4 py-6"
       >
         <View className="w-full max-w-md gap-6 self-center">
+          {activeFilter ? (
+            <View
+              className="flex-row items-center gap-2 self-start rounded-full px-3 py-2"
+              style={{
+                backgroundColor: LIGHT_THEME.w1,
+                borderWidth: 1,
+                borderColor: LIGHT_THEME.wBrd,
+              }}
+            >
+              <Text
+                className="font-coach-medium text-[12px]"
+                style={{ color: LIGHT_THEME.wMute }}
+              >
+                {t("account.connections.filter.label", {
+                  dataType: t(`analytics.dataTypes.${activeFilter}`),
+                })}
+              </Text>
+              <Pressable
+                onPress={() => router.setParams({ filter: undefined })}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Ionicons
+                  name="close"
+                  size={14}
+                  color={LIGHT_THEME.wText}
+                />
+              </Pressable>
+            </View>
+          ) : null}
+
           {/* ── Connected Providers ── */}
           {connectedProviders.length > 0 && (
             <View className="gap-3">
@@ -268,7 +326,7 @@ export default function ConnectionsScreen() {
 
           {/* ── Not Yet Connected ── */}
           {(notConnectedProviders.length > 0 ||
-            COMING_SOON_PROVIDERS.length > 0) && (
+            visibleComingSoon.length > 0) && (
             <View className="gap-3">
               <Text
                 className="font-coach-semibold text-[13px] uppercase tracking-wider"
@@ -295,7 +353,7 @@ export default function ConnectionsScreen() {
                     (isAppleHealth && healthKitConnecting);
                   const isLast =
                     index === notConnectedProviders.length - 1 &&
-                    COMING_SOON_PROVIDERS.length === 0;
+                    visibleComingSoon.length === 0;
 
                   const handleConnect = isStrava
                     ? handleConnectStrava
@@ -362,8 +420,8 @@ export default function ConnectionsScreen() {
                 })}
 
                 {/* Coming Soon providers */}
-                {COMING_SOON_PROVIDERS.map((provider, index) => {
-                  const isLast = index === COMING_SOON_PROVIDERS.length - 1;
+                {visibleComingSoon.map((provider, index) => {
+                  const isLast = index === visibleComingSoon.length - 1;
                   return (
                     <View
                       key={provider.key}
@@ -431,5 +489,11 @@ export default function ConnectionsScreen() {
 
       <ConnectPermissionSheet ref={permissionSheetRef} />
     </View>
+  );
+}
+
+function isDataType(v: unknown): v is DataTypeKey {
+  return (
+    typeof v === "string" && ANALYTICS_DATA_TYPES.some((d) => d.key === v)
   );
 }
