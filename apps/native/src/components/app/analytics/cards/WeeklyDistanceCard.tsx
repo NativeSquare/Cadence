@@ -83,8 +83,10 @@ function buildSeries(workouts: WorkoutDoc[], window: WeekWindow): Series {
 
   for (const w of workouts) {
     if (w.status !== "completed") continue;
-    const date = w.actual?.date;
-    const meters = w.actual?.distanceMeters;
+    const date = w.actual?.date ?? w.planned?.date;
+    // Manual mark-done doesn't capture distance — fall back to planned so
+    // the workout still contributes weekly volume.
+    const meters = w.actual?.distanceMeters ?? w.planned?.distanceMeters;
     if (!date || !meters || meters <= 0) continue;
     const k = isoWeekKey(new Date(date));
     if (!bucket[k]) continue;

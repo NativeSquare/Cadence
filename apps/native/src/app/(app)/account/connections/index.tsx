@@ -39,13 +39,14 @@ type ConnectionDef = {
 };
 
 const CONNECTIONS: ConnectionDef[] = [
-  {
-    key: "strava",
-    slug: "strava",
-    provider: "STRAVA",
-    name: "Strava",
-    logo: StravaLogo,
-  },
+  // Temporarily hidden — Strava only exposes Activity reads, which we don't use yet.
+  // {
+  //   key: "strava",
+  //   slug: "strava",
+  //   provider: "STRAVA",
+  //   name: "Strava",
+  //   logo: StravaLogo,
+  // },
   {
     key: "appleHealth",
     slug: "apple-health",

@@ -91,8 +91,10 @@ function buildSeries(workouts: WorkoutDoc[], window: WeekWindow): Series {
       if (k in planned) planned[k] += pMeters / 1000;
     }
     if (w.status === "completed") {
-      const aDate = w.actual?.date;
-      const aMeters = w.actual?.distanceMeters;
+      const aDate = w.actual?.date ?? w.planned?.date;
+      // Manual mark-done doesn't capture distance — fall back to planned so
+      // the actual line reflects "did the planned workout".
+      const aMeters = w.actual?.distanceMeters ?? w.planned?.distanceMeters;
       if (aDate && aMeters && aMeters > 0) {
         const k = isoWeekKey(new Date(aDate));
         if (k in actual) actual[k] += aMeters / 1000;

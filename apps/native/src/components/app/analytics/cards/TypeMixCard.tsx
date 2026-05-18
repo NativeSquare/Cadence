@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { View } from "react-native";
-import Svg, { G, Path, Text as SvgText } from "react-native-svg";
+import Svg, { Circle, G, Path, Text as SvgText } from "react-native-svg";
 import { PieChart } from "lucide-react-native";
 import type { WorkoutDoc } from "@nativesquare/agoge/schema";
 import { WORKOUT_TYPES_COLORS } from "@packages/shared/colors";
@@ -118,26 +118,40 @@ function Donut({ total, slices }: Stats) {
   const r = (SIZE - STROKE) / 2;
   const cx = SIZE / 2;
   const cy = SIZE / 2;
+  const singleSlice = slices.length === 1 ? slices[0] : null;
   let acc = 0;
   return (
     <Svg width={SIZE} height={SIZE}>
       <G>
-        {slices.map((s) => {
-          const frac = s.count / total;
-          const start = acc;
-          const end = acc + frac;
-          acc = end;
-          return (
-            <Path
-              key={s.type}
-              d={arcPath(cx, cy, r, start * Math.PI * 2, end * Math.PI * 2)}
-              stroke={WORKOUT_TYPES_COLORS[s.type]}
-              strokeWidth={STROKE}
-              fill="none"
-              strokeLinecap="butt"
-            />
-          );
-        })}
+        {singleSlice ? (
+          // SVG arcs can't draw a true 360° path; render a circle instead
+          // so the stroke doesn't double up at the seam.
+          <Circle
+            cx={cx}
+            cy={cy}
+            r={r}
+            stroke={WORKOUT_TYPES_COLORS[singleSlice.type]}
+            strokeWidth={STROKE}
+            fill="none"
+          />
+        ) : (
+          slices.map((s) => {
+            const frac = s.count / total;
+            const start = acc;
+            const end = acc + frac;
+            acc = end;
+            return (
+              <Path
+                key={s.type}
+                d={arcPath(cx, cy, r, start * Math.PI * 2, end * Math.PI * 2)}
+                stroke={WORKOUT_TYPES_COLORS[s.type]}
+                strokeWidth={STROKE}
+                fill="none"
+                strokeLinecap="butt"
+              />
+            );
+          })
+        )}
       </G>
       <SvgText
         x={cx}
