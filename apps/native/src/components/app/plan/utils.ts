@@ -127,6 +127,7 @@ export function workoutToWorkoutData(
     dur: formatDurationShort(durationSeconds),
     done: derivedStatus === "completed",
     missed: derivedStatus === "missed",
+    needsFeedback: derivedStatus === "needs_feedback",
     intensity: intensityFromType(workout.type),
     desc: workout.description ?? "",
     zone: "-",

@@ -61,14 +61,25 @@ export function blockLabel(
 
 /**
  * Translate an agoge WorkoutStatus enum value (planned/completed/missed/
- * skipped) to a locale-aware label. Falls back to capitalize for safety.
+ * skipped) — or the frontend-only `needs_feedback` derived state — to a
+ * locale-aware label. Falls back to capitalize for safety.
  */
-export function workoutStatusLabel(t: TFunction, status: string): string {
+export function workoutStatusLabel(
+  t: TFunction,
+  status: DerivedWorkoutStatus | string,
+): string {
   const key = `workout.status.${status}`;
   const translated = t(key);
   if (translated && translated !== key) return translated;
   return status.charAt(0).toUpperCase() + status.slice(1);
 }
+
+/**
+ * Effective status displayed in the UI. Wider than the persisted
+ * `WorkoutStatus` because past-planned workouts are surfaced as
+ * `needs_feedback` at render time to prompt the user to triage them.
+ */
+export type DerivedWorkoutStatus = WorkoutStatus | "needs_feedback";
 
 /**
  * Today as YYYY-MM-DD in the user's local timezone. Compares against the
@@ -83,11 +94,12 @@ export function localTodayYmd(now: Date = new Date()): string {
 }
 
 /**
- * Derive the effective workout status. The DB only ever stores transitions
- * the user has explicitly made (planned → completed/skipped); `missed` is
- * surfaced lazily at read time when a planned workout's date has passed
- * without an actual face. Backend rules continue to read the persisted
- * status — they treat planned/missed/skipped as equivalent "not completed".
+ * Derive the effective workout status. The DB stores transitions the user
+ * has explicitly made (planned → completed/skipped/missed). Past-planned
+ * workouts the user hasn't categorized yet are surfaced as `needs_feedback`
+ * — a frontend-only state that prompts triage in the UI. Persisted `missed`
+ * (an explicit user choice) is preserved as-is so we never conflate the
+ * two. Backend rules continue to read the persisted status.
  */
 export function deriveWorkoutStatus(
   workout: {
@@ -96,13 +108,17 @@ export function deriveWorkoutStatus(
     actual?: { date: string } | undefined;
   },
   todayYmd: string,
-): WorkoutStatus {
-  if (workout.status === "completed" || workout.status === "skipped") {
+): DerivedWorkoutStatus {
+  if (
+    workout.status === "completed" ||
+    workout.status === "skipped" ||
+    workout.status === "missed"
+  ) {
     return workout.status;
   }
   if (workout.actual) return "completed";
   if (workout.planned && workout.planned.date.slice(0, 10) < todayYmd) {
-    return "missed";
+    return "needs_feedback";
   }
   return "planned";
 }

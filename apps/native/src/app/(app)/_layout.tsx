@@ -36,6 +36,14 @@ export default function AppLayout() {
             gestureDirection: "vertical",
           }}
         />
+        <Stack.Screen
+          name="workouts/needs-feedback"
+          options={{
+            headerShown: false,
+            presentation: "card",
+            animation: "slide_from_right",
+          }}
+        />
       </Stack>
     </View>
   );

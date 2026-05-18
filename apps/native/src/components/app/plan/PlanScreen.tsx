@@ -36,6 +36,7 @@ import { api } from "@packages/backend/convex/_generated/api";
 import { DateHeader } from "./DateHeader";
 import { CalendarStrip } from "./CalendarStrip";
 import { TodayCard } from "./TodayCard";
+import { NeedsFeedbackCard } from "./NeedsFeedbackCard";
 import { RaceCountdown } from "./RaceCountdown";
 import { QuickActions } from "./QuickActions";
 import { TrainingPulseCard } from "./TrainingPulseCard";
@@ -338,6 +339,12 @@ export function PlanScreen() {
           </View>
         ) : (
           <View className="flex-1 bg-w2 pb-6">
+            {workouts && workouts.length > 0 && (
+              <View className="px-4 pt-4">
+                <NeedsFeedbackCard workouts={workouts} today={today} />
+              </View>
+            )}
+
             {/* Today's Workout Card */}
             <View className="px-4 pt-4">
               <TodayCard

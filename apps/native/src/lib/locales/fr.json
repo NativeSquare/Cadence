@@ -713,7 +713,8 @@
       "planned": "Planifiée",
       "completed": "Terminée",
       "missed": "Manquée",
-      "skipped": "Sautée"
+      "skipped": "Sautée",
+      "needs_feedback": "À catégoriser"
     },
     "relativeDate": {
       "today": "Aujourd'hui",
@@ -721,6 +722,18 @@
       "yesterday": "Hier",
       "inDays": "Dans {{count}} jours",
       "daysAgo": "Il y a {{count}} jours"
+    },
+    "needsFeedback": {
+      "cardTitle": "À catégoriser",
+      "cardSubtitle_one": "1 séance attend ton retour",
+      "cardSubtitle_other": "{{count}} séances attendent ton retour",
+      "screenHeader": "À catégoriser",
+      "screenSubtitle": "Marque chaque séance comme terminée ou manquée.",
+      "emptyTitle": "Tu es à jour",
+      "emptyBody": "Aucune séance passée n'attend ton retour.",
+      "markDone": "Marquer terminée",
+      "markMissed": "Marquer manquée",
+      "markMissedError": "Impossible de marquer cette séance comme manquée. Réessaie."
     },
     "detail": {
       "header": "Séance",

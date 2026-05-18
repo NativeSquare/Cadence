@@ -56,6 +56,7 @@ function statusLabel(t: TFunction, status: string): string {
     case "completed":
     case "missed":
     case "skipped":
+    case "needs_feedback":
       return t(`workout.status.${status}`);
     default:
       return status;
@@ -67,6 +68,7 @@ const STATUS_COLOR: Record<string, string> = {
   completed: COLORS.grn,
   missed: COLORS.red,
   skipped: COLORS.ylw,
+  needs_feedback: COLORS.ylw,
 };
 
 function parseIsoDate(iso: string): Date {
@@ -243,7 +245,9 @@ export function WorkoutDetailPage({ workoutId }: WorkoutDetailPageProps) {
   };
 
   const canMarkAsDone =
-    (effectiveStatus === "planned" || effectiveStatus === "missed") &&
+    (effectiveStatus === "planned" ||
+      effectiveStatus === "missed" ||
+      effectiveStatus === "needs_feedback") &&
     workout.planned != null &&
     !isFutureDay(workout.planned.date);
 

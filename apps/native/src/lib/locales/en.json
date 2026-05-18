@@ -713,7 +713,8 @@
       "planned": "Planned",
       "completed": "Completed",
       "missed": "Missed",
-      "skipped": "Skipped"
+      "skipped": "Skipped",
+      "needs_feedback": "Needs feedback"
     },
     "relativeDate": {
       "today": "Today",
@@ -721,6 +722,18 @@
       "yesterday": "Yesterday",
       "inDays": "In {{count}} days",
       "daysAgo": "{{count}} days ago"
+    },
+    "needsFeedback": {
+      "cardTitle": "Needs feedback",
+      "cardSubtitle_one": "1 workout waiting for you",
+      "cardSubtitle_other": "{{count}} workouts waiting for you",
+      "screenHeader": "Needs feedback",
+      "screenSubtitle": "Mark each one as done or missed.",
+      "emptyTitle": "You're all caught up",
+      "emptyBody": "No past workouts waiting for your input.",
+      "markDone": "Mark done",
+      "markMissed": "Mark missed",
+      "markMissedError": "Couldn't mark this workout as missed. Try again."
     },
     "detail": {
       "header": "Workout",

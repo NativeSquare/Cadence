@@ -235,6 +235,28 @@ function MissedBadge() {
   );
 }
 
+function NeedsFeedbackBadge() {
+  const { t } = useTranslation();
+  return (
+    <View
+      className="flex-row items-center gap-1.5 rounded-full px-2.5 py-1"
+      style={{
+        backgroundColor: "rgba(255,196,0,0.14)",
+        borderWidth: 1,
+        borderColor: "rgba(255,196,0,0.30)",
+      }}
+    >
+      <AlertIcon color={COLORS.ylw} />
+      <Text
+        className="text-[11px] font-coach-semibold uppercase tracking-wider"
+        style={{ color: COLORS.ylw }}
+      >
+        {t("workout.status.needs_feedback")}
+      </Text>
+    </View>
+  );
+}
+
 function CoachAdjustedBadge() {
   const { t } = useTranslation();
   return (
@@ -401,6 +423,8 @@ function CardHeader({
         )}
         {workout.missed ? (
           <MissedBadge />
+        ) : workout.needsFeedback ? (
+          <NeedsFeedbackBadge />
         ) : workout.coachAdjusted ? (
           <CoachAdjustedBadge />
         ) : (

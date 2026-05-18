@@ -45,9 +45,13 @@ export interface WorkoutData {
   dur: string;
   /** Whether the workout has been completed */
   done: boolean;
-  /** Derived: planned date has passed without an actual face. Persisted status
-   * stays "planned" — this is surfaced lazily for UI. */
+  /** Persisted `status === "missed"` — the user explicitly marked the
+   * workout missed. Drives the red "Missed" badge. */
   missed?: boolean;
+  /** Derived: planned date has passed without any user action (still
+   * `status === "planned"`). Surfaces an amber "Needs feedback" prompt so
+   * the user can triage it as done or missed. */
+  needsFeedback?: boolean;
   /** Intensity level determines the accent color */
   intensity: WorkoutIntensity;
   /** Detailed description of the workout */

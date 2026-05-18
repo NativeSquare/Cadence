@@ -69,16 +69,14 @@ export function WorkoutCard({ workout, onPress }: WorkoutCardProps) {
   const typeColor = WORKOUT_TYPES_COLORS[workout.type];
   const typeColorDim = WORKOUT_TYPES_COLORS_DIM[workout.type];
   const effectiveStatus = deriveWorkoutStatus(workout, localTodayYmd());
+  // Strike through closed-out workouts (skipped/missed). Needs-feedback rows
+  // need attention, not finality — render at full opacity with a label.
   const dimmed = effectiveStatus === "skipped" || effectiveStatus === "missed";
 
   const subtitleParts = [workoutTypeLabel(t, workout.type)];
   const meta = [duration, distance].filter(Boolean).join(" · ");
   if (meta) subtitleParts.push(meta);
-  if (
-    effectiveStatus === "completed" ||
-    effectiveStatus === "skipped" ||
-    effectiveStatus === "missed"
-  ) {
+  if (effectiveStatus !== "planned") {
     subtitleParts.push(workoutStatusLabel(t, effectiveStatus));
   }
 
