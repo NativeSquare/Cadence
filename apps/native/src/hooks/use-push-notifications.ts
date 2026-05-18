@@ -99,6 +99,8 @@ export function usePushNotifications(enabled = true) {
           router.push(`/(app)/workouts/${data.workoutId}`);
         } else if (data?.screen === "chat") {
           router.push("/(app)/(tabs)/coach");
+        } else if (data?.screen === "needsFeedback") {
+          router.push("/(app)/workouts/needs-feedback");
         }
       });
 

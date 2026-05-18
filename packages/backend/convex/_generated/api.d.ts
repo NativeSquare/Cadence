@@ -47,6 +47,7 @@ import type * as coach_tools_reading from "../coach/tools/reading.js";
 import type * as coach_tools_writing from "../coach/tools/writing.js";
 import type * as coach_triggers_dailyCheckIn from "../coach/triggers/dailyCheckIn.js";
 import type * as coach_triggers_hrvLowReadiness from "../coach/triggers/hrvLowReadiness.js";
+import type * as coach_triggers_needsFeedbackReminder from "../coach/triggers/needsFeedbackReminder.js";
 import type * as coach_turns from "../coach/turns.js";
 import type * as coach_voice from "../coach/voice.js";
 import type * as contacts from "../contacts.js";
@@ -120,6 +121,7 @@ declare const fullApi: ApiFromModules<{
   "coach/tools/writing": typeof coach_tools_writing;
   "coach/triggers/dailyCheckIn": typeof coach_triggers_dailyCheckIn;
   "coach/triggers/hrvLowReadiness": typeof coach_triggers_hrvLowReadiness;
+  "coach/triggers/needsFeedbackReminder": typeof coach_triggers_needsFeedbackReminder;
   "coach/turns": typeof coach_turns;
   "coach/voice": typeof coach_voice;
   contacts: typeof contacts;

@@ -22,6 +22,16 @@ crons.daily(
   internal.crons.runHrvReadinessCheck,
 );
 
+// Needs-feedback reminder — fires daily at 07:00 UTC (≈ 08–09:00 in
+// Europe/Paris). For each onboarded user we fan out a per-user action that
+// counts past-planned workouts still uncategorized and pushes a single
+// aggregated reminder.
+crons.daily(
+  "needs-feedback-reminders",
+  { hourUTC: 7, minuteUTC: 0 },
+  internal.crons.runNeedsFeedbackReminders,
+);
+
 const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 const FOUR_WEEKS_MS = 4 * ONE_WEEK_MS;
 
@@ -58,6 +68,28 @@ export const runHrvReadinessCheck = internalMutation({
       await ctx.scheduler.runAfter(
         0,
         internal.coach.triggers.hrvLowReadiness.evaluateAndApplyForUser,
+        { userId: user._id },
+      );
+    }
+    return null;
+  },
+});
+
+/**
+ * Fan out one needs-feedback evaluation per onboarded user. Per-user failures
+ * (e.g. missing athlete row) don't block others.
+ */
+export const runNeedsFeedbackReminders = internalMutation({
+  args: {},
+  returns: v.null(),
+  handler: async (ctx) => {
+    const users = await ctx.db.query("users").collect();
+    for (const user of users) {
+      if (user.banned) continue;
+      if (!user.hasCompletedOnboarding) continue;
+      await ctx.scheduler.runAfter(
+        0,
+        internal.coach.triggers.needsFeedbackReminder.evaluateAndSendForUser,
         { userId: user._id },
       );
     }

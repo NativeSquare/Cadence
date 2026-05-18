@@ -162,6 +162,55 @@ export const sendCoachInterventionNotification = internalAction({
 });
 
 /**
+ * Needs-feedback reminder — fired by the daily cron when one or more
+ * past-planned workouts (last 7 days) are still uncategorized. One
+ * aggregate push per user, count-based. Tap deep-links to the triage list.
+ */
+export const sendNeedsFeedbackReminder = internalAction({
+  args: {
+    userId: v.id("users"),
+    count: v.number(),
+    locale: v.union(v.literal("en"), v.literal("fr")),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const { title, body } = buildNeedsFeedbackText(args.locale, args.count);
+    await pushNotifications.sendPushNotification(ctx, {
+      userId: args.userId,
+      notification: {
+        title,
+        body,
+        data: { screen: "needsFeedback" },
+        sound: "default",
+      },
+    });
+    return null;
+  },
+});
+
+function buildNeedsFeedbackText(
+  locale: "en" | "fr",
+  count: number,
+): { title: string; body: string } {
+  if (locale === "fr") {
+    return {
+      title: "Comment se sont passées tes séances ?",
+      body:
+        count === 1
+          ? "1 séance attend ton retour. Faite ou manquée ?"
+          : `${count} séances attendent ton retour. Faites ou manquées ?`,
+    };
+  }
+  return {
+    title: "How did your workouts go?",
+    body:
+      count === 1
+        ? "1 workout needs your feedback. Done or missed?"
+        : `${count} workouts need your feedback. Done or missed?`,
+  };
+}
+
+/**
  * Workout-completion push, scheduled from the Soma webhook when an activity
  * matches a planned session. Tap deep-links to the workout detail screen.
  */
