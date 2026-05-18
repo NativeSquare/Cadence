@@ -511,6 +511,7 @@ export function WorkoutDetailPage({ workoutId }: WorkoutDetailPageProps) {
         workoutId={workout._id}
         workoutName={workout.name}
         isTest={workout.type === "test"}
+        plannedDate={workout.planned?.date}
       />
 
       <ManualPaceSheet

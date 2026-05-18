@@ -456,6 +456,10 @@ export function PlanScreen() {
           sheetRef={markDoneSheetRef}
           workoutId={selectedWorkout_.workoutId}
           workoutName={selectedWorkout_.type}
+          plannedDate={
+            planWorkouts?.find((w) => w._id === selectedWorkout_.workoutId)
+              ?.planned?.date
+          }
         />
       )}
     </View>

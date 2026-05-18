@@ -119,6 +119,7 @@ export function NeedsFeedbackScreen() {
     id: string;
     name: string;
     isTest: boolean;
+    plannedDate?: string;
   } | null>(null);
   const [pendingMissedId, setPendingMissedId] = React.useState<string | null>(
     null,
@@ -143,6 +144,7 @@ export function NeedsFeedbackScreen() {
       id: workout._id,
       name: workout.name,
       isTest: workout.type === "test",
+      plannedDate: workout.planned?.date,
     });
     markDoneSheetRef.current?.present();
   };
@@ -244,6 +246,7 @@ export function NeedsFeedbackScreen() {
           workoutId={selected.id}
           workoutName={selected.name}
           isTest={selected.isTest}
+          plannedDate={selected.plannedDate}
         />
       )}
     </View>

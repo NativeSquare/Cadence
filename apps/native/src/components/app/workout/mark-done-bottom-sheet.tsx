@@ -51,6 +51,13 @@ export interface MarkDoneBottomSheetProps {
   workoutId: string;
   workoutName: string;
   isTest?: boolean;
+  /**
+   * Date to record on the completed face. Most users mark a workout done
+   * after the fact, so we default the actual date to its planned date
+   * rather than "right now" — that matches reality the vast majority of
+   * the time. Falls back to `nowIso()` if the workout has no planned face.
+   */
+  plannedDate?: string;
 }
 
 const DEFAULTS: FormValues = {
@@ -66,6 +73,7 @@ export function MarkDoneBottomSheet({
   workoutId,
   workoutName,
   isTest,
+  plannedDate,
 }: MarkDoneBottomSheetProps) {
   const { t } = useTranslation();
   const updateWorkout = useMutation(api.agoge.workouts.updateWorkout);
@@ -100,7 +108,7 @@ export function MarkDoneBottomSheet({
       try {
         const trimmedNotes = data.notes?.trim();
         const actual = {
-          date: nowIso(),
+          date: plannedDate ?? nowIso(),
           distanceMeters: Math.round(km * 1000),
           durationSeconds: totalSeconds,
           ...(data.rpe != null ? { rpe: data.rpe } : {}),
@@ -118,7 +126,7 @@ export function MarkDoneBottomSheet({
     try {
       const trimmedNotes = data.notes?.trim();
       const actual = {
-        date: nowIso(),
+        date: plannedDate ?? nowIso(),
         ...(data.rpe != null ? { rpe: data.rpe } : {}),
         ...(trimmedNotes ? { notes: trimmedNotes } : {}),
       };
