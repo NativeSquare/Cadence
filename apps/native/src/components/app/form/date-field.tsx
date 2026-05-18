@@ -1,7 +1,7 @@
 import { BottomSheetModal } from "@/components/custom/bottom-sheet";
 import { FormField } from "@/components/app/form/field";
 import { Text } from "@/components/ui/text";
-import { LIGHT_THEME } from "@/lib/design-tokens";
+import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
 import { selectionFeedback } from "@/lib/haptics";
 import { BottomSheetModal as GorhomBottomSheetModal } from "@gorhom/bottom-sheet";
 import DateTimePicker, {
@@ -21,6 +21,7 @@ type Props = {
   maxDate?: string;
   placeholder?: string;
   minuteInterval?: 1 | 2 | 3 | 4 | 5 | 6 | 10 | 12 | 15 | 20 | 30;
+  error?: string;
 };
 
 function parseValue(s: string, mode: DateFieldMode): Date {
@@ -78,6 +79,7 @@ export function DateField({
   maxDate,
   placeholder = "Select date",
   minuteInterval = 5,
+  error,
 }: Props) {
   const sheetRef = React.useRef<GorhomBottomSheetModal>(null);
   const [pendingDate, setPendingDate] = React.useState<Date | null>(null);
@@ -138,13 +140,13 @@ export function DateField({
   };
 
   return (
-    <FormField label={label}>
+    <FormField label={label} error={error}>
       <Pressable
         onPress={open}
         className="h-12 flex-row items-center rounded-xl border px-4 active:opacity-80"
         style={{
           backgroundColor: LIGHT_THEME.w1,
-          borderColor: LIGHT_THEME.wBrd,
+          borderColor: error ? COLORS.red : LIGHT_THEME.wBrd,
         }}
       >
         <Text

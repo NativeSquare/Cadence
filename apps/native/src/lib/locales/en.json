@@ -527,7 +527,8 @@
       "nameRequired": "Name is required",
       "fixHighlighted": "Please fix the highlighted fields.",
       "notFound": "Workout not found",
-      "noPlannedVersion": "This workout has no planned version to complete."
+      "noPlannedVersion": "This workout has no planned version to complete.",
+      "dateAlreadyScheduled": "A workout is already scheduled on this day."
     },
     "common": {
       "goBack": "Go back",
@@ -537,10 +538,7 @@
     },
     "log": {
       "title": "Log a workout",
-      "submit": "Save workout",
-      "addPlanned": "Add planned version",
-      "removePlanned": "Remove planned version",
-      "plannedSectionOptional": "Planned (optional)"
+      "submit": "Save workout"
     },
     "schedule": {
       "title": "Schedule a workout",

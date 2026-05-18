@@ -15,20 +15,17 @@ import {
   TemplateHeaderButton,
   TemplatePickerSheet,
 } from "@/components/app/workout/template-picker-sheet";
-import { Text } from "@/components/ui/text";
-import { LIGHT_THEME } from "@/lib/design-tokens";
 import { selectionFeedback } from "@/lib/haptics";
 import { getConvexErrorMessage } from "@/utils/getConvexErrorMessage";
 import { type Workout as WorkoutStructure } from "@nativesquare/agoge";
 import type { WorkoutTemplateDoc, WorkoutType } from "@nativesquare/agoge/schema";
-import { Ionicons } from "@expo/vector-icons";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { useRouter } from "expo-router";
 import React from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import { Keyboard, Pressable, View } from "react-native";
+import { Keyboard } from "react-native";
 import { z } from "zod";
 
 const formSchema = z.object({
@@ -36,7 +33,6 @@ const formSchema = z.object({
   description: z.string().optional(),
   type: z.custom<WorkoutType>(),
   actual: workoutFaceSchema,
-  planned: workoutFaceSchema,
 });
 type LogWorkoutFormShape = z.infer<typeof formSchema>;
 
@@ -45,7 +41,6 @@ export type LogWorkoutFormValues = {
   description?: string;
   type: WorkoutType;
   actual: LogWorkoutFormShape["actual"];
-  planned?: LogWorkoutFormShape["planned"];
 };
 
 export function LogWorkoutForm({
@@ -70,33 +65,22 @@ export function LogWorkoutForm({
       description: "",
       type: "easy",
       actual: { date: initialFaceDate, structure: EMPTY_STRUCTURE },
-      planned: { date: initialFaceDate, structure: EMPTY_STRUCTURE },
     },
   });
 
   const [submitError, setSubmitError] = React.useState<string | null>(null);
-  const [showPlanned, setShowPlanned] = React.useState(false);
   const templateSheetRef = React.useRef<BottomSheetModal>(null);
 
   const actual = useWatch({ control: form.control, name: "actual" });
-  const planned = useWatch({ control: form.control, name: "planned" });
   const name = useWatch({ control: form.control, name: "name" });
 
   const actualErrorByPath = React.useMemo(
     () => buildErrorByPath(actual.structure),
     [actual.structure],
   );
-  const plannedErrorByPath = React.useMemo(
-    () => buildErrorByPath(planned.structure),
-    [planned.structure],
-  );
   const actualError = React.useMemo(
     () => firstStructureError(actual.structure),
     [actual.structure],
-  );
-  const plannedError = React.useMemo(
-    () => firstStructureError(planned.structure),
-    [planned.structure],
   );
 
   const isSubmitting = form.formState.isSubmitting;
@@ -108,11 +92,6 @@ export function LogWorkoutForm({
     if (!isValidIso(actual.date)) return false;
     if (actual.structure.blocks.length === 0) return false;
     if (actualError != null) return false;
-    if (showPlanned) {
-      if (!isValidIso(planned.date)) return false;
-      if (planned.structure.blocks.length === 0) return false;
-      if (plannedError != null) return false;
-    }
     return true;
   })();
 
@@ -132,22 +111,6 @@ export function LogWorkoutForm({
     templateSheetRef.current?.dismiss();
   };
 
-  const togglePlanned = () => {
-    selectionFeedback();
-    if (showPlanned) {
-      // Clear planned face when hiding so we never accidentally submit stale data.
-      form.setValue("planned", {
-        date: actual.date,
-        structure: EMPTY_STRUCTURE,
-      });
-      setShowPlanned(false);
-    } else {
-      // When opening, default planned date to actual date.
-      form.setValue("planned.date", actual.date);
-      setShowPlanned(true);
-    }
-  };
-
   const handleSave = form.handleSubmit(
     async (data) => {
       setSubmitError(null);
@@ -158,7 +121,6 @@ export function LogWorkoutForm({
           description: data.description,
           type: data.type,
           actual: data.actual,
-          planned: showPlanned ? data.planned : undefined,
         });
         router.back();
       } catch (err) {
@@ -205,46 +167,6 @@ export function LogWorkoutForm({
           structureError={actualError}
         />
       </WorkoutFaceCard>
-
-      {showPlanned && (
-        <WorkoutFaceCard
-          variant="planned"
-          title={t("workout.log.plannedSectionOptional")}
-        >
-          <WorkoutFaceFields
-            control={form.control}
-            faceName="planned"
-            maxDate={actual.date}
-            errorByPath={plannedErrorByPath}
-            structureError={plannedError}
-          />
-        </WorkoutFaceCard>
-      )}
-
-      <View>
-        <Pressable
-          onPress={togglePlanned}
-          className="flex-row items-center justify-center gap-2 self-center rounded-full border px-4 py-2.5 active:opacity-80"
-          style={{
-            backgroundColor: LIGHT_THEME.w1,
-            borderColor: LIGHT_THEME.wBrd,
-          }}
-        >
-          <Ionicons
-            name={showPlanned ? "remove-circle-outline" : "add-circle-outline"}
-            size={16}
-            color={LIGHT_THEME.wText}
-          />
-          <Text
-            className="font-coach-semibold text-[13px]"
-            style={{ color: LIGHT_THEME.wText }}
-          >
-            {showPlanned
-              ? t("workout.log.removePlanned")
-              : t("workout.log.addPlanned")}
-          </Text>
-        </Pressable>
-      </View>
 
       <TemplatePickerSheet
         sheetRef={templateSheetRef}

@@ -458,12 +458,28 @@ export const createWorkout = mutation({
         ? current.plan._id
         : undefined;
 
+    // Infer block from the planned date when caller didn't pass one. Lets
+    // the schedule UI stay block-free while still slotting workouts into the
+    // right training block.
+    let blockId = args.blockId;
+    if (planId && !blockId && plannedYmd) {
+      const blocks = await ctx.runQuery(
+        components.agoge.public.getBlocksByPlan,
+        { planId },
+      );
+      const containing = blocks.find(
+        (b) => plannedYmd >= b.startDate && plannedYmd <= b.endDate,
+      );
+      if (containing) blockId = containing._id;
+    }
+
     const workoutId = await ctx.runMutation(
       components.agoge.public.createWorkout,
       {
         ...args,
         athleteId: auth.athlete._id,
         planId,
+        blockId,
       },
     );
 

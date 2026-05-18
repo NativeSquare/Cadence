@@ -2,7 +2,8 @@
  * QuickActions - Two primary buttons under the home page card stack.
  *
  * - Schedule a workout → opens the schedule form prefilled with the selected
- *   day on the calendar strip.
+ *   day on the calendar strip. The backend infers the training block from
+ *   the date so the workout slots into the current plan.
  * - Log a workout      → opens the log form prefilled with the selected day.
  *
  * Workout-type selection (easy / tempo / long / race) lives inside each

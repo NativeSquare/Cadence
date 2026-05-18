@@ -176,10 +176,7 @@ export default function TrainingPlanScreen() {
                   selectionFeedback();
                   router.push({
                     pathname: "/(app)/workouts/schedule",
-                    params: {
-                      blockId: block._id,
-                      date: block.startDate,
-                    },
+                    params: { date: block.startDate },
                   });
                 }}
                 onSelectWorkout={(workoutId) =>

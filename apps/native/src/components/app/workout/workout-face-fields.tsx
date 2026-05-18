@@ -19,6 +19,7 @@ export function WorkoutFaceFields<T extends FieldValues>({
   maxDate,
   errorByPath,
   structureError,
+  dateError,
 }: {
   control: Control<T>;
   faceName: "planned" | "actual";
@@ -27,6 +28,7 @@ export function WorkoutFaceFields<T extends FieldValues>({
   maxDate?: string;
   errorByPath?: Record<string, string>;
   structureError?: string | null;
+  dateError?: string | null;
 }) {
   const { t } = useTranslation();
   const c = control as unknown as Control<FieldValues>;
@@ -44,6 +46,7 @@ export function WorkoutFaceFields<T extends FieldValues>({
             onChange={field.onChange}
             minDate={minDate}
             maxDate={maxDate}
+            error={dateError ?? undefined}
           />
         )}
       />

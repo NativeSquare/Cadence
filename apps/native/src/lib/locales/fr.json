@@ -527,7 +527,8 @@
       "nameRequired": "Le nom est requis",
       "fixHighlighted": "Veuillez corriger les champs en surbrillance.",
       "notFound": "Séance introuvable",
-      "noPlannedVersion": "Cette séance n'a pas de version planifiée à compléter."
+      "noPlannedVersion": "Cette séance n'a pas de version planifiée à compléter.",
+      "dateAlreadyScheduled": "Une séance est déjà prévue ce jour-là."
     },
     "common": {
       "goBack": "Retour",
@@ -537,10 +538,7 @@
     },
     "log": {
       "title": "Enregistrer une séance",
-      "submit": "Enregistrer la séance",
-      "addPlanned": "Ajouter une version planifiée",
-      "removePlanned": "Retirer la version planifiée",
-      "plannedSectionOptional": "Planifiée (optionnel)"
+      "submit": "Enregistrer la séance"
     },
     "schedule": {
       "title": "Planifier une séance",

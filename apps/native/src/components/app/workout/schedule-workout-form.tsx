@@ -1,5 +1,4 @@
 import { FormSection } from "@/components/app/form";
-import { WorkoutBlockField } from "@/components/app/workout/workout-block-field";
 import { WorkoutFaceCard } from "@/components/app/workout/workout-face-card";
 import { WorkoutFaceFields } from "@/components/app/workout/workout-face-fields";
 import { WorkoutFormShell } from "@/components/app/workout/workout-form-shell";
@@ -20,7 +19,6 @@ import { selectionFeedback } from "@/lib/haptics";
 import { getConvexErrorMessage } from "@/utils/getConvexErrorMessage";
 import { type Workout as WorkoutStructure } from "@nativesquare/agoge";
 import type {
-  BlockDoc,
   WorkoutTemplateDoc,
   WorkoutType,
 } from "@nativesquare/agoge/schema";
@@ -37,22 +35,20 @@ const formSchema = z.object({
   name: z.string().trim().min(1, "Name is required"),
   description: z.string().optional(),
   type: z.custom<WorkoutType>(),
-  blockId: z.string().nullable().optional(),
   planned: workoutFaceSchema,
 });
 export type ScheduleWorkoutFormValues = z.infer<typeof formSchema>;
 
 export function ScheduleWorkoutForm({
   initialDate,
-  initialBlockId,
   templates,
-  blocks,
+  takenYmds,
   onSubmit,
 }: {
   initialDate?: string;
-  initialBlockId?: string;
   templates?: WorkoutTemplateDoc[];
-  blocks: BlockDoc[];
+  /** Calendar-day prefixes (YYYY-MM-DD) that already have a workout — blocked. */
+  takenYmds?: ReadonlySet<string>;
   onSubmit: (values: ScheduleWorkoutFormValues) => Promise<void>;
 }) {
   const { t } = useTranslation();
@@ -66,7 +62,6 @@ export function ScheduleWorkoutForm({
       name: "",
       description: "",
       type: "easy",
-      blockId: initialBlockId ?? null,
       planned: {
         date: initialDate ?? nowIso(),
         structure: EMPTY_STRUCTURE,
@@ -92,10 +87,19 @@ export function ScheduleWorkoutForm({
   const isSubmitting = form.formState.isSubmitting;
   const nowBoundary = nowIso();
 
+  const dateConflict =
+    takenYmds != null &&
+    isValidIso(planned.date) &&
+    takenYmds.has(planned.date.slice(0, 10));
+  const dateError = dateConflict
+    ? t("workout.errors.dateAlreadyScheduled")
+    : null;
+
   const canSave =
     !isSubmitting &&
     name.trim().length > 0 &&
     isValidIso(planned.date) &&
+    !dateConflict &&
     planned.structure.blocks.length > 0 &&
     plannedError == null;
 
@@ -152,7 +156,6 @@ export function ScheduleWorkoutForm({
     >
       <FormSection title={t("workout.fields.workoutSection")}>
         <WorkoutMetadataFields control={form.control} />
-        <WorkoutBlockField control={form.control} blocks={blocks} />
       </FormSection>
 
       <WorkoutFaceCard
@@ -165,6 +168,7 @@ export function ScheduleWorkoutForm({
           minDate={nowBoundary}
           errorByPath={plannedErrorByPath}
           structureError={plannedError}
+          dateError={dateError}
         />
       </WorkoutFaceCard>
 

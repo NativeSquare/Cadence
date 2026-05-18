@@ -30,7 +30,6 @@ export default function LogWorkoutScreen() {
           sport: "run",
           status: "completed",
           actual: values.actual,
-          planned: values.planned,
         });
       }}
     />
