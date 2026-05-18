@@ -4,15 +4,18 @@
  * Action-only for now — invoke from the Convex dashboard as
  * `internal.coach.triggers.dailyCheckIn.evaluateForUser({ userId })`. No cron,
  * no opt-in flag check, no cooldown, no decision log. Its job is to validate
- * the trigger → LLM → push pipeline end-to-end with the minimum moving parts.
+ * the trigger → LLM → thread-message → push pipeline end-to-end with the
+ * minimum moving parts.
  *
  * Reads today's and tomorrow's planned workout from Agoge, asks Haiku for a
- * short morning briefing in the user's locale + tone, and ships it as a push
- * notification. Tap deep-links to today's workout (if any) or just opens the
- * app to the home screen.
+ * short morning briefing in the user's locale + tone as plain prose, drops it
+ * into the user's coach thread as an assistant message, and lets
+ * `sendCoachMessageNotification` fire the push as a consequence. The agent
+ * loop is deliberately bypassed — this trigger only narrates, it never acts.
  */
 
 import { anthropic } from "@ai-sdk/anthropic";
+import { createThread, saveMessage } from "@convex-dev/agent";
 import { generateText } from "ai";
 import { v } from "convex/values";
 import { api, components, internal } from "../../_generated/api";
@@ -27,7 +30,6 @@ type WorkoutBrief = {
   name: string;
   distanceMeters?: number;
   durationSeconds?: number;
-  workoutId?: string;
 };
 
 function ymdRange(daysFromToday: number): { start: string; end: string } {
@@ -89,51 +91,19 @@ function buildPrompt(args: {
     `- Today's session: ${summarize(args.today)}`,
     `- Tomorrow's session: ${summarize(args.tomorrow)}`,
     "",
-    "Return STRICT JSON only, no markdown, no preamble:",
-    '{ "title": "<short push title, max 6 words>", "body": "<one to two short sentences, max 160 chars, first person from the coach>" }',
+    "Reply with the message itself — plain prose, one to three short sentences, first person from the coach. No JSON, no markdown headings, no preamble.",
   ].join("\n");
 }
 
-function parseHaikuJson(
-  text: string,
-): { title: string; body: string } | null {
-  const start = text.indexOf("{");
-  const end = text.lastIndexOf("}");
-  if (start === -1 || end === -1 || end <= start) return null;
-  try {
-    const obj = JSON.parse(text.slice(start, end + 1));
-    if (
-      typeof obj?.title === "string" &&
-      typeof obj?.body === "string" &&
-      obj.title.length > 0 &&
-      obj.body.length > 0
-    ) {
-      return { title: obj.title, body: obj.body };
-    }
-  } catch {
-    /* fall through */
-  }
-  return null;
-}
-
-function fallback(
-  locale: "en" | "fr",
-  today: WorkoutBrief | null,
-): { title: string; body: string } {
+function fallback(locale: "en" | "fr", today: WorkoutBrief | null): string {
   if (locale === "fr") {
-    return {
-      title: "Bonjour",
-      body: today
-        ? `Au programme aujourd'hui : ${today.name}.`
-        : "Jour de repos aujourd'hui — récupère bien.",
-    };
+    return today
+      ? `Bonjour. Au programme aujourd'hui : ${today.name}.`
+      : "Bonjour. Jour de repos aujourd'hui — récupère bien.";
   }
-  return {
-    title: "Morning check-in",
-    body: today
-      ? `On the menu today: ${today.name}.`
-      : "Rest day today — recover well.",
-  };
+  return today
+    ? `Morning. On the menu today: ${today.name}.`
+    : "Morning. Rest day today — recover well.";
 }
 
 // ---------------------------------------------------------------------------
@@ -181,48 +151,55 @@ export const evaluateForUser = internalAction({
           name: w.name,
           distanceMeters: w.planned.distanceMeters,
           durationSeconds: w.planned.durationSeconds,
-          workoutId: w._id,
         };
         if (dayPrefix === todayPrefix && !today) today = brief;
         else if (dayPrefix === tomorrowPrefix && !tomorrow) tomorrow = brief;
       }
     }
 
-    let title: string;
     let body: string;
     try {
       const { text } = await generateText({
         model: anthropic.chat("claude-haiku-4-5-20251001"),
         prompt: buildPrompt({ locale, tone, firstName, today, tomorrow }),
       });
-      const parsed = parseHaikuJson(text);
-      if (parsed) {
-        title = parsed.title;
-        body = parsed.body;
-      } else {
-        const fb = fallback(locale, today);
-        title = fb.title;
-        body = fb.body;
-      }
+      const trimmed = text.trim();
+      body = trimmed.length > 0 ? trimmed : fallback(locale, today);
     } catch (err) {
       console.warn("[dailyCheckIn] Haiku call failed, using fallback", err);
-      const fb = fallback(locale, today);
-      title = fb.title;
-      body = fb.body;
+      body = fallback(locale, today);
     }
 
-    // If today has a workout, deep-link to its detail page. Otherwise leave
-    // the screen unset and the app opens to its home.
-    const data = today?.workoutId
-      ? { screen: "workout", workoutId: today.workoutId }
-      : undefined;
+    // Drop the prose into the user's coach thread as an assistant message.
+    // We bypass the full agent loop on purpose: this trigger narrates, it
+    // never acts, so it must not have access to writing tools.
+    const userIdStr = userId as string;
+    const existing = await ctx.runQuery(
+      components.agent.threads.listThreadsByUserId,
+      {
+        userId: userIdStr,
+        order: "desc",
+        paginationOpts: { numItems: 1, cursor: null },
+      },
+    );
+    const threadId =
+      existing.page[0]?._id ??
+      (await createThread(ctx, components.agent, { userId: userIdStr }));
 
-    await ctx.runAction(internal.notifications.sendToUser, {
-      userId,
-      title,
-      body,
-      data,
+    await saveMessage(ctx, components.agent, {
+      threadId,
+      userId: userIdStr,
+      message: { role: "assistant", content: body },
+      agentName: "Cadence Coach",
     });
+
+    // Push fires as a consequence of the new thread message. Tap deep-links
+    // to the coach tab (handled by sendCoachMessageNotification).
+    await ctx.scheduler.runAfter(
+      0,
+      internal.notifications.sendCoachMessageNotification,
+      { userId, threadId, preview: body.slice(0, 140) },
+    );
     return null;
   },
 });

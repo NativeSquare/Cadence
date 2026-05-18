@@ -13,6 +13,7 @@
  */
 
 import { anthropic } from "@ai-sdk/anthropic";
+import { createThread, saveMessage } from "@convex-dev/agent";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { generateText } from "ai";
 import { ConvexError, v } from "convex/values";
@@ -156,12 +157,10 @@ export const applyModificationAndRecord = internalMutation({
 export const setInterventionNotificationText = internalMutation({
   args: {
     interventionId: v.id("coachInterventions"),
-    title: v.string(),
     body: v.string(),
   },
   handler: async (ctx, args) => {
     await ctx.db.patch(args.interventionId, {
-      notificationTitle: args.title,
       notificationBody: args.body,
     });
   },
@@ -242,19 +241,13 @@ function fallbackNotification(
     hrvToday: number;
     hrvBaseline14d: number;
   },
-): { title: string; body: string } {
+): string {
   const today = Math.round(args.hrvToday);
   const base = Math.round(args.hrvBaseline14d);
   if (locale === "fr") {
-    return {
-      title: "J'ai allégé ta séance",
-      body: `HRV à ${today} ms vs base ${base}. J'ai remplacé ${args.originalName} par un Z2 facile de ${args.newDurationMin} min.`,
-    };
+    return `HRV à ${today} ms vs base ${base}. J'ai remplacé ${args.originalName} par un Z2 facile de ${args.newDurationMin} min.`;
   }
-  return {
-    title: "I lightened tomorrow's session",
-    body: `HRV at ${today} ms vs baseline ${base}. Swapped ${args.originalName} for an easy Z2 of ${args.newDurationMin} min.`,
-  };
+  return `HRV at ${today} ms vs baseline ${base}. I swapped ${args.originalName} for an easy Z2 of ${args.newDurationMin} min.`;
 }
 
 function buildNotificationPrompt(args: {
@@ -295,31 +288,8 @@ function buildNotificationPrompt(args: {
     `- Original session: "${args.originalName}" (type: ${args.originalType})`,
     `- Replaced with: easy Z2 run, ${args.newDurationMin} minutes`,
     "",
-    "Return STRICT JSON only, no markdown, no preamble:",
-    '{ "title": "<short push title, max 6 words>", "body": "<one to two short sentences, max 160 chars, first person from the coach>" }',
+    "Reply with the message itself — plain prose, one to two short sentences, first person from the coach. No JSON, no markdown, no preamble.",
   ].join("\n");
-}
-
-function parseHaikuJson(
-  text: string,
-): { title: string; body: string } | null {
-  const start = text.indexOf("{");
-  const end = text.lastIndexOf("}");
-  if (start === -1 || end === -1 || end <= start) return null;
-  try {
-    const obj = JSON.parse(text.slice(start, end + 1));
-    if (
-      typeof obj?.title === "string" &&
-      typeof obj?.body === "string" &&
-      obj.title.length > 0 &&
-      obj.body.length > 0
-    ) {
-      return { title: obj.title, body: obj.body };
-    }
-  } catch {
-    /* fall through */
-  }
-  return null;
 }
 
 export const generateAndSendNotification = internalAction({
@@ -341,7 +311,6 @@ export const generateAndSendNotification = internalAction({
       (intervention.newDurationSeconds ?? 30 * 60) / 60,
     );
 
-    let title: string;
     let body: string;
     try {
       const { text } = await generateText({
@@ -357,45 +326,63 @@ export const generateAndSendNotification = internalAction({
           sleepHoursLastNight: intervention.signals.sleepHoursLastNight,
         }),
       });
-      const parsed = parseHaikuJson(text);
-      if (parsed) {
-        title = parsed.title;
-        body = parsed.body;
-      } else {
-        const fb = fallbackNotification(locale, {
-          originalName: intervention.originalName,
-          newDurationMin,
-          hrvToday: intervention.signals.hrvToday,
-          hrvBaseline14d: intervention.signals.hrvBaseline14d,
-        });
-        title = fb.title;
-        body = fb.body;
-      }
+      const trimmed = text.trim();
+      body =
+        trimmed.length > 0
+          ? trimmed
+          : fallbackNotification(locale, {
+              originalName: intervention.originalName,
+              newDurationMin,
+              hrvToday: intervention.signals.hrvToday,
+              hrvBaseline14d: intervention.signals.hrvBaseline14d,
+            });
     } catch (err) {
       console.warn("[hrvLowReadiness] Haiku call failed, using fallback", err);
-      const fb = fallbackNotification(locale, {
+      body = fallbackNotification(locale, {
         originalName: intervention.originalName,
         newDurationMin,
         hrvToday: intervention.signals.hrvToday,
         hrvBaseline14d: intervention.signals.hrvBaseline14d,
       });
-      title = fb.title;
-      body = fb.body;
     }
 
+    // Persist the prose on the intervention row so the workout detail card
+    // can render it (see coach-intervention-card.tsx).
     await ctx.runMutation(
       internal.coach.triggers.hrvLowReadiness.setInterventionNotificationText,
-      { interventionId, title, body },
+      { interventionId, body },
     );
 
-    await ctx.runAction(
-      internal.notifications.sendCoachInterventionNotification,
+    // Drop the prose into the user's coach thread as an assistant message,
+    // then fire the push as a consequence. Agent loop is bypassed on
+    // purpose: this trigger narrates, it never acts.
+    const userIdStr = intervention.userId as string;
+    const existing = await ctx.runQuery(
+      components.agent.threads.listThreadsByUserId,
+      {
+        userId: userIdStr,
+        order: "desc",
+        paginationOpts: { numItems: 1, cursor: null },
+      },
+    );
+    const threadId =
+      existing.page[0]?._id ??
+      (await createThread(ctx, components.agent, { userId: userIdStr }));
+
+    await saveMessage(ctx, components.agent, {
+      threadId,
+      userId: userIdStr,
+      message: { role: "assistant", content: body },
+      agentName: "Cadence Coach",
+    });
+
+    await ctx.scheduler.runAfter(
+      0,
+      internal.notifications.sendCoachMessageNotification,
       {
         userId: intervention.userId,
-        workoutId: intervention.workoutId,
-        interventionId,
-        title,
-        body,
+        threadId,
+        preview: body.slice(0, 140),
       },
     );
     return null;
