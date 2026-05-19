@@ -222,7 +222,8 @@ export const seedHrvForTesting = internalMutation({
       { userId, provider: "GARMIN" },
     );
 
-    const totalDays = Math.max(8, Math.min(30, days));
+    // Cap raised to 120 so the Analytics 12-week HRV chart has data to render.
+    const totalDays = Math.max(8, Math.min(120, days));
     const now = Date.now();
     let baselineSum = 0;
     let baselineCount = 0;
@@ -256,7 +257,6 @@ export const seedHrvForTesting = internalMutation({
         metadata: {
           start_time: dayStart.toISOString(),
           end_time: dayEnd.toISOString(),
-          summary_id: `seed-${dayStart.toISOString().slice(0, 10)}`,
           // 1 = automatic (matches Garmin's daily-record convention; the
           // value isn't read by the readiness query, but the validator
           // requires the field).
@@ -298,6 +298,83 @@ export const clearSeededHrv = internalMutation({
       connectionId: conn._id,
     });
     return null;
+  },
+});
+
+/**
+ * DEV-ONLY: insert a synthetic `coachInterventions` row so the HRV analytics
+ * card has a marker to render without running the real trigger. The row uses
+ * a fake workoutId — the workout-detail intervention card won't find it, but
+ * the analytics dot + tap sheet will. Pair with `seedHrvForTesting` to also
+ * have a chart for the dot to overlay.
+ *
+ * Invocable from the Convex dashboard. DELETE BEFORE LAUNCH.
+ */
+export const seedFakeInterventionForTesting = internalMutation({
+  args: {
+    userId: v.id("users"),
+    daysAgo: v.optional(v.number()),
+    notificationBody: v.optional(v.string()),
+  },
+  returns: v.id("coachInterventions"),
+  handler: async (ctx, { userId, daysAgo = 5, notificationBody }) => {
+    const firedAt = Date.now() - daysAgo * MS_PER_DAY;
+    const user = await ctx.db.get(userId);
+    const locale: "en" | "fr" = user?.locale === "fr" ? "fr" : "en";
+    const body =
+      notificationBody ??
+      (locale === "fr"
+        ? "HRV à 38 ms vs base 55. J'ai remplacé Tempo 8 km par un Z2 facile de 30 min — récupère bien aujourd'hui."
+        : "HRV at 38 ms vs baseline 55. I swapped Tempo 8 km for an easy Z2 of 30 min — take it easy today.");
+    return await ctx.db.insert("coachInterventions", {
+      userId,
+      workoutId: `seed-workout-${firedAt}`,
+      ruleId: "hrv_low_v1",
+      firedAt,
+      signals: {
+        hrvToday: 38,
+        hrvBaseline14d: 55,
+        hrvZScore: -1.4,
+        sleepHoursLastNight: 5.8,
+        rhrToday: 54,
+      },
+      originalType: "threshold",
+      originalName: locale === "fr" ? "Tempo 8 km" : "Tempo 8 km",
+      originalPlanned: {
+        date: new Date(firedAt).toISOString().slice(0, 10),
+        distanceMeters: 8000,
+        durationSeconds: 2700,
+      },
+      originalDistanceMeters: 8000,
+      originalDurationSeconds: 2700,
+      newType: "easy",
+      newName: locale === "fr" ? "Facile 30 min" : "Easy 30 min",
+      newDistanceMeters: 5500,
+      newDurationSeconds: 1800,
+      notificationBody: body,
+    });
+  },
+});
+
+/**
+ * DEV-ONLY: wipe every seeded intervention for this user. The seeded rows are
+ * the ones with a `seed-workout-` prefix on `workoutId`.
+ */
+export const clearSeededInterventions = internalMutation({
+  args: { userId: v.id("users") },
+  returns: v.number(),
+  handler: async (ctx, { userId }) => {
+    const rows = await ctx.db
+      .query("coachInterventions")
+      .withIndex("by_userId_firedAt", (q) => q.eq("userId", userId))
+      .collect();
+    let deleted = 0;
+    for (const r of rows) {
+      if (!r.workoutId.startsWith("seed-workout-")) continue;
+      await ctx.db.delete(r._id);
+      deleted += 1;
+    }
+    return deleted;
   },
 });
 

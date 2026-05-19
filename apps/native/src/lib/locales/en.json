@@ -821,7 +821,22 @@
       "noNutrition": "No nutrition entries logged in this window.",
       "noDaily": "No daily activity data in this window yet.",
       "noBody": "Log at least two weigh-ins to see your weight trend.",
-      "noCycle": "No cycle data yet — once a record syncs, your current phase will show here."
+      "noCycle": "No cycle data yet — once a record syncs, your current phase will show here.",
+      "noHrv": "No HRV data in this window yet."
+    },
+    "intervention": {
+      "sheetTitle": "Adjusted by your coach",
+      "fallbackSentence": "I swapped \"{{original}}\" for \"{{newName}}\".",
+      "diffOriginal": "Originally planned",
+      "diffNew": "What I changed it to",
+      "revertedLabel": "You reverted this change.",
+      "showDetails": "Show details",
+      "hideDetails": "Hide details",
+      "signals": {
+        "hrv": "HRV {{today}} ms vs 14-day average {{baseline}} ms (z = {{z}})",
+        "sleep": "Sleep that night: {{hours}} h",
+        "rhr": "Resting HR that day: {{bpm}} bpm"
+      }
     },
     "cards": {
       "weeklyDistance": {
@@ -860,6 +875,11 @@
         "avgLabel": "Avg per day",
         "stepsSuffix": "steps"
       },
+      "hrv": {
+        "title": "HRV",
+        "subtitle": "Daily heart-rate variability — higher means more recovered",
+        "avgLabel": "Avg in window"
+      },
       "bodyWeight": {
         "title": "Body weight",
         "subtitle": "Weight trend over time",
@@ -894,7 +914,7 @@
       "profile": "Profile",
       "subscription": "Subscription",
       "races": "Races",
-      "fitness": "Fitness",
+      "fitness": "Metrics",
       "workoutTemplates": "Workout Templates",
       "appsAndDevices": "Apps & Devices",
       "calendars": "Calendars",

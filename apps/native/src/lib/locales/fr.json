@@ -821,7 +821,22 @@
       "noNutrition": "Aucune entrée nutrition enregistrée sur cette période.",
       "noDaily": "Pas encore de données d'activité quotidienne sur cette période.",
       "noBody": "Enregistre au moins deux pesées pour voir l'évolution de ton poids.",
-      "noCycle": "Pas encore de données de cycle — ta phase actuelle s'affichera ici dès la première synchro."
+      "noCycle": "Pas encore de données de cycle — ta phase actuelle s'affichera ici dès la première synchro.",
+      "noHrv": "Pas encore de données HRV sur cette période."
+    },
+    "intervention": {
+      "sheetTitle": "Ajusté par ton coach",
+      "fallbackSentence": "J'ai remplacé « {{original}} » par « {{newName}} ».",
+      "diffOriginal": "Prévu initialement",
+      "diffNew": "Ce que j'ai mis à la place",
+      "revertedLabel": "Tu as annulé cette modification.",
+      "showDetails": "Voir les détails",
+      "hideDetails": "Masquer les détails",
+      "signals": {
+        "hrv": "HRV {{today}} ms vs moyenne 14j {{baseline}} ms (z = {{z}})",
+        "sleep": "Sommeil cette nuit-là : {{hours}} h",
+        "rhr": "FC repos ce jour-là : {{bpm}} bpm"
+      }
     },
     "cards": {
       "weeklyDistance": {
@@ -860,6 +875,11 @@
         "avgLabel": "Moy. par jour",
         "stepsSuffix": "pas"
       },
+      "hrv": {
+        "title": "HRV",
+        "subtitle": "Variabilité cardiaque quotidienne — plus c'est haut, mieux tu récupères",
+        "avgLabel": "Moy. sur la période"
+      },
       "bodyWeight": {
         "title": "Poids",
         "subtitle": "Évolution du poids dans le temps",
@@ -894,7 +914,7 @@
       "profile": "Profil",
       "subscription": "Abonnement",
       "races": "Courses",
-      "fitness": "Forme",
+      "fitness": "Métriques",
       "workoutTemplates": "Modèles de séance",
       "appsAndDevices": "Apps et appareils",
       "calendars": "Calendriers",

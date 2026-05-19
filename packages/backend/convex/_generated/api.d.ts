@@ -23,6 +23,8 @@ import type * as agoge_workoutTemplates from "../agoge/workoutTemplates.js";
 import type * as agoge_workouts from "../agoge/workouts.js";
 import type * as analytics_body from "../analytics/body.js";
 import type * as analytics_daily from "../analytics/daily.js";
+import type * as analytics_hrv from "../analytics/hrv.js";
+import type * as analytics_interventions from "../analytics/interventions.js";
 import type * as analytics_menstrual from "../analytics/menstrual.js";
 import type * as analytics_nutrition from "../analytics/nutrition.js";
 import type * as analytics_sleep from "../analytics/sleep.js";
@@ -102,6 +104,8 @@ declare const fullApi: ApiFromModules<{
   "agoge/workouts": typeof agoge_workouts;
   "analytics/body": typeof analytics_body;
   "analytics/daily": typeof analytics_daily;
+  "analytics/hrv": typeof analytics_hrv;
+  "analytics/interventions": typeof analytics_interventions;
   "analytics/menstrual": typeof analytics_menstrual;
   "analytics/nutrition": typeof analytics_nutrition;
   "analytics/sleep": typeof analytics_sleep;
