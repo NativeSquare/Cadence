@@ -219,13 +219,6 @@
     "loadingConversation": "Loading conversation...",
     "unableToStart": "Unable to start conversation. Please try again.",
     "title": "Coach",
-    "status": {
-      "online": "Online",
-      "thinking": "Thinking...",
-      "offline": "Offline",
-      "reconnecting": "Reconnecting...",
-      "errorTapRetry": "Error · tap retry"
-    },
     "emptyState": {
       "heading": "Your running coach",
       "subheading": "Ask me anything about your training, recovery, or race prep.",
@@ -275,6 +268,12 @@
     },
     "tool": {
       "couldNotSubmit": "Could not submit response"
+    },
+    "context": {
+      "openLabel": "Open what the coach knows about you",
+      "title": "What I know about you",
+      "subtitle": "Everything in this list is part of every conversation we have.",
+      "empty": "Nothing yet. As we talk, I'll keep track of things about you that matter for your training."
     },
     "typing": {
       "badge": "Coach"

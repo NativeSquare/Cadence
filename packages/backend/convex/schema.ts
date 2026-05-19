@@ -6,6 +6,7 @@ import { audiences } from "./table/audiences";
 import { broadcastRecipients } from "./table/broadcastRecipients";
 import { broadcasts } from "./table/broadcasts";
 import { coachInterventions } from "./table/coachInterventions";
+import { coachMemories } from "./table/coachMemories";
 import { contacts } from "./table/contacts";
 import { feedback } from "./table/feedback";
 import { users } from "./table/users";
@@ -27,6 +28,7 @@ export default defineSchema({
   broadcastRecipients,
   broadcasts,
   coachInterventions,
+  coachMemories,
   contacts,
   feedback,
   users,

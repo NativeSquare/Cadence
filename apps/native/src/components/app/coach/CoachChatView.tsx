@@ -29,7 +29,7 @@ import { useUploadImage } from "@/hooks/use-upload-image";
 import { useMicrophonePermission } from "@/hooks/use-microphone-permission";
 import { useVoiceRecording } from "@/hooks/use-voice-recording";
 import { useLanguage } from "@/lib/i18n";
-import type { ChatStatusKind, PendingAttachment } from "./types";
+import type { PendingAttachment } from "./types";
 
 const MAX_RECORDING_MS = 60_000;
 
@@ -58,7 +58,6 @@ export function CoachChatView({ threadId }: CoachChatViewProps) {
     isStreaming,
     error,
     isOffline,
-    isReconnecting,
     retryCount,
     maxRetries,
     isRetriesExhausted,
@@ -299,14 +298,6 @@ export function CoachChatView({ threadId }: CoachChatViewProps) {
     }
   }, [isRecording, isVoiceBusy, voiceRecording.durationMs, handleVoiceSend]);
 
-  const statusKind: ChatStatusKind = isOffline
-    ? "offline"
-    : isReconnecting
-      ? "reconnecting"
-      : error
-        ? "error"
-        : "online";
-
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -316,7 +307,7 @@ export function CoachChatView({ threadId }: CoachChatViewProps) {
         className="bg-black px-6 pb-4"
         style={{ paddingTop: insets.top + 8 }}
       >
-        <ChatHeader isTyping={isStreaming} statusKind={statusKind} />
+        <ChatHeader />
       </View>
 
       <View

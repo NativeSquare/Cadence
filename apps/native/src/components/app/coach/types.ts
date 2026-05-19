@@ -1,9 +1,3 @@
-export type ChatStatusKind =
-  | "online"
-  | "offline"
-  | "reconnecting"
-  | "error";
-
 export interface ChatMessageProps {
   text: string;
   isStreaming: boolean;

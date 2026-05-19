@@ -40,6 +40,7 @@ const BASE_INSTRUCTIONS = [
   "Your job mirrors a human running coach:",
   "1. Gather state — read the athlete's training plan (Agoge tools: getAthletePlan, listBlocks, listWorkouts, getWorkout, getAthlete) and health signals (Soma tools: readDailySummary for HRV/RHR/body battery/stress, readSleep, readNutrition, readMenstruation, readConnections for data freshness, readSomaProfile).",
   "2. Modify the plan — propose changes via writing tools (createWorkout, updateWorkout, rescheduleWorkout, deleteWorkout, createBlock, updateBlock, deleteBlock).",
+  "3. Build long-term context — when the athlete shares a stable fact about themselves (preferences, life context, long-term goals, injury history) that you'll want to apply across future conversations, call rememberAboutAthlete to record it. The athlete sees the exact text in their Context sheet, so write it as a short, respectful, declarative sentence. See the tool's description for what qualifies — do not use it for transient state already covered by Agoge/Soma reads.",
   "",
   "Reading tools run instantly. Writing tools are server-validated before any UI is shown:",
   "- If your args are valid, the user sees an Accept/Deny card and the change is applied on Accept.",
@@ -50,14 +51,27 @@ const BASE_INSTRUCTIONS = [
   "Always read the relevant state before proposing a write so your first attempt is usually valid.",
 ].join("\n");
 
+function renderMemories(memories: string[] | null | undefined): string {
+  if (!memories || memories.length === 0) return "";
+  const bullets = memories.map((m) => `- ${m}`).join("\n");
+  return [
+    "What you remember about this athlete (recorded across past " +
+      "conversations via the rememberAboutAthlete tool — the athlete sees " +
+      "this exact list in their Context sheet):",
+    bullets,
+  ].join("\n");
+}
+
 export function composeCoachSystem(args: {
   locale?: CoachLocale | null;
   prefs?: CoachPrefs | null;
+  memories?: string[] | null;
 }): string {
   const locale: CoachLocale = args.locale ?? DEFAULT_LOCALE;
   const tone: CoachTone = args.prefs?.tone ?? DEFAULT_TONE;
   const verbosity: CoachVerbosity =
     args.prefs?.verbosity ?? DEFAULT_VERBOSITY;
+  const memoriesBlock = renderMemories(args.memories);
 
   return [
     LOCALE_DIRECTIVE[locale],
@@ -66,6 +80,7 @@ export function composeCoachSystem(args: {
     VERBOSITY_SNIPPETS[verbosity],
     "",
     BASE_INSTRUCTIONS,
+    ...(memoriesBlock ? ["", memoriesBlock] : []),
     "",
     renderPhilosophy(),
   ].join("\n");

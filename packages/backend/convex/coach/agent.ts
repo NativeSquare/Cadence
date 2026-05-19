@@ -2,6 +2,7 @@ import { anthropic } from "@ai-sdk/anthropic";
 import { Agent, stepCountIs } from "@convex-dev/agent";
 import { components } from "../_generated/api";
 import { FALLBACK_INSTRUCTIONS } from "./instructions";
+import { memoryTools } from "./tools/memory";
 import { readingTools } from "./tools/reading";
 import { writingTools } from "./tools/writing";
 
@@ -12,7 +13,7 @@ export const coach = new Agent(components.agent, {
   // to pass a `system` override. The real per-user prompt is composed in
   // `messages.ts` via `composeCoachSystem({ locale, prefs })`.
   instructions: FALLBACK_INSTRUCTIONS,
-  tools: { ...readingTools, ...writingTools },
+  tools: { ...readingTools, ...writingTools, ...memoryTools },
   // Without this the agent stops after one step (the tool call) and never
   // generates the follow-up text reply once the tool result is in. Per Convex
   // Agent docs: "pass stopWhen: stepCountIs(num) where num > 1".

@@ -219,13 +219,6 @@
     "loadingConversation": "Chargement de la conversation...",
     "unableToStart": "Impossible de démarrer la conversation. Veuillez réessayer.",
     "title": "Coach",
-    "status": {
-      "online": "En ligne",
-      "thinking": "Réflexion...",
-      "offline": "Hors ligne",
-      "reconnecting": "Reconnexion...",
-      "errorTapRetry": "Erreur · appuyer pour réessayer"
-    },
     "emptyState": {
       "heading": "Votre coach de course",
       "subheading": "Demandez-moi tout sur votre entraînement, votre récupération ou votre préparation de course.",
@@ -275,6 +268,12 @@
     },
     "tool": {
       "couldNotSubmit": "Impossible d'envoyer la réponse"
+    },
+    "context": {
+      "openLabel": "Ouvrir ce que le coach sait sur toi",
+      "title": "Ce que je sais sur toi",
+      "subtitle": "Tout ce qui figure dans cette liste fait partie de chacune de nos conversations.",
+      "empty": "Rien pour l'instant. Au fil de nos échanges, je noterai ce qui compte pour ton entraînement."
     },
     "typing": {
       "badge": "Coach"

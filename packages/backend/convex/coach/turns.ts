@@ -55,10 +55,14 @@ async function buildSystemForUser(
   ctx: ActionCtx,
   userId: Id<"users">,
 ): Promise<string> {
-  const user = await ctx.runQuery(api.table.users.get, { id: userId });
+  const [user, memoryRows] = await Promise.all([
+    ctx.runQuery(api.table.users.get, { id: userId }),
+    ctx.runQuery(api.table.coachMemories.listForUser, { userId }),
+  ]);
   return composeCoachSystem({
     locale: user?.locale ?? null,
     prefs: user?.coachPrefs ?? null,
+    memories: memoryRows.map((m) => m.text),
   });
 }
 

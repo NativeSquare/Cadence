@@ -1,69 +1,27 @@
 /**
- * ChatHeader - Header with title and online/typing status
+ * ChatHeader - Header with title and a Context button on the right that opens
+ * the "what the coach knows about you" sheet.
  */
 
-import { View } from "react-native";
-import { Text } from "@/components/ui/text";
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withTiming,
-  Easing,
-} from "react-native-reanimated";
-import { useEffect } from "react";
+import { useCallback, useRef } from "react";
+import { Pressable, View } from "react-native";
 import { useTranslation } from "react-i18next";
-import type { ChatStatusKind } from "./types";
+import { Brain } from "lucide-react-native";
+import type { BottomSheetModal as GorhomBottomSheetModal } from "@gorhom/bottom-sheet";
+import { Text } from "@/components/ui/text";
+import { GRAYS } from "@/lib/design-tokens";
+import { CoachContextSheet } from "./CoachContextSheet";
 
-export interface ChatHeaderProps {
-  isTyping: boolean;
-  statusKind: ChatStatusKind;
-}
-
-function StatusDot({ isTyping, statusKind }: ChatHeaderProps) {
-  const opacity = useSharedValue(1);
-  const isOfflineOrError = statusKind === "offline" || statusKind === "error";
-
-  useEffect(() => {
-    if (isTyping) {
-      opacity.value = withRepeat(
-        withTiming(0.5, { duration: 500, easing: Easing.inOut(Easing.ease) }),
-        -1,
-        true,
-      );
-    } else {
-      opacity.value = withTiming(1, { duration: 150 });
-    }
-  }, [isTyping, opacity]);
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    opacity: opacity.value,
-  }));
-
-  const dotColor = isOfflineOrError
-    ? "bg-red-500"
-    : isTyping
-      ? "bg-ora"
-      : "bg-lime";
-
-  return (
-    <Animated.View
-      style={animatedStyle}
-      className={`w-1.5 h-1.5 rounded-full ${dotColor}`}
-    />
-  );
-}
-
-export function ChatHeader({ isTyping, statusKind }: ChatHeaderProps) {
+export function ChatHeader() {
   const { t } = useTranslation();
-  const status = isTyping
-    ? t("coach.status.thinking")
-    : t(
-        `coach.status.${statusKind === "error" ? "errorTapRetry" : statusKind}`,
-      );
+  const contextSheetRef = useRef<GorhomBottomSheetModal>(null);
+
+  const handleContextPress = useCallback(() => {
+    contextSheetRef.current?.present();
+  }, []);
 
   return (
-    <View>
+    <View className="flex-row items-center justify-between">
       <Text
         className="text-[28px] font-coach-bold text-g1"
         style={{ letterSpacing: -0.03 * 28 }}
@@ -71,10 +29,17 @@ export function ChatHeader({ isTyping, statusKind }: ChatHeaderProps) {
         {t("coach.title")}
       </Text>
 
-      <View className="flex-row items-center gap-1.5 mt-1">
-        <StatusDot isTyping={isTyping} statusKind={statusKind} />
-        <Text className="text-[12px] font-coach text-g3">{status}</Text>
-      </View>
+      <Pressable
+        onPress={handleContextPress}
+        hitSlop={10}
+        accessibilityRole="button"
+        accessibilityLabel={t("coach.context.openLabel")}
+        className="h-9 w-9 items-center justify-center rounded-full border bg-[rgba(255,255,255,0.06)] border-[rgba(255,255,255,0.08)] active:opacity-70"
+      >
+        <Brain size={16} color={GRAYS.g2} strokeWidth={1.75} />
+      </Pressable>
+
+      <CoachContextSheet sheetRef={contextSheetRef} />
     </View>
   );
 }
