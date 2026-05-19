@@ -18,6 +18,8 @@ import { TrainingSection } from "./sections/TrainingSection";
 import { SleepSection } from "./sections/SleepSection";
 import { MenstrualSection } from "./sections/MenstrualSection";
 import { NutritionSection } from "./sections/NutritionSection";
+import { DailySection } from "./sections/DailySection";
+import { BodySection } from "./sections/BodySection";
 
 const HORIZONTAL_PADDING = 20;
 // Card uses p-5 (20px) on each side, plus 1px border on each side.
@@ -58,9 +60,6 @@ export function AnalyticsScreen() {
               style={{ letterSpacing: -0.03 * 28 }}
             >
               {t("analytics.title")}
-            </Text>
-            <Text className="text-[13px] font-coach text-g3 mt-1">
-              {t("analytics.subtitle")}
             </Text>
           </View>
           <DataTypePill value={selected} onChange={setSelected} />
@@ -103,6 +102,10 @@ function renderSection(
       return <TrainingSection width={width} />;
     case "sleep":
       return <SleepSection width={width} isLocked={isLocked} />;
+    case "daily":
+      return <DailySection width={width} isLocked={isLocked} />;
+    case "body":
+      return <BodySection width={width} isLocked={isLocked} />;
     case "menstruation":
       return <MenstrualSection width={width} isLocked={isLocked} />;
     case "nutrition":

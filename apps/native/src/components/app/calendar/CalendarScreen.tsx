@@ -201,13 +201,10 @@ export function CalendarScreen() {
         <View className="flex-row items-center justify-between">
           <View className="flex-1">
             <Text
-              className="text-2xl font-coach-bold text-g1"
-              style={{ letterSpacing: -0.03 * 24 }}
+              className="text-[28px] font-coach-bold text-g1"
+              style={{ letterSpacing: -0.03 * 28 }}
             >
               {t("calendar.title")}
-            </Text>
-            <Text className="text-[13px] font-coach text-g3 mt-1">
-              {t("calendar.subtitle")}
             </Text>
           </View>
           <Pressable

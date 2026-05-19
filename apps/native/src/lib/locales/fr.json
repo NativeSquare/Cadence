@@ -204,7 +204,6 @@
   },
   "calendar": {
     "title": "Calendrier",
-    "subtitle": "Votre mois d'entraînement en un coup d'œil",
     "legend": {
       "open": "Afficher la légende",
       "title": "Légende",
@@ -212,7 +211,8 @@
       "blockTypes": "Blocs d'entraînement"
     },
     "selectedDay": {
-      "empty": "Aucune séance prévue"
+      "empty": "Aucune séance prévue",
+      "addWorkout": "Ajouter une séance"
     }
   },
   "coach": {
@@ -790,13 +790,14 @@
     "errorFallback": "Une erreur est survenue",
     "tryAgain": "Réessayer",
     "title": "Analyses",
-    "subtitle": "Comment se passe ton entraînement",
     "timeWindow": {
       "title": "Période"
     },
     "dataTypes": {
       "activities": "Entraînement",
       "sleep": "Sommeil",
+      "daily": "Quotidien",
+      "body": "Corps",
       "menstruation": "Cycle",
       "nutrition": "Nutrition"
     },
@@ -818,6 +819,8 @@
       "noPlanned": "Quand ton plan contiendra des séances, prévu vs réalisé apparaîtra ici.",
       "noSleep": "Pas encore de données de sommeil sur cette période.",
       "noNutrition": "Aucune entrée nutrition enregistrée sur cette période.",
+      "noDaily": "Pas encore de données d'activité quotidienne sur cette période.",
+      "noBody": "Enregistre au moins deux pesées pour voir l'évolution de ton poids.",
       "noCycle": "Pas encore de données de cycle — ta phase actuelle s'affichera ici dès la première synchro."
     },
     "cards": {
@@ -851,6 +854,17 @@
         "subtitle": "Apport énergétique par jour",
         "avgLabel": "Moy. par jour"
       },
+      "dailySteps": {
+        "title": "Pas quotidiens",
+        "subtitle": "Pas par jour",
+        "avgLabel": "Moy. par jour",
+        "stepsSuffix": "pas"
+      },
+      "bodyWeight": {
+        "title": "Poids",
+        "subtitle": "Évolution du poids dans le temps",
+        "latestLabel": "Dernière mesure"
+      },
       "cyclePhase": {
         "title": "Phase du cycle",
         "subtitle": "Où tu en es dans ton cycle",
@@ -879,7 +893,6 @@
     "items": {
       "profile": "Profil",
       "subscription": "Abonnement",
-      "trainingPlan": "Plan d'entraînement",
       "races": "Courses",
       "fitness": "Forme",
       "workoutTemplates": "Modèles de séance",
@@ -1158,41 +1171,6 @@
         }
       }
     },
-    "trainingPlan": {
-      "title": "Plan d'entraînement",
-      "addWorkout": "Ajouter une séance",
-      "week": "Semaine {{number}}",
-      "empty": {
-        "noPlan": {
-          "title": "Aucun plan d'entraînement actif",
-          "description": "Un plan démarre dès que vous fixez votre prochaine course A. Ajoutez une course pour commencer à vous y préparer.",
-          "addRace": "Ajouter votre prochaine course"
-        },
-        "noBlocks": {
-          "title": "Aucun bloc pour le moment",
-          "description": "Les blocs regroupent des semaines d'entraînement consécutives. Les séances vont à l'intérieur des blocs.",
-          "addFirst": "Ajoutez votre premier bloc"
-        }
-      }
-    },
-    "blocks": {
-      "newTitle": "Nouveau bloc",
-      "createSubmit": "Créer le bloc",
-      "editTitle": "Modifier le bloc",
-      "saveSubmit": "Enregistrer",
-      "notFound": "Bloc introuvable",
-      "section": "Bloc",
-      "datesSection": "Dates",
-      "type": "Type",
-      "focusOptional": "Objectif (optionnel)",
-      "focusPlaceholder": "ex. Capacité aérobie, seuil",
-      "startDate": "Date de début",
-      "endDate": "Date de fin",
-      "deleteBlock": "Supprimer le bloc",
-      "deleteDescription": "Cela supprimera également toutes les séances du bloc. Cette action est irréversible.",
-      "errorEndBeforeStart": "La date de fin doit être identique ou postérieure à la date de début.",
-      "errorRequired": "Les dates sont requises."
-    },
     "notifications": {
       "title": "Notifications",
       "sectionTitle": "Notifications push",
@@ -1259,6 +1237,35 @@
         "label": "Filtré · {{dataType}}",
         "clear": "Effacer"
       },
+      "capabilities": {
+        "dataTypes": {
+          "body": "Corps",
+          "daily": "Quotidien",
+          "menstruation": "Cycle",
+          "nutrition": "Nutrition",
+          "sleep": "Sommeil"
+        }
+      },
+      "dataTypesSheet": {
+        "open": "En savoir plus sur les types de données",
+        "title": "Ce que nous collectons",
+        "subtitle": "Chaque app & appareil partage un mélange différent de ces types de données.",
+        "examplesLabel": "Exemples :",
+        "descriptions": {
+          "body": "Composition corporelle et mesures que tu saisis ou que ta balance enregistre.",
+          "daily": "Activité, fréquence cardiaque et signaux de stress mesurés en continu par ton wearable.",
+          "menstruation": "Dates et symptômes du cycle menstruel, utilisés pour adapter l'entraînement.",
+          "nutrition": "Repas, calories et macronutriments consignés dans ton app de nutrition.",
+          "sleep": "Durée et qualité du sommeil, plus les signaux de récupération nocturne."
+        },
+        "examples": {
+          "body": "poids, % de masse grasse, IMC, masse musculaire, hydratation",
+          "daily": "pas, fréquence cardiaque au repos, calories actives, stress, VFC",
+          "menstruation": "début & fin des règles, intensité du flux, phase du cycle, symptômes",
+          "nutrition": "repas, calories ingérées, protéines, glucides, lipides, hydratation",
+          "sleep": "sommeil total, phases profond / paradoxal / léger, score, réveils"
+        }
+      },
       "providers": {
         "strava": {
           "description": "Synchroniser activités, parcours & entraînements"
@@ -1271,6 +1278,24 @@
         },
         "coros": {
           "description": "Données de montre GPS & entraînement"
+        },
+        "withings": {
+          "description": "Balance connectée, sommeil & tension artérielle"
+        },
+        "oura": {
+          "description": "Sommeil, forme & récupération depuis votre bague"
+        },
+        "googleFit": {
+          "description": "Activités, pas & données de santé"
+        },
+        "fitbit": {
+          "description": "Activités, sommeil & données wearable"
+        },
+        "suunto": {
+          "description": "Montre GPS & activités outdoor"
+        },
+        "inbody": {
+          "description": "Composition corporelle & suivi du poids"
         }
       },
       "detail": {

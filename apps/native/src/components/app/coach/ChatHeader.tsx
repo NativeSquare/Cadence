@@ -65,8 +65,8 @@ export function ChatHeader({ isTyping, statusKind }: ChatHeaderProps) {
   return (
     <View>
       <Text
-        className="text-[24px] font-coach-bold text-g1"
-        style={{ letterSpacing: -0.03 * 24 }}
+        className="text-[28px] font-coach-bold text-g1"
+        style={{ letterSpacing: -0.03 * 28 }}
       >
         {t("coach.title")}
       </Text>

@@ -1,13 +1,21 @@
 import {
   AppleHealthLogo,
   CorosLogo,
+  FitbitLogo,
   GarminLogo,
+  GoogleFitLogo,
+  InBodyLogo,
+  OuraLogo,
   StravaLogo,
+  SuuntoLogo,
+  WithingsLogo,
 } from "@/components/icons/provider-logos";
 import {
   ConnectPermissionSheet,
   type ConnectPermissionSheetHandle,
 } from "@/components/app/account/ConnectPermissionSheet";
+import { ConnectionsDataTypesSheet } from "@/components/app/account/ConnectionsDataTypesSheet";
+import { BottomSheetModal as GorhomBottomSheetModal } from "@gorhom/bottom-sheet";
 import { Text } from "@/components/ui/text";
 import { useStrava } from "@/hooks/use-strava";
 import { useGarmin } from "@/hooks/use-garmin";
@@ -18,9 +26,11 @@ import { formatRelativeShort } from "@/lib/format-relative";
 import {
   ANALYTICS_DATA_TYPES,
   PROVIDER_CAPABILITIES,
+  TERRA_DATA_TYPES,
   type DataTypeKey,
   type Provider,
 } from "@/lib/providers/capabilities";
+import { Info, type LucideIcon } from "lucide-react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { api } from "@packages/backend/convex/_generated/api";
 import { useQuery } from "convex/react";
@@ -44,9 +54,27 @@ type ConnectionDef = {
   logo: (props: { size?: number; color?: string }) => React.ReactNode;
 };
 
+type ComingSoonKey =
+  | "coros"
+  | "withings"
+  | "oura"
+  | "googleFit"
+  | "fitbit"
+  | "suunto"
+  | "inbody";
+
 type ComingSoonDef = {
-  key: "coros";
-  provider: Extract<Provider, "COROS">;
+  key: ComingSoonKey;
+  provider: Extract<
+    Provider,
+    | "COROS"
+    | "WITHINGS"
+    | "OURA"
+    | "GOOGLE_FIT"
+    | "FITBIT"
+    | "SUUNTO"
+    | "INBODY"
+  >;
   name: string;
   logo: (props: { size?: number; color?: string }) => React.ReactNode;
 };
@@ -83,6 +111,42 @@ const COMING_SOON_PROVIDERS: ComingSoonDef[] = [
     name: "COROS",
     logo: CorosLogo,
   },
+  {
+    key: "withings",
+    provider: "WITHINGS",
+    name: "Withings",
+    logo: WithingsLogo,
+  },
+  {
+    key: "oura",
+    provider: "OURA",
+    name: "Oura",
+    logo: OuraLogo,
+  },
+  {
+    key: "googleFit",
+    provider: "GOOGLE_FIT",
+    name: "Google Fit",
+    logo: GoogleFitLogo,
+  },
+  {
+    key: "fitbit",
+    provider: "FITBIT",
+    name: "Fitbit",
+    logo: FitbitLogo,
+  },
+  {
+    key: "suunto",
+    provider: "SUUNTO",
+    name: "Suunto",
+    logo: SuuntoLogo,
+  },
+  {
+    key: "inbody",
+    provider: "INBODY",
+    name: "InBody",
+    logo: InBodyLogo,
+  },
 ];
 
 export default function ConnectionsScreen() {
@@ -113,6 +177,7 @@ export default function ConnectionsScreen() {
   const healthKitSyncing = healthKitSync.phase === "syncing";
 
   const permissionSheetRef = React.useRef<ConnectPermissionSheetHandle>(null);
+  const dataTypesSheetRef = React.useRef<GorhomBottomSheetModal>(null);
 
   const [error, setError] = React.useState<string | null>(null);
 
@@ -192,6 +257,16 @@ export default function ConnectionsScreen() {
         >
           {t("account.connections.title")}
         </Text>
+        <Pressable
+          onPress={() => dataTypesSheetRef.current?.present()}
+          accessibilityRole="button"
+          accessibilityLabel={t("account.connections.dataTypesSheet.open")}
+          hitSlop={10}
+          className="size-9 items-center justify-center rounded-full active:opacity-70"
+          style={{ backgroundColor: LIGHT_THEME.w3 }}
+        >
+          <Info size={16} color={LIGHT_THEME.wText} strokeWidth={1.75} />
+        </Pressable>
       </View>
 
       <ScrollView
@@ -262,7 +337,7 @@ export default function ConnectionsScreen() {
                           params: { provider: conn.slug },
                         })
                       }
-                      className="flex-row items-center gap-3.5 px-4 py-4 active:opacity-70"
+                      className="px-4 py-4 active:opacity-70"
                       style={
                         isLast
                           ? undefined
@@ -272,51 +347,55 @@ export default function ConnectionsScreen() {
                             }
                       }
                     >
-                      <View
-                        className="size-[38px] shrink-0 items-center justify-center rounded-xl"
-                        style={{ backgroundColor: LIGHT_THEME.w3 }}
-                      >
-                        <conn.logo size={18} />
-                      </View>
-
-                      <View className="flex-1">
-                        <Text
-                          className="font-coach-medium text-[15px]"
-                          style={{ color: LIGHT_THEME.wText }}
+                      <View className="flex-row items-center gap-3.5">
+                        <View
+                          className="size-[38px] shrink-0 items-center justify-center rounded-xl"
+                          style={{ backgroundColor: LIGHT_THEME.w3 }}
                         >
-                          {conn.name}
-                        </Text>
-                        {showSyncing ? (
-                          <View className="mt-0.5 flex-row items-center gap-1">
-                            <ActivityIndicator
-                              size="small"
-                              color={LIGHT_THEME.wMute}
-                              style={{ transform: [{ scale: 0.7 }] }}
-                            />
+                          <conn.logo size={18} />
+                        </View>
+
+                        <View className="flex-1">
+                          <Text
+                            className="font-coach-medium text-[15px]"
+                            style={{ color: LIGHT_THEME.wText }}
+                          >
+                            {conn.name}
+                          </Text>
+                          {showSyncing ? (
+                            <View className="mt-0.5 flex-row items-center gap-1">
+                              <ActivityIndicator
+                                size="small"
+                                color={LIGHT_THEME.wMute}
+                                style={{ transform: [{ scale: 0.7 }] }}
+                              />
+                              <Text
+                                className="font-coach text-xs"
+                                style={{ color: LIGHT_THEME.wMute }}
+                              >
+                                {t("account.connections.syncing")}
+                              </Text>
+                            </View>
+                          ) : (
                             <Text
-                              className="font-coach text-xs"
+                              className="mt-0.5 font-coach text-xs"
                               style={{ color: LIGHT_THEME.wMute }}
                             >
-                              {t("account.connections.syncing")}
+                              {lastSync
+                                ? t("account.connections.lastSync", { time: lastSync })
+                                : t(`account.connections.providers.${conn.key}.description`)}
                             </Text>
-                          </View>
-                        ) : (
-                          <Text
-                            className="mt-0.5 font-coach text-xs"
-                            style={{ color: LIGHT_THEME.wMute }}
-                          >
-                            {lastSync
-                              ? t("account.connections.lastSync", { time: lastSync })
-                              : t(`account.connections.providers.${conn.key}.description`)}
-                          </Text>
-                        )}
+                          )}
+                        </View>
+
+                        <Ionicons
+                          name="chevron-forward"
+                          size={18}
+                          color={LIGHT_THEME.wMute}
+                        />
                       </View>
 
-                      <Ionicons
-                        name="chevron-forward"
-                        size={18}
-                        color={LIGHT_THEME.wMute}
-                      />
+                      <CapabilitySection provider={conn.provider} />
                     </Pressable>
                   );
                 })}
@@ -364,7 +443,7 @@ export default function ConnectionsScreen() {
                   return (
                     <View
                       key={conn.key}
-                      className="flex-row items-center gap-3.5 px-4 py-4"
+                      className="px-4 py-4"
                       style={
                         isLast
                           ? undefined
@@ -374,47 +453,51 @@ export default function ConnectionsScreen() {
                             }
                       }
                     >
-                      <View
-                        className="size-[38px] shrink-0 items-center justify-center rounded-xl"
-                        style={{ backgroundColor: LIGHT_THEME.w3 }}
-                      >
-                        <conn.logo size={18} />
-                      </View>
+                      <View className="flex-row items-center gap-3.5">
+                        <View
+                          className="size-[38px] shrink-0 items-center justify-center rounded-xl"
+                          style={{ backgroundColor: LIGHT_THEME.w3 }}
+                        >
+                          <conn.logo size={18} />
+                        </View>
 
-                      <View className="flex-1">
-                        <Text
-                          className="font-coach-medium text-[15px]"
-                          style={{ color: LIGHT_THEME.wText }}
-                        >
-                          {conn.name}
-                        </Text>
-                        <Text
-                          className="mt-0.5 font-coach text-xs"
-                          style={{ color: LIGHT_THEME.wMute }}
-                        >
-                          {t(`account.connections.providers.${conn.key}.description`)}
-                        </Text>
-                      </View>
-
-                      {isConnecting ? (
-                        <ActivityIndicator
-                          size="small"
-                          color={LIGHT_THEME.wMute}
-                        />
-                      ) : (
-                        <Pressable
-                          onPress={handleConnect}
-                          className="rounded-full px-4 py-2 active:opacity-80"
-                          style={{ backgroundColor: COLORS.lime }}
-                        >
+                        <View className="flex-1">
                           <Text
-                            className="font-coach-semibold text-[13px]"
+                            className="font-coach-medium text-[15px]"
                             style={{ color: LIGHT_THEME.wText }}
                           >
-                            {t("account.connections.connect")}
+                            {conn.name}
                           </Text>
-                        </Pressable>
-                      )}
+                          <Text
+                            className="mt-0.5 font-coach text-xs"
+                            style={{ color: LIGHT_THEME.wMute }}
+                          >
+                            {t(`account.connections.providers.${conn.key}.description`)}
+                          </Text>
+                        </View>
+
+                        {isConnecting ? (
+                          <ActivityIndicator
+                            size="small"
+                            color={LIGHT_THEME.wMute}
+                          />
+                        ) : (
+                          <Pressable
+                            onPress={handleConnect}
+                            className="rounded-full px-4 py-2 active:opacity-80"
+                            style={{ backgroundColor: COLORS.lime }}
+                          >
+                            <Text
+                              className="font-coach-semibold text-[13px]"
+                              style={{ color: LIGHT_THEME.wText }}
+                            >
+                              {t("account.connections.connect")}
+                            </Text>
+                          </Pressable>
+                        )}
+                      </View>
+
+                      <CapabilitySection provider={conn.provider} />
                     </View>
                   );
                 })}
@@ -425,7 +508,7 @@ export default function ConnectionsScreen() {
                   return (
                     <View
                       key={provider.key}
-                      className="flex-row items-center gap-3.5 px-4 py-4"
+                      className="px-4 py-4"
                       style={
                         isLast
                           ? { opacity: 0.55 }
@@ -436,39 +519,43 @@ export default function ConnectionsScreen() {
                             }
                       }
                     >
-                      <View
-                        className="size-[38px] shrink-0 items-center justify-center rounded-xl"
-                        style={{ backgroundColor: LIGHT_THEME.w3 }}
-                      >
-                        <provider.logo size={18} />
+                      <View className="flex-row items-center gap-3.5">
+                        <View
+                          className="size-[38px] shrink-0 items-center justify-center rounded-xl"
+                          style={{ backgroundColor: LIGHT_THEME.w3 }}
+                        >
+                          <provider.logo size={18} />
+                        </View>
+
+                        <View className="flex-1">
+                          <Text
+                            className="font-coach-medium text-[15px]"
+                            style={{ color: LIGHT_THEME.wText }}
+                          >
+                            {provider.name}
+                          </Text>
+                          <Text
+                            className="mt-0.5 font-coach text-xs"
+                            style={{ color: LIGHT_THEME.wMute }}
+                          >
+                            {t(`account.connections.providers.${provider.key}.description`)}
+                          </Text>
+                        </View>
+
+                        <View
+                          className="rounded-full px-3 py-1.5"
+                          style={{ backgroundColor: LIGHT_THEME.w3 }}
+                        >
+                          <Text
+                            className="font-coach-medium text-[12px]"
+                            style={{ color: LIGHT_THEME.wMute }}
+                          >
+                            {t("account.connections.comingSoon")}
+                          </Text>
+                        </View>
                       </View>
 
-                      <View className="flex-1">
-                        <Text
-                          className="font-coach-medium text-[15px]"
-                          style={{ color: LIGHT_THEME.wText }}
-                        >
-                          {provider.name}
-                        </Text>
-                        <Text
-                          className="mt-0.5 font-coach text-xs"
-                          style={{ color: LIGHT_THEME.wMute }}
-                        >
-                          {t(`account.connections.providers.${provider.key}.description`)}
-                        </Text>
-                      </View>
-
-                      <View
-                        className="rounded-full px-3 py-1.5"
-                        style={{ backgroundColor: LIGHT_THEME.w3 }}
-                      >
-                        <Text
-                          className="font-coach-medium text-[12px]"
-                          style={{ color: LIGHT_THEME.wMute }}
-                        >
-                          {t("account.connections.comingSoon")}
-                        </Text>
-                      </View>
+                      <CapabilitySection provider={provider.provider} />
                     </View>
                   );
                 })}
@@ -488,6 +575,7 @@ export default function ConnectionsScreen() {
       </ScrollView>
 
       <ConnectPermissionSheet ref={permissionSheetRef} />
+      <ConnectionsDataTypesSheet sheetRef={dataTypesSheetRef} />
     </View>
   );
 }
@@ -495,5 +583,59 @@ export default function ConnectionsScreen() {
 function isDataType(v: unknown): v is DataTypeKey {
   return (
     typeof v === "string" && ANALYTICS_DATA_TYPES.some((d) => d.key === v)
+  );
+}
+
+function CapabilitySection({ provider }: { provider: Provider }) {
+  const { t } = useTranslation();
+  const capabilities = PROVIDER_CAPABILITIES[provider];
+
+  return (
+    <View className="mt-3.5 flex-row flex-wrap gap-1.5 pl-[50px]">
+      {TERRA_DATA_TYPES.map(({ key, Icon }) => (
+        <CapabilityPill
+          key={key}
+          Icon={Icon}
+          label={t(`account.connections.capabilities.dataTypes.${key}`)}
+          active={capabilities.includes(key)}
+        />
+      ))}
+    </View>
+  );
+}
+
+function CapabilityPill({
+  Icon,
+  label,
+  active,
+}: {
+  Icon: LucideIcon;
+  label: string;
+  active: boolean;
+}) {
+  return (
+    <View
+      className="flex-row items-center gap-1 rounded-full"
+      style={{
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        backgroundColor: active ? LIGHT_THEME.w3 : "transparent",
+        borderWidth: active ? 0 : 1,
+        borderColor: LIGHT_THEME.wBrd,
+        opacity: active ? 1 : 0.55,
+      }}
+    >
+      <Icon
+        size={11}
+        color={active ? LIGHT_THEME.wText : LIGHT_THEME.wMute}
+        strokeWidth={2.25}
+      />
+      <Text
+        className="font-coach-medium text-[11px]"
+        style={{ color: active ? LIGHT_THEME.wText : LIGHT_THEME.wMute }}
+      >
+        {label}
+      </Text>
+    </View>
   );
 }

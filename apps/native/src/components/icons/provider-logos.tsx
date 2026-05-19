@@ -1,5 +1,6 @@
 import React from "react";
-import Svg, { G, Path, Rect } from "react-native-svg";
+import { Image } from "react-native";
+import Svg, { Circle, Line, Path, Rect } from "react-native-svg";
 
 type LogoProps = {
   size?: number;
@@ -35,6 +36,106 @@ export function CorosLogo({ size = 20, color = "#E31937" }: LogoProps) {
     <Svg width={size} height={size} viewBox="0 0 1024 1024" fill={color}>
       <Path d="M611.286 226.385l313.26 182.007.53 377.932-312.73 181.118-52.832-28.513 245.177-182.368-.466-318.704-242.02-183.045 49.082-28.428zM171.16 335.14l34.868 304.15 275.383 158.96 279.049-118.711v56.856L446.692 917.512 120.108 728.96V366.788l51.03-31.627zM569.195 56.558l312.73 181.118 1.8 60.14-280.043-121.805-274.918 159.765-37.028 301.757-49.061-28.428.508-363.125L569.195 56.558z" />
     </Svg>
+  );
+}
+
+export function WithingsLogo({ size = 20 }: LogoProps) {
+  return (
+    <Image
+      source={require("../../../assets/icons/withings.png")}
+      style={{ width: size, height: size }}
+      resizeMode="contain"
+    />
+  );
+}
+
+export function OuraLogo({ size = 20, color = "#0E0E0E" }: LogoProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 48 48" fill="none">
+      <Circle
+        cx={24}
+        cy={27}
+        r={16.5}
+        stroke={color}
+        strokeWidth={3}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Line
+        x1={16.2171}
+        y1={4.5}
+        x2={31.7829}
+        y2={4.5}
+        stroke={color}
+        strokeWidth={3}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+export function GoogleFitLogo({ size = 20 }: LogoProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 236.2 200" fill="none">
+      <Path
+        d="M22.6 105.8l11.9 11.9 25.7-25.6-11.8-11.9-5.4-5.4c-4.3-4.3-6.6-9.9-6.6-16 0-5.3 1.8-10.1 4.9-13.9 4.2-5.3 10.6-8.7 17.8-8.7 6.1 0 11.7 2.4 16.1 6.7l5.3 5.1 11.9 12 25.8-25.6-12-11.9-5.4-5.2C90.1 6.6 75.4 0 59.1 0 26.4 0 0 26.4 0 58.9 0 67 1.6 74.7 4.6 81.8c3 7.1 7.3 13.4 12.7 18.7l5.3 5.3"
+        fill="#EA4335"
+      />
+      <Path
+        d="M81.5 122.2 118.2 85.7 92.4 60 60.2 92.1 60.2 92.1 34.5 117.7 48.3 131.6 60.2 143.4 72.6 131z"
+        fill="#FBBC04"
+      />
+      <Path
+        d="M143.8 175.6 201.8 117.7 176 92.1 118.1 149.9 85.9 117.8 60.2 143.4 92.4 175.6 92.3 175.7 118.1 200 118.1 200 118.1 200 143.9 175.6 143.9 175.6z"
+        fill="#34A853"
+      />
+      <Path
+        d="M218.9 100.5c12-12 18.9-30.4 17-49-2.8-28.2-26.2-49.4-54.6-51.3C163.4-1 147 5.7 135.4 17.3L92.4 60l25.7 25.7 43-42.8c5.2-5.1 12.4-7.5 19.8-6.3 9.6 1.5 17.4 9.4 18.7 19 1 7.2-1.4 14.2-6.5 19.3L176 92.1l25.8 25.6 17.1-17.2z"
+        fill="#4285F4"
+      />
+    </Svg>
+  );
+}
+
+export function FitbitLogo({ size = 20, color = "#00B0B9" }: LogoProps) {
+  const dots = [
+    { cx: 12, cy: 3.5 },
+    { cx: 7.5, cy: 7.75 },
+    { cx: 16.5, cy: 7.75 },
+    { cx: 3, cy: 12 },
+    { cx: 12, cy: 12 },
+    { cx: 21, cy: 12 },
+    { cx: 7.5, cy: 16.25 },
+    { cx: 16.5, cy: 16.25 },
+    { cx: 12, cy: 20.5 },
+  ];
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill={color}>
+      {dots.map((d, i) => (
+        <Circle key={i} cx={d.cx} cy={d.cy} r={1.7} />
+      ))}
+    </Svg>
+  );
+}
+
+export function SuuntoLogo({ size = 20 }: LogoProps) {
+  return (
+    <Image
+      source={require("../../../assets/icons/suunto.png")}
+      style={{ width: size, height: size }}
+      resizeMode="contain"
+    />
+  );
+}
+
+export function InBodyLogo({ size = 20 }: LogoProps) {
+  return (
+    <Image
+      source={require("../../../assets/icons/inbody.png")}
+      style={{ width: size, height: size }}
+      resizeMode="contain"
+    />
   );
 }
 

@@ -64,7 +64,7 @@ export function CalendarDaySheet({
             ))
           )}
           <AddWorkoutButton
-            label={t("account.trainingPlan.addWorkout")}
+            label={t("calendar.selectedDay.addWorkout")}
             onPress={onAddWorkout}
           />
         </View>

@@ -204,7 +204,6 @@
   },
   "calendar": {
     "title": "Calendar",
-    "subtitle": "Your training month at a glance",
     "legend": {
       "open": "Show legend",
       "title": "Legend",
@@ -212,7 +211,8 @@
       "blockTypes": "Training blocks"
     },
     "selectedDay": {
-      "empty": "No workouts scheduled"
+      "empty": "No workouts scheduled",
+      "addWorkout": "Add workout"
     }
   },
   "coach": {
@@ -790,13 +790,14 @@
     "errorFallback": "Something went wrong",
     "tryAgain": "Try Again",
     "title": "Analytics",
-    "subtitle": "How your training is going",
     "timeWindow": {
       "title": "Time window"
     },
     "dataTypes": {
       "activities": "Training",
       "sleep": "Sleep",
+      "daily": "Daily",
+      "body": "Body",
       "menstruation": "Cycle",
       "nutrition": "Nutrition"
     },
@@ -818,6 +819,8 @@
       "noPlanned": "Once your plan has workouts, planned vs actual shows up here.",
       "noSleep": "No sleep data in this window yet.",
       "noNutrition": "No nutrition entries logged in this window.",
+      "noDaily": "No daily activity data in this window yet.",
+      "noBody": "Log at least two weigh-ins to see your weight trend.",
       "noCycle": "No cycle data yet — once a record syncs, your current phase will show here."
     },
     "cards": {
@@ -851,6 +854,17 @@
         "subtitle": "Energy intake per day",
         "avgLabel": "Avg per day"
       },
+      "dailySteps": {
+        "title": "Daily steps",
+        "subtitle": "Steps per day",
+        "avgLabel": "Avg per day",
+        "stepsSuffix": "steps"
+      },
+      "bodyWeight": {
+        "title": "Body weight",
+        "subtitle": "Weight trend over time",
+        "latestLabel": "Latest"
+      },
       "cyclePhase": {
         "title": "Cycle phase",
         "subtitle": "Where you are in your cycle",
@@ -879,7 +893,6 @@
     "items": {
       "profile": "Profile",
       "subscription": "Subscription",
-      "trainingPlan": "Training Plan",
       "races": "Races",
       "fitness": "Fitness",
       "workoutTemplates": "Workout Templates",
@@ -1158,41 +1171,6 @@
         }
       }
     },
-    "trainingPlan": {
-      "title": "Training Plan",
-      "addWorkout": "Add workout",
-      "week": "Week {{number}}",
-      "empty": {
-        "noPlan": {
-          "title": "No active training plan",
-          "description": "A plan starts when you set your next A-priority race. Add a race to begin training toward it.",
-          "addRace": "Add your next race"
-        },
-        "noBlocks": {
-          "title": "No blocks yet",
-          "description": "Blocks group consecutive weeks of training. Workouts go inside blocks.",
-          "addFirst": "Add your first block"
-        }
-      }
-    },
-    "blocks": {
-      "newTitle": "New block",
-      "createSubmit": "Create block",
-      "editTitle": "Edit block",
-      "saveSubmit": "Save",
-      "notFound": "Block not found",
-      "section": "Block",
-      "datesSection": "Dates",
-      "type": "Type",
-      "focusOptional": "Focus (optional)",
-      "focusPlaceholder": "e.g. Aerobic capacity, threshold",
-      "startDate": "Start date",
-      "endDate": "End date",
-      "deleteBlock": "Delete block",
-      "deleteDescription": "This will also delete every workout in the block. This cannot be undone.",
-      "errorEndBeforeStart": "End date must be on or after start date.",
-      "errorRequired": "Dates are required."
-    },
     "notifications": {
       "title": "Notifications",
       "sectionTitle": "Push notifications",
@@ -1259,6 +1237,35 @@
         "label": "Filtered · {{dataType}}",
         "clear": "Clear"
       },
+      "capabilities": {
+        "dataTypes": {
+          "body": "Body",
+          "daily": "Daily",
+          "menstruation": "Cycle",
+          "nutrition": "Nutrition",
+          "sleep": "Sleep"
+        }
+      },
+      "dataTypesSheet": {
+        "open": "Learn about data types",
+        "title": "What we collect",
+        "subtitle": "Each app & device shares a different mix of these data types.",
+        "examplesLabel": "Examples:",
+        "descriptions": {
+          "body": "Body composition and measurements you log or your scale records.",
+          "daily": "Round-the-clock activity, heart rate, and stress signals from your wearable.",
+          "menstruation": "Menstrual cycle dates and symptoms used to tailor training around your cycle.",
+          "nutrition": "Meals, calories and macronutrients logged in your nutrition app.",
+          "sleep": "How long and how well you sleep, plus overnight recovery signals."
+        },
+        "examples": {
+          "body": "weight, body fat %, BMI, muscle mass, hydration",
+          "daily": "steps, resting heart rate, active calories, stress, HRV",
+          "menstruation": "period start & end, flow intensity, cycle phase, symptoms",
+          "nutrition": "meals, calories in, protein, carbs, fat, water intake",
+          "sleep": "total sleep, deep / REM / light stages, sleep score, awakenings"
+        }
+      },
       "providers": {
         "strava": {
           "description": "Sync activities, routes & training"
@@ -1271,6 +1278,24 @@
         },
         "coros": {
           "description": "GPS watch & training data"
+        },
+        "withings": {
+          "description": "Smart scale, sleep & blood pressure"
+        },
+        "oura": {
+          "description": "Sleep, readiness & recovery from your ring"
+        },
+        "googleFit": {
+          "description": "Activities, steps & health data"
+        },
+        "fitbit": {
+          "description": "Activities, sleep & wearable data"
+        },
+        "suunto": {
+          "description": "GPS watch & outdoor activities"
+        },
+        "inbody": {
+          "description": "Body composition & weight tracking"
         }
       },
       "detail": {

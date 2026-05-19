@@ -18,9 +18,12 @@ import { useHealthKitSyncProgress } from "@/hooks/use-healthkit-sync-store";
 import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
 import { formatRelativeShort } from "@/lib/format-relative";
 import {
-  DATA_TYPE_ORDER,
+  PROVIDER_CAPABILITIES,
+  TERRA_DATA_TYPES,
   type DataTypeKey,
+  type TerraDataTypeKey,
 } from "@/lib/providers/capabilities";
+import type { LucideIcon } from "lucide-react-native";
 import { getConvexErrorMessage } from "@/utils/getConvexErrorMessage";
 import { Ionicons } from "@expo/vector-icons";
 import { api } from "@packages/backend/convex/_generated/api";
@@ -81,6 +84,15 @@ function formatCount(t: TFunction, key: DataTypeKey, count: number): string {
       return count.toLocaleString();
   }
 }
+
+type DataRow = {
+  key: TerraDataTypeKey;
+  Icon: LucideIcon;
+  label: string;
+  count: string;
+  meta: string;
+  hasData: boolean;
+};
 
 function formatOldest(
   t: TFunction,
@@ -175,22 +187,25 @@ export default function ProviderDetailScreen() {
   const connectedOn = formatConnectedOn(locale, connDoc?._creationTime);
   const lastSync = formatRelativeShort(t, connDoc?.lastDataUpdate);
 
-  const dataRows = React.useMemo(() => {
+  const dataRows = React.useMemo<DataRow[]>(() => {
+    const capabilities = PROVIDER_CAPABILITIES[config.provider];
     const stats = connDoc?.stats;
-    if (!stats) return [];
-    return DATA_TYPE_ORDER.flatMap((key) => {
-      const entry = stats[key];
-      if (!entry || entry.count === 0) return [];
+    return TERRA_DATA_TYPES.flatMap(({ key, Icon }) => {
+      if (!capabilities.includes(key)) return [];
+      const entry = stats?.[key];
+      const count = entry?.count ?? 0;
       return [
         {
           key,
+          Icon,
           label: t(`account.connections.detail.dataTypes.${key}`),
-          count: formatCount(t, key, entry.count),
-          meta: formatOldest(t, locale, entry.oldest) ?? "",
+          count: formatCount(t, key, count),
+          meta: formatOldest(t, locale, entry?.oldest) ?? "",
+          hasData: count > 0,
         },
       ];
     });
-  }, [connDoc, t, locale]);
+  }, [config.provider, connDoc, t, locale]);
 
   const handleMockSync = () => {
     setSyncState({ status: "syncing" });
@@ -322,6 +337,18 @@ export default function ProviderDetailScreen() {
                             }
                       }
                     >
+                      <View
+                        className="size-[34px] shrink-0 items-center justify-center rounded-[10px]"
+                        style={{ backgroundColor: LIGHT_THEME.w3 }}
+                      >
+                        <dt.Icon
+                          size={16}
+                          color={
+                            dt.hasData ? LIGHT_THEME.wText : LIGHT_THEME.wMute
+                          }
+                          strokeWidth={2}
+                        />
+                      </View>
                       <View className="flex-1">
                         <Text
                           className="font-coach-medium text-[15px]"
@@ -340,7 +367,11 @@ export default function ProviderDetailScreen() {
                       </View>
                       <Text
                         className="font-coach-semibold text-[14px]"
-                        style={{ color: LIGHT_THEME.wText }}
+                        style={{
+                          color: dt.hasData
+                            ? LIGHT_THEME.wText
+                            : LIGHT_THEME.wMute,
+                        }}
                       >
                         {dt.count}
                       </Text>
