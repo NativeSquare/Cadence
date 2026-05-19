@@ -9,11 +9,7 @@
 import { useTranslation } from "react-i18next";
 import { View } from "react-native";
 import { Text } from "@/components/ui/text";
-import {
-  formatGreeting,
-  formatLongDate,
-  formatShortDate,
-} from "@/lib/format";
+import { formatGreeting, formatShortDate } from "@/lib/format";
 import { useLanguage } from "@/lib/i18n";
 
 interface DateHeaderProps {
@@ -23,15 +19,12 @@ interface DateHeaderProps {
 
 function FullDateHeader({ userName }: { userName: string }) {
   const { t } = useTranslation();
-  const locale = useLanguage();
   const greeting = formatGreeting(t);
-  const dateStr = formatLongDate(locale);
 
   return (
     <View>
-      <Text className="text-sm font-coach text-g4">{dateStr}</Text>
       <Text
-        className="text-[28px] font-coach-bold text-g1 mt-0.5"
+        className="text-[28px] font-coach-bold text-g1"
         style={{ letterSpacing: -0.03 * 28, lineHeight: 31 }}
       >
         {greeting},{" "}

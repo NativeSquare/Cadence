@@ -401,12 +401,6 @@
       "logHelper": "Saisir une sortie"
     },
     "todayCard": {
-      "workoutComplete": "Séance terminée",
-      "viaProvider": "via {{provider}}",
-      "time": "Temps",
-      "distance": "Distance",
-      "pace": "Allure",
-      "adherence": "Conformité",
       "exportToWatch": "Envoyer à la montre",
       "markAsDone": "Marquer comme terminée",
       "restDay": "Jour de repos",

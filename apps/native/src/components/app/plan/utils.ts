@@ -133,15 +133,6 @@ export function workoutToWorkoutData(
     zone: "-",
     today: isToday,
     structure: summary.structure,
-    actualDur:
-      workout.actual?.durationSeconds != null
-        ? formatDurationShort(workout.actual.durationSeconds)
-        : undefined,
-    actualKm:
-      workout.actual?.distanceMeters != null
-        ? formatDistance(workout.actual.distanceMeters)
-        : undefined,
-    adherenceScore: workout.adherence?.score,
     syncStatus: exportedRef ? "exported" : undefined,
     syncSource: exportedRef?.provider,
   };

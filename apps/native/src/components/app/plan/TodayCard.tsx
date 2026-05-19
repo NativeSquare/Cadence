@@ -1,17 +1,14 @@
 /**
  * TodayCard - Main card showing today's (or selected day's) workout.
  *
- * Two internal layouts:
- * - PlannedView   — pre-workout. Compact structure preview + CTAs.
- * - CompletedView — post-workout. Big metrics + adherence; structure deferred
- *                   to the detail page.
+ * One unified body for non-rest days: header (kind + status badge) + planned
+ * structure preview + total + (conditional) CTAs. Status — missed, needs
+ * feedback, completed, coach-adjusted — is communicated entirely through the
+ * header badge; the body stays consistent so the card doesn't reflow between
+ * states. Detailed actuals/adherence live on the workout detail page.
  *
- * Sync state is a small inline badge (top-right), shown only for active
- * states (exported / syncing / synced / failed). The "not sent to a provider"
- * default is no longer surfaced — that's the resting state and adds noise.
- *
- * Border color reflects workout status only (completed = lime, otherwise
- * subtle). Sync state never repaints the border.
+ * Sync state is a small inline badge (top-right) shown only for active states
+ * (exported / syncing / synced / failed) when no status badge takes priority.
  */
 
 import { View, Pressable } from "react-native";
@@ -48,6 +45,7 @@ interface TodayCardProps {
   onCardPress?: () => void;
   onMarkDonePress?: () => void;
   canMarkDone?: boolean;
+  canExport?: boolean;
 }
 
 // ─── Animation primitives ───────────────────────────────────────────────────
@@ -257,6 +255,28 @@ function NeedsFeedbackBadge() {
   );
 }
 
+function CompletedBadge() {
+  const { t } = useTranslation();
+  return (
+    <View
+      className="flex-row items-center gap-1.5 rounded-full px-2.5 py-1"
+      style={{
+        backgroundColor: "rgba(200,255,0,0.14)",
+        borderWidth: 1,
+        borderColor: "rgba(200,255,0,0.30)",
+      }}
+    >
+      <CheckIcon color={COLORS.lime} />
+      <Text
+        className="text-[11px] font-coach-semibold uppercase tracking-wider"
+        style={{ color: COLORS.lime }}
+      >
+        {t("workout.status.completed")}
+      </Text>
+    </View>
+  );
+}
+
 function CoachAdjustedBadge() {
   const { t } = useTranslation();
   return (
@@ -425,6 +445,8 @@ function CardHeader({
           <MissedBadge />
         ) : workout.needsFeedback ? (
           <NeedsFeedbackBadge />
+        ) : workout.done ? (
+          <CompletedBadge />
         ) : workout.coachAdjusted ? (
           <CoachAdjustedBadge />
         ) : (
@@ -441,108 +463,6 @@ function CardHeader({
         </Text>
         <ChevronRight />
       </View>
-    </View>
-  );
-}
-
-// ─── Completed banner + metrics ─────────────────────────────────────────────
-
-function CompletedHeaderBanner({ workout }: { workout: WorkoutData }) {
-  const { t } = useTranslation();
-  const provider = workout.syncSource ? providerShort(workout.syncSource) : null;
-  return (
-    <View
-      className="px-4 pt-3 pb-3 flex-row items-center justify-between"
-      style={{ backgroundColor: "rgba(200,255,0,0.10)" }}
-    >
-      <View className="flex-row items-center gap-2">
-        <View
-          style={{
-            width: 22, height: 22, borderRadius: 11,
-            backgroundColor: COLORS.lime,
-            alignItems: "center", justifyContent: "center",
-          }}
-        >
-          <CheckIcon color="#1A1A1A" size={11} />
-        </View>
-        <Text className="text-[13px] font-coach-bold" style={{ color: COLORS.lime }}>
-          {t("plan.todayCard.workoutComplete")}
-        </Text>
-      </View>
-      {provider && (
-        <View className="flex-row items-center gap-1.5">
-          <DoubleCheckIcon color={COLORS.lime} size={12} />
-          <Text
-            className="text-[11px] font-coach-semibold"
-            style={{ color: "rgba(200,255,0,0.85)" }}
-          >
-            {t("plan.todayCard.viaProvider", { provider })}
-          </Text>
-        </View>
-      )}
-    </View>
-  );
-}
-
-function computeActualPace(workout: WorkoutData): string | null {
-  if (!workout.actualDur || !workout.actualKm) return null;
-  const km = parseFloat(workout.actualKm);
-  if (!km || km === 0) return null;
-  let totalSec = 0;
-  const hMatch = workout.actualDur.match(/(\d+)h/);
-  const mMatch = workout.actualDur.match(/(\d+)min/) ?? workout.actualDur.match(/h(\d+)/);
-  if (hMatch) totalSec += parseInt(hMatch[1], 10) * 3600;
-  if (mMatch) totalSec += parseInt(mMatch[1], 10) * 60;
-  if (totalSec === 0) return null;
-  const paceSecPerKm = totalSec / km;
-  const pMin = Math.floor(paceSecPerKm / 60);
-  const pSec = Math.round(paceSecPerKm % 60);
-  return `${pMin}:${pSec.toString().padStart(2, "0")}/km`;
-}
-
-function CompletedMetrics({ workout }: { workout: WorkoutData }) {
-  const { t } = useTranslation();
-  const actualPace = computeActualPace(workout);
-  const cells: { label: string; value: string; accent?: boolean }[] = [];
-  if (workout.actualDur != null) {
-    cells.push({ label: t("plan.todayCard.time"), value: workout.actualDur });
-  }
-  if (workout.actualKm != null) {
-    cells.push({
-      label: t("plan.todayCard.distance"),
-      value: `${workout.actualKm} km`,
-    });
-  }
-  if (actualPace != null) {
-    cells.push({ label: t("plan.todayCard.pace"), value: actualPace });
-  }
-  if (workout.adherenceScore != null) {
-    cells.push({
-      label: t("plan.todayCard.adherence"),
-      value: `${Math.round(workout.adherenceScore * 100)}%`,
-      accent: true,
-    });
-  }
-  if (cells.length === 0) return null;
-
-  return (
-    <View className="px-5 pb-3 flex-row gap-5">
-      {cells.map((c) => (
-        <View key={c.label}>
-          <Text
-            className="text-[11px] font-coach-medium"
-            style={{ color: "rgba(255,255,255,0.45)" }}
-          >
-            {c.label}
-          </Text>
-          <Text
-            className="text-[15px] font-coach-bold"
-            style={{ color: c.accent ? COLORS.lime : LIGHT_THEME.w1 }}
-          >
-            {c.value}
-          </Text>
-        </View>
-      ))}
     </View>
   );
 }
@@ -587,23 +507,25 @@ function MarkAsDoneCTA({ onPress }: { onPress?: () => void }) {
   );
 }
 
-// ─── Layouts ────────────────────────────────────────────────────────────────
+// ─── Layout ─────────────────────────────────────────────────────────────────
 
-function PlannedView({
+function WorkoutBody({
   workout,
   onExportPress,
   onMarkDonePress,
   canMarkDone,
+  canExport,
 }: {
   workout: WorkoutData;
   onExportPress?: () => void;
   onMarkDonePress?: () => void;
   canMarkDone?: boolean;
+  canExport?: boolean;
 }) {
   const isExported =
     workout.syncStatus === "exported" || workout.syncStatus === "synced";
   const showMarkDone = !!canMarkDone && !!onMarkDonePress;
-  const showExport = !isExported;
+  const showExport = !!canExport && !isExported;
 
   return (
     <>
@@ -616,20 +538,6 @@ function PlannedView({
           {showExport && <ExportToWatchCTA onPress={onExportPress} />}
         </View>
       )}
-    </>
-  );
-}
-
-function CompletedView({
-  workout,
-}: {
-  workout: WorkoutData;
-}) {
-  return (
-    <>
-      <CompletedHeaderBanner workout={workout} />
-      <CardHeader workout={workout} showSyncBadge={false} />
-      <CompletedMetrics workout={workout} />
     </>
   );
 }
@@ -705,6 +613,7 @@ export function TodayCard({
   onCardPress,
   onMarkDonePress,
   canMarkDone,
+  canExport,
 }: TodayCardProps) {
   const { t } = useTranslation();
   const locale = useLanguage();
@@ -712,7 +621,6 @@ export function TodayCard({
     ? t("plan.today")
     : formatShortDate(locale, selectedDate ?? new Date());
   const isRest = workout.intensity === "rest";
-  const isCompleted = workout.done;
 
   if (isRest) {
     return (
@@ -737,8 +645,8 @@ export function TodayCard({
           className="rounded-[20px] overflow-hidden"
           style={{
             backgroundColor: "#1A1A1A",
-            borderWidth: isCompleted ? 1.5 : 1,
-            borderColor: isCompleted ? COLORS.lime : "rgba(255,255,255,0.08)",
+            borderWidth: 1,
+            borderColor: "rgba(255,255,255,0.08)",
             shadowColor: "#000",
             shadowOffset: { width: 0, height: 8 },
             shadowOpacity: 0.35,
@@ -746,16 +654,13 @@ export function TodayCard({
             elevation: 12,
           }}
         >
-          {isCompleted ? (
-            <CompletedView workout={workout} />
-          ) : (
-            <PlannedView
-              workout={workout}
-              onExportPress={onExportPress}
-              onMarkDonePress={onMarkDonePress}
-              canMarkDone={canMarkDone}
-            />
-          )}
+          <WorkoutBody
+            workout={workout}
+            onExportPress={onExportPress}
+            onMarkDonePress={onMarkDonePress}
+            canMarkDone={canMarkDone}
+            canExport={canExport}
+          />
         </View>
       </Pressable>
     </View>

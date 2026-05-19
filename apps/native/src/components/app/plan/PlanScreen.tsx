@@ -181,8 +181,16 @@ export function PlanScreen() {
   const canMarkDone =
     !!baseSelectedWorkout.workoutId &&
     !baseSelectedWorkout.done &&
+    !baseSelectedWorkout.missed &&
     baseSelectedWorkout.intensity !== "rest" &&
     selectedDayStart.getTime() <= startOfToday.getTime();
+
+  const canExport =
+    !!baseSelectedWorkout.workoutId &&
+    !baseSelectedWorkout.done &&
+    !baseSelectedWorkout.missed &&
+    baseSelectedWorkout.intensity !== "rest" &&
+    selectedDayStart.getTime() >= startOfToday.getTime();
 
   const handleScroll = useAnimatedScrollHandler({
     onScroll: (event) => {
@@ -355,6 +363,7 @@ export function PlanScreen() {
                 onCardPress={handleOpenWorkoutDetail}
                 onMarkDonePress={handleMarkDone}
                 canMarkDone={canMarkDone}
+                canExport={canExport}
               />
             </View>
 

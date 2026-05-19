@@ -401,12 +401,6 @@
       "logHelper": "Record a run"
     },
     "todayCard": {
-      "workoutComplete": "Workout Complete",
-      "viaProvider": "via {{provider}}",
-      "time": "Time",
-      "distance": "Distance",
-      "pace": "Pace",
-      "adherence": "Adherence",
       "exportToWatch": "Export to Watch",
       "markAsDone": "Mark as done",
       "restDay": "Rest Day",

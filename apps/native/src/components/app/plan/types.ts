@@ -63,12 +63,6 @@ export interface WorkoutData {
   /** Parsed workout structure (warmup/work/recovery/cooldown blocks). Null
    * when the workout has no structured plan — card falls back to volume. */
   structure?: WorkoutStructure | null;
-  /** Actual duration recorded after completion (seconds) */
-  actualDur?: string;
-  /** Actual distance recorded after completion (e.g. "8.2") */
-  actualKm?: string;
-  /** Adherence score 0-1 comparing actual vs target */
-  adherenceScore?: number;
   /** Sync state for wearable-recorded workouts */
   syncStatus?: SyncStatus;
   /** Source wearable or service (e.g., "garmin", "apple_watch", "strava") */
