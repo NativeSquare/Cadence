@@ -215,7 +215,7 @@ export default function Profile() {
                 {
                   label: t("profile.items.fitness"),
                   icon: "pulse-outline",
-                  onPress: () => router.push("/account/fitness"),
+                  onPress: () => router.push("/account/metrics"),
                 },
                 {
                   label: t("profile.items.workoutTemplates"),

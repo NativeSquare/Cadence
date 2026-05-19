@@ -1152,7 +1152,7 @@
       }
     },
     "fitness": {
-      "title": "Fitness",
+      "title": "Metrics",
       "racesTitle": "What you could run today",
       "pacesTitle": "Your training paces",
       "vdotTitle": "Fitness over time",
