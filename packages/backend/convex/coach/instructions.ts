@@ -13,12 +13,12 @@ export const DEFAULT_TONE: CoachTone = "mentor";
 export const DEFAULT_VERBOSITY: CoachVerbosity = "concise";
 export const DEFAULT_LOCALE: CoachLocale = "en";
 
-const LOCALE_DIRECTIVE: Record<CoachLocale, string> = {
+export const LOCALE_DIRECTIVE: Record<CoachLocale, string> = {
   en: "Reply in English. Use natural, idiomatic phrasing.",
   fr: "Réponds en français. Tutoie l'athlète. Utilise un français naturel et idiomatique (pas de calques de l'anglais).",
 };
 
-const TONE_SNIPPETS: Record<CoachTone, string> = {
+export const TONE_SNIPPETS: Record<CoachTone, string> = {
   mentor:
     "Tone: Mentor. You are warm, contextual, and patient. Briefly explain the why behind suggestions when it helps the athlete learn. Acknowledge effort. Never condescending.",
   drillSergeant:
@@ -87,3 +87,28 @@ export function composeCoachSystem(args: {
 }
 
 export const FALLBACK_INSTRUCTIONS = composeCoachSystem({});
+
+/**
+ * System prompt for one-shot, coach-initiated narration (triggers).
+ *
+ * Reuses the locale and tone snippets so the coach's voice stays consistent
+ * across chat and triggers. `mission` is the trigger-specific framing — what
+ * the coach just learned and what they're delivering. Facts (today's session,
+ * HRV value, etc.) belong in the call's `prompt`, not here, so the trigger
+ * can compose them at runtime without re-stringifying boilerplate.
+ */
+export function composeNarrationSystem(args: {
+  locale: CoachLocale;
+  tone: CoachTone;
+  mission: string;
+}): string {
+  return [
+    LOCALE_DIRECTIVE[args.locale],
+    "",
+    TONE_SNIPPETS[args.tone],
+    "",
+    args.mission,
+    "",
+    "Reply with the message itself — plain prose, one to three short sentences, first person from the coach. No JSON, no markdown headings, no preamble.",
+  ].join("\n");
+}

@@ -8,22 +8,17 @@
  * minimum moving parts.
  *
  * Reads today's and tomorrow's planned workout from Agoge, asks Haiku for a
- * short morning briefing in the user's locale + tone as plain prose, drops it
- * into the user's coach thread as an assistant message, and lets
- * `sendCoachMessageNotification` fire the push as a consequence. The agent
- * loop is deliberately bypassed — this trigger only narrates, it never acts.
+ * short morning briefing in the user's locale + tone as plain prose, and
+ * routes through `deliverCoachNarration` so the prose lands in the user's
+ * coach thread and triggers a push. The agent loop runs with the `narrate`
+ * profile: no tools, single step, no prior thread context.
  */
 
-import { anthropic } from "@ai-sdk/anthropic";
-import { createThread, saveMessage } from "@convex-dev/agent";
-import { generateText } from "ai";
 import { v } from "convex/values";
-import { api, components, internal } from "../../_generated/api";
+import { api, components } from "../../_generated/api";
 import { internalAction } from "../../_generated/server";
-
-// ---------------------------------------------------------------------------
-// Helpers (pure)
-// ---------------------------------------------------------------------------
+import { composeNarrationSystem } from "../instructions";
+import { deliverCoachNarration, ensureCoachThread } from "../turns";
 
 type WorkoutBrief = {
   type: string;
@@ -62,36 +57,18 @@ function summarize(w: WorkoutBrief | null): string {
   return parts.join(" · ");
 }
 
-function buildPrompt(args: {
-  locale: "en" | "fr";
-  tone: "mentor" | "drillSergeant" | "pragmatic";
+const MISSION =
+  "You are Cadence, an AI running coach checking in with your athlete in the morning. You're not asking for anything — you're greeting them, naming what's on the schedule, and pointing at what matters today.";
+
+function buildFacts(args: {
   firstName: string;
   today: WorkoutBrief | null;
   tomorrow: WorkoutBrief | null;
 }): string {
-  const toneLine =
-    args.tone === "drillSergeant"
-      ? "Tone: direct, demanding, no soft-pedaling, no exclamations."
-      : args.tone === "pragmatic"
-        ? "Tone: terse and neutral, just facts."
-        : "Tone: warm and contextual, briefly explain why.";
-  const localeLine =
-    args.locale === "fr"
-      ? "Reply in French. Tutoie l'athlète."
-      : "Reply in English.";
-
   return [
-    "You are Cadence, an AI running coach checking in with your athlete in the morning. You're not asking for anything — you're greeting them, naming what's on the schedule, and pointing at what matters today.",
-    "",
-    localeLine,
-    toneLine,
-    "",
-    "Facts:",
-    `- Athlete name: ${args.firstName || "(unknown)"}`,
-    `- Today's session: ${summarize(args.today)}`,
-    `- Tomorrow's session: ${summarize(args.tomorrow)}`,
-    "",
-    "Reply with the message itself — plain prose, one to three short sentences, first person from the coach. No JSON, no markdown headings, no preamble.",
+    `Athlete name: ${args.firstName || "(unknown)"}`,
+    `Today's session: ${summarize(args.today)}`,
+    `Tomorrow's session: ${summarize(args.tomorrow)}`,
   ].join("\n");
 }
 
@@ -105,10 +82,6 @@ function fallback(locale: "en" | "fr", today: WorkoutBrief | null): string {
     ? `Morning. On the menu today: ${today.name}.`
     : "Morning. Rest day today — recover well.";
 }
-
-// ---------------------------------------------------------------------------
-// Action
-// ---------------------------------------------------------------------------
 
 export const evaluateForUser = internalAction({
   args: { userId: v.id("users") },
@@ -157,49 +130,16 @@ export const evaluateForUser = internalAction({
       }
     }
 
-    let body: string;
-    try {
-      const { text } = await generateText({
-        model: anthropic.chat("claude-haiku-4-5-20251001"),
-        prompt: buildPrompt({ locale, tone, firstName, today, tomorrow }),
-      });
-      const trimmed = text.trim();
-      body = trimmed.length > 0 ? trimmed : fallback(locale, today);
-    } catch (err) {
-      console.warn("[dailyCheckIn] Haiku call failed, using fallback", err);
-      body = fallback(locale, today);
-    }
-
-    // Drop the prose into the user's coach thread as an assistant message.
-    // We bypass the full agent loop on purpose: this trigger narrates, it
-    // never acts, so it must not have access to writing tools.
-    const userIdStr = userId as string;
-    const existing = await ctx.runQuery(
-      components.agent.threads.listThreadsByUserId,
-      {
-        userId: userIdStr,
-        order: "desc",
-        paginationOpts: { numItems: 1, cursor: null },
-      },
-    );
-    const threadId =
-      existing.page[0]?._id ??
-      (await createThread(ctx, components.agent, { userId: userIdStr }));
-
-    await saveMessage(ctx, components.agent, {
+    const threadId = await ensureCoachThread(ctx, userId);
+    await deliverCoachNarration(ctx, {
+      userId,
       threadId,
-      userId: userIdStr,
-      message: { role: "assistant", content: body },
-      agentName: "Cadence Coach",
+      system: composeNarrationSystem({ locale, tone, mission: MISSION }),
+      facts: buildFacts({ firstName, today, tomorrow }),
+      fallback: fallback(locale, today),
+      logTag: "dailyCheckIn",
     });
 
-    // Push fires as a consequence of the new thread message. Tap deep-links
-    // to the coach tab (handled by sendCoachMessageNotification).
-    await ctx.scheduler.runAfter(
-      0,
-      internal.notifications.sendCoachMessageNotification,
-      { userId, threadId, preview: body.slice(0, 140) },
-    );
     return null;
   },
 });

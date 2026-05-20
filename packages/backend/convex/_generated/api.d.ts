@@ -49,6 +49,7 @@ import type * as coach_philosophy_rules_workoutDistanceCap from "../coach/philos
 import type * as coach_philosophy_runner from "../coach/philosophy/runner.js";
 import type * as coach_philosophy_types from "../coach/philosophy/types.js";
 import type * as coach_philosophy_validate from "../coach/philosophy/validate.js";
+import type * as coach_profiles from "../coach/profiles.js";
 import type * as coach_threads from "../coach/threads.js";
 import type * as coach_tools_memory from "../coach/tools/memory.js";
 import type * as coach_tools_reading from "../coach/tools/reading.js";
@@ -132,6 +133,7 @@ declare const fullApi: ApiFromModules<{
   "coach/philosophy/runner": typeof coach_philosophy_runner;
   "coach/philosophy/types": typeof coach_philosophy_types;
   "coach/philosophy/validate": typeof coach_philosophy_validate;
+  "coach/profiles": typeof coach_profiles;
   "coach/threads": typeof coach_threads;
   "coach/tools/memory": typeof coach_tools_memory;
   "coach/tools/reading": typeof coach_tools_reading;

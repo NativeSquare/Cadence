@@ -12,10 +12,7 @@
  * revert from the workout detail card.
  */
 
-import { anthropic } from "@ai-sdk/anthropic";
-import { createThread, saveMessage } from "@convex-dev/agent";
 import { getAuthUserId } from "@convex-dev/auth/server";
-import { generateText } from "ai";
 import { ConvexError, v } from "convex/values";
 import { api, components, internal } from "../../_generated/api";
 import type { Doc, Id } from "../../_generated/dataModel";
@@ -26,6 +23,8 @@ import {
   mutation,
   query,
 } from "../../_generated/server";
+import { composeNarrationSystem } from "../instructions";
+import { deliverCoachNarration, ensureCoachThread } from "../turns";
 
 const RULE_ID = "hrv_low_v1";
 const HRV_Z_THRESHOLD = -1.0;
@@ -233,6 +232,30 @@ export const evaluateAndApplyForUser = internalAction({
 // Internal action: notification prose + dispatch
 // ---------------------------------------------------------------------------
 
+const MISSION =
+  "You are Cadence, an AI running coach. You just auto-modified the athlete's next high-intensity workout because their HRV is down. You're notifying them after the fact — you don't ask permission, you tell them what you did and why.";
+
+function buildFacts(args: {
+  originalName: string;
+  originalType: string;
+  newDurationMin: number;
+  hrvToday: number;
+  hrvBaseline14d: number;
+  sleepHoursLastNight: number | undefined;
+}): string {
+  const sleepLine =
+    args.sleepHoursLastNight !== undefined
+      ? `Sleep last night: ${args.sleepHoursLastNight.toFixed(1)} h.`
+      : "Sleep data unavailable.";
+  return [
+    `HRV today: ${args.hrvToday.toFixed(0)} ms`,
+    `HRV 14-day baseline: ${args.hrvBaseline14d.toFixed(0)} ms`,
+    sleepLine,
+    `Original session: "${args.originalName}" (type: ${args.originalType})`,
+    `Replaced with: easy Z2 run, ${args.newDurationMin} minutes`,
+  ].join("\n");
+}
+
 function fallbackNotification(
   locale: "en" | "fr",
   args: {
@@ -248,48 +271,6 @@ function fallbackNotification(
     return `HRV à ${today} ms vs base ${base}. J'ai remplacé ${args.originalName} par un Z2 facile de ${args.newDurationMin} min.`;
   }
   return `HRV at ${today} ms vs baseline ${base}. I swapped ${args.originalName} for an easy Z2 of ${args.newDurationMin} min.`;
-}
-
-function buildNotificationPrompt(args: {
-  locale: "en" | "fr";
-  tone: "mentor" | "drillSergeant" | "pragmatic";
-  originalName: string;
-  originalType: string;
-  newDurationMin: number;
-  hrvToday: number;
-  hrvBaseline14d: number;
-  sleepHoursLastNight: number | undefined;
-}): string {
-  const toneLine =
-    args.tone === "drillSergeant"
-      ? "Tone: direct, no soft-pedaling, no exclamations."
-      : args.tone === "pragmatic"
-        ? "Tone: terse and neutral, just facts."
-        : "Tone: warm and contextual, briefly explain why.";
-  const localeLine =
-    args.locale === "fr"
-      ? "Reply in French. Tutoie l'athlète."
-      : "Reply in English.";
-  const sleepLine =
-    args.sleepHoursLastNight !== undefined
-      ? `Sleep last night: ${args.sleepHoursLastNight.toFixed(1)} h.`
-      : "Sleep data unavailable.";
-
-  return [
-    "You are Cadence, an AI running coach. You just auto-modified the athlete's next high-intensity workout because their HRV is down. You're notifying them after the fact — you don't ask permission, you tell them what you did and why.",
-    "",
-    localeLine,
-    toneLine,
-    "",
-    "Facts:",
-    `- HRV today: ${args.hrvToday.toFixed(0)} ms`,
-    `- HRV 14-day baseline: ${args.hrvBaseline14d.toFixed(0)} ms`,
-    `- ${sleepLine}`,
-    `- Original session: "${args.originalName}" (type: ${args.originalType})`,
-    `- Replaced with: easy Z2 run, ${args.newDurationMin} minutes`,
-    "",
-    "Reply with the message itself — plain prose, one to two short sentences, first person from the coach. No JSON, no markdown, no preamble.",
-  ].join("\n");
 }
 
 export const generateAndSendNotification = internalAction({
@@ -311,79 +292,33 @@ export const generateAndSendNotification = internalAction({
       (intervention.newDurationSeconds ?? 30 * 60) / 60,
     );
 
-    let body: string;
-    try {
-      const { text } = await generateText({
-        model: anthropic.chat("claude-haiku-4-5-20251001"),
-        prompt: buildNotificationPrompt({
-          locale,
-          tone,
-          originalName: intervention.originalName,
-          originalType: intervention.originalType,
-          newDurationMin,
-          hrvToday: intervention.signals.hrvToday,
-          hrvBaseline14d: intervention.signals.hrvBaseline14d,
-          sleepHoursLastNight: intervention.signals.sleepHoursLastNight,
-        }),
-      });
-      const trimmed = text.trim();
-      body =
-        trimmed.length > 0
-          ? trimmed
-          : fallbackNotification(locale, {
-              originalName: intervention.originalName,
-              newDurationMin,
-              hrvToday: intervention.signals.hrvToday,
-              hrvBaseline14d: intervention.signals.hrvBaseline14d,
-            });
-    } catch (err) {
-      console.warn("[hrvLowReadiness] Haiku call failed, using fallback", err);
-      body = fallbackNotification(locale, {
+    const threadId = await ensureCoachThread(ctx, intervention.userId);
+    const body = await deliverCoachNarration(ctx, {
+      userId: intervention.userId,
+      threadId,
+      system: composeNarrationSystem({ locale, tone, mission: MISSION }),
+      facts: buildFacts({
+        originalName: intervention.originalName,
+        originalType: intervention.originalType,
+        newDurationMin,
+        hrvToday: intervention.signals.hrvToday,
+        hrvBaseline14d: intervention.signals.hrvBaseline14d,
+        sleepHoursLastNight: intervention.signals.sleepHoursLastNight,
+      }),
+      fallback: fallbackNotification(locale, {
         originalName: intervention.originalName,
         newDurationMin,
         hrvToday: intervention.signals.hrvToday,
         hrvBaseline14d: intervention.signals.hrvBaseline14d,
-      });
-    }
+      }),
+      logTag: "hrvLowReadiness",
+    });
 
     // Persist the prose on the intervention row so the workout detail card
     // can render it (see coach-intervention-card.tsx).
     await ctx.runMutation(
       internal.coach.triggers.hrvLowReadiness.setInterventionNotificationText,
       { interventionId, body },
-    );
-
-    // Drop the prose into the user's coach thread as an assistant message,
-    // then fire the push as a consequence. Agent loop is bypassed on
-    // purpose: this trigger narrates, it never acts.
-    const userIdStr = intervention.userId as string;
-    const existing = await ctx.runQuery(
-      components.agent.threads.listThreadsByUserId,
-      {
-        userId: userIdStr,
-        order: "desc",
-        paginationOpts: { numItems: 1, cursor: null },
-      },
-    );
-    const threadId =
-      existing.page[0]?._id ??
-      (await createThread(ctx, components.agent, { userId: userIdStr }));
-
-    await saveMessage(ctx, components.agent, {
-      threadId,
-      userId: userIdStr,
-      message: { role: "assistant", content: body },
-      agentName: "Cadence Coach",
-    });
-
-    await ctx.scheduler.runAfter(
-      0,
-      internal.notifications.sendCoachMessageNotification,
-      {
-        userId: intervention.userId,
-        threadId,
-        preview: body.slice(0, 140),
-      },
     );
     return null;
   },
