@@ -119,11 +119,10 @@ const plannedFaceSchema = z
       .describe("UTC ISO 8601 timestamp for the planned date."),
     structure: z
       .any()
-      .optional()
       .describe(
-        "Optional structured workout (steps, repeats, intervals). Pass " +
-        "through verbatim if cloning from a template; otherwise omit. " +
-        "Distance/duration/pace are derived from this on read.",
+        "Structured workout (steps, repeats, intervals). Required. Pass " +
+        "through verbatim if cloning from a template. Distance/duration/" +
+        "pace are derived from this on read.",
       ),
   })
   .describe("Planned face — what the athlete is meant to do.");

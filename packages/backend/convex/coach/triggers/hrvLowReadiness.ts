@@ -119,11 +119,30 @@ export const applyModificationAndRecord = internalMutation({
 
     const newName = easyName(locale, newDuration ?? 30 * 60);
 
+    // Single easy step — distance-anchored if we have it, otherwise time. The
+    // planned face requires a structure; an easy run is just one continuous
+    // work step at RPE 3.
+    const newStructure: WorkoutStructure = {
+      schema_version: 1,
+      discipline: "endurance",
+      sport: "run",
+      blocks: [
+        {
+          kind: "step",
+          intent: "work",
+          duration: newDistance
+            ? { type: "distance", meters: newDistance }
+            : { type: "time", seconds: newDuration ?? 30 * 60 },
+          target: { type: "rpe", value: 3 },
+        },
+      ],
+    };
+
     await ctx.runMutation(components.agoge.public.updateWorkout, {
       workoutId,
       type: "easy",
       name: newName,
-      planned: { date: originalPlanned.date },
+      planned: { date: originalPlanned.date, structure: newStructure },
     });
 
     const interventionId = await ctx.db.insert("coachInterventions", {

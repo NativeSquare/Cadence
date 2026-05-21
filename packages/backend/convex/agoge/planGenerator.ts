@@ -190,19 +190,21 @@ export const generate = internalAction({
       goalSeconds:
         goal.raceTarget?.type === "time" ? goal.raceTarget.seconds : undefined,
     });
-    await ctx.runMutation(components.agoge.public.createWorkout, {
-      athleteId: plan.athleteId,
-      planId: plan._id,
-      ...(blockIds.taper ? { blockId: blockIds.taper } : {}),
-      name: race.name,
-      type: "race",
-      sport: "run",
-      status: "planned",
-      planned: {
-        date: ymdToNoonUtc(raceYmd),
-        ...(raceStructure ? { structure: raceStructure } : {}),
-      },
-    });
+    if (raceStructure) {
+      await ctx.runMutation(components.agoge.public.createWorkout, {
+        athleteId: plan.athleteId,
+        planId: plan._id,
+        ...(blockIds.taper ? { blockId: blockIds.taper } : {}),
+        name: race.name,
+        type: "race",
+        sport: "run",
+        status: "planned",
+        planned: {
+          date: ymdToNoonUtc(raceYmd),
+          structure: raceStructure,
+        },
+      });
+    }
 
     await markGenerated(ctx, plan._id, plan.notes, undefined);
   },
