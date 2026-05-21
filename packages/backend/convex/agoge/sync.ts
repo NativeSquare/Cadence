@@ -99,12 +99,12 @@ async function upsertGarmin(
     return null;
   }
 
-  const structure = workout.planned?.structure ?? workout.actual?.structure;
+  const structure = workout.planned?.structure;
   if (!structure) {
     return null;
   }
 
-  const scheduleDate = workout.planned?.date ?? workout.actual?.date;
+  const scheduleDate = workout.planned?.date;
   if (!scheduleDate) {
     return null;
   }
@@ -117,7 +117,7 @@ async function upsertGarmin(
   if (!ref) {
     const { workoutId: garminWorkoutId } = await ctx.runAction(
       components.agoge.garmin.public.createWorkout,
-      { accessToken, workout: structure },
+      { accessToken, workout: { ...structure, name: workout.name } },
     );
 
     let garminScheduleId: number | null = null;
@@ -152,7 +152,7 @@ async function upsertGarmin(
   await ctx.runAction(components.agoge.garmin.public.updateWorkout, {
     accessToken,
     workoutId: externalWorkoutId,
-    workout: structure,
+    workout: { ...structure, name: workout.name },
   });
 
   const garminScheduleId: number | null = ref.externalScheduleId

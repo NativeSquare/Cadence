@@ -3,7 +3,9 @@ import { useTranslation } from "react-i18next";
 import { View } from "react-native";
 import Svg, { Circle, G, Line, Path, Text as SvgText } from "react-native-svg";
 import { Target } from "lucide-react-native";
+import type { Workout as WorkoutStructure } from "@nativesquare/agoge";
 import type { WorkoutDoc } from "@nativesquare/agoge/schema";
+import { summarizeStructure } from "@packages/shared/workout-summary";
 import { Text } from "@/components/ui/text";
 import { LIGHT_THEME } from "@/lib/design-tokens";
 import { CardShell } from "../parts/CardShell";
@@ -85,16 +87,18 @@ function buildSeries(workouts: WorkoutDoc[], window: WeekWindow): Series {
 
   for (const w of workouts) {
     const pDate = w.planned?.date;
-    const pMeters = w.planned?.distanceMeters;
-    if (pDate && pMeters && pMeters > 0) {
+    const pStructure = w.planned?.structure as WorkoutStructure | undefined;
+    const pMeters = pStructure ? summarizeStructure(pStructure).distanceMeters : 0;
+    if (pDate && pMeters > 0) {
       const k = isoWeekKey(new Date(pDate));
       if (k in planned) planned[k] += pMeters / 1000;
     }
     if (w.status === "completed") {
       const aDate = w.actual?.date ?? w.planned?.date;
-      // Manual mark-done doesn't capture distance — fall back to planned so
-      // the actual line reflects "did the planned workout".
-      const aMeters = w.actual?.distanceMeters ?? w.planned?.distanceMeters;
+      // Manual mark-done doesn't capture distance — fall back to the planned
+      // structure's summary so the actual line reflects "did the planned
+      // workout".
+      const aMeters = w.actual?.distanceMeters ?? pMeters;
       if (aDate && aMeters && aMeters > 0) {
         const k = isoWeekKey(new Date(aDate));
         if (k in actual) actual[k] += aMeters / 1000;

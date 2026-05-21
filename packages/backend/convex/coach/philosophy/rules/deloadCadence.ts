@@ -17,10 +17,7 @@ export const deloadCadence: PhilosophyRule<unknown> = {
 
     const planWorkouts = await loadPlanWorkouts(qctx, plan._id);
     const planned = planWorkouts.filter(
-      (w) =>
-        w.status === "planned" ||
-        w.status === "missed" ||
-        w.status === "skipped",
+      (w) => w.status === "planned" || w.status === "missed",
     );
     const weeks = summarizeByIsoWeek(planned, "planned");
     const ordered = [...weeks.values()].sort((a, b) =>

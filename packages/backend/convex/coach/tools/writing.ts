@@ -112,29 +112,36 @@ async function checkPhilosophy(
 // formats its proposal).
 // ---------------------------------------------------------------------------
 
-const workoutFaceSchema = z
+const plannedFaceSchema = z
   .object({
     date: z
       .string()
-      .describe("UTC ISO 8601 timestamp for the planned/actual date."),
-    durationSeconds: z.number().int().positive().optional(),
-    distanceMeters: z.number().positive().optional(),
-    elevationGainMeters: z.number().nonnegative().optional(),
-    avgHr: z.number().int().positive().optional(),
-    maxHr: z.number().int().positive().optional(),
-    avgPaceMps: z.number().positive().optional(),
-    load: z.number().nonnegative().optional(),
-    rpe: z.number().min(0).max(10).optional(),
-    notes: z.string().optional(),
+      .describe("UTC ISO 8601 timestamp for the planned date."),
     structure: z
       .any()
       .optional()
       .describe(
         "Optional structured workout (steps, repeats, intervals). Pass " +
-        "through verbatim if cloning from a template; otherwise omit.",
+        "through verbatim if cloning from a template; otherwise omit. " +
+        "Distance/duration/pace are derived from this on read.",
       ),
   })
-  .describe("One face of a workout — same shape for planned and actual.");
+  .describe("Planned face — what the athlete is meant to do.");
+
+const actualFaceSchema = z
+  .object({
+    date: z
+      .string()
+      .describe("UTC ISO 8601 timestamp for when the actual was run."),
+    durationSeconds: z.number().int().positive().optional(),
+    distanceMeters: z.number().positive().optional(),
+    elevationGainMeters: z.number().nonnegative().optional(),
+    avgHr: z.number().int().positive().optional(),
+    maxHr: z.number().int().positive().optional(),
+    rpe: z.number().min(0).max(10).optional(),
+    notes: z.string().optional(),
+  })
+  .describe("Actual face — what the athlete actually did.");
 
 const workoutTypeSchema = z.enum([
   "easy",
@@ -151,7 +158,6 @@ const workoutStatusSchema = z.enum([
   "planned",
   "completed",
   "missed",
-  "skipped",
 ]);
 
 const blockTypeSchema = z.enum(["base", "build", "peak", "taper"]);
@@ -177,8 +183,8 @@ export const writingTools = {
       sport: z.literal("run"),
       type: workoutTypeSchema,
       status: workoutStatusSchema,
-      planned: workoutFaceSchema.optional(),
-      actual: workoutFaceSchema.optional(),
+      planned: plannedFaceSchema.optional(),
+      actual: actualFaceSchema.optional(),
       blockId: z.string().optional(),
       templateId: z.string().optional(),
     }),
@@ -224,8 +230,8 @@ export const writingTools = {
       sport: z.literal("run").optional(),
       type: workoutTypeSchema.optional(),
       status: workoutStatusSchema.optional(),
-      planned: workoutFaceSchema.optional(),
-      actual: workoutFaceSchema.optional(),
+      planned: plannedFaceSchema.optional(),
+      actual: actualFaceSchema.optional(),
       blockId: z.union([z.string(), z.null()]).optional(),
       templateId: z.string().optional(),
     }),
@@ -297,7 +303,7 @@ export const writingTools = {
   deleteWorkout: createTool({
     description:
       "Delete a workout. Maps to the user's 'Delete' action. Use sparingly " +
-      "— prefer rescheduling or marking as skipped/missed when the intent " +
+      "— prefer rescheduling or marking as missed when the intent " +
       "is to keep training history intact.",
     inputSchema: z.object({
       workoutId: z.string(),

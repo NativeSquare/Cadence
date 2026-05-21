@@ -11,8 +11,17 @@ import {
   type RaceDetailsValue,
   type RaceGoalValue,
 } from "@/components/app/goal";
+import {
+  EMPTY_RECENT_RACE,
+  isRecentRaceValid,
+  recentRaceToDistanceMeters,
+  recentRaceToSeconds,
+  StepRecentRace,
+  type RecentRaceValue,
+} from "@/components/app/onboarding";
 import { Text } from "@/components/ui/text";
 import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
+import { selectionFeedback } from "@/lib/haptics";
 import { getConvexErrorMessage } from "@/utils/getConvexErrorMessage";
 import { Ionicons } from "@expo/vector-icons";
 import { api } from "@packages/backend/convex/_generated/api";
@@ -30,7 +39,7 @@ import {
   View,
 } from "react-native";
 
-type Step = 1 | 2 | 3 | 4;
+type Step = 1 | 2 | 3 | 4 | 5;
 
 function todayIso(): string {
   const d = new Date();
@@ -82,6 +91,9 @@ export default function NewGoalScreen() {
 
   const createRace = useMutation(api.agoge.races.createMyRaceWithGoal);
   const createFitnessGoal = useMutation(api.agoge.goals.createMyFitnessGoal);
+  const setVdotFromRaceResult = useMutation(
+    api.agoge.baselineTest.setVdotFromRaceResult,
+  );
 
   const [step, setStep] = useState<Step>(1);
   const [branch, setBranch] = useState<GoalBranch | null>(null);
@@ -90,10 +102,16 @@ export default function NewGoalScreen() {
   const [raceGoal, setRaceGoal] = useState<RaceGoalValue>(EMPTY_RACE_GOAL);
   const [plan, setPlan] = useState<PlanValue>(emptyPlan);
   const [fitnessGoal, setFitnessGoalState] = useState<FitnessGoal | null>(null);
+  const [recentRace, setRecentRace] =
+    useState<RecentRaceValue>(EMPTY_RECENT_RACE);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  const totalSteps = branch === "fitness" ? 3 : 4;
+  // Race branch: 1 type → 2 details → 3 goal → 4 plan → 5 recent race
+  // Fitness branch: 1 type → 2 intent → 3 plan → 4 recent race
+  const totalSteps = branch === "fitness" ? 4 : 5;
+  const isRecentRaceStep =
+    (branch === "race" && step === 5) || (branch === "fitness" && step === 4);
 
   const canProceed = useMemo(() => {
     if (step === 1) return branch != null;
@@ -115,11 +133,12 @@ export default function NewGoalScreen() {
     }
     if (step === 3 && branch === "fitness") return plan.startDate !== "";
     if (step === 4 && branch === "race") return plan.startDate !== "";
+    // Recent race is optional — caller can submit with a valid time or skip.
+    if (isRecentRaceStep) return true;
     return false;
-  }, [step, branch, raceDetails, raceGoal, plan, fitnessGoal]);
+  }, [step, branch, raceDetails, raceGoal, plan, fitnessGoal, isRecentRaceStep]);
 
-  const isFinalStep =
-    (step === 4 && branch === "race") || (step === 3 && branch === "fitness");
+  const isFinalStep = isRecentRaceStep;
 
   const handleClose = () => {
     router.back();
@@ -141,18 +160,23 @@ export default function NewGoalScreen() {
       setStep((s) => (s + 1) as Step);
       return;
     }
-    await submit();
+    await submit({ withRaceResult: isRecentRaceValid(recentRace) });
   };
 
-  const submit = async () => {
+  // "I'll do the 5K test instead" — submit without seeding VDOT.
+  const handleSkipRecentRace = async () => {
+    if (submitting) return;
+    selectionFeedback();
+    setSubmitError(null);
+    await submit({ withRaceResult: false });
+  };
+
+  const submit = async ({ withRaceResult }: { withRaceResult: boolean }) => {
     setSubmitting(true);
     try {
       if (branch === "fitness" && fitnessGoal) {
         await createFitnessGoal({ fitnessIntent: fitnessGoal });
-        router.replace("/(app)/(tabs)");
-        return;
-      }
-      if (branch === "race") {
+      } else if (branch === "race") {
         const format = raceDetails.format;
         if (format === "" || raceDetails.discipline === "") return;
         const distanceMeters =
@@ -173,9 +197,20 @@ export default function NewGoalScreen() {
             raceTarget: buildRaceTarget(raceGoal),
           },
         });
-        router.replace("/(app)/(tabs)");
+      } else {
         return;
       }
+
+      // Optionally seed VDOT from a recent race — skips the in-app 5K test
+      // by giving the plan generator something to base paces on right away.
+      if (withRaceResult) {
+        await setVdotFromRaceResult({
+          distanceMeters: recentRaceToDistanceMeters(recentRace),
+          timeSeconds: recentRaceToSeconds(recentRace),
+        });
+      }
+
+      router.replace("/(app)/(tabs)");
     } catch (err) {
       setSubmitError(
         getConvexErrorMessage(err) || t("goal.errors.submitFailed"),
@@ -261,6 +296,24 @@ export default function NewGoalScreen() {
               minDate={todayIso()}
               maxDate={raceDetails.date || undefined}
             />
+          )}
+          {isRecentRaceStep && (
+            <StepRecentRace value={recentRace} onChange={setRecentRace} />
+          )}
+
+          {isRecentRaceStep && (
+            <Pressable
+              onPress={handleSkipRecentRace}
+              disabled={submitting}
+              className="items-center py-2 active:opacity-70"
+            >
+              <Text
+                className="font-coach-semibold text-[13px] underline"
+                style={{ color: LIGHT_THEME.wSub }}
+              >
+                {t("onboarding.recentRace.skipForTest")}
+              </Text>
+            </Pressable>
           )}
 
           {submitError && (

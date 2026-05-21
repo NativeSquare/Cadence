@@ -240,48 +240,6 @@ function StepEditorBody({
         }
       />
 
-      <FormField label={t("workout.stepEditor.nameOptional")}>
-        <TextInput
-          className="h-12 rounded-xl border px-4 font-coach-medium text-[15px]"
-          style={inputStyle}
-          placeholder={t("workout.stepEditor.namePlaceholder")}
-          placeholderTextColor={LIGHT_THEME.wMute}
-          value={step.name ?? ""}
-          onChangeText={(v) =>
-            setStep((s) => ({ ...s, name: v.length > 0 ? v : undefined }))
-          }
-          maxLength={100}
-          selectionColor={COLORS.lime}
-          cursorColor={COLORS.lime}
-        />
-      </FormField>
-
-      <FormField label={t("workout.stepEditor.notesOptional")}>
-        <View className="gap-1">
-          <TextInput
-            className="min-h-[64px] rounded-xl border px-4 py-3 font-coach-medium text-[14px]"
-            style={inputStyle}
-            placeholder={t("workout.stepEditor.notesPlaceholder")}
-            placeholderTextColor={LIGHT_THEME.wMute}
-            value={step.notes ?? ""}
-            onChangeText={(v) =>
-              setStep((s) => ({ ...s, notes: v.length > 0 ? v : undefined }))
-            }
-            maxLength={500}
-            multiline
-            textAlignVertical="top"
-            selectionColor={COLORS.lime}
-            cursorColor={COLORS.lime}
-          />
-          <Text
-            className="text-right font-coach text-[11px]"
-            style={{ color: LIGHT_THEME.wMute }}
-          >
-            {(step.notes?.length ?? 0)} / 500
-          </Text>
-        </View>
-      </FormField>
-
       <View className="gap-2.5 pt-3">
         <Pressable
           onPress={handleSave}

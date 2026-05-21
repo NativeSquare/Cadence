@@ -20,8 +20,6 @@ import {
   ymdToNoonUtc,
 } from "./periodization";
 
-export const TEST_DISTANCE_METERS = 8000;
-
 export const TEST_NAME: Record<Locale, string> = {
   en: "5K time trial",
   fr: "Test 5 km",
@@ -143,7 +141,6 @@ export async function gatePlanGeneration(
     status: "planned",
     planned: {
       date: ymdToNoonUtc(args.planStartDate),
-      distanceMeters: TEST_DISTANCE_METERS,
       structure: buildTestStructure(),
     },
   });

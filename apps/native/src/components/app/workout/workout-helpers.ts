@@ -60,9 +60,9 @@ export function blockLabel(
 }
 
 /**
- * Translate an agoge WorkoutStatus enum value (planned/completed/missed/
- * skipped) — or the frontend-only `needs_feedback` derived state — to a
- * locale-aware label. Falls back to capitalize for safety.
+ * Translate an agoge WorkoutStatus enum value (planned/completed/missed) —
+ * or the frontend-only `needs_feedback` derived state — to a locale-aware
+ * label. Falls back to capitalize for safety.
  */
 export function workoutStatusLabel(
   t: TFunction,
@@ -95,9 +95,9 @@ export function localTodayYmd(now: Date = new Date()): string {
 
 /**
  * Derive the effective workout status. The DB stores transitions the user
- * has explicitly made (planned → completed/skipped/missed). Past-planned
- * workouts the user hasn't categorized yet are surfaced as `needs_feedback`
- * — a frontend-only state that prompts triage in the UI. Persisted `missed`
+ * has explicitly made (planned → completed/missed). Past-planned workouts
+ * the user hasn't categorized yet are surfaced as `needs_feedback` — a
+ * frontend-only state that prompts triage in the UI. Persisted `missed`
  * (an explicit user choice) is preserved as-is so we never conflate the
  * two. Backend rules continue to read the persisted status.
  */
@@ -109,11 +109,7 @@ export function deriveWorkoutStatus(
   },
   todayYmd: string,
 ): DerivedWorkoutStatus {
-  if (
-    workout.status === "completed" ||
-    workout.status === "skipped" ||
-    workout.status === "missed"
-  ) {
+  if (workout.status === "completed" || workout.status === "missed") {
     return workout.status;
   }
   if (workout.actual) return "completed";

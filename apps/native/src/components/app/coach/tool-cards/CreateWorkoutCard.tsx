@@ -8,6 +8,8 @@
 
 import { View } from "react-native";
 import { useTranslation } from "react-i18next";
+import type { Workout as WorkoutStructure } from "@nativesquare/agoge";
+import { summarizeStructure } from "@packages/shared/workout-summary";
 import { Text } from "@/components/ui/text";
 import {
   workoutStatusLabel,
@@ -23,11 +25,15 @@ import {
 } from "./format";
 import type { ToolCardProps } from "./types";
 
-interface WorkoutFace {
+interface PlannedFace {
+  date: string;
+  structure?: unknown;
+}
+
+interface ActualFace {
   date: string;
   distanceMeters?: number;
   durationSeconds?: number;
-  avgPaceMps?: number;
   avgHr?: number;
   rpe?: number;
 }
@@ -36,24 +42,41 @@ interface CreateInput {
   name: string;
   type: string;
   status: string;
-  planned?: WorkoutFace;
-  actual?: WorkoutFace;
+  planned?: PlannedFace;
+  actual?: ActualFace;
   blockId?: string;
 }
 
 export function CreateWorkoutCard(props: ToolCardProps) {
   const { t } = useTranslation();
   const input = (props.input ?? {}) as Partial<CreateInput>;
-  const face = input.planned ?? input.actual;
+  const headerDate = input.planned?.date ?? input.actual?.date;
+  const plannedSummary = input.planned?.structure
+    ? summarizeStructure(input.planned.structure as WorkoutStructure)
+    : undefined;
 
-  const metrics = face
-    ? [
-        formatDistance(face.distanceMeters),
-        formatDuration(face.durationSeconds),
-        formatPace(face.avgPaceMps),
-        formatHr(face.avgHr),
-      ].filter((v): v is string => !!v)
-    : [];
+  const metrics = (() => {
+    if (input.actual) {
+      const actualPaceMps =
+        input.actual.distanceMeters && input.actual.durationSeconds
+          ? input.actual.distanceMeters / input.actual.durationSeconds
+          : undefined;
+      return [
+        formatDistance(input.actual.distanceMeters),
+        formatDuration(input.actual.durationSeconds),
+        formatPace(actualPaceMps),
+        formatHr(input.actual.avgHr),
+      ].filter((v): v is string => !!v);
+    }
+    if (plannedSummary) {
+      return [
+        formatDistance(plannedSummary.distanceMeters),
+        formatDuration(plannedSummary.durationSeconds),
+        formatPace(plannedSummary.avgPaceMps),
+      ].filter((v): v is string => !!v);
+    }
+    return [];
+  })();
 
   return (
     <ProposalCard
@@ -75,7 +98,7 @@ export function CreateWorkoutCard(props: ToolCardProps) {
         <Text className="text-[12px] font-coach text-wMute">
           {input.type ? workoutTypeLabel(t, input.type) : "—"}
           {input.status ? ` · ${workoutStatusLabel(t, input.status)}` : ""}
-          {face?.date ? ` · ${formatDate(face.date)}` : ""}
+          {headerDate ? ` · ${formatDate(headerDate)}` : ""}
         </Text>
         {metrics.length > 0 && (
           <View className="flex-row flex-wrap gap-1.5 mt-1">

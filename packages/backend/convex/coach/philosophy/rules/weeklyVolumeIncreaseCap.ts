@@ -1,4 +1,6 @@
+import type { Workout as WorkoutStructure } from "@nativesquare/agoge";
 import { components } from "../../../_generated/api";
+import { summarizeStructure } from "../../../agoge/periodization";
 import {
   isoWeekKey,
   loadPlanWorkouts,
@@ -13,7 +15,7 @@ const MIN_PREV_WEEK_WORKOUTS = 2;
 type Input = {
   workoutId?: string;
   date?: string;
-  planned?: { date?: string; distanceMeters?: number; durationSeconds?: number };
+  planned?: { date?: string; structure?: unknown };
 };
 
 type ProposedDelta = {
@@ -21,6 +23,18 @@ type ProposedDelta = {
   distanceMeters: number;
   durationSeconds: number;
 };
+
+function structureVolume(structure: unknown): {
+  distanceMeters: number;
+  durationSeconds: number;
+} {
+  if (!structure) return { distanceMeters: 0, durationSeconds: 0 };
+  const s = summarizeStructure(structure as WorkoutStructure);
+  return {
+    distanceMeters: s.distanceMeters,
+    durationSeconds: s.durationSeconds ?? 0,
+  };
+}
 
 export const weeklyVolumeIncreaseCap: PhilosophyRule<Input> = {
   id: "weekly_volume_increase_cap",
@@ -47,9 +61,7 @@ export const weeklyVolumeIncreaseCap: PhilosophyRule<Input> = {
     const otherPlanned = planWorkouts.filter(
       (w) =>
         w._id !== input.workoutId &&
-        (w.status === "planned" ||
-          w.status === "missed" ||
-          w.status === "skipped"),
+        (w.status === "planned" || w.status === "missed"),
     );
     const plannedWeeks = summarizeByIsoWeek(otherPlanned, "planned");
 
@@ -116,21 +128,15 @@ function resolveProposed(
     if (!existing?.planned) return null;
     return {
       date: input.date,
-      distanceMeters: existing.planned.distanceMeters ?? 0,
-      durationSeconds: existing.planned.durationSeconds ?? 0,
+      ...structureVolume(existing.planned.structure),
     };
   }
   if (input.planned?.date) {
+    const structure =
+      input.planned.structure ?? existing?.planned?.structure;
     return {
       date: input.planned.date,
-      distanceMeters:
-        input.planned.distanceMeters ??
-        existing?.planned?.distanceMeters ??
-        0,
-      durationSeconds:
-        input.planned.durationSeconds ??
-        existing?.planned?.durationSeconds ??
-        0,
+      ...structureVolume(structure),
     };
   }
   return null;

@@ -15,23 +15,26 @@ export function isValidIso(s: string): boolean {
   return new Date(parsed).toISOString() === s;
 }
 
-export const workoutFaceSchema = z.object({
+export const plannedFaceSchema = z.object({
   date: z.string().refine(isValidIso, "Date is required"),
   // Structure is validated separately via firstStructureError/buildErrorByPath
   // and gated by canSave. Using workoutSchemaValidated here would reject the
   // default empty structure on the non-required face and silently block submit.
   structure: z.custom<WorkoutStructure>(),
+});
+export type PlannedFaceValues = z.infer<typeof plannedFaceSchema>;
+
+export const actualFaceSchema = z.object({
+  date: z.string().refine(isValidIso, "Date is required"),
   durationSeconds: z.number().optional(),
   distanceMeters: z.number().optional(),
-  load: z.number().optional(),
-  avgPaceMps: z.number().optional(),
   avgHr: z.number().optional(),
   maxHr: z.number().optional(),
   elevationGainMeters: z.number().optional(),
   rpe: z.number().optional(),
   notes: z.string().optional(),
 });
-export type WorkoutFaceValues = z.infer<typeof workoutFaceSchema>;
+export type ActualFaceValues = z.infer<typeof actualFaceSchema>;
 
 export function buildErrorByPath(
   structure: WorkoutStructure | undefined,

@@ -23,6 +23,7 @@ import { type ActionCtx, internalAction } from "../_generated/server";
 type ComponentId = string;
 import {
   addDaysYmd,
+  buildRaceStructure,
   buildStructure,
   computeVdot,
   daysBetweenYmd,
@@ -155,25 +156,11 @@ export const generate = internalAction({
           distanceMeters,
           paces,
         );
+        if (!structure) continue;
 
-        // When a structure exists it's the source of truth — derive the
-        // top-level summary fields from it so they reflect the mixed-intensity
-        // reality (e.g. a peak-phase long run is mostly E-paced, not M-paced).
-        let plannedDistance: number;
-        let plannedAvgPace: number | undefined;
-        let plannedDuration: number | undefined;
-        if (structure) {
-          const s = summarizeStructure(structure);
-          plannedDistance = s.distanceMeters;
-          plannedAvgPace = s.avgPaceMps;
-          plannedDuration = s.durationSeconds;
-        } else {
-          plannedDistance = distanceMeters;
-          plannedAvgPace = paces ? paces[session.intensity] : undefined;
-          plannedDuration = plannedAvgPace
-            ? Math.round(plannedDistance / plannedAvgPace)
-            : undefined;
-        }
+        // Structure is the source of truth for what the workout demands —
+        // distance/pace/duration are derived from it on read.
+        const labelDistance = summarizeStructure(structure).distanceMeters;
 
         await ctx.runMutation(components.agoge.public.createWorkout, {
           athleteId: plan.athleteId,
@@ -181,7 +168,7 @@ export const generate = internalAction({
           blockId,
           name: workoutName({
             type: session.type,
-            distanceMeters: plannedDistance,
+            distanceMeters: labelDistance,
             structure,
             locale,
           }),
@@ -190,10 +177,7 @@ export const generate = internalAction({
           status: "planned",
           planned: {
             date: ymdToNoonUtc(dateYmd),
-            distanceMeters: plannedDistance,
-            ...(plannedAvgPace !== undefined ? { avgPaceMps: plannedAvgPace } : {}),
-            ...(plannedDuration !== undefined ? { durationSeconds: plannedDuration } : {}),
-            ...(structure ? { structure } : {}),
+            structure,
           },
         });
       }
@@ -201,13 +185,11 @@ export const generate = internalAction({
 
     // Race day: emit the race itself as a workout so it shows up alongside
     // training and can collect `actual` data once completed.
-    const raceGoalSeconds =
-      goal.raceTarget?.type === "time" && goal.raceTarget.seconds > 0
-        ? goal.raceTarget.seconds
-        : undefined;
-    const racePaceMps = raceGoalSeconds
-      ? race.distanceMeters / raceGoalSeconds
-      : undefined;
+    const raceStructure = buildRaceStructure({
+      distanceMeters: race.distanceMeters,
+      goalSeconds:
+        goal.raceTarget?.type === "time" ? goal.raceTarget.seconds : undefined,
+    });
     await ctx.runMutation(components.agoge.public.createWorkout, {
       athleteId: plan.athleteId,
       planId: plan._id,
@@ -218,9 +200,7 @@ export const generate = internalAction({
       status: "planned",
       planned: {
         date: ymdToNoonUtc(raceYmd),
-        distanceMeters: race.distanceMeters,
-        ...(racePaceMps !== undefined ? { avgPaceMps: racePaceMps } : {}),
-        ...(raceGoalSeconds !== undefined ? { durationSeconds: raceGoalSeconds } : {}),
+        ...(raceStructure ? { structure: raceStructure } : {}),
       },
     });
 
@@ -281,17 +261,31 @@ export const generateFitness = internalAction({
         const dateYmd = addDaysYmd(weekStart, dayOffset);
         const distanceMeters = Math.round(session.distanceKm * 1000);
         if (distanceMeters < 500) continue;
+        // No VDOT in fitness plans → buildStructure emits RPE-targeted steps.
+        const structure = buildStructure(
+          session.type,
+          session.intensity,
+          distanceMeters,
+          undefined,
+        );
+        if (!structure) continue;
+        const labelDistance = summarizeStructure(structure).distanceMeters;
         await ctx.runMutation(components.agoge.public.createWorkout, {
           athleteId: plan.athleteId,
           planId: plan._id,
           blockId,
-          name: workoutName({ type: session.type, distanceMeters, locale }),
+          name: workoutName({
+            type: session.type,
+            distanceMeters: labelDistance,
+            structure,
+            locale,
+          }),
           type: session.type,
           sport: "run",
           status: "planned",
           planned: {
             date: ymdToNoonUtc(dateYmd),
-            distanceMeters,
+            structure,
           },
         });
       }
@@ -320,7 +314,7 @@ async function loadBaselineVolume(
     },
   );
   const totalKm = completed.reduce((acc, w) => {
-    const d = w.actual?.distanceMeters ?? w.planned?.distanceMeters ?? 0;
+    const d = w.actual?.distanceMeters ?? 0;
     return acc + d / 1000;
   }, 0);
   if (totalKm <= 0) return FALLBACK_WEEKLY_KM;

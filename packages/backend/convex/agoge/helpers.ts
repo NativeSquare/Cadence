@@ -257,10 +257,7 @@ export function validatePlannedFace(
   status: WorkoutStatus,
   planned: unknown,
 ): ValidationError | null {
-  if (
-    (status === "planned" || status === "missed" || status === "skipped") &&
-    !planned
-  ) {
+  if ((status === "planned" || status === "missed") && !planned) {
     return {
       code: "INVALID_STATE",
       message: `A workout with status '${status}' must include a 'planned' face`,

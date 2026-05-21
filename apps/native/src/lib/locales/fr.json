@@ -593,7 +593,15 @@
       "type": "Type",
       "blockOptional": "Bloc (optionnel)",
       "blockNone": "Aucun",
-      "dateAndStartTime": "Date et heure de début"
+      "dateAndStartTime": "Date et heure de début",
+      "distanceKm": "Distance",
+      "distanceUnit": "km",
+      "duration": "Durée",
+      "durationHours": "h",
+      "durationMinutes": "min",
+      "rpe": "Comment c'était ?",
+      "notesOptional": "Notes (optionnel)",
+      "notesPlaceholder": "Ce dont tu veux te souvenir"
     },
     "types": {
       "easy": "Facile",
@@ -685,10 +693,6 @@
       "intent": "Intention",
       "duration": "Durée",
       "target": "Cible",
-      "nameOptional": "Nom (optionnel)",
-      "namePlaceholder": "ex. Cruise",
-      "notesOptional": "Notes (optionnel)",
-      "notesPlaceholder": "Conseils, points d'attention…",
       "submitSave": "Enregistrer",
       "submitAdd": "Ajouter l'étape",
       "deleteStep": "Supprimer l'étape",
@@ -733,6 +737,12 @@
       "structure": "Structure",
       "adherence": "Conformité",
       "weekOfBlock": "{{type}} · Semaine {{week}} sur {{total}}",
+      "result": "Résultat",
+      "plan": "Plan",
+      "whatWasPlanned": "Ce qui était prévu",
+      "vsPlan": "vs prévu",
+      "total": "Total",
+      "details": "Détails",
       "actions": {
         "markAsDone": "Marquer comme terminée",
         "edit": "Modifier la séance"

@@ -79,24 +79,6 @@ async function validateCreateWorkout(
       );
     }
   }
-  if (args.actual?.structure !== undefined) {
-    const r = validateWorkoutStructure(args.actual.structure);
-    if (!r.ok) push(errors, r.error);
-    else {
-      push(
-        errors,
-        validateStructureSportMatchesWorkout(r.structure, args.sport),
-      );
-      push(
-        errors,
-        await validateZonesAvailableForStructure(
-          ctx,
-          auth.athlete._id,
-          r.structure,
-        ),
-      );
-    }
-  }
 
   if (args.templateId) {
     push(
@@ -177,24 +159,6 @@ async function validateUpdateWorkout(
 
   if (rest.planned?.structure !== undefined) {
     const r = validateWorkoutStructure(rest.planned.structure);
-    if (!r.ok) push(errors, r.error);
-    else {
-      push(
-        errors,
-        validateStructureSportMatchesWorkout(r.structure, nextSport),
-      );
-      push(
-        errors,
-        await validateZonesAvailableForStructure(
-          ctx,
-          existing.athleteId,
-          r.structure,
-        ),
-      );
-    }
-  }
-  if (rest.actual?.structure !== undefined) {
-    const r = validateWorkoutStructure(rest.actual.structure);
     if (!r.ok) push(errors, r.error);
     else {
       push(

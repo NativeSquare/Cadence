@@ -14,9 +14,11 @@
  * profile: no tools, single step, no prior thread context.
  */
 
+import type { Workout as WorkoutStructure } from "@nativesquare/agoge";
 import { v } from "convex/values";
 import { api, components } from "../../_generated/api";
 import { internalAction } from "../../_generated/server";
+import { summarizeStructure } from "../../agoge/periodization";
 import { composeNarrationSystem } from "../instructions";
 import { deliverCoachNarration, ensureCoachThread } from "../turns";
 
@@ -119,11 +121,14 @@ export const evaluateForUser = internalAction({
       for (const w of workouts) {
         if (!w.planned) continue;
         const dayPrefix = w.planned.date.slice(0, 10);
+        const summary = w.planned.structure
+          ? summarizeStructure(w.planned.structure as WorkoutStructure)
+          : undefined;
         const brief: WorkoutBrief = {
           type: w.type,
           name: w.name,
-          distanceMeters: w.planned.distanceMeters,
-          durationSeconds: w.planned.durationSeconds,
+          distanceMeters: summary?.distanceMeters,
+          durationSeconds: summary?.durationSeconds,
         };
         if (dayPrefix === todayPrefix && !today) today = brief;
         else if (dayPrefix === tomorrowPrefix && !tomorrow) tomorrow = brief;

@@ -34,15 +34,6 @@ import {
 
 const templateWorkoutFaceSchema = z.object({
   structure: workoutSchemaValidated,
-  durationSeconds: z.number().optional(),
-  distanceMeters: z.number().optional(),
-  load: z.number().optional(),
-  avgPaceMps: z.number().optional(),
-  avgHr: z.number().optional(),
-  maxHr: z.number().optional(),
-  elevationGainMeters: z.number().optional(),
-  rpe: z.number().optional(),
-  notes: z.string().optional(),
 });
 
 const formSchema = z.object({
@@ -85,15 +76,6 @@ export function WorkoutTemplateForm({
       type: initial?.type ?? "easy",
       content: {
         structure: initial?.content?.structure ?? EMPTY_STRUCTURE,
-        notes: initial?.content?.notes,
-        durationSeconds: initial?.content?.durationSeconds,
-        distanceMeters: initial?.content?.distanceMeters,
-        load: initial?.content?.load,
-        avgPaceMps: initial?.content?.avgPaceMps,
-        avgHr: initial?.content?.avgHr,
-        maxHr: initial?.content?.maxHr,
-        elevationGainMeters: initial?.content?.elevationGainMeters,
-        rpe: initial?.content?.rpe,
       },
     },
   });

@@ -1,5 +1,7 @@
+import type { Workout as WorkoutStructure } from "@nativesquare/agoge";
 import { components } from "../../../_generated/api";
 import type { QueryCtx } from "../../../_generated/server";
+import { summarizeStructure } from "../../../agoge/periodization";
 import {
   isoWeekKey,
   loadPlanWorkouts,
@@ -12,7 +14,7 @@ const PEAK_RATIO_LIMIT = 0.85;
 type Input = {
   workoutId?: string;
   date?: string;
-  planned?: { date?: string; distanceMeters?: number; durationSeconds?: number };
+  planned?: { date?: string; structure?: unknown };
   startDate?: string;
   endDate?: string;
 };
@@ -49,14 +51,15 @@ export const taperBeforeRace: PhilosophyRule<Input> = {
     const planned = planWorkouts.filter(
       (w) =>
         w._id !== input.workoutId &&
-        (w.status === "planned" ||
-          w.status === "missed" ||
-          w.status === "skipped"),
+        (w.status === "planned" || w.status === "missed"),
     );
     const weeks = summarizeByIsoWeek(planned, "planned");
 
     const proposedWeek = isoWeekKey(proposedDate);
-    const inputDistance = input.planned?.distanceMeters ?? 0;
+    const inputDistance = input.planned?.structure
+      ? summarizeStructure(input.planned.structure as WorkoutStructure)
+          .distanceMeters
+      : 0;
     const proposedWeekDistance =
       (weeks.get(proposedWeek)?.distanceMeters ?? 0) + inputDistance;
 

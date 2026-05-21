@@ -24,7 +24,9 @@ import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { Ionicons } from "@expo/vector-icons";
 import { Text } from "@/components/ui/text";
 import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
+import type { Workout as WorkoutStructure } from "@nativesquare/agoge";
 import { WORKOUT_TYPES_COLORS } from "@packages/shared/colors";
+import { summarizeStructure } from "@packages/shared/workout-summary";
 import { useLanguage, type Language } from "@/lib/i18n";
 import { selectionFeedback } from "@/lib/haptics";
 import { getConvexErrorMessage } from "@/utils/getConvexErrorMessage";
@@ -275,8 +277,11 @@ function TriageRow({
   const { t } = useTranslation();
   const plannedIso = workout.planned?.date ?? "";
   const days = plannedIso ? daysAgo(plannedIso, today) : 0;
-  const distance = formatDistance(workout.planned?.distanceMeters);
-  const duration = formatDurationSec(workout.planned?.durationSeconds);
+  const summary = workout.planned?.structure
+    ? summarizeStructure(workout.planned.structure as WorkoutStructure)
+    : undefined;
+  const distance = formatDistance(summary?.distanceMeters);
+  const duration = formatDurationSec(summary?.durationSeconds);
   const meta = [distance, duration].filter(Boolean).join(" · ");
   const typeColor = WORKOUT_TYPES_COLORS[workout.type];
 

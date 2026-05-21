@@ -3,8 +3,7 @@
  *
  * Surfaces the full agoge workout doc: hero with status/name/date/sport/type
  * and (when available) plan-block context, optional description, stacked
- * Planned and Actual cards each with their own metrics + structure, and an
- * adherence card when the engine has filled it in.
+ * Planned and Actual cards each with their own metrics + structure.
  *
  * The richer AI-coach analysis layout is being designed separately and will
  * compose on top of this readout.
@@ -27,6 +26,7 @@ import {
   mpsToPaceString,
   workoutTypeLabel,
 } from "@/components/app/workout/workout-helpers";
+import { WorkoutStatusBadge } from "@/components/app/workout/workout-status-badge";
 import { WorkoutStructureView } from "@/components/app/workout/workout-structure-view";
 import { Ionicons } from "@expo/vector-icons";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
@@ -34,6 +34,7 @@ import type { TFunction } from "i18next";
 import type { Workout as WorkoutStructure } from "@nativesquare/agoge";
 import type { WorkoutType } from "@nativesquare/agoge/schema";
 import { api } from "@packages/backend/convex/_generated/api";
+import { summarizeStructure } from "@packages/shared/workout-summary";
 import { useMutation, useQuery } from "convex/react";
 import { useRouter } from "expo-router";
 import React from "react";
@@ -49,27 +50,6 @@ import {
 export interface WorkoutDetailPageProps {
   workoutId: string;
 }
-
-function statusLabel(t: TFunction, status: string): string {
-  switch (status) {
-    case "planned":
-    case "completed":
-    case "missed":
-    case "skipped":
-    case "needs_feedback":
-      return t(`workout.status.${status}`);
-    default:
-      return status;
-  }
-}
-
-const STATUS_COLOR: Record<string, string> = {
-  planned: LIGHT_THEME.wMute,
-  completed: COLORS.grn,
-  missed: COLORS.red,
-  skipped: COLORS.ylw,
-  needs_feedback: COLORS.ylw,
-};
 
 function parseIsoDate(iso: string): Date {
   const [y, m, d] = iso.split("-").map((p) => Number.parseInt(p, 10));
@@ -144,13 +124,81 @@ function formatRpe(rpe?: number): string | null {
   return `RPE ${rpe}`;
 }
 
-function formatLoad(load?: number): string | null {
-  if (load == null || load <= 0) return null;
-  return String(Math.round(load));
-}
-
 function getTypeColor(type: WorkoutType): string {
   return WORKOUT_TYPES_COLORS[type];
+}
+
+function paceFromDistanceDuration(
+  distanceMeters?: number,
+  durationSeconds?: number,
+): number | undefined {
+  if (!distanceMeters || !durationSeconds) return undefined;
+  if (distanceMeters <= 0 || durationSeconds <= 0) return undefined;
+  return distanceMeters / durationSeconds;
+}
+
+// Compliance color thresholds per UX direction (2026-03-26): how far the
+// recorded value drifted from the prescribed target. Used for inline metric
+// deltas between planned and actual.
+function complianceColor(deviation: number): string {
+  const abs = Math.abs(deviation);
+  if (abs < 0.05) return "#15803D"; // green
+  if (abs < 0.15) return "#B45309"; // amber
+  if (abs < 0.25) return "#C2410C"; // orange
+  return "#B91C1C"; // red
+}
+
+interface Delta {
+  label: string;
+  color: string;
+}
+
+function metersDelta(planned?: number, actual?: number): Delta | null {
+  if (!planned || !actual || planned <= 0) return null;
+  const diff = actual - planned;
+  const sign = diff >= 0 ? "+" : "−";
+  const abs = Math.abs(diff);
+  const label =
+    abs >= 100
+      ? `${sign}${(abs / 1000).toFixed(abs >= 1000 ? 1 : 2)} km`
+      : `${sign}${Math.round(abs)} m`;
+  return { label, color: complianceColor(diff / planned) };
+}
+
+function secondsDelta(planned?: number, actual?: number): Delta | null {
+  if (!planned || !actual || planned <= 0) return null;
+  const diff = actual - planned;
+  const sign = diff >= 0 ? "+" : "−";
+  const abs = Math.abs(diff);
+  const h = Math.floor(abs / 3600);
+  const m = Math.floor((abs % 3600) / 60);
+  const s = abs % 60;
+  let core: string;
+  if (h > 0) core = `${h}h${String(m).padStart(2, "0")}`;
+  else if (m > 0) core = s > 0 ? `${m}m${String(s).padStart(2, "0")}` : `${m}m`;
+  else core = `${s}s`;
+  return { label: `${sign}${core}`, color: complianceColor(diff / planned) };
+}
+
+function paceDelta(plannedMps?: number, actualMps?: number): Delta | null {
+  if (!plannedMps || !actualMps || plannedMps <= 0 || actualMps <= 0) return null;
+  const plannedSecPerKm = 1000 / plannedMps;
+  const actualSecPerKm = 1000 / actualMps;
+  const diff = actualSecPerKm - plannedSecPerKm;
+  const sign = diff >= 0 ? "+" : "−";
+  const abs = Math.round(Math.abs(diff));
+  let core: string;
+  if (abs >= 60) {
+    const m = Math.floor(abs / 60);
+    const s = abs % 60;
+    core = s > 0 ? `${m}m${String(s).padStart(2, "0")}` : `${m}m`;
+  } else {
+    core = `${abs}s`;
+  }
+  return {
+    label: `${sign}${core}/km`,
+    color: complianceColor(diff / plannedSecPerKm),
+  };
 }
 
 function computeBlockProgress(
@@ -307,65 +355,61 @@ export function WorkoutDetailPage({ workoutId }: WorkoutDetailPageProps) {
         contentContainerClassName="px-4 py-6"
       >
         <View className="w-full max-w-md gap-6 self-center">
-          <View className="gap-2">
-            <View className="flex-row items-start justify-between gap-3">
+          <View>
+            <View className="mb-2 flex-row items-start justify-between gap-3">
               <Text
-                className="flex-1 font-coach-bold text-2xl"
-                style={{ color: LIGHT_THEME.wText }}
+                className="flex-1 font-coach-semibold text-[11px] uppercase"
+                style={{
+                  color: getTypeColor(workout.type),
+                  letterSpacing: 0.08 * 11,
+                }}
+                numberOfLines={1}
               >
-                {workout.name}
-              </Text>
-              <Chip accent={getTypeColor(workout.type)} prominent>
                 {workoutTypeLabel(t, workout.type)}
-              </Chip>
+              </Text>
+              <WorkoutStatusBadge status={effectiveStatus} tone="light" />
             </View>
-            <View className="flex-row flex-wrap items-center gap-2">
-              <View className="flex-row items-center gap-1.5">
-                <View
-                  className="size-2 rounded-full"
-                  style={{
-                    backgroundColor: STATUS_COLOR[effectiveStatus] ?? LIGHT_THEME.wMute,
-                  }}
-                />
+            <Text
+              className="font-coach-bold text-[26px]"
+              style={{
+                color: LIGHT_THEME.wText,
+                letterSpacing: -0.02 * 26,
+                lineHeight: 30,
+              }}
+            >
+              {workout.name}
+            </Text>
+            {heroDate && (
+              <View className="mt-2 flex-row flex-wrap items-center gap-1.5">
                 <Text
-                  className="font-coach-semibold text-[12px] uppercase tracking-wider"
-                  style={{
-                    color: STATUS_COLOR[effectiveStatus] ?? LIGHT_THEME.wMute,
-                  }}
+                  className="font-coach text-sm"
+                  style={{ color: LIGHT_THEME.wMute }}
                 >
-                  {statusLabel(t, effectiveStatus)}
+                  {formatDate(locale, heroDate)}
                 </Text>
-              </View>
-              {heroDate && (
-                <>
-                  <Text
-                    className="font-coach text-sm"
-                    style={{ color: LIGHT_THEME.wMute }}
-                  >
-                    ·
-                  </Text>
-                  <Text
-                    className="font-coach text-sm"
-                    style={{ color: LIGHT_THEME.wMute }}
-                  >
-                    {formatDate(locale, heroDate)}
-                  </Text>
-                  {(() => {
-                    const rel = formatRelativeDate(t, heroDate);
-                    return rel ? (
+                {(() => {
+                  const rel = formatRelativeDate(t, heroDate);
+                  return rel ? (
+                    <>
+                      <Text
+                        className="font-coach text-sm"
+                        style={{ color: LIGHT_THEME.wMute }}
+                      >
+                        ·
+                      </Text>
                       <Text
                         className="font-coach-semibold text-sm"
                         style={{ color: LIGHT_THEME.wSub }}
                       >
-                        · {rel}
+                        {rel}
                       </Text>
-                    ) : null;
-                  })()}
-                </>
-              )}
-            </View>
+                    </>
+                  ) : null;
+                })()}
+              </View>
+            )}
             {block && blockProgress && (
-              <View className="mt-1 flex-row flex-wrap gap-2">
+              <View className="mt-3 flex-row flex-wrap gap-2">
                 <Chip>
                   {t("workout.detail.weekOfBlock", {
                     type: blockTypeLabel(t, block.type),
@@ -393,20 +437,11 @@ export function WorkoutDetailPage({ workoutId }: WorkoutDetailPageProps) {
             <CoachInterventionCard intervention={intervention} />
           )}
 
-          {workout.planned && (
-            <FaceCard
-              title={t("workout.fields.plannedSection")}
-              face={workout.planned}
-              extended={false}
-            />
-          )}
-
           {workout.actual && (
-            <FaceCard
-              title={t("workout.fields.actualSection")}
-              face={workout.actual}
-              extended
-              dateLabel={
+            <ResultCard
+              actual={workout.actual}
+              planned={workout.planned}
+              actualDateLabel={
                 showActualDate
                   ? formatDate(locale, workout.actual.date)
                   : undefined
@@ -414,7 +449,12 @@ export function WorkoutDetailPage({ workoutId }: WorkoutDetailPageProps) {
             />
           )}
 
-          {workout.adherence && <AdherenceCard adherence={workout.adherence} />}
+          {workout.planned && (
+            <PlanCard
+              planned={workout.planned}
+              collapsedByDefault={Boolean(workout.actual)}
+            />
+          )}
 
           {error && (
             <Text
@@ -522,13 +562,15 @@ export function WorkoutDetailPage({ workoutId }: WorkoutDetailPageProps) {
   );
 }
 
-type WorkoutFace = {
+type PlannedFace = {
   date: string;
   structure?: unknown;
+};
+
+type ActualFace = {
+  date: string;
   durationSeconds?: number;
   distanceMeters?: number;
-  load?: number;
-  avgPaceMps?: number;
   avgHr?: number;
   maxHr?: number;
   elevationGainMeters?: number;
@@ -536,89 +578,203 @@ type WorkoutFace = {
   notes?: string;
 };
 
-function FaceCard({
-  title,
-  face,
-  extended,
-  dateLabel,
+// ── Primary stat: big value + (optional) compliance-colored delta ──
+function PrimaryStat({
+  label,
+  value,
+  delta,
 }: {
-  title: string;
-  face: WorkoutFace;
-  extended: boolean;
-  dateLabel?: string;
+  label: string;
+  value: string;
+  delta?: Delta | null;
+}) {
+  return (
+    <View className="flex-1 gap-1">
+      <Text
+        className="font-coach-semibold text-[10px] uppercase tracking-wider"
+        style={{ color: LIGHT_THEME.wMute }}
+        numberOfLines={1}
+      >
+        {label}
+      </Text>
+      <Text
+        className="font-coach-bold text-[22px]"
+        style={{ color: LIGHT_THEME.wText, letterSpacing: -0.4, lineHeight: 26 }}
+        numberOfLines={1}
+        adjustsFontSizeToFit
+      >
+        {value}
+      </Text>
+      {delta && (
+        <Text
+          className="font-coach-semibold text-[11px]"
+          style={{ color: delta.color }}
+          numberOfLines={1}
+        >
+          {delta.label}
+        </Text>
+      )}
+    </View>
+  );
+}
+
+// ── Secondary stat: compact label-value pair for less-prominent metrics ──
+function SecondaryStat({ label, value }: { label: string; value: string }) {
+  return (
+    <View className="min-w-0 flex-row items-baseline gap-1.5">
+      <Text
+        className="font-coach text-[12px]"
+        style={{ color: LIGHT_THEME.wMute }}
+        numberOfLines={1}
+      >
+        {label}
+      </Text>
+      <Text
+        className="font-coach-semibold text-[13px]"
+        style={{ color: LIGHT_THEME.wText }}
+        numberOfLines={1}
+      >
+        {value}
+      </Text>
+    </View>
+  );
+}
+
+// ── Result hero: actual metrics with planned-vs comparison deltas ──
+//
+// Primary stats (distance/duration/pace/HR) sit in a 2×2 grid with
+// compliance-colored deltas vs the prescribed plan; secondary metrics
+// (max HR / elevation / RPE) chip below.
+function ResultCard({
+  actual,
+  planned,
+  actualDateLabel,
+}: {
+  actual: ActualFace;
+  planned?: PlannedFace;
+  actualDateLabel?: string;
 }) {
   const { t } = useTranslation();
-  const rows: { label: string; value: string }[] = [];
-  const distance = formatDistance(face.distanceMeters);
+
+  const plannedSummary = React.useMemo(() => {
+    if (!planned?.structure) return undefined;
+    return summarizeStructure(planned.structure as WorkoutStructure);
+  }, [planned?.structure]);
+
+  const actualPaceMps = paceFromDistanceDuration(
+    actual.distanceMeters,
+    actual.durationSeconds,
+  );
+
+  const distance = formatDistance(actual.distanceMeters);
+  const duration = formatDurationSec(actual.durationSeconds);
+  const pace = formatPace(actualPaceMps);
+  const avgHr = formatHr(actual.avgHr);
+
+  const primary: { label: string; value: string; delta?: Delta | null }[] = [];
   if (distance)
-    rows.push({ label: t("workout.detail.metrics.distance"), value: distance });
-  const duration = formatDurationSec(face.durationSeconds);
+    primary.push({
+      label: t("workout.detail.metrics.distance"),
+      value: distance,
+      delta: metersDelta(plannedSummary?.distanceMeters, actual.distanceMeters),
+    });
   if (duration)
-    rows.push({ label: t("workout.detail.metrics.duration"), value: duration });
-  if (extended) {
-    const pace = formatPace(face.avgPaceMps);
-    if (pace)
-      rows.push({ label: t("workout.detail.metrics.avgPace"), value: pace });
-    const avgHr = formatHr(face.avgHr);
-    if (avgHr)
-      rows.push({ label: t("workout.detail.metrics.avgHr"), value: avgHr });
-    const maxHr = formatHr(face.maxHr);
-    if (maxHr)
-      rows.push({ label: t("workout.detail.metrics.maxHr"), value: maxHr });
-    const elev = formatElevation(face.elevationGainMeters);
-    if (elev)
-      rows.push({
-        label: t("workout.detail.metrics.elevationGain"),
-        value: elev,
-      });
-    const rpe = formatRpe(face.rpe);
-    if (rpe)
-      rows.push({ label: t("workout.detail.metrics.rpe"), value: rpe });
-    const load = formatLoad(face.load);
-    if (load)
-      rows.push({ label: t("workout.detail.metrics.load"), value: load });
+    primary.push({
+      label: t("workout.detail.metrics.duration"),
+      value: duration,
+      delta: secondsDelta(
+        plannedSummary?.durationSeconds,
+        actual.durationSeconds,
+      ),
+    });
+  if (pace)
+    primary.push({
+      label: t("workout.detail.metrics.avgPace"),
+      value: pace,
+      delta: paceDelta(plannedSummary?.avgPaceMps, actualPaceMps),
+    });
+  if (avgHr)
+    primary.push({ label: t("workout.detail.metrics.avgHr"), value: avgHr });
+
+  const secondary: { label: string; value: string }[] = [];
+  const maxHr = formatHr(actual.maxHr);
+  if (maxHr)
+    secondary.push({ label: t("workout.detail.metrics.maxHr"), value: maxHr });
+  const elev = formatElevation(actual.elevationGainMeters);
+  if (elev)
+    secondary.push({
+      label: t("workout.detail.metrics.elevationGain"),
+      value: elev,
+    });
+  const rpe = formatRpe(actual.rpe);
+  if (rpe) secondary.push({ label: t("workout.detail.metrics.rpe"), value: rpe });
+
+  const primaryRows: typeof primary[] = [];
+  for (let i = 0; i < primary.length; i += 2) {
+    primaryRows.push(primary.slice(i, i + 2));
   }
 
-  const structure = face.structure as WorkoutStructure | undefined;
-  const hasStructure =
-    structure != null &&
-    Array.isArray(structure.blocks) &&
-    structure.blocks.length > 0;
+  const notes = actual.notes?.trim();
 
   return (
     <Card>
       <View className="flex-row items-center justify-between">
-        <SectionLabel>{title}</SectionLabel>
-        {dateLabel && (
+        <SectionLabel>{t("workout.detail.result")}</SectionLabel>
+        {actualDateLabel && (
           <Text
             className="font-coach text-[12px]"
             style={{ color: LIGHT_THEME.wMute }}
           >
-            {dateLabel}
+            {actualDateLabel}
           </Text>
         )}
       </View>
-      {rows.length > 0 && (
-        <View className="gap-3">
-          {rows.map((row) => (
-            <SummaryRow key={row.label} label={row.label} value={row.value} />
+
+      {primaryRows.length > 0 && (
+        <View className="gap-4">
+          {primaryRows.map((row, idx) => (
+            <View key={idx} className="flex-row gap-4">
+              {row.map((stat) => (
+                <PrimaryStat
+                  key={stat.label}
+                  label={stat.label}
+                  value={stat.value}
+                  delta={stat.delta}
+                />
+              ))}
+              {row.length === 1 && <View className="flex-1" />}
+            </View>
           ))}
         </View>
       )}
-      {hasStructure && structure && (
-        <View className="gap-2">
-          <SubLabel>{t("workout.detail.structure")}</SubLabel>
-          <WorkoutStructureView structure={structure} />
+
+      {secondary.length > 0 && (
+        <View
+          className="flex-row flex-wrap"
+          style={{ rowGap: 8, columnGap: 14 }}
+        >
+          {secondary.map((s) => (
+            <SecondaryStat key={s.label} label={s.label} value={s.value} />
+          ))}
         </View>
       )}
-      {face.notes && face.notes.trim().length > 0 && (
-        <View className="gap-1">
-          <SubLabel>{t("workout.detail.notes")}</SubLabel>
+
+      {notes && (
+        <View
+          className="gap-1.5 pt-1"
+          style={{ borderTopWidth: 1, borderTopColor: LIGHT_THEME.wBrd }}
+        >
+          <Text
+            className="pt-3 font-coach-semibold text-[11px] uppercase tracking-wider"
+            style={{ color: LIGHT_THEME.wMute }}
+          >
+            {t("workout.detail.notes")}
+          </Text>
           <Text
             className="font-coach text-[14px] leading-6"
             style={{ color: LIGHT_THEME.wText }}
           >
-            {face.notes}
+            {notes}
           </Text>
         </View>
       )}
@@ -626,91 +782,112 @@ function FaceCard({
   );
 }
 
-type AdherenceLike = {
-  score: number;
-  durationMatch?: number;
-  distanceMatch?: number;
-  intensityMatch?: number;
-  structureMatch?: number;
-};
-
-function AdherenceCard({ adherence }: { adherence: AdherenceLike }) {
+// ── Plan card: prescription view ──
+//
+// When no actual exists, the plan IS the page — render expanded. When an
+// actual exists, the plan becomes secondary reference material — render
+// collapsed with the volume teaser visible; tap to expand the full
+// structure + notes.
+function PlanCard({
+  planned,
+  collapsedByDefault,
+}: {
+  planned: PlannedFace;
+  collapsedByDefault: boolean;
+}) {
   const { t } = useTranslation();
-  const bars: { label: string; value: number }[] = [];
-  if (adherence.durationMatch != null)
-    bars.push({
-      label: t("workout.detail.adherenceBars.duration"),
-      value: adherence.durationMatch,
-    });
-  if (adherence.distanceMatch != null)
-    bars.push({
-      label: t("workout.detail.adherenceBars.distance"),
-      value: adherence.distanceMatch,
-    });
-  if (adherence.intensityMatch != null)
-    bars.push({
-      label: t("workout.detail.adherenceBars.intensity"),
-      value: adherence.intensityMatch,
-    });
-  if (adherence.structureMatch != null)
-    bars.push({
-      label: t("workout.detail.adherenceBars.structure"),
-      value: adherence.structureMatch,
-    });
+  const [expanded, setExpanded] = React.useState(!collapsedByDefault);
+
+  const structure = planned.structure as WorkoutStructure | undefined;
+  const hasStructure =
+    structure != null &&
+    Array.isArray(structure.blocks) &&
+    structure.blocks.length > 0;
+  const summary = hasStructure && structure
+    ? summarizeStructure(structure)
+    : undefined;
+
+  const distance = formatDistance(summary?.distanceMeters);
+  const duration = formatDurationSec(summary?.durationSeconds);
+  const totalParts = [distance, duration].filter(Boolean) as string[];
+  const total = totalParts.length > 0 ? totalParts.join(" · ") : null;
+
+  const hasDetails = hasStructure;
+
+  const title = collapsedByDefault
+    ? t("workout.detail.whatWasPlanned")
+    : t("workout.detail.plan");
+
+  const header = (
+    <View className="flex-row items-center justify-between">
+      <View className="flex-1 flex-row items-baseline gap-2">
+        <Text
+          className="font-coach-semibold text-[11px] uppercase tracking-wider"
+          style={{ color: LIGHT_THEME.wMute }}
+        >
+          {title}
+        </Text>
+        {total && (
+          <Text
+            className="font-coach-semibold text-[13px]"
+            style={{ color: LIGHT_THEME.wText }}
+          >
+            {total}
+          </Text>
+        )}
+      </View>
+      {hasDetails && collapsedByDefault && (
+        <Ionicons
+          name={expanded ? "chevron-up" : "chevron-down"}
+          size={16}
+          color={LIGHT_THEME.wMute}
+        />
+      )}
+    </View>
+  );
+
+  const body = (
+    <>
+      {hasStructure && structure && (
+        <View className="gap-2">
+          <Text
+            className="font-coach-semibold text-[11px] uppercase tracking-wider"
+            style={{ color: LIGHT_THEME.wMute }}
+          >
+            {t("workout.detail.structure")}
+          </Text>
+          <WorkoutStructureView structure={structure} />
+        </View>
+      )}
+    </>
+  );
+
+  if (!collapsedByDefault) {
+    return (
+      <Card>
+        {header}
+        {body}
+      </Card>
+    );
+  }
 
   return (
     <Card>
-      <View className="flex-row items-baseline justify-between">
-        <SectionLabel>{t("workout.detail.adherence")}</SectionLabel>
-        <Text
-          className="font-coach-bold text-[20px]"
-          style={{ color: LIGHT_THEME.wText }}
-        >
-          {Math.round(adherence.score * 100)}%
-        </Text>
-      </View>
-      {bars.length > 0 && (
-        <View className="gap-3">
-          {bars.map((b) => (
-            <AdherenceBar key={b.label} label={b.label} value={b.value} />
-          ))}
-        </View>
-      )}
-    </Card>
-  );
-}
-
-function AdherenceBar({ label, value }: { label: string; value: number }) {
-  const clamped = Math.max(0, Math.min(1, value));
-  return (
-    <View className="gap-1">
-      <View className="flex-row items-center justify-between">
-        <Text
-          className="font-coach-semibold text-[12px]"
-          style={{ color: LIGHT_THEME.wSub }}
-        >
-          {label}
-        </Text>
-        <Text
-          className="font-coach-bold text-[12px]"
-          style={{ color: LIGHT_THEME.wText }}
-        >
-          {Math.round(clamped * 100)}%
-        </Text>
-      </View>
-      <View
-        className="h-1.5 overflow-hidden rounded-full"
-        style={{ backgroundColor: LIGHT_THEME.w3 }}
-      >
-        <View
-          className="h-full rounded-full"
-          style={{
-            width: `${clamped * 100}%`,
-            backgroundColor: COLORS.grn,
+      {hasDetails ? (
+        <Pressable
+          onPress={() => {
+            selectionFeedback();
+            setExpanded((v) => !v);
           }}
-        />
-      </View>
-    </View>
+          className="active:opacity-80"
+        >
+          {header}
+        </Pressable>
+      ) : (
+        header
+      )}
+      {expanded && body}
+    </Card>
   );
 }
 
@@ -728,34 +905,18 @@ function Card({ children }: { children: React.ReactNode }) {
   );
 }
 
-function Chip({
-  children,
-  accent,
-  prominent,
-}: {
-  children: React.ReactNode;
-  accent?: string;
-  prominent?: boolean;
-}) {
+function Chip({ children }: { children: React.ReactNode }) {
   return (
     <View
-      className={
-        prominent
-          ? "self-start rounded-full border px-4 py-1.5"
-          : "self-start rounded-full border px-3 py-1"
-      }
+      className="self-start rounded-full border px-3 py-1"
       style={{
-        backgroundColor: accent ?? LIGHT_THEME.w1,
-        borderColor: accent ?? LIGHT_THEME.wBrd,
+        backgroundColor: LIGHT_THEME.w1,
+        borderColor: LIGHT_THEME.wBrd,
       }}
     >
       <Text
-        className={
-          prominent
-            ? "font-coach-bold text-[13px] uppercase tracking-wider"
-            : "font-coach-semibold text-[12px]"
-        }
-        style={{ color: accent ? "#FFFFFF" : LIGHT_THEME.wSub }}
+        className="font-coach-semibold text-[12px]"
+        style={{ color: LIGHT_THEME.wSub }}
       >
         {children}
       </Text>
@@ -771,36 +932,6 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
     >
       {children}
     </Text>
-  );
-}
-
-function SubLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <Text
-      className="font-coach-semibold text-[11px] uppercase tracking-wider"
-      style={{ color: LIGHT_THEME.wMute }}
-    >
-      {children}
-    </Text>
-  );
-}
-
-function SummaryRow({ label, value }: { label: string; value: string }) {
-  return (
-    <View className="flex-row items-center justify-between">
-      <Text
-        className="font-coach-semibold text-[12px] uppercase tracking-wider"
-        style={{ color: LIGHT_THEME.wMute }}
-      >
-        {label}
-      </Text>
-      <Text
-        className="font-coach-bold text-[15px]"
-        style={{ color: LIGHT_THEME.wText }}
-      >
-        {value}
-      </Text>
-    </View>
   );
 }
 

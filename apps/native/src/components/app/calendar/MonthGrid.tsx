@@ -43,9 +43,7 @@ export const MonthGrid = React.memo(function MonthGrid({
           style={{ gap: GRID_GAP, marginBottom: GRID_GAP }}
         >
           {week.map((day) => {
-            const dayWorkouts = workoutsByDate[day.key]?.filter(
-              (w) => w.status !== "skipped",
-            );
+            const dayWorkouts = workoutsByDate[day.key];
             const hasWorkout = dayWorkouts && dayWorkouts.length > 0;
             const isToday = day.key === todayKey;
             const block = blockLookup.get(day.key);

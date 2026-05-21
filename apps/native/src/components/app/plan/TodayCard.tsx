@@ -32,7 +32,9 @@ import {
   formatTarget,
   intentLabel,
   workoutTypeLabel,
+  type DerivedWorkoutStatus,
 } from "@/components/app/workout/workout-helpers";
+import { WorkoutStatusBadge } from "@/components/app/workout/workout-status-badge";
 import { type WorkoutData, type SyncStatus } from "./types";
 import { formatShortDate } from "@/lib/format";
 import { useLanguage } from "@/lib/i18n";
@@ -211,70 +213,11 @@ function SyncBadge({ workout }: { workout: WorkoutData }) {
   );
 }
 
-function MissedBadge() {
-  const { t } = useTranslation();
-  return (
-    <View
-      className="flex-row items-center gap-1.5 rounded-full px-2.5 py-1"
-      style={{
-        backgroundColor: "rgba(255,90,90,0.14)",
-        borderWidth: 1,
-        borderColor: "rgba(255,90,90,0.30)",
-      }}
-    >
-      <AlertIcon color={COLORS.red} />
-      <Text
-        className="text-[11px] font-coach-semibold uppercase tracking-wider"
-        style={{ color: COLORS.red }}
-      >
-        {t("workout.status.missed")}
-      </Text>
-    </View>
-  );
-}
-
-function NeedsFeedbackBadge() {
-  const { t } = useTranslation();
-  return (
-    <View
-      className="flex-row items-center gap-1.5 rounded-full px-2.5 py-1"
-      style={{
-        backgroundColor: "rgba(255,196,0,0.14)",
-        borderWidth: 1,
-        borderColor: "rgba(255,196,0,0.30)",
-      }}
-    >
-      <AlertIcon color={COLORS.ylw} />
-      <Text
-        className="text-[11px] font-coach-semibold uppercase tracking-wider"
-        style={{ color: COLORS.ylw }}
-      >
-        {t("workout.status.needs_feedback")}
-      </Text>
-    </View>
-  );
-}
-
-function CompletedBadge() {
-  const { t } = useTranslation();
-  return (
-    <View
-      className="flex-row items-center gap-1.5 rounded-full px-2.5 py-1"
-      style={{
-        backgroundColor: "rgba(200,255,0,0.14)",
-        borderWidth: 1,
-        borderColor: "rgba(200,255,0,0.30)",
-      }}
-    >
-      <CheckIcon color={COLORS.lime} />
-      <Text
-        className="text-[11px] font-coach-semibold uppercase tracking-wider"
-        style={{ color: COLORS.lime }}
-      >
-        {t("workout.status.completed")}
-      </Text>
-    </View>
-  );
+function statusForBadge(workout: WorkoutData): DerivedWorkoutStatus | null {
+  if (workout.missed) return "missed";
+  if (workout.needsFeedback) return "needs_feedback";
+  if (workout.done) return "completed";
+  return null;
 }
 
 function CoachAdjustedBadge() {
@@ -441,17 +384,12 @@ function CardHeader({
         ) : (
           <View />
         )}
-        {workout.missed ? (
-          <MissedBadge />
-        ) : workout.needsFeedback ? (
-          <NeedsFeedbackBadge />
-        ) : workout.done ? (
-          <CompletedBadge />
-        ) : workout.coachAdjusted ? (
-          <CoachAdjustedBadge />
-        ) : (
-          showSyncBadge && <SyncBadge workout={workout} />
-        )}
+        {(() => {
+          const status = statusForBadge(workout);
+          if (status) return <WorkoutStatusBadge status={status} tone="dark" />;
+          if (workout.coachAdjusted) return <CoachAdjustedBadge />;
+          return showSyncBadge ? <SyncBadge workout={workout} /> : null;
+        })()}
       </View>
       <View className="flex-row items-center justify-between">
         <Text

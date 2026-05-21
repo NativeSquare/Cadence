@@ -129,7 +129,6 @@ export const matchActivityToWorkout = internalAction({
     const distanceMeters = latestActivity.distance_data?.summary?.distance_meters;
     const avgHeartRate = latestActivity.heart_rate_data?.summary?.avg_hr_bpm;
     const maxHeartRate = latestActivity.heart_rate_data?.summary?.max_hr_bpm;
-    const trainingLoad = latestActivity.TSS_data?.TSS_samples?.[0]?.actual;
     const terraType = latestActivity.metadata.type;
 
     console.log(
@@ -157,7 +156,7 @@ export const matchActivityToWorkout = internalAction({
       _id: string;
       name: string;
       planned?: { date: string };
-      status: "planned" | "completed" | "missed" | "skipped";
+      status: "planned" | "completed" | "missed";
     };
     const candidates = (await ctx.runQuery(
       components.agoge.public.getPlannedWorkoutsByAthlete,
@@ -204,13 +203,8 @@ export const matchActivityToWorkout = internalAction({
         date: toIsoDate(activityStartMs),
         durationSeconds,
         distanceMeters,
-        avgPaceMps:
-          distanceMeters && durationSeconds
-            ? distanceMeters / durationSeconds
-            : undefined,
         avgHr: avgHeartRate,
         maxHr: maxHeartRate,
-        load: trainingLoad,
         notes: `externalRef:${latestActivity._id}`,
       },
     });

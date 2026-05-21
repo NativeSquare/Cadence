@@ -33,21 +33,15 @@ export interface AgogeWorkout {
   name: string;
   type: WorkoutType;
   description?: string;
-  status: "planned" | "completed" | "missed" | "skipped";
+  status: "planned" | "completed" | "missed";
   planned?: {
     date: string;
-    durationSeconds?: number;
-    distanceMeters?: number;
     structure?: unknown;
   };
   actual?: {
     date: string;
     durationSeconds?: number;
     distanceMeters?: number;
-    structure?: unknown;
-  };
-  adherence?: {
-    score: number;
   };
   /** Providers this workout has been exported to. Empty when nothing was sent. */
   providerRefs?: Array<{ provider: string; syncedAt: number }>;
@@ -109,12 +103,15 @@ export function workoutToWorkoutData(
     date.getMonth() === today.getMonth() &&
     date.getDate() === today.getDate();
 
-  const face = workout.actual ?? workout.planned;
-  const summary = summarizeWorkout(face);
+  // Actual carries explicit distance/duration; planned only has structure,
+  // so derive from the structure when no actual is available.
+  const summary = summarizeWorkout(workout.actual ?? workout.planned);
   const distanceMeters =
-    face?.distanceMeters ?? summary.totalDistanceMeters ?? undefined;
+    workout.actual?.distanceMeters ?? summary.totalDistanceMeters ?? undefined;
   const durationSeconds =
-    face?.durationSeconds ?? summary.totalDurationSeconds ?? undefined;
+    workout.actual?.durationSeconds ??
+    summary.totalDurationSeconds ??
+    undefined;
 
   const exportedRef = workout.providerRefs?.[0];
   const derivedStatus = deriveWorkoutStatus(workout, localTodayYmd(today));
@@ -239,10 +236,7 @@ export function computeTrainingPulse(
     const wkStart = isoWeekStart(localDateFromIso(dateIso)).getTime();
     const summary = summarizeWorkout(w.actual ?? w.planned);
     const meters =
-      w.actual?.distanceMeters ??
-      summary.totalDistanceMeters ??
-      w.planned?.distanceMeters ??
-      0;
+      w.actual?.distanceMeters ?? summary.totalDistanceMeters ?? 0;
     const bucket = byWeek.get(wkStart) ?? { volumeM: 0, count: 0 };
     bucket.volumeM += meters;
     bucket.count += 1;

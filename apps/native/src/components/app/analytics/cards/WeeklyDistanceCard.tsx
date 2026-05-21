@@ -3,8 +3,10 @@ import { useTranslation } from "react-i18next";
 import { View } from "react-native";
 import Svg, { G, Line, Rect, Text as SvgText } from "react-native-svg";
 import { TrendingUp } from "lucide-react-native";
+import type { Workout as WorkoutStructure } from "@nativesquare/agoge";
 import type { WorkoutDoc } from "@nativesquare/agoge/schema";
 import { WORKOUT_TYPES_COLORS } from "@packages/shared/colors";
+import { summarizeStructure } from "@packages/shared/workout-summary";
 import { Text } from "@/components/ui/text";
 import { LIGHT_THEME } from "@/lib/design-tokens";
 import { CardShell } from "../parts/CardShell";
@@ -84,9 +86,14 @@ function buildSeries(workouts: WorkoutDoc[], window: WeekWindow): Series {
   for (const w of workouts) {
     if (w.status !== "completed") continue;
     const date = w.actual?.date ?? w.planned?.date;
-    // Manual mark-done doesn't capture distance — fall back to planned so
-    // the workout still contributes weekly volume.
-    const meters = w.actual?.distanceMeters ?? w.planned?.distanceMeters;
+    // Manual mark-done doesn't capture distance — fall back to the planned
+    // structure's distance so the workout still contributes weekly volume.
+    const plannedStructure = w.planned?.structure as WorkoutStructure | undefined;
+    const meters =
+      w.actual?.distanceMeters ??
+      (plannedStructure
+        ? summarizeStructure(plannedStructure).distanceMeters
+        : undefined);
     if (!date || !meters || meters <= 0) continue;
     const k = isoWeekKey(new Date(date));
     if (!bucket[k]) continue;

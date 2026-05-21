@@ -52,7 +52,14 @@ registerRoutes(http, components.soma, {
       events: {
         "activities": {
           autoIngest: false,
+          rawPassthrough: true,
           handler: async (ctx, event) => {
+            for (const item of event.items) {
+              console.log(
+                `[GarminWebhook:activities] ▶ RAW payload (userId=${item.userId}):\n` +
+                  JSON.stringify(item.data, null, 2),
+              );
+            }
             const userIds = [...new Set(event.items.map((item) => item.userId))];
             if (userIds.length === 0) return;
             await ctx.scheduler.runAfter(
@@ -60,6 +67,18 @@ registerRoutes(http, components.soma, {
               internal.soma.webhook.handleActivityIngested,
               { affectedUserIds: userIds },
             );
+          },
+        },
+        "activity-details": {
+          autoIngest: false,
+          rawPassthrough: true,
+          handler: async (ctx, event) => {
+            for (const item of event.items) {
+              console.log(
+                `[GarminWebhook:activity-details] ▶ RAW payload (userId=${item.userId}):\n` +
+                  JSON.stringify(item.data, null, 2),
+              );
+            }
           },
         },
         "blood-pressures": true,

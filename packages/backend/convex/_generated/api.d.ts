@@ -5656,24 +5656,13 @@ export declare const components: {
         {
           actual?: {
             avgHr?: number;
-            avgPaceMps?: number;
             date: string;
             distanceMeters?: number;
             durationSeconds?: number;
             elevationGainMeters?: number;
-            load?: number;
             maxHr?: number;
             notes?: string;
             rpe?: number;
-            structure?: any;
-          };
-          adherence?: {
-            algorithmVersion: string;
-            distanceMatch?: number;
-            durationMatch?: number;
-            intensityMatch?: number;
-            score: number;
-            structureMatch?: number;
           };
           athleteId: string;
           blockId?: string;
@@ -5681,21 +5670,9 @@ export declare const components: {
           name: string;
           origin?: string;
           planId?: string;
-          planned?: {
-            avgHr?: number;
-            avgPaceMps?: number;
-            date: string;
-            distanceMeters?: number;
-            durationSeconds?: number;
-            elevationGainMeters?: number;
-            load?: number;
-            maxHr?: number;
-            notes?: string;
-            rpe?: number;
-            structure?: any;
-          };
+          planned?: { date: string; structure: any };
           sport: "run";
-          status: "planned" | "completed" | "missed" | "skipped";
+          status: "planned" | "completed" | "missed";
           templateId?: string;
           type:
             | "easy"
@@ -5714,18 +5691,7 @@ export declare const components: {
         "internal",
         {
           athleteId?: string;
-          content: {
-            avgHr?: number;
-            avgPaceMps?: number;
-            distanceMeters?: number;
-            durationSeconds?: number;
-            elevationGainMeters?: number;
-            load?: number;
-            maxHr?: number;
-            notes?: string;
-            rpe?: number;
-            structure: any;
-          };
+          content: { structure: any };
           description?: string;
           name: string;
           sport: "run";
@@ -5872,24 +5838,13 @@ export declare const components: {
           _id: string;
           actual?: {
             avgHr?: number;
-            avgPaceMps?: number;
             date: string;
             distanceMeters?: number;
             durationSeconds?: number;
             elevationGainMeters?: number;
-            load?: number;
             maxHr?: number;
             notes?: string;
             rpe?: number;
-            structure?: any;
-          };
-          adherence?: {
-            algorithmVersion: string;
-            distanceMatch?: number;
-            durationMatch?: number;
-            intensityMatch?: number;
-            score: number;
-            structureMatch?: number;
           };
           athleteId: string;
           blockId?: string;
@@ -5897,21 +5852,9 @@ export declare const components: {
           name: string;
           origin?: string;
           planId?: string;
-          planned?: {
-            avgHr?: number;
-            avgPaceMps?: number;
-            date: string;
-            distanceMeters?: number;
-            durationSeconds?: number;
-            elevationGainMeters?: number;
-            load?: number;
-            maxHr?: number;
-            notes?: string;
-            rpe?: number;
-            structure?: any;
-          };
+          planned?: { date: string; structure: any };
           sport: "run";
-          status: "planned" | "completed" | "missed" | "skipped";
+          status: "planned" | "completed" | "missed";
           templateId?: string;
           type:
             | "easy"
@@ -6067,24 +6010,13 @@ export declare const components: {
           _id: string;
           actual?: {
             avgHr?: number;
-            avgPaceMps?: number;
             date: string;
             distanceMeters?: number;
             durationSeconds?: number;
             elevationGainMeters?: number;
-            load?: number;
             maxHr?: number;
             notes?: string;
             rpe?: number;
-            structure?: any;
-          };
-          adherence?: {
-            algorithmVersion: string;
-            distanceMatch?: number;
-            durationMatch?: number;
-            intensityMatch?: number;
-            score: number;
-            structureMatch?: number;
           };
           athleteId: string;
           blockId?: string;
@@ -6092,21 +6024,9 @@ export declare const components: {
           name: string;
           origin?: string;
           planId?: string;
-          planned?: {
-            avgHr?: number;
-            avgPaceMps?: number;
-            date: string;
-            distanceMeters?: number;
-            durationSeconds?: number;
-            elevationGainMeters?: number;
-            load?: number;
-            maxHr?: number;
-            notes?: string;
-            rpe?: number;
-            structure?: any;
-          };
+          planned?: { date: string; structure: any };
           sport: "run";
-          status: "planned" | "completed" | "missed" | "skipped";
+          status: "planned" | "completed" | "missed";
           templateId?: string;
           type:
             | "easy"
@@ -6435,24 +6355,13 @@ export declare const components: {
           _id: string;
           actual?: {
             avgHr?: number;
-            avgPaceMps?: number;
             date: string;
             distanceMeters?: number;
             durationSeconds?: number;
             elevationGainMeters?: number;
-            load?: number;
             maxHr?: number;
             notes?: string;
             rpe?: number;
-            structure?: any;
-          };
-          adherence?: {
-            algorithmVersion: string;
-            distanceMatch?: number;
-            durationMatch?: number;
-            intensityMatch?: number;
-            score: number;
-            structureMatch?: number;
           };
           athleteId: string;
           blockId?: string;
@@ -6460,21 +6369,9 @@ export declare const components: {
           name: string;
           origin?: string;
           planId?: string;
-          planned?: {
-            avgHr?: number;
-            avgPaceMps?: number;
-            date: string;
-            distanceMeters?: number;
-            durationSeconds?: number;
-            elevationGainMeters?: number;
-            load?: number;
-            maxHr?: number;
-            notes?: string;
-            rpe?: number;
-            structure?: any;
-          };
+          planned?: { date: string; structure: any };
           sport: "run";
-          status: "planned" | "completed" | "missed" | "skipped";
+          status: "planned" | "completed" | "missed";
           templateId?: string;
           type:
             | "easy"
@@ -6532,33 +6429,19 @@ export declare const components: {
       getWorkoutsByAthleteAndStatus: FunctionReference<
         "query",
         "internal",
-        {
-          athleteId: string;
-          status: "planned" | "completed" | "missed" | "skipped";
-        },
+        { athleteId: string; status: "planned" | "completed" | "missed" },
         Array<{
           _creationTime: number;
           _id: string;
           actual?: {
             avgHr?: number;
-            avgPaceMps?: number;
             date: string;
             distanceMeters?: number;
             durationSeconds?: number;
             elevationGainMeters?: number;
-            load?: number;
             maxHr?: number;
             notes?: string;
             rpe?: number;
-            structure?: any;
-          };
-          adherence?: {
-            algorithmVersion: string;
-            distanceMatch?: number;
-            durationMatch?: number;
-            intensityMatch?: number;
-            score: number;
-            structureMatch?: number;
           };
           athleteId: string;
           blockId?: string;
@@ -6566,21 +6449,9 @@ export declare const components: {
           name: string;
           origin?: string;
           planId?: string;
-          planned?: {
-            avgHr?: number;
-            avgPaceMps?: number;
-            date: string;
-            distanceMeters?: number;
-            durationSeconds?: number;
-            elevationGainMeters?: number;
-            load?: number;
-            maxHr?: number;
-            notes?: string;
-            rpe?: number;
-            structure?: any;
-          };
+          planned?: { date: string; structure: any };
           sport: "run";
-          status: "planned" | "completed" | "missed" | "skipped";
+          status: "planned" | "completed" | "missed";
           templateId?: string;
           type:
             | "easy"
@@ -6602,24 +6473,13 @@ export declare const components: {
           _id: string;
           actual?: {
             avgHr?: number;
-            avgPaceMps?: number;
             date: string;
             distanceMeters?: number;
             durationSeconds?: number;
             elevationGainMeters?: number;
-            load?: number;
             maxHr?: number;
             notes?: string;
             rpe?: number;
-            structure?: any;
-          };
-          adherence?: {
-            algorithmVersion: string;
-            distanceMatch?: number;
-            durationMatch?: number;
-            intensityMatch?: number;
-            score: number;
-            structureMatch?: number;
           };
           athleteId: string;
           blockId?: string;
@@ -6627,21 +6487,9 @@ export declare const components: {
           name: string;
           origin?: string;
           planId?: string;
-          planned?: {
-            avgHr?: number;
-            avgPaceMps?: number;
-            date: string;
-            distanceMeters?: number;
-            durationSeconds?: number;
-            elevationGainMeters?: number;
-            load?: number;
-            maxHr?: number;
-            notes?: string;
-            rpe?: number;
-            structure?: any;
-          };
+          planned?: { date: string; structure: any };
           sport: "run";
-          status: "planned" | "completed" | "missed" | "skipped";
+          status: "planned" | "completed" | "missed";
           templateId?: string;
           type:
             | "easy"
@@ -6663,24 +6511,13 @@ export declare const components: {
           _id: string;
           actual?: {
             avgHr?: number;
-            avgPaceMps?: number;
             date: string;
             distanceMeters?: number;
             durationSeconds?: number;
             elevationGainMeters?: number;
-            load?: number;
             maxHr?: number;
             notes?: string;
             rpe?: number;
-            structure?: any;
-          };
-          adherence?: {
-            algorithmVersion: string;
-            distanceMatch?: number;
-            durationMatch?: number;
-            intensityMatch?: number;
-            score: number;
-            structureMatch?: number;
           };
           athleteId: string;
           blockId?: string;
@@ -6688,21 +6525,9 @@ export declare const components: {
           name: string;
           origin?: string;
           planId?: string;
-          planned?: {
-            avgHr?: number;
-            avgPaceMps?: number;
-            date: string;
-            distanceMeters?: number;
-            durationSeconds?: number;
-            elevationGainMeters?: number;
-            load?: number;
-            maxHr?: number;
-            notes?: string;
-            rpe?: number;
-            structure?: any;
-          };
+          planned?: { date: string; structure: any };
           sport: "run";
-          status: "planned" | "completed" | "missed" | "skipped";
+          status: "planned" | "completed" | "missed";
           templateId?: string;
           type:
             | "easy"
@@ -6723,18 +6548,7 @@ export declare const components: {
           _creationTime: number;
           _id: string;
           athleteId?: string;
-          content: {
-            avgHr?: number;
-            avgPaceMps?: number;
-            distanceMeters?: number;
-            durationSeconds?: number;
-            elevationGainMeters?: number;
-            load?: number;
-            maxHr?: number;
-            notes?: string;
-            rpe?: number;
-            structure: any;
-          };
+          content: { structure: any };
           description?: string;
           name: string;
           sport: "run";
@@ -6757,18 +6571,7 @@ export declare const components: {
           _creationTime: number;
           _id: string;
           athleteId?: string;
-          content: {
-            avgHr?: number;
-            avgPaceMps?: number;
-            distanceMeters?: number;
-            durationSeconds?: number;
-            elevationGainMeters?: number;
-            load?: number;
-            maxHr?: number;
-            notes?: string;
-            rpe?: number;
-            structure: any;
-          };
+          content: { structure: any };
           description?: string;
           name: string;
           sport: "run";
@@ -6939,24 +6742,13 @@ export declare const components: {
         {
           actual?: {
             avgHr?: number;
-            avgPaceMps?: number;
             date: string;
             distanceMeters?: number;
             durationSeconds?: number;
             elevationGainMeters?: number;
-            load?: number;
             maxHr?: number;
             notes?: string;
             rpe?: number;
-            structure?: any;
-          };
-          adherence?: {
-            algorithmVersion: string;
-            distanceMatch?: number;
-            durationMatch?: number;
-            intensityMatch?: number;
-            score: number;
-            structureMatch?: number;
           };
           athleteId?: string;
           blockId?: string;
@@ -6964,21 +6756,9 @@ export declare const components: {
           name?: string;
           origin?: string;
           planId?: string;
-          planned?: {
-            avgHr?: number;
-            avgPaceMps?: number;
-            date: string;
-            distanceMeters?: number;
-            durationSeconds?: number;
-            elevationGainMeters?: number;
-            load?: number;
-            maxHr?: number;
-            notes?: string;
-            rpe?: number;
-            structure?: any;
-          };
+          planned?: { date: string; structure: any };
           sport?: "run";
-          status?: "planned" | "completed" | "missed" | "skipped";
+          status?: "planned" | "completed" | "missed";
           templateId?: string;
           type?:
             | "easy"
@@ -6998,18 +6778,7 @@ export declare const components: {
         "internal",
         {
           athleteId?: string;
-          content?: {
-            avgHr?: number;
-            avgPaceMps?: number;
-            distanceMeters?: number;
-            durationSeconds?: number;
-            elevationGainMeters?: number;
-            load?: number;
-            maxHr?: number;
-            notes?: string;
-            rpe?: number;
-            structure: any;
-          };
+          content?: { structure: any };
           description?: string;
           name?: string;
           sport?: "run";
@@ -7292,109 +7061,109 @@ export declare const components: {
         handleGarminWebhookActivities: FunctionReference<
           "action",
           "internal",
-          { autoIngest?: boolean; payload: any },
+          { autoIngest?: boolean; payload: any; rawPassthrough?: boolean },
           any
         >;
         handleGarminWebhookActivityDetails: FunctionReference<
           "action",
           "internal",
-          { autoIngest?: boolean; payload: any },
+          { autoIngest?: boolean; payload: any; rawPassthrough?: boolean },
           any
         >;
         handleGarminWebhookBloodPressures: FunctionReference<
           "action",
           "internal",
-          { autoIngest?: boolean; payload: any },
+          { autoIngest?: boolean; payload: any; rawPassthrough?: boolean },
           any
         >;
         handleGarminWebhookBodyCompositions: FunctionReference<
           "action",
           "internal",
-          { autoIngest?: boolean; payload: any },
+          { autoIngest?: boolean; payload: any; rawPassthrough?: boolean },
           any
         >;
         handleGarminWebhookDailies: FunctionReference<
           "action",
           "internal",
-          { autoIngest?: boolean; payload: any },
+          { autoIngest?: boolean; payload: any; rawPassthrough?: boolean },
           any
         >;
         handleGarminWebhookDeregistration: FunctionReference<
           "action",
           "internal",
-          { autoIngest?: boolean; payload: any },
+          { autoIngest?: boolean; payload: any; rawPassthrough?: boolean },
           any
         >;
         handleGarminWebhookEpochs: FunctionReference<
           "action",
           "internal",
-          { autoIngest?: boolean; payload: any },
+          { autoIngest?: boolean; payload: any; rawPassthrough?: boolean },
           any
         >;
         handleGarminWebhookHealthSnapshot: FunctionReference<
           "action",
           "internal",
-          { autoIngest?: boolean; payload: any },
+          { autoIngest?: boolean; payload: any; rawPassthrough?: boolean },
           any
         >;
         handleGarminWebhookHRVSummary: FunctionReference<
           "action",
           "internal",
-          { autoIngest?: boolean; payload: any },
+          { autoIngest?: boolean; payload: any; rawPassthrough?: boolean },
           any
         >;
         handleGarminWebhookManuallyUpdatedActivities: FunctionReference<
           "action",
           "internal",
-          { autoIngest?: boolean; payload: any },
+          { autoIngest?: boolean; payload: any; rawPassthrough?: boolean },
           any
         >;
         handleGarminWebhookMenstrualCycleTracking: FunctionReference<
           "action",
           "internal",
-          { autoIngest?: boolean; payload: any },
+          { autoIngest?: boolean; payload: any; rawPassthrough?: boolean },
           any
         >;
         handleGarminWebhookMoveIQ: FunctionReference<
           "action",
           "internal",
-          { autoIngest?: boolean; payload: any },
+          { autoIngest?: boolean; payload: any; rawPassthrough?: boolean },
           any
         >;
         handleGarminWebhookPulseOx: FunctionReference<
           "action",
           "internal",
-          { autoIngest?: boolean; payload: any },
+          { autoIngest?: boolean; payload: any; rawPassthrough?: boolean },
           any
         >;
         handleGarminWebhookRespiration: FunctionReference<
           "action",
           "internal",
-          { autoIngest?: boolean; payload: any },
+          { autoIngest?: boolean; payload: any; rawPassthrough?: boolean },
           any
         >;
         handleGarminWebhookSkinTemp: FunctionReference<
           "action",
           "internal",
-          { autoIngest?: boolean; payload: any },
+          { autoIngest?: boolean; payload: any; rawPassthrough?: boolean },
           any
         >;
         handleGarminWebhookSleeps: FunctionReference<
           "action",
           "internal",
-          { autoIngest?: boolean; payload: any },
+          { autoIngest?: boolean; payload: any; rawPassthrough?: boolean },
           any
         >;
         handleGarminWebhookStress: FunctionReference<
           "action",
           "internal",
-          { autoIngest?: boolean; payload: any },
+          { autoIngest?: boolean; payload: any; rawPassthrough?: boolean },
           any
         >;
         handleGarminWebhookUserMetrics: FunctionReference<
           "action",
           "internal",
-          { autoIngest?: boolean; payload: any },
+          { autoIngest?: boolean; payload: any; rawPassthrough?: boolean },
           any
         >;
       };

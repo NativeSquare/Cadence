@@ -74,8 +74,12 @@ function buildSeries(workouts: WorkoutDoc[], window: WeekWindow): Series {
   for (const w of workouts) {
     if (w.type !== "easy" || w.status !== "completed") continue;
     const date = w.actual?.date;
-    const mps = w.actual?.avgPaceMps;
-    if (!date || !mps || mps <= 0) continue;
+    const distance = w.actual?.distanceMeters;
+    const duration = w.actual?.durationSeconds;
+    if (!date || !distance || !duration || distance <= 0 || duration <= 0) {
+      continue;
+    }
+    const mps = distance / duration;
     const ts = new Date(date).getTime();
     if (ts < tMin || ts > tMax) continue;
     const secPerKm = 1000 / mps;

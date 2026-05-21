@@ -9,7 +9,7 @@ import {
   firstStructureError,
   isValidIso,
   nowIso,
-  workoutFaceSchema,
+  plannedFaceSchema,
 } from "@/components/app/workout/workout-form-helpers";
 import {
   TemplateHeaderButton,
@@ -35,7 +35,7 @@ const formSchema = z.object({
   name: z.string().trim().min(1, "Name is required"),
   description: z.string().optional(),
   type: z.custom<WorkoutType>(),
-  planned: workoutFaceSchema,
+  planned: plannedFaceSchema,
 });
 export type ScheduleWorkoutFormValues = z.infer<typeof formSchema>;
 

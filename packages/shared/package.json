@@ -8,12 +8,13 @@
     "./app": "./src/app.ts",
     "./colors": "./src/colors.ts",
     "./types": "./src/types.ts",
-    "./utils": "./src/utils.ts"
+    "./utils": "./src/utils.ts",
+    "./workout-summary": "./src/workout-summary.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p ."
   },
   "dependencies": {
-    "@nativesquare/agoge": "3.5.0"
+    "@nativesquare/agoge": "4.0.2"
   }
 }

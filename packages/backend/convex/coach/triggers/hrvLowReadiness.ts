@@ -12,6 +12,7 @@
  * revert from the workout detail card.
  */
 
+import type { Workout as WorkoutStructure } from "@nativesquare/agoge";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { ConvexError, v } from "convex/values";
 import { api, components, internal } from "../../_generated/api";
@@ -23,6 +24,7 @@ import {
   mutation,
   query,
 } from "../../_generated/server";
+import { summarizeStructure } from "../../agoge/periodization";
 import { composeNarrationSystem } from "../instructions";
 import { deliverCoachNarration, ensureCoachThread } from "../turns";
 
@@ -97,8 +99,11 @@ export const applyModificationAndRecord = internalMutation({
     const locale: "en" | "fr" = user?.locale === "fr" ? "fr" : "en";
 
     const originalPlanned = workout.planned;
-    const originalDistance = originalPlanned.distanceMeters;
-    const originalDuration = originalPlanned.durationSeconds;
+    const originalSummary = originalPlanned.structure
+      ? summarizeStructure(originalPlanned.structure as WorkoutStructure)
+      : undefined;
+    const originalDistance = originalSummary?.distanceMeters;
+    const originalDuration = originalSummary?.durationSeconds;
 
     // 0.8× duration (or distance if no duration is known), rounded to a
     // friendly 5-minute boundary. We deliberately clear structure: an easy
@@ -112,21 +117,13 @@ export const applyModificationAndRecord = internalMutation({
         ? Math.round(originalDistance * DURATION_SCALE)
         : undefined;
 
-    const newPlanned: {
-      date: string;
-      distanceMeters?: number;
-      durationSeconds?: number;
-    } = { date: originalPlanned.date };
-    if (newDistance !== undefined) newPlanned.distanceMeters = newDistance;
-    if (newDuration !== undefined) newPlanned.durationSeconds = newDuration;
-
     const newName = easyName(locale, newDuration ?? 30 * 60);
 
     await ctx.runMutation(components.agoge.public.updateWorkout, {
       workoutId,
       type: "easy",
       name: newName,
-      planned: newPlanned,
+      planned: { date: originalPlanned.date },
     });
 
     const interventionId = await ctx.db.insert("coachInterventions", {

@@ -479,11 +479,21 @@ const PACE_BAND: Record<IntensityAnchor, number> = {
   R: 0.04,
 };
 
+// RPE fallback when no paces are available (e.g. fitness plans with no VDOT).
+// Borg CR10-flavoured: conversational at E, all-out at R.
+const RPE_BY_INTENSITY: Record<IntensityAnchor, number> = {
+  E: 3,
+  M: 6,
+  T: 7,
+  I: 9,
+  R: 10,
+};
+
 function paceTarget(
   intensity: IntensityAnchor,
   paces: Paces | undefined,
 ): Step["target"] {
-  if (!paces) return { type: "none" };
+  if (!paces) return { type: "rpe", value: RPE_BY_INTENSITY[intensity] };
   const v = paces[intensity];
   const band = PACE_BAND[intensity];
   return {
@@ -516,9 +526,10 @@ function round2(n: number): number {
 }
 
 /**
- * Build a FIT-shaped Workout for a single session. Returns undefined for
- * continuous efforts where the top-level distance + pace already say it all
- * (plain easy/recovery runs, base/build/taper long runs).
+ * Build a FIT-shaped Workout for a single session. Every training session gets
+ * a structure — continuous efforts (easy, recovery, sub-peak long) collapse to
+ * a single `work` step so device export and UI breakdown work uniformly.
+ * Returns undefined only for sessions too short to bother with (< 500m).
  */
 export function buildStructure(
   type: WorkoutType,
@@ -531,8 +542,11 @@ export function buildStructure(
   const blocks: (Step | Repeat)[] = (() => {
     switch (type) {
       case "long": {
-        // Only peak-phase long runs carry a structured M-pace block.
-        if (intensity !== "M" || totalMeters < 8000) return [];
+        // Peak-phase long runs carry a structured M-pace block; everything
+        // else is a single continuous easy effort.
+        if (intensity !== "M" || totalMeters < 8000) {
+          return [distanceStep("work", totalMeters, intensity, paces)];
+        }
         const work = Math.max(2000, totalMeters - WARMUP_M - COOLDOWN_M);
         return [
           distanceStep("warmup", WARMUP_M, "E", paces),
@@ -588,6 +602,10 @@ export function buildStructure(
         ];
       }
 
+      case "easy":
+      case "recovery":
+        return [distanceStep("work", totalMeters, intensity, paces)];
+
       default:
         return [];
     }
@@ -600,6 +618,43 @@ export function buildStructure(
     discipline: "endurance",
     sport: "run",
     blocks,
+  };
+}
+
+/**
+ * Race-day structure: a single `work` step over the race distance. Target is
+ * a goal-pace band when a time goal exists, otherwise RPE 10 (race effort).
+ * No warmup/cooldown — those are pre/post-race routine, not the race itself.
+ */
+export function buildRaceStructure(args: {
+  distanceMeters: number;
+  goalSeconds?: number;
+}): WorkoutStructure | undefined {
+  if (args.distanceMeters < 500) return undefined;
+  const target: Step["target"] =
+    args.goalSeconds && args.goalSeconds > 0
+      ? (() => {
+          const v = args.distanceMeters / args.goalSeconds;
+          const band = 0.02;
+          return {
+            type: "pace_range",
+            min_speed_mps: round2(v * (1 - band)),
+            max_speed_mps: round2(v * (1 + band)),
+          };
+        })()
+      : { type: "rpe", value: 10 };
+  return {
+    schema_version: 1,
+    discipline: "endurance",
+    sport: "run",
+    blocks: [
+      {
+        kind: "step",
+        intent: "work",
+        duration: { type: "distance", meters: Math.round(args.distanceMeters) },
+        target,
+      },
+    ],
   };
 }
 

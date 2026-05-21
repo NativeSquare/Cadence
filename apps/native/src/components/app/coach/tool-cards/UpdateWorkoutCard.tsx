@@ -10,7 +10,9 @@ import { useQuery } from "convex/react";
 import { ArrowRight } from "lucide-react-native";
 import { View } from "react-native";
 import { useTranslation } from "react-i18next";
+import type { Workout as WorkoutStructure } from "@nativesquare/agoge";
 import { api } from "@packages/backend/convex/_generated/api";
+import { summarizeStructure } from "@packages/shared/workout-summary";
 import { Text } from "@/components/ui/text";
 import {
   workoutStatusLabel,
@@ -26,11 +28,15 @@ import {
 } from "./format";
 import type { ToolCardProps } from "./types";
 
-interface WorkoutFace {
+interface PlannedFace {
+  date?: string;
+  structure?: unknown;
+}
+
+interface ActualFace {
   date?: string;
   distanceMeters?: number;
   durationSeconds?: number;
-  avgPaceMps?: number;
   avgHr?: number;
   notes?: string;
 }
@@ -40,8 +46,8 @@ interface UpdateInput {
   name?: string;
   type?: string;
   status?: string;
-  planned?: WorkoutFace;
-  actual?: WorkoutFace;
+  planned?: PlannedFace;
+  actual?: ActualFace;
   blockId?: string | null;
 }
 
@@ -89,32 +95,27 @@ export function UpdateWorkoutCard(props: ToolCardProps) {
       after: formatDate(input.planned.date),
     });
   }
-  if (input.planned?.distanceMeters !== undefined) {
+  if (input.planned?.structure !== undefined) {
+    const beforeSummary = workout?.planned?.structure
+      ? summarizeStructure(workout.planned.structure as WorkoutStructure)
+      : undefined;
+    const afterSummary = summarizeStructure(
+      input.planned.structure as WorkoutStructure,
+    );
     rows.push({
       label: t("coach.tools.card.rows.distance"),
-      before: formatDistance(workout?.planned?.distanceMeters),
-      after: formatDistance(input.planned.distanceMeters),
+      before: formatDistance(beforeSummary?.distanceMeters),
+      after: formatDistance(afterSummary.distanceMeters),
     });
-  }
-  if (input.planned?.durationSeconds !== undefined) {
     rows.push({
       label: t("coach.tools.card.rows.duration"),
-      before: formatDuration(workout?.planned?.durationSeconds),
-      after: formatDuration(input.planned.durationSeconds),
+      before: formatDuration(beforeSummary?.durationSeconds),
+      after: formatDuration(afterSummary.durationSeconds),
     });
-  }
-  if (input.planned?.avgPaceMps !== undefined) {
     rows.push({
       label: t("coach.tools.card.rows.avgPace"),
-      before: formatPace(workout?.planned?.avgPaceMps),
-      after: formatPace(input.planned.avgPaceMps),
-    });
-  }
-  if (input.planned?.avgHr !== undefined) {
-    rows.push({
-      label: t("coach.tools.card.rows.avgHr"),
-      before: formatHr(workout?.planned?.avgHr),
-      after: formatHr(input.planned.avgHr),
+      before: formatPace(beforeSummary?.avgPaceMps),
+      after: formatPace(afterSummary.avgPaceMps),
     });
   }
   if (input.blockId !== undefined) {

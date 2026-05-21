@@ -7,16 +7,18 @@
  * lines up across rules and across timezone boundaries.
  */
 
+import type { Workout as WorkoutStructure } from "@nativesquare/agoge";
 import { components } from "../../_generated/api";
 import type { QueryCtx } from "../../_generated/server";
+import { summarizeStructure } from "../../agoge/periodization";
 
 export type WorkoutFace = "planned" | "actual";
 
 export type WorkoutLite = {
   _id: string;
   type: string;
-  status: "planned" | "completed" | "missed" | "skipped";
-  planned?: { date: string; distanceMeters?: number; durationSeconds?: number };
+  status: "planned" | "completed" | "missed";
+  planned?: { date: string; structure?: unknown };
   actual?: { date: string; distanceMeters?: number; durationSeconds?: number };
 };
 
@@ -88,6 +90,26 @@ function pickFaceDate(w: WorkoutLite, face: WorkoutFace): string | null {
   return w[face]?.date ?? null;
 }
 
+function faceVolume(
+  w: WorkoutLite,
+  face: WorkoutFace,
+): { distanceMeters: number; durationSeconds: number } {
+  if (face === "actual") {
+    return {
+      distanceMeters: w.actual?.distanceMeters ?? 0,
+      durationSeconds: w.actual?.durationSeconds ?? 0,
+    };
+  }
+  if (!w.planned?.structure) {
+    return { distanceMeters: 0, durationSeconds: 0 };
+  }
+  const s = summarizeStructure(w.planned.structure as WorkoutStructure);
+  return {
+    distanceMeters: s.distanceMeters,
+    durationSeconds: s.durationSeconds ?? 0,
+  };
+}
+
 /**
  * Bucket workouts into ISO-week summaries using the chosen face's date as the
  * week selector and the chosen face's distance/duration as the volume.
@@ -114,8 +136,9 @@ export function summarizeByIsoWeek(
         qualityCount: 0,
         workoutCount: 0,
       } satisfies WeekSummary);
-    cur.distanceMeters += w[face]?.distanceMeters ?? 0;
-    cur.durationSeconds += w[face]?.durationSeconds ?? 0;
+    const vol = faceVolume(w, face);
+    cur.distanceMeters += vol.distanceMeters;
+    cur.durationSeconds += vol.durationSeconds;
     if (isQualityType(w.type)) cur.qualityCount += 1;
     cur.workoutCount += 1;
     out.set(key, cur);

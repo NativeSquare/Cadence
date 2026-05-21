@@ -15,11 +15,13 @@ import { Text } from "@/components/ui/text";
 import { LIGHT_THEME } from "@/lib/design-tokens";
 import { useLanguage, type Language } from "@/lib/i18n";
 import { Ionicons } from "@expo/vector-icons";
+import type { Workout as WorkoutStructure } from "@nativesquare/agoge";
 import type { WorkoutDoc } from "@nativesquare/agoge/schema";
 import {
   WORKOUT_TYPES_COLORS,
   WORKOUT_TYPES_COLORS_DIM,
 } from "@packages/shared/colors";
+import { summarizeStructure } from "@packages/shared/workout-summary";
 import { useTranslation } from "react-i18next";
 import { Pressable, View } from "react-native";
 
@@ -64,14 +66,17 @@ export function WorkoutCard({ workout, onPress }: WorkoutCardProps) {
 
   const date = workoutDate(workout);
   const day = date ? formatWorkoutDay(locale, date) : null;
-  const duration = formatDuration(workout.planned?.durationSeconds);
-  const distance = formatDistance(workout.planned?.distanceMeters);
+  const plannedSummary = workout.planned?.structure
+    ? summarizeStructure(workout.planned.structure as WorkoutStructure)
+    : undefined;
+  const duration = formatDuration(plannedSummary?.durationSeconds);
+  const distance = formatDistance(plannedSummary?.distanceMeters);
   const typeColor = WORKOUT_TYPES_COLORS[workout.type];
   const typeColorDim = WORKOUT_TYPES_COLORS_DIM[workout.type];
   const effectiveStatus = deriveWorkoutStatus(workout, localTodayYmd());
-  // Strike through closed-out workouts (skipped/missed). Needs-feedback rows
+  // Strike through closed-out workouts (missed). Needs-feedback rows
   // need attention, not finality — render at full opacity with a label.
-  const dimmed = effectiveStatus === "skipped" || effectiveStatus === "missed";
+  const dimmed = effectiveStatus === "missed";
 
   const subtitleParts = [workoutTypeLabel(t, workout.type)];
   const meta = [duration, distance].filter(Boolean).join(" · ");

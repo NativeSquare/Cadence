@@ -593,7 +593,15 @@
       "type": "Type",
       "blockOptional": "Block (optional)",
       "blockNone": "None",
-      "dateAndStartTime": "Date & start time"
+      "dateAndStartTime": "Date & start time",
+      "distanceKm": "Distance",
+      "distanceUnit": "km",
+      "duration": "Duration",
+      "durationHours": "h",
+      "durationMinutes": "min",
+      "rpe": "How did it feel?",
+      "notesOptional": "Notes (optional)",
+      "notesPlaceholder": "Anything to remember about this run"
     },
     "types": {
       "easy": "Easy",
@@ -685,10 +693,6 @@
       "intent": "Intent",
       "duration": "Duration",
       "target": "Target",
-      "nameOptional": "Name (optional)",
-      "namePlaceholder": "e.g. Cruise",
-      "notesOptional": "Notes (optional)",
-      "notesPlaceholder": "Cues, focus points…",
       "submitSave": "Save changes",
       "submitAdd": "Add step",
       "deleteStep": "Delete step",
@@ -733,6 +737,12 @@
       "structure": "Structure",
       "adherence": "Adherence",
       "weekOfBlock": "{{type}} · Week {{week}} of {{total}}",
+      "result": "Result",
+      "plan": "Plan",
+      "whatWasPlanned": "What was planned",
+      "vsPlan": "vs plan",
+      "total": "Total",
+      "details": "Details",
       "actions": {
         "markAsDone": "Mark as done",
         "edit": "Edit workout"
