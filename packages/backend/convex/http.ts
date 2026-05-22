@@ -1,4 +1,4 @@
-import { httpRouter } from "convex/server";
+import { httpRouter, type GenericActionCtx, type GenericDataModel } from "convex/server";
 import { httpAction } from "./_generated/server";
 import { components, internal } from "./_generated/api";
 import { registerRoutes } from "@nativesquare/soma";
@@ -6,6 +6,106 @@ import { auth } from "./auth";
 import { resend } from "./emails";
 
 const http = httpRouter();
+
+// ---------------------------------------------------------------------------
+// Garmin activity → Agoge planned workout reconciliation
+// ---------------------------------------------------------------------------
+
+type GarminActivitySummary = {
+  activityName?: string;
+  activityType?: string;
+  startTimeInSeconds?: number;
+  startTimeOffsetInSeconds?: number;
+  distanceInMeters?: number;
+  durationInSeconds?: number;
+  averageHeartRateInBeatsPerMinute?: number;
+  maxHeartRateInBeatsPerMinute?: number;
+};
+
+async function reconcileGarminActivityWithPlannedWorkout(
+  ctx: GenericActionCtx<GenericDataModel>,
+  userId: string,
+  summary: GarminActivitySummary,
+  source: "activities" | "activity-details",
+) {
+  const {
+    activityName,
+    activityType,
+    startTimeInSeconds,
+    startTimeOffsetInSeconds = 0,
+    distanceInMeters,
+    durationInSeconds,
+    averageHeartRateInBeatsPerMinute,
+    maxHeartRateInBeatsPerMinute,
+  } = summary;
+
+  if (!activityName || activityType !== "RUNNING" || !startTimeInSeconds) {
+    return;
+  }
+
+  const athlete = await ctx.runQuery(
+    components.agoge.public.getAthleteByUserId,
+    { userId },
+  );
+  if (!athlete) {
+    console.log(`[Reconcile:${source}] no athlete for userId=${userId}`);
+    return;
+  }
+
+  const activityStartIso = new Date(startTimeInSeconds * 1000).toISOString();
+  const localMs = (startTimeInSeconds + startTimeOffsetInSeconds) * 1000;
+  const localYmd = new Date(localMs).toISOString().slice(0, 10);
+
+  const planned = await ctx.runQuery(
+    components.agoge.public.getPlannedWorkoutsByAthlete,
+    {
+      athleteId: athlete._id,
+      startDate: `${localYmd}T00:00:00.000Z`,
+      endDate: `${localYmd}T23:59:59.999Z`,
+    },
+  );
+
+  const haystack = activityName.toLowerCase();
+  const candidates = planned.filter((w) =>
+    haystack.includes(w.name.toLowerCase()),
+  );
+
+  if (candidates.length === 0) {
+    console.log(
+      `[Reconcile:${source}] activityName="${activityName}" localDay=${localYmd} — no match (${planned.length} planned)`,
+    );
+    return;
+  }
+
+  // Tiebreak: pick the planned workout whose planned.date is closest to the
+  // activity start time. Works for both single- and multi-match.
+  const activityStartMs = startTimeInSeconds * 1000;
+  const best = candidates.reduce((acc, w) => {
+    const accDelta = Math.abs(Date.parse(acc.planned!.date) - activityStartMs);
+    const wDelta = Math.abs(Date.parse(w.planned!.date) - activityStartMs);
+    return wDelta < accDelta ? w : acc;
+  });
+
+  await ctx.runMutation(components.agoge.public.updateWorkout, {
+    workoutId: best._id,
+    status: "completed",
+    actual: {
+      date: activityStartIso,
+      ...(distanceInMeters !== undefined && { distanceMeters: distanceInMeters }),
+      ...(durationInSeconds !== undefined && { durationSeconds: durationInSeconds }),
+      ...(averageHeartRateInBeatsPerMinute !== undefined && {
+        avgHr: averageHeartRateInBeatsPerMinute,
+      }),
+      ...(maxHeartRateInBeatsPerMinute !== undefined && {
+        maxHr: maxHeartRateInBeatsPerMinute,
+      }),
+    },
+  });
+
+  console.log(
+    `[Reconcile:${source}] wrote actual to workoutId=${best._id} (name="${best.name}", candidates=${candidates.length})`,
+  );
+}
 
 // Auth routes
 auth.addHttpRoutes(http);
@@ -55,36 +155,26 @@ registerRoutes(http, components.soma, {
           rawPassthrough: true,
           handler: async (ctx, event) => {
             for (const item of event.items) {
-              console.log(
-                `[GarminWebhook:activities] ▶ RAW payload (userId=${item.userId}):\n` +
-                  JSON.stringify(item.data, null, 2),
-              );
-            }
-            const userIds = [...new Set(event.items.map((item) => item.userId))];
-            if (userIds.length === 0) return;
-            await ctx.scheduler.runAfter(
-              0,
-              internal.soma.webhook.handleActivityIngested,
-              { affectedUserIds: userIds },
-            );
-          },
-        },
-        "activity-details": {
-          autoIngest: false,
-          rawPassthrough: true,
-          handler: async (ctx, event) => {
-            for (const item of event.items) {
-              console.log(
-                `[GarminWebhook:activity-details] ▶ RAW payload (userId=${item.userId}):\n` +
-                  JSON.stringify(item.data, null, 2),
-              );
+              try {
+                await reconcileGarminActivityWithPlannedWorkout(
+                  ctx,
+                  item.userId,
+                  item.data as GarminActivitySummary,
+                  "activities",
+                );
+              } catch (err) {
+                console.log(
+                  `[Reconcile:activities] error: ${(err as Error)?.message ?? String(err)}`,
+                );
+              }
             }
           },
         },
+        // "activity-details": true,
         "blood-pressures": true,
         "body-compositions": true,
         "dailies": true,
-        "epochs": true,
+        // "epochs": true,
         "health-snapshot": true,
         "sleeps": true,
         "hrv": true,
