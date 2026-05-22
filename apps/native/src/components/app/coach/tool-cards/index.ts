@@ -3,41 +3,34 @@
  *
  * Adding a card for a new writing tool: drop a `<MyToolCard>` file in this
  * folder, wrap its body in `<ProposalCard>` for the shared title/footer
- * chrome, and register it below. Tools without a registered card fall
- * back to `PendingActionCard`. Reading-tool calls render via
- * `ReadingToolPill` unless overridden here.
+ * chrome, and register it below. Tools without a registered card render
+ * nothing (writing) or as a `ReadingToolPill` (reading).
+ *
+ * Writing tools always render — they execute immediately, so the card is a
+ * read-only summary of what just happened. There is no approval flow.
  */
 
 import type { ToolCardComponent } from "./types";
-import { CreateBlockCard } from "./CreateBlockCard";
-import { CreateWorkoutCard } from "./CreateWorkoutCard";
-import { DeleteBlockCard } from "./DeleteBlockCard";
-import { DeleteWorkoutCard } from "./DeleteWorkoutCard";
-import { PendingActionCard } from "./PendingActionCard";
+import { CorrectActualCard } from "./CorrectActualCard";
+import { MarkWorkoutStatusCard } from "./MarkWorkoutStatusCard";
 import { ProposalCard } from "./ProposalCard";
 import { ReadingToolPill } from "./ReadingToolPill";
-import { RescheduleWorkoutCard } from "./RescheduleWorkoutCard";
-import { UpdateBlockCard } from "./UpdateBlockCard";
-import { UpdateWorkoutCard } from "./UpdateWorkoutCard";
+import { RequestRescheduleCard } from "./RequestRescheduleCard";
 
 const writingCards: Record<string, ToolCardComponent> = {
-  createWorkout: CreateWorkoutCard,
-  updateWorkout: UpdateWorkoutCard,
-  rescheduleWorkout: RescheduleWorkoutCard,
-  deleteWorkout: DeleteWorkoutCard,
-  createBlock: CreateBlockCard,
-  updateBlock: UpdateBlockCard,
-  deleteBlock: DeleteBlockCard,
+  markWorkoutStatus: MarkWorkoutStatusCard,
+  correctActual: CorrectActualCard,
+  requestReschedule: RequestRescheduleCard,
 };
 
 const readingCards: Record<string, ToolCardComponent> = {};
 
 /**
- * Whether a tool name is registered as a writing tool. The UI uses this to
- * recognize silent-retry tool calls — writing tools whose `needsApproval`
- * preflight returned false and whose execute() ran silently. Such parts
- * carry no approval signals, so the part-shape heuristic (`isWritingToolPart`)
- * misses them; the registry is the source of truth.
+ * Whether a tool name is registered as a writing tool. Used by the chat list
+ * to suppress silent-retry tool calls — writing tools whose validation
+ * preflight returned errors and whose execute() short-circuited without
+ * mutating anything. Such calls leave behind tool parts with `output.ok ===
+ * false`; we hide them so the chat doesn't surface validation noise.
  */
 export function isKnownWritingTool(toolName: string): boolean {
   return toolName in writingCards;
@@ -46,13 +39,13 @@ export function isKnownWritingTool(toolName: string): boolean {
 export function resolveToolCard(args: {
   toolName: string;
   isWriting: boolean;
-}): ToolCardComponent {
+}): ToolCardComponent | null {
   const { toolName, isWriting } = args;
   if (isWriting) {
-    return writingCards[toolName] ?? PendingActionCard;
+    return writingCards[toolName] ?? null;
   }
   return readingCards[toolName] ?? ReadingToolPill;
 }
 
 export type { ToolCardProps, ToolCardComponent } from "./types";
-export { PendingActionCard, ProposalCard, ReadingToolPill };
+export { ProposalCard, ReadingToolPill };

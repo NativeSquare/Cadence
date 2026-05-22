@@ -1,21 +1,20 @@
 import { anthropic } from "@ai-sdk/anthropic";
-import { Agent, stepCountIs } from "@convex-dev/agent";
+import { Agent } from "@convex-dev/agent";
 import { components } from "../_generated/api";
-import { FALLBACK_INSTRUCTIONS } from "./instructions";
-import { memoryTools } from "./tools/memory";
-import { readingTools } from "./tools/reading";
-import { writingTools } from "./tools/writing";
 
+/**
+ * The single Coach agent — identity only (model + name).
+ *
+ * Per-use-case policy (tools, step budget, persistence, history loading,
+ * streaming) lives in `./profiles.ts`. The per-user system prompt is composed
+ * in `./instructions.ts` and applied at call time by `./turns.ts`.
+ *
+ * Every call site must pick a profile and pass `system`. A naked
+ * `coach.streamText` would run with no tools, no system prompt, and the AI
+ * SDK's default `stepCountIs(1)` — that's intentional, so new callers route
+ * through `runCoachTurn` or `deliverCoachNarration` instead of bypassing them.
+ */
 export const coach = new Agent(components.agent, {
   name: "Cadence Coach",
   languageModel: anthropic.chat("claude-haiku-4-5-20251001"),
-  // The default `instructions` is a fallback used only when a call site forgets
-  // to pass a `system` override. The real per-user prompt is composed in
-  // `messages.ts` via `composeCoachSystem({ locale, prefs })`.
-  instructions: FALLBACK_INSTRUCTIONS,
-  tools: { ...readingTools, ...writingTools, ...memoryTools },
-  // Without this the agent stops after one step (the tool call) and never
-  // generates the follow-up text reply once the tool result is in. Per Convex
-  // Agent docs: "pass stopWhen: stepCountIs(num) where num > 1".
-  stopWhen: stepCountIs(5),
 });

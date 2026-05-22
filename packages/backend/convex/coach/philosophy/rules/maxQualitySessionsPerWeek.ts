@@ -21,7 +21,7 @@ export const maxQualitySessionsPerWeek: PhilosophyRule<Input> = {
   description:
     "An ISO week must contain no more than 2 quality sessions (tempo/threshold/intervals/vo2max/fartlek/progression/race_pace/hills/race/test).",
   severity: "block",
-  triggers: ["workout.create", "workout.update", "workout.reschedule"],
+  triggers: ["workout.update", "workout.reschedule"],
   check: async (input, context, qctx) => {
     const plan = context.activePlan;
     if (!plan) return null;

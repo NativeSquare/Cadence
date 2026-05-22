@@ -18,10 +18,7 @@ export async function loadPhilosophyContext(
 
   let currentBlock: PhilosophyContext["currentBlock"] = null;
   const blockId = typeof args.blockId === "string" ? args.blockId : undefined;
-  if (
-    blockId &&
-    (trigger === "workout.create" || trigger === "workout.update")
-  ) {
+  if (blockId && trigger === "workout.update") {
     const owned = await loadOwnedBlock(ctx, blockId);
     currentBlock = owned?.block ?? null;
   }

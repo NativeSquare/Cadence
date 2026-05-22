@@ -21,8 +21,8 @@ export type TurnSeed =
 /**
  * Single entry point for "wake the coach up and produce a turn" in chat mode.
  *
- * Every interactive trigger funnels through here: user chat (`messages.send`),
- * tool-approval continuation, and any future chat-style trigger. It owns the
+ * Every interactive trigger funnels through here — `messages.send` today,
+ * any future chat-style trigger tomorrow. It owns the
  * three things every chat turn does — resolve the per-user system prompt,
  * stream the model with the `chat` profile (full tools, multi-step), and
  * notify on reply. The agent auto-saves the prompt + assistant output.

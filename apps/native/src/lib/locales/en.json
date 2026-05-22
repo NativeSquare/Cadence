@@ -266,9 +266,6 @@
       "retry": "Retry",
       "discard": "Discard"
     },
-    "tool": {
-      "couldNotSubmit": "Could not submit response"
-    },
     "context": {
       "openLabel": "Open what the coach knows about you",
       "title": "What I know about you",
@@ -280,37 +277,23 @@
     },
     "tools": {
       "actions": {
-        "deny": "Deny",
-        "accept": "Accept",
-        "resolved": "Resolved",
-        "error": "Error"
+        "applying": "Applying…",
+        "applied": "Applied",
+        "failed": "Failed"
       },
       "card": {
-        "createWorkoutTitle": "Create workout",
-        "updateWorkoutTitle": "Update workout",
-        "rescheduleWorkoutTitle": "Reschedule workout",
-        "deleteWorkoutTitle": "Delete workout",
-        "createBlockTitle": "Create block",
-        "updateBlockTitle": "Update block",
-        "deleteBlockTitle": "Delete block",
+        "markWorkoutStatusTitle": "Mark workout",
+        "correctActualTitle": "Correct recorded result",
+        "requestRescheduleTitle": "Reschedule workout",
+        "requestRescheduleSwappedTitle": "Swap workouts",
         "workoutFallback": "Workout",
-        "blockFallback": "Block",
-        "loading": "Loading…",
         "noFieldChanges": "No field changes detected.",
-        "attachedWorkoutsDetached": "Attached workouts are detached, not deleted.",
         "rows": {
-          "name": "Name",
-          "type": "Type",
           "status": "Status",
-          "plannedDate": "Planned date",
           "distance": "Distance",
           "duration": "Duration",
-          "avgPace": "Avg pace",
           "avgHr": "Avg HR",
-          "block": "Block",
-          "start": "Start",
-          "end": "End",
-          "focus": "Focus"
+          "reason": "Reason"
         }
       },
       "reading": {

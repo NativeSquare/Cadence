@@ -41,7 +41,7 @@ export const weeklyVolumeIncreaseCap: PhilosophyRule<Input> = {
   description:
     "A week's planned volume must not exceed the previous week's completed volume by more than 10%.",
   severity: "block",
-  triggers: ["workout.create", "workout.update", "workout.reschedule"],
+  triggers: ["workout.update", "workout.reschedule"],
   check: async (input, context, qctx) => {
     const plan = context.activePlan;
     if (!plan) return null;

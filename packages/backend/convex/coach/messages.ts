@@ -1,15 +1,13 @@
 import { getAuthUserId } from "@convex-dev/auth/server";
 import {
-  getThreadMetadata,
   listUIMessages,
   syncStreams,
   vStreamArgs,
 } from "@convex-dev/agent";
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
-import { components, internal } from "../_generated/api";
-import { action, internalMutation, query } from "../_generated/server";
-import { coach } from "./agent";
+import { components } from "../_generated/api";
+import { action, query } from "../_generated/server";
 import { type TurnSeed, runCoachTurn } from "./turns";
 
 export const list = query({
@@ -50,53 +48,5 @@ export const send = action({
       : { kind: "text", text };
 
     await runCoachTurn(ctx, { userId: userId, threadId, seed });
-  },
-});
-
-export const _approveOrDeny = internalMutation({
-  args: {
-    threadId: v.string(),
-    approvalId: v.string(),
-    approved: v.boolean(),
-    reason: v.optional(v.string()),
-  },
-  handler: async (ctx, { threadId, approvalId, approved, reason }) => {
-    return approved
-      ? await coach.approveToolCall(ctx, { threadId, approvalId, reason })
-      : await coach.denyToolCall(ctx, { threadId, approvalId, reason });
-  },
-});
-
-export const respondToToolApproval = action({
-  args: {
-    threadId: v.string(),
-    approvalId: v.string(),
-    approved: v.boolean(),
-    reason: v.optional(v.string()),
-  },
-  handler: async (ctx, { threadId, approvalId, approved, reason }) => {
-    const userId = await getAuthUserId(ctx);
-    if (userId === null) {
-      throw new ConvexError({ code: "UNAUTHORIZED", message: "Not authenticated" });
-    }
-
-    const thread = await getThreadMetadata(ctx, components.agent, { threadId });
-    if (thread.userId !== (userId as string)) {
-      throw new ConvexError({
-        code: "FORBIDDEN",
-        message: "Thread not owned by caller",
-      });
-    }
-
-    const { messageId } = await ctx.runMutation(
-      internal.coach.messages._approveOrDeny,
-      { threadId, approvalId, approved, reason },
-    );
-
-    await runCoachTurn(ctx, {
-      userId: userId,
-      threadId,
-      seed: { kind: "continue", promptMessageId: messageId },
-    });
   },
 });

@@ -21,14 +21,7 @@ import type { QueryCtx } from "../../_generated/server";
 
 export type PhilosophySeverity = "block" | "warn";
 
-export type PhilosophyTrigger =
-  | "workout.create"
-  | "workout.update"
-  | "workout.reschedule"
-  | "workout.delete"
-  | "block.create"
-  | "block.update"
-  | "block.delete";
+export type PhilosophyTrigger = "workout.update" | "workout.reschedule";
 
 export type PhilosophyViolation = {
   code: string;

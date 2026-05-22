@@ -12,7 +12,7 @@ export const workoutDistanceCap: PhilosophyRule<Input> = {
   description:
     "A single workout must not exceed 50 km of planned or actual distance.",
   severity: "block",
-  triggers: ["workout.create", "workout.update"],
+  triggers: ["workout.update"],
   check: (input) => {
     const d = Math.max(
       input.planned?.distanceMeters ?? 0,

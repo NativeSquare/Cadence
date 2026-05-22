@@ -1,4 +1,3 @@
-import { deloadCadence } from "./rules/deloadCadence";
 import { maxQualitySessionsPerWeek } from "./rules/maxQualitySessionsPerWeek";
 import { taperBeforeRace } from "./rules/taperBeforeRace";
 import { weeklyVolumeIncreaseCap } from "./rules/weeklyVolumeIncreaseCap";
@@ -9,7 +8,6 @@ export const ALL_RULES: PhilosophyRule[] = [
   workoutDistanceCap as PhilosophyRule,
   weeklyVolumeIncreaseCap as PhilosophyRule,
   maxQualitySessionsPerWeek as PhilosophyRule,
-  deloadCadence as PhilosophyRule,
   taperBeforeRace as PhilosophyRule,
 ];
 

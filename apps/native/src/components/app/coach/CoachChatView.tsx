@@ -63,7 +63,6 @@ export function CoachChatView({ threadId }: CoachChatViewProps) {
     isRetriesExhausted,
     sendMessage,
     retry,
-    respondToToolApproval,
   } = useCoachAgent({ threadId });
 
   const [inputValue, setInputValue] = useState("");
@@ -332,11 +331,7 @@ export function CoachChatView({ threadId }: CoachChatViewProps) {
             contentContainerStyle={{ paddingBottom: 20, gap: 24 }}
           >
             {messages.filter(hasRenderableParts).map((message) => (
-              <MessageGroup
-                key={message.key}
-                message={message}
-                onToolRespond={respondToToolApproval}
-              />
+              <MessageGroup key={message.key} message={message} />
             ))}
 
             {error && !isStreaming && (

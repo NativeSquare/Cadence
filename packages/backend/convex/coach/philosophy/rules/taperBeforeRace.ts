@@ -24,13 +24,7 @@ export const taperBeforeRace: PhilosophyRule<Input> = {
   description:
     "Within the taper window before the goal race, weekly planned volume must trend down (≤85% of peak week).",
   severity: "warn",
-  triggers: [
-    "workout.create",
-    "workout.update",
-    "workout.reschedule",
-    "block.create",
-    "block.update",
-  ],
+  triggers: ["workout.update", "workout.reschedule"],
   check: async (input, context, qctx) => {
     const race = context.goalRace;
     const plan = context.activePlan;

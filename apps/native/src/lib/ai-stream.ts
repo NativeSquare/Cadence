@@ -17,7 +17,3 @@ export function getToolPartName(part: ToolPart): string {
   }
   return part.type.slice("tool-".length);
 }
-
-export function isWritingToolPart(part: ToolPart): boolean {
-  return !!part.approval;
-}

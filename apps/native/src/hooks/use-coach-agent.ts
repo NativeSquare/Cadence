@@ -29,11 +29,6 @@ export interface UseCoachAgentReturn {
   isRetriesExhausted: boolean;
   sendMessage: (content: string, attachments?: CoachAttachment[]) => Promise<void>;
   retry: () => Promise<void>;
-  respondToToolApproval: (args: {
-    approvalId: string;
-    approved: boolean;
-    reason?: string;
-  }) => Promise<void>;
 }
 
 export function useCoachAgent(
@@ -42,9 +37,6 @@ export function useCoachAgent(
   const { threadId, maxRetries: maxRetriesOption = MAX_RETRIES, onError } = options;
 
   const sendAction = useAction(api.coach.messages.send);
-  const respondToToolApprovalAction = useAction(
-    api.coach.messages.respondToToolApproval,
-  );
 
   const { results } = useUIMessages(
     api.coach.messages.list,
@@ -108,14 +100,6 @@ export function useCoachAgent(
     await sendMessage(text, attachments);
   }, [sendMessage]);
 
-  const respondToToolApproval = useCallback(
-    async (args: { approvalId: string; approved: boolean; reason?: string }) => {
-      if (!threadId) return;
-      await respondToToolApprovalAction({ threadId, ...args });
-    },
-    [threadId, respondToToolApprovalAction],
-  );
-
   return {
     messages,
     isStreaming,
@@ -127,6 +111,5 @@ export function useCoachAgent(
     isRetriesExhausted: retryCount >= maxRetriesOption,
     sendMessage,
     retry,
-    respondToToolApproval,
   };
 }

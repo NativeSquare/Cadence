@@ -1,8 +1,11 @@
 /**
- * Approval card for the `rescheduleWorkout` writing tool.
+ * Card for the `requestReschedule` writing tool.
  *
- * Renders: workout name + type, then a "current date → new date" diff row.
- * Fetches the current workout via useQuery so the user sees what's moving.
+ * The coach asks the Engine to move a workout; the Engine picks "move" or
+ * "swap" or rejects. Output carries `result.action` ("moved" | "swapped") and
+ * `before` (pre-mutation date plus the swap partner if any) — the card uses
+ * `before` so it can show the pre-move date even after the workout has been
+ * updated in the DB.
  */
 
 import { useQuery } from "convex/react";
@@ -17,31 +20,45 @@ import type { ToolCardProps } from "./types";
 
 interface RescheduleInput {
   workoutId: string;
-  date: string;
+  toDate: string;
 }
 
-export function RescheduleWorkoutCard(props: ToolCardProps) {
+interface RescheduleOutput {
+  ok?: boolean;
+  result?: { action: "moved" | "swapped" };
+  before?: {
+    workoutId: string;
+    plannedDate: string;
+    swappedWith?: { workoutId: string; plannedDate: string };
+  };
+  errors?: { code: string; message: string }[];
+}
+
+export function RequestRescheduleCard(props: ToolCardProps) {
   const { t } = useTranslation();
   const input = props.input as RescheduleInput | undefined;
+  const output = props.output as RescheduleOutput | undefined;
+
   const result = useQuery(
     api.agoge.workouts.getWorkout,
     input?.workoutId ? { workoutId: input.workoutId } : "skip",
   );
-
   const workoutName =
     result?.workout?.name ?? t("coach.tools.card.workoutFallback");
-  const currentDate = result?.workout?.planned?.date;
-  const targetDate = input?.date;
+
+  const fromDate = output?.before?.plannedDate;
+  const toDate = input?.toDate;
+  const action = output?.result?.action;
 
   return (
     <ProposalCard
-      title={t("coach.tools.card.rescheduleWorkoutTitle")}
+      title={
+        action === "swapped"
+          ? t("coach.tools.card.requestRescheduleSwappedTitle")
+          : t("coach.tools.card.requestRescheduleTitle")
+      }
       state={props.state}
       errorText={props.errorText}
-      approvalId={props.approvalId}
-      onAccept={props.onAccept}
-      onDeny={props.onDeny}
-      busy={props.busy}
     >
       <View className="gap-2">
         <Text
@@ -51,9 +68,9 @@ export function RescheduleWorkoutCard(props: ToolCardProps) {
           {workoutName}
         </Text>
         <View className="flex-row items-center gap-2">
-          <DateChip iso={currentDate} muted />
+          <DateChip iso={fromDate} muted />
           <ArrowRight size={14} color="#888" />
-          <DateChip iso={targetDate} />
+          <DateChip iso={toDate} />
         </View>
       </View>
     </ProposalCard>

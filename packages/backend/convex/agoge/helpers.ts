@@ -76,13 +76,33 @@ export async function loadAthlete(ctx: QueryCtx | MutationCtx) {
   return { userId, athlete };
 }
 
+/**
+ * Convex `v.id("table")` validators throw `ArgumentValidationError` when the
+ * incoming string doesn't match the expected tagged-id shape. Loaders called
+ * with hallucinated or stale ids (LLM tools, optimistic client queries) should
+ * NOT propagate that as a 500 — return null and let the caller decide. This
+ * helper swallows validator throws and turns missing/malformed ids into
+ * `null`.
+ */
+async function tryGetById<T>(
+  fn: () => Promise<T | null>,
+): Promise<T | null> {
+  try {
+    return await fn();
+  } catch {
+    return null;
+  }
+}
+
 export async function loadOwnedWorkout(
   ctx: QueryCtx | MutationCtx,
   workoutId: string,
 ) {
   const [auth, workout] = await Promise.all([
     loadAthlete(ctx),
-    ctx.runQuery(components.agoge.public.getWorkout, { workoutId }),
+    tryGetById(() =>
+      ctx.runQuery(components.agoge.public.getWorkout, { workoutId }),
+    ),
   ]);
   if (!auth || !workout) return null;
   if (workout.athleteId !== auth.athlete._id) return null;
@@ -95,20 +115,22 @@ export async function loadOwnedBlock(
 ) {
   const [auth, block] = await Promise.all([
     loadAthlete(ctx),
-    ctx.runQuery(components.agoge.public.getBlock, { blockId }),
+    tryGetById(() =>
+      ctx.runQuery(components.agoge.public.getBlock, { blockId }),
+    ),
   ]);
   if (!auth || !block) return null;
-  const plan = await ctx.runQuery(components.agoge.public.getPlan, {
-    planId: block.planId,
-  });
+  const plan = await tryGetById(() =>
+    ctx.runQuery(components.agoge.public.getPlan, { planId: block.planId }),
+  );
   if (!plan || plan.athleteId !== auth.athlete._id) return null;
-  const goal = await ctx.runQuery(components.agoge.public.getGoal, {
-    goalId: plan.goalId,
-  });
+  const goal = await tryGetById(() =>
+    ctx.runQuery(components.agoge.public.getGoal, { goalId: plan.goalId }),
+  );
   if (!goal || !goal.raceId) return null;
-  const race = await ctx.runQuery(components.agoge.public.getRace, {
-    raceId: goal.raceId,
-  });
+  const race = await tryGetById(() =>
+    ctx.runQuery(components.agoge.public.getRace, { raceId: goal.raceId! }),
+  );
   if (!race) return null;
   return { userId: auth.userId, athlete: auth.athlete, block, plan, race };
 }
@@ -119,7 +141,7 @@ export async function loadOwnedRace(
 ) {
   const [auth, race] = await Promise.all([
     loadAthlete(ctx),
-    ctx.runQuery(components.agoge.public.getRace, { raceId }),
+    tryGetById(() => ctx.runQuery(components.agoge.public.getRace, { raceId })),
   ]);
   if (!auth || !race) return null;
   if (race.athleteId !== auth.athlete._id) return null;
@@ -132,7 +154,9 @@ export async function loadOwnedWorkoutTemplate(
 ) {
   const [auth, template] = await Promise.all([
     loadAthlete(ctx),
-    ctx.runQuery(components.agoge.public.getWorkoutTemplate, { templateId }),
+    tryGetById(() =>
+      ctx.runQuery(components.agoge.public.getWorkoutTemplate, { templateId }),
+    ),
   ]);
   if (!auth || !template) return null;
   if (template.athleteId !== auth.athlete._id) return null;
@@ -145,7 +169,7 @@ export async function loadOwnedPlan(
 ) {
   const [auth, plan] = await Promise.all([
     loadAthlete(ctx),
-    ctx.runQuery(components.agoge.public.getPlan, { planId }),
+    tryGetById(() => ctx.runQuery(components.agoge.public.getPlan, { planId })),
   ]);
   if (!auth || !plan) return null;
   if (plan.athleteId !== auth.athlete._id) return null;

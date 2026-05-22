@@ -1,45 +1,41 @@
 /**
- * Writing tools — Agoge mutations the coach can propose to the user.
+ * Writing tools — Coach-side mutations.
  *
- * # Deterministic preflight via `needsApproval` as a function
+ * # No approval cards
  *
- * The framework treats `needsApproval` as a server-side gate that runs BEFORE
- * any approval card is shown to the user. We use it as a validation preflight:
+ * The Coach acts authoritatively: tools write directly and the user reverts
+ * after the fact if needed (future Undo PR). Every tool sets
+ * `needsApproval: false` and performs validation inline at the top of
+ * `execute()`. On validation failure we return `{ ok: false, errors }` so the
+ * LLM silently retries with corrected args; on success we write and return
+ * `{ ok: true, result, before }`. The `before` field captures pre-mutation
+ * state for the future Undo flow — schemas stay stable today.
  *
- *   needsApproval(ctx, input) → runs the matching `validate*` query
- *     ├─ validation.ok === true  → returns true → approval card streamed to UI
- *     └─ validation.ok === false → returns false → no card; execute() runs
- *                                                  immediately, the mutation
- *                                                  throws, we catch and return
- *                                                  structured errors so the
- *                                                  LLM can retry with corrected
- *                                                  args (silent retry loop).
+ * # Scope
  *
- * This makes the "card never shows for invalid args" property 100% deterministic
- * (server-controlled) rather than depending on the LLM following protocol.
+ * The Coach does NOT own plan structure. Block CRUD, workout creation, and
+ * workout deletion are intentionally absent — those are the deterministic
+ * Engine's territory. The Coach surfaces three narrow shapes:
  *
- * `execute()` therefore performs the real DB write only on the approved path,
- * and acts as a structured-error converter on the silent-retry path. The Agoge
- * mutations re-validate server-side as defense-in-depth, throwing
- * `ConvexError({code:"VALIDATION_FAILED", errors})` on stale-state races; we
- * catch and convert.
+ *   - markWorkoutStatus  — record reality (completed / missed / skipped) and
+ *                          optionally the actual face for completed sessions.
+ *                          Test completions still record VDOT via Agoge.
+ *   - correctActual      — fix bad sensor data on an already-completed workout.
+ *   - requestReschedule  — ask the Engine to move a workout to a date. The
+ *                          Engine picks "simple move" vs "swap" vs "reject".
  *
- * After Agoge passes, each tool also checks the coach-only Philosophy layer
- * (api.coach.philosophy.validate.*). The Philosophy layer is server-enforced
- * coaching policy ("no single workout > 50 km", etc.) and runs only on the
- * AI Coach's path — manual user CRUD bypasses it. Deletes have no Agoge
- * `validate*` query (the question is just "do you want to delete this?")
- * but still route through the Philosophy validator so future delete-time
- * policy rules can short-circuit before the approval card.
+ * Agoge's `validate*` queries fence domain invariants; the Philosophy layer
+ * (`api.coach.philosophy.validate.*`) fences Coach-only policy and runs only
+ * on the Coach's write path — direct user CRUD bypasses it.
  */
 
 import { createTool } from "@convex-dev/agent";
-import { z } from "zod";
 import { ConvexError } from "convex/values";
-import { api } from "../../_generated/api";
+import { z } from "zod";
+import { api, internal } from "../../_generated/api";
 
 type WriteResult<T = null> =
-  | { ok: true; result: T }
+  | { ok: true; result: T; before: unknown }
   | { ok: false; errors: { code: string; message: string }[] };
 
 function fromConvexError(err: unknown): {
@@ -51,9 +47,7 @@ function fromConvexError(err: unknown): {
       code?: string;
       errors?: { code: string; message: string }[];
     };
-    if (Array.isArray(data.errors)) {
-      return { ok: false, errors: data.errors };
-    }
+    if (Array.isArray(data.errors)) return { ok: false, errors: data.errors };
     return {
       ok: false,
       errors: [
@@ -76,57 +70,6 @@ function fromConvexError(err: unknown): {
   };
 }
 
-// ---------------------------------------------------------------------------
-// Philosophy preflight — short-circuits execute() when a Philosophy rule
-// blocks. The Agoge mutation does not know about Philosophy, so without this
-// step a Philosophy-blocked + Agoge-passing payload would still write.
-// ---------------------------------------------------------------------------
-
-type PhilosophyBlock = {
-  ok: false;
-  errors: { code: string; message: string }[];
-};
-
-async function checkPhilosophy(
-  ctx: {
-    runQuery: (
-      ref: any,
-      args: any,
-    ) => Promise<{
-      ok: boolean;
-      errors?: { code: string; message: string }[];
-    }>;
-  },
-  queryRef: any,
-  input: unknown,
-): Promise<PhilosophyBlock | null> {
-  const r = await ctx.runQuery(queryRef, input);
-  if (!r.ok) return { ok: false, errors: r.errors ?? [] };
-  return null;
-}
-
-// ---------------------------------------------------------------------------
-// Reusable schemas — zod mirrors of the Agoge validators (loose where the
-// underlying validator is too dense to mirror; the mutation re-validates
-// strictly server-side, so a permissive tool schema only affects how the LLM
-// formats its proposal).
-// ---------------------------------------------------------------------------
-
-const plannedFaceSchema = z
-  .object({
-    date: z
-      .string()
-      .describe("UTC ISO 8601 timestamp for the planned date."),
-    structure: z
-      .any()
-      .describe(
-        "Structured workout (steps, repeats, intervals). Required. Pass " +
-        "through verbatim if cloning from a template. Distance/duration/" +
-        "pace are derived from this on read.",
-      ),
-  })
-  .describe("Planned face — what the athlete is meant to do.");
-
 const actualFaceSchema = z
   .object({
     date: z
@@ -142,300 +85,166 @@ const actualFaceSchema = z
   })
   .describe("Actual face — what the athlete actually did.");
 
-const workoutTypeSchema = z.enum([
-  "easy",
-  "threshold",
-  "intervals",
-  "long",
-  "race_pace",
-  "recovery",
-  "race",
-  "test",
-]);
-
-const workoutStatusSchema = z.enum([
-  "planned",
-  "completed",
-  "missed",
-]);
-
-const blockTypeSchema = z.enum(["base", "build", "peak", "taper"]);
-
-// ---------------------------------------------------------------------------
-// Tools
-// ---------------------------------------------------------------------------
+const completedStatusSchema = z
+  .enum(["completed", "missed"])
+  .describe(
+    "Status to set. 'completed' must be paired with an `actual` face. " +
+      "'missed' records that the planned session did not happen.",
+  );
 
 export const writingTools = {
-  // ------- Workouts --------------------------------------------------------
-
-  createWorkout: createTool({
+  markWorkoutStatus: createTool({
     description:
-      "Create a new workout (planned or already completed) for the athlete. " +
-      "Maps to the user's 'Log/schedule workout' UI action. The user must " +
-      "Accept the proposal before the workout is created. Args are validated " +
-      "server-side before the approval card is shown — if validation fails, " +
-      "the tool returns { ok: false, errors } silently and you should retry " +
-      "with corrected args.",
-    inputSchema: z.object({
-      name: z.string().min(1),
-      description: z.string().optional(),
-      sport: z.literal("run"),
-      type: workoutTypeSchema,
-      status: workoutStatusSchema,
-      planned: plannedFaceSchema.optional(),
-      actual: actualFaceSchema.optional(),
-      blockId: z.string().optional(),
-      templateId: z.string().optional(),
-    }),
-    needsApproval: async (ctx, input): Promise<boolean> => {
-      const a = await ctx.runQuery(api.agoge.workouts.dryRunCreateWorkout, input);
-      if (!a.ok) return false;
-      const p = await ctx.runQuery(
-        api.coach.philosophy.validate.validateWorkoutCreate,
-        input,
-      );
-      return p.ok;
-    },
-    execute: async (ctx, args): Promise<WriteResult<{ workoutId: string }>> => {
-      const blocked = await checkPhilosophy(
-        ctx,
-        api.coach.philosophy.validate.validateWorkoutCreate,
-        args,
-      );
-      if (blocked) return blocked;
-      try {
-        const workoutId = await ctx.runMutation(
-          api.agoge.workouts.createWorkout,
-          args,
-        );
-        return { ok: true, result: { workoutId } };
-      } catch (err) {
-        return fromConvexError(err);
-      }
-    },
-  }),
-
-  updateWorkout: createTool({
-    description:
-      "Update fields on an existing workout (any subset of name, type, " +
-      "status, planned, actual, blockId, etc.). Maps to the user's 'Edit " +
-      "workout' UI action. Pass blockId: null to detach the workout from " +
-      "its block. Args are validated server-side before the approval card " +
-      "is shown — silent retry on { ok: false, errors }.",
+      "Record reality on a planned workout: mark it as completed (with the " +
+      "actual face), missed, or skipped. Use this when the athlete tells you " +
+      "what actually happened. For 'completed', include `actual` with at " +
+      "least date + distance or duration. For 'missed'/'skipped', omit " +
+      "`actual`. If the workout is a baseline test and you mark it completed, " +
+      "Agoge will derive VDOT from the actual face — that side effect is " +
+      "intentional.",
     inputSchema: z.object({
       workoutId: z.string(),
-      name: z.string().min(1).optional(),
-      description: z.string().optional(),
-      sport: z.literal("run").optional(),
-      type: workoutTypeSchema.optional(),
-      status: workoutStatusSchema.optional(),
-      planned: plannedFaceSchema.optional(),
+      status: completedStatusSchema,
       actual: actualFaceSchema.optional(),
-      blockId: z.union([z.string(), z.null()]).optional(),
-      templateId: z.string().optional(),
     }),
-    needsApproval: async (ctx, input): Promise<boolean> => {
-      const a = await ctx.runQuery(api.agoge.workouts.dryRunUpdateWorkout, input);
-      if (!a.ok) return false;
-      const p = await ctx.runQuery(
-        api.coach.philosophy.validate.validateWorkoutUpdate,
-        input,
+    needsApproval: false,
+    execute: async (
+      ctx,
+      args,
+    ): Promise<WriteResult<{ workoutId: string }>> => {
+      const agoge = await ctx.runQuery(
+        api.agoge.workouts.dryRunUpdateWorkout,
+        args,
       );
-      return p.ok;
-    },
-    execute: async (ctx, args): Promise<WriteResult> => {
-      const blocked = await checkPhilosophy(
-        ctx,
+      if (!agoge.ok) return { ok: false, errors: agoge.errors };
+
+      const philosophy = await ctx.runQuery(
         api.coach.philosophy.validate.validateWorkoutUpdate,
         args,
       );
-      if (blocked) return blocked;
+      if (!philosophy.ok) return { ok: false, errors: philosophy.errors };
+
+      const existing = await ctx.runQuery(api.agoge.workouts.getWorkout, {
+        workoutId: args.workoutId,
+      });
+      const before = existing
+        ? {
+            workoutId: args.workoutId,
+            status: existing.workout.status,
+            actual: existing.workout.actual ?? null,
+          }
+        : { workoutId: args.workoutId };
+
       try {
         await ctx.runMutation(api.agoge.workouts.updateWorkout, args);
-        return { ok: true, result: null };
+        return {
+          ok: true,
+          result: { workoutId: args.workoutId },
+          before,
+        };
       } catch (err) {
         return fromConvexError(err);
       }
     },
   }),
 
-  rescheduleWorkout: createTool({
+  correctActual: createTool({
     description:
-      "Move a workout's planned date to a new date. Maps to the user's " +
-      "'Reschedule' button. Cannot be used on completed workouts. Args are " +
-      "validated server-side before the approval card is shown — silent " +
-      "retry on { ok: false, errors }.",
+      "Correct the recorded `actual` on an already-completed workout. Use " +
+      "this only to fix bad sensor data (watch lost GPS, autopopulated wrong " +
+      "session, etc.) — not to change what the athlete actually did. Provide " +
+      "the full corrected actual face. `reason` is a short human-readable " +
+      "string the athlete will see in the change log.",
     inputSchema: z.object({
       workoutId: z.string(),
-      date: z
+      actual: actualFaceSchema,
+      reason: z
         .string()
-        .describe("New planned date as a UTC ISO 8601 timestamp."),
+        .min(1)
+        .max(280)
+        .describe("Short explanation of why the correction is being made."),
     }),
-    needsApproval: async (ctx, input): Promise<boolean> => {
-      const a = await ctx.runQuery(
-        api.agoge.workouts.dryRunRescheduleWorkout,
-        input,
+    needsApproval: false,
+    execute: async (
+      ctx,
+      args,
+    ): Promise<WriteResult<{ workoutId: string }>> => {
+      const updateArgs = { workoutId: args.workoutId, actual: args.actual };
+
+      const agoge = await ctx.runQuery(
+        api.agoge.workouts.dryRunUpdateWorkout,
+        updateArgs,
       );
-      if (!a.ok) return false;
-      const p = await ctx.runQuery(
-        api.coach.philosophy.validate.validateWorkoutReschedule,
-        input,
+      if (!agoge.ok) return { ok: false, errors: agoge.errors };
+
+      const philosophy = await ctx.runQuery(
+        api.coach.philosophy.validate.validateWorkoutUpdate,
+        updateArgs,
       );
-      return p.ok;
-    },
-    execute: async (ctx, args): Promise<WriteResult> => {
-      const blocked = await checkPhilosophy(
-        ctx,
-        api.coach.philosophy.validate.validateWorkoutReschedule,
-        args,
-      );
-      if (blocked) return blocked;
+      if (!philosophy.ok) return { ok: false, errors: philosophy.errors };
+
+      const existing = await ctx.runQuery(api.agoge.workouts.getWorkout, {
+        workoutId: args.workoutId,
+      });
+      const before = existing
+        ? {
+            workoutId: args.workoutId,
+            actual: existing.workout.actual ?? null,
+          }
+        : { workoutId: args.workoutId };
+
       try {
-        await ctx.runMutation(api.agoge.workouts.rescheduleWorkout, args);
-        return { ok: true, result: null };
+        await ctx.runMutation(api.agoge.workouts.updateWorkout, updateArgs);
+        return {
+          ok: true,
+          result: { workoutId: args.workoutId },
+          before,
+        };
       } catch (err) {
         return fromConvexError(err);
       }
     },
   }),
 
-  deleteWorkout: createTool({
+  requestReschedule: createTool({
     description:
-      "Delete a workout. Maps to the user's 'Delete' action. Use sparingly " +
-      "— prefer rescheduling or marking as missed when the intent " +
-      "is to keep training history intact.",
+      "Ask the Engine to move a workout to a new date. You do NOT pick the " +
+      "implementation strategy — the Engine decides whether the move is a " +
+      "simple reschedule (empty slot), a swap (same-week collision), or a " +
+      "rejection (cross-week collision). Pass `toDate` as a UTC ISO 8601 " +
+      "timestamp. If the Engine rejects with SLOT_OCCUPIED, retry with a " +
+      "different date.",
     inputSchema: z.object({
       workoutId: z.string(),
-    }),
-    needsApproval: async (ctx, input): Promise<boolean> => {
-      const p = await ctx.runQuery(
-        api.coach.philosophy.validate.validateWorkoutDelete,
-        input,
-      );
-      return p.ok;
-    },
-    execute: async (ctx, args): Promise<WriteResult> => {
-      const blocked = await checkPhilosophy(
-        ctx,
-        api.coach.philosophy.validate.validateWorkoutDelete,
-        args,
-      );
-      if (blocked) return blocked;
-      try {
-        await ctx.runMutation(api.agoge.workouts.deleteWorkout, args);
-        return { ok: true, result: null };
-      } catch (err) {
-        return fromConvexError(err);
-      }
-    },
-  }),
-
-  // ------- Blocks ----------------------------------------------------------
-
-  createBlock: createTool({
-    description:
-      "Create a new training block in the athlete's active plan. Maps to " +
-      "the user's 'New block' form. Args are validated server-side before " +
-      "the approval card is shown — silent retry on { ok: false, errors }.",
-    inputSchema: z.object({
-      type: blockTypeSchema,
-      startDate: z
+      toDate: z
         .string()
-        .describe("UTC ISO 8601 timestamp for the block's first day."),
-      endDate: z
-        .string()
-        .describe("UTC ISO 8601 timestamp for the block's last day."),
-      focus: z.string().optional(),
+        .describe("Target date as a UTC ISO 8601 timestamp."),
     }),
-    needsApproval: async (ctx, input): Promise<boolean> => {
-      const a = await ctx.runQuery(api.agoge.blocks.dryRunCreateBlock, input);
-      if (!a.ok) return false;
-      const p = await ctx.runQuery(
-        api.coach.philosophy.validate.validateBlockCreate,
-        input,
-      );
-      return p.ok;
-    },
-    execute: async (ctx, args): Promise<WriteResult<{ blockId: string }>> => {
-      const blocked = await checkPhilosophy(
-        ctx,
-        api.coach.philosophy.validate.validateBlockCreate,
-        args,
-      );
-      if (blocked) return blocked;
+    needsApproval: false,
+    execute: async (
+      ctx,
+      args,
+    ): Promise<
+      | {
+          ok: true;
+          result: { action: "moved" | "swapped" };
+          before: unknown;
+        }
+      | { ok: false; errors: { code: string; message: string }[] }
+    > => {
       try {
-        const blockId = await ctx.runMutation(
-          api.agoge.blocks.createBlock,
+        const engineResult = await ctx.runMutation(
+          internal.engine.reschedule.reschedule,
           args,
         );
-        return { ok: true, result: { blockId } };
-      } catch (err) {
-        return fromConvexError(err);
-      }
-    },
-  }),
-
-  updateBlock: createTool({
-    description:
-      "Update fields on an existing block (type, dates, focus). Maps to " +
-      "the user's 'Edit block' form. Args are validated server-side before " +
-      "the approval card is shown — silent retry on { ok: false, errors }.",
-    inputSchema: z.object({
-      blockId: z.string(),
-      type: blockTypeSchema.optional(),
-      startDate: z.string().optional(),
-      endDate: z.string().optional(),
-      focus: z.string().optional(),
-    }),
-    needsApproval: async (ctx, input): Promise<boolean> => {
-      const a = await ctx.runQuery(api.agoge.blocks.dryRunUpdateBlock, input);
-      if (!a.ok) return false;
-      const p = await ctx.runQuery(
-        api.coach.philosophy.validate.validateBlockUpdate,
-        input,
-      );
-      return p.ok;
-    },
-    execute: async (ctx, args): Promise<WriteResult> => {
-      const blocked = await checkPhilosophy(
-        ctx,
-        api.coach.philosophy.validate.validateBlockUpdate,
-        args,
-      );
-      if (blocked) return blocked;
-      try {
-        await ctx.runMutation(api.agoge.blocks.updateBlock, args);
-        return { ok: true, result: null };
-      } catch (err) {
-        return fromConvexError(err);
-      }
-    },
-  }),
-
-  deleteBlock: createTool({
-    description:
-      "Delete a training block. Workouts attached to it become unblocked " +
-      "(their blockId is unset) — they are not themselves deleted.",
-    inputSchema: z.object({
-      blockId: z.string(),
-    }),
-    needsApproval: async (ctx, input): Promise<boolean> => {
-      const p = await ctx.runQuery(
-        api.coach.philosophy.validate.validateBlockDelete,
-        input,
-      );
-      return p.ok;
-    },
-    execute: async (ctx, args): Promise<WriteResult> => {
-      const blocked = await checkPhilosophy(
-        ctx,
-        api.coach.philosophy.validate.validateBlockDelete,
-        args,
-      );
-      if (blocked) return blocked;
-      try {
-        await ctx.runMutation(api.agoge.blocks.deleteBlock, args);
-        return { ok: true, result: null };
+        if (!engineResult.ok) {
+          return { ok: false, errors: engineResult.errors };
+        }
+        return {
+          ok: true,
+          result: { action: engineResult.action },
+          before: engineResult.before,
+        };
       } catch (err) {
         return fromConvexError(err);
       }

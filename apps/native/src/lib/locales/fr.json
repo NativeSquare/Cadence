@@ -266,9 +266,6 @@
       "retry": "Réessayer",
       "discard": "Annuler"
     },
-    "tool": {
-      "couldNotSubmit": "Impossible d'envoyer la réponse"
-    },
     "context": {
       "openLabel": "Ouvrir ce que le coach sait sur toi",
       "title": "Ce que je sais sur toi",
@@ -280,37 +277,23 @@
     },
     "tools": {
       "actions": {
-        "deny": "Refuser",
-        "accept": "Accepter",
-        "resolved": "Résolu",
-        "error": "Erreur"
+        "applying": "Application…",
+        "applied": "Appliqué",
+        "failed": "Échec"
       },
       "card": {
-        "createWorkoutTitle": "Créer une séance",
-        "updateWorkoutTitle": "Modifier la séance",
-        "rescheduleWorkoutTitle": "Replanifier la séance",
-        "deleteWorkoutTitle": "Supprimer la séance",
-        "createBlockTitle": "Créer un bloc",
-        "updateBlockTitle": "Modifier le bloc",
-        "deleteBlockTitle": "Supprimer le bloc",
+        "markWorkoutStatusTitle": "Marquer la séance",
+        "correctActualTitle": "Corriger le résultat enregistré",
+        "requestRescheduleTitle": "Replanifier la séance",
+        "requestRescheduleSwappedTitle": "Échanger les séances",
         "workoutFallback": "Séance",
-        "blockFallback": "Bloc",
-        "loading": "Chargement…",
         "noFieldChanges": "Aucun changement détecté.",
-        "attachedWorkoutsDetached": "Les séances rattachées sont détachées, pas supprimées.",
         "rows": {
-          "name": "Nom",
-          "type": "Type",
           "status": "Statut",
-          "plannedDate": "Date prévue",
           "distance": "Distance",
           "duration": "Durée",
-          "avgPace": "Allure moy.",
           "avgHr": "FC moy.",
-          "block": "Bloc",
-          "start": "Début",
-          "end": "Fin",
-          "focus": "Objectif"
+          "reason": "Raison"
         }
       },
       "reading": {

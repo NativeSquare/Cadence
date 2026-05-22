@@ -41,7 +41,6 @@ import type * as coach_philosophy_aggregates from "../coach/philosophy/aggregate
 import type * as coach_philosophy_context from "../coach/philosophy/context.js";
 import type * as coach_philosophy_prompt from "../coach/philosophy/prompt.js";
 import type * as coach_philosophy_registry from "../coach/philosophy/registry.js";
-import type * as coach_philosophy_rules_deloadCadence from "../coach/philosophy/rules/deloadCadence.js";
 import type * as coach_philosophy_rules_maxQualitySessionsPerWeek from "../coach/philosophy/rules/maxQualitySessionsPerWeek.js";
 import type * as coach_philosophy_rules_taperBeforeRace from "../coach/philosophy/rules/taperBeforeRace.js";
 import type * as coach_philosophy_rules_weeklyVolumeIncreaseCap from "../coach/philosophy/rules/weeklyVolumeIncreaseCap.js";
@@ -62,6 +61,7 @@ import type * as coach_voice from "../coach/voice.js";
 import type * as contacts from "../contacts.js";
 import type * as crons from "../crons.js";
 import type * as emails from "../emails.js";
+import type * as engine_reschedule from "../engine/reschedule.js";
 import type * as http from "../http.js";
 import type * as migrations from "../migrations.js";
 import type * as notifications from "../notifications.js";
@@ -125,7 +125,6 @@ declare const fullApi: ApiFromModules<{
   "coach/philosophy/context": typeof coach_philosophy_context;
   "coach/philosophy/prompt": typeof coach_philosophy_prompt;
   "coach/philosophy/registry": typeof coach_philosophy_registry;
-  "coach/philosophy/rules/deloadCadence": typeof coach_philosophy_rules_deloadCadence;
   "coach/philosophy/rules/maxQualitySessionsPerWeek": typeof coach_philosophy_rules_maxQualitySessionsPerWeek;
   "coach/philosophy/rules/taperBeforeRace": typeof coach_philosophy_rules_taperBeforeRace;
   "coach/philosophy/rules/weeklyVolumeIncreaseCap": typeof coach_philosophy_rules_weeklyVolumeIncreaseCap;
@@ -146,6 +145,7 @@ declare const fullApi: ApiFromModules<{
   contacts: typeof contacts;
   crons: typeof crons;
   emails: typeof emails;
+  "engine/reschedule": typeof engine_reschedule;
   http: typeof http;
   migrations: typeof migrations;
   notifications: typeof notifications;

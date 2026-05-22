@@ -6,17 +6,18 @@ import { ChatToolPart } from "./ChatToolPart";
 import {
   getToolPartName,
   isToolPart,
-  isWritingToolPart,
+  type ToolPart,
 } from "@/lib/ai-stream";
 import { isKnownWritingTool } from "./tool-cards";
 
 interface MessageGroupProps {
   message: UIMessage;
-  onToolRespond: (args: {
-    approvalId: string;
-    approved: boolean;
-    reason?: string;
-  }) => Promise<void>;
+}
+
+function isSilentRetryFailure(part: ToolPart): boolean {
+  if (part.state !== "output-available") return false;
+  const out = part.output as { ok?: boolean } | undefined;
+  return out?.ok === false;
 }
 
 export function hasRenderableParts(message: UIMessage): boolean {
@@ -24,14 +25,17 @@ export function hasRenderableParts(message: UIMessage): boolean {
     if (part.type === "text") return !!part.text;
     if (part.type === "file") return true;
     if (!isToolPart(part)) return false;
-    if (!isWritingToolPart(part) && isKnownWritingTool(getToolPartName(part))) {
+    if (
+      isKnownWritingTool(getToolPartName(part)) &&
+      isSilentRetryFailure(part)
+    ) {
       return false;
     }
     return true;
   });
 }
 
-export function MessageGroup({ message, onToolRespond }: MessageGroupProps) {
+export function MessageGroup({ message }: MessageGroupProps) {
   const isCoach = message.role === "assistant";
   const isMessageStreaming = message.status === "streaming";
   const lastIdx = message.parts.length - 1;
@@ -62,13 +66,7 @@ export function MessageGroup({ message, onToolRespond }: MessageGroupProps) {
           );
         }
         if (!isToolPart(part)) return null;
-        if (
-          !isWritingToolPart(part) &&
-          isKnownWritingTool(getToolPartName(part))
-        ) {
-          return null;
-        }
-        return <ChatToolPart key={idx} part={part} onRespond={onToolRespond} />;
+        return <ChatToolPart key={idx} part={part} />;
       })}
     </View>
   );
