@@ -164,6 +164,7 @@ async function buildSystemForUser(
     locale: user?.locale ?? null,
     prefs: user?.coachPrefs ?? null,
     memories: memoryRows.map((m) => m.text),
+    now: new Date(),
   });
 }
 

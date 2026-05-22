@@ -57,6 +57,7 @@ export function composeCoachSystem(args: {
   locale?: CoachLocale | null;
   prefs?: CoachPrefs | null;
   memories?: string[] | null;
+  now: Date;
 }): string {
   const locale: CoachLocale = args.locale ?? DEFAULT_LOCALE;
   const tone: CoachTone = args.prefs?.tone ?? DEFAULT_TONE;
@@ -65,6 +66,8 @@ export function composeCoachSystem(args: {
   const memoriesBlock = renderMemories(args.memories);
 
   return [
+    renderNowDirective(args.now),
+    "",
     LOCALE_DIRECTIVE[locale],
     "",
     TONE_SNIPPETS[tone],
@@ -73,6 +76,20 @@ export function composeCoachSystem(args: {
     BASE_INSTRUCTIONS,
     ...(memoriesBlock ? ["", memoriesBlock] : []),
   ].join("\n");
+}
+
+function renderNowDirective(now: Date): string {
+  const ymd = now.toISOString().slice(0, 10);
+  const weekday = now.toLocaleDateString("en-US", {
+    weekday: "long",
+    timeZone: "UTC",
+  });
+  return [
+    `Today (UTC) is ${weekday}, ${ymd}. Use this as the basis for any`,
+    `"today", "tomorrow", "this week" reasoning and for date-range tool`,
+    `calls (listWorkouts, readDailySummary, readSleep, etc.). Do not`,
+    `guess the date from prior knowledge.`,
+  ].join(" ");
 }
 
 /**
