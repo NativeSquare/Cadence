@@ -733,7 +733,8 @@
       "signals": {
         "hrv": "HRV aujourd'hui {{today}} ms · moyenne 14 j {{baseline}} ms",
         "sleep": "Sommeil cette nuit {{hours}} h",
-        "rhr": "FC repos aujourd'hui {{bpm}} bpm"
+        "rhr": "FC repos aujourd'hui {{bpm}} bpm",
+        "adherence": "Séances de qualité manquées cette semaine : {{count}}"
       },
       "diffOriginal": "Prévu initialement",
       "diffNew": "Ce que j'ai mis à la place",

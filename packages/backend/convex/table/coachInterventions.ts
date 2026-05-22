@@ -13,12 +13,17 @@ import { v } from "convex/values";
  * and user reaction (revert? completed as modified?) is the labelled dataset
  * that future tuning / RL signal will draw from.
  */
+// Signals are a flat optional bag — each rule populates the subset relevant to
+// its decision. Readers branch on `ruleId` to know which fields to expect.
+// Existing `hrv_low_v1` rows keep the HRV fields populated; adherence-driven
+// rules populate the `weekMissedQualityCount` instead.
 const signals = v.object({
-  hrvToday: v.number(),
-  hrvBaseline14d: v.number(),
-  hrvZScore: v.number(),
+  hrvToday: v.optional(v.number()),
+  hrvBaseline14d: v.optional(v.number()),
+  hrvZScore: v.optional(v.number()),
   sleepHoursLastNight: v.optional(v.number()),
   rhrToday: v.optional(v.number()),
+  weekMissedQualityCount: v.optional(v.number()),
 });
 
 const documentSchema = {

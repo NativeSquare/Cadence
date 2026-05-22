@@ -1,7 +1,12 @@
 /**
- * Coach-intervention analytics — list of decision-log rows that fall inside
- * the chart's time window, so the Analytics cards can overlay a marker on
- * the chart that owns each trigger's signal.
+ * Coach-intervention analytics — list of HRV-rule decision-log rows that fall
+ * inside the chart's time window, so the Analytics HRV card can overlay a
+ * marker on the trigger's signal.
+ *
+ * Filtered to HRV-driven rules because the only chart that overlays these is
+ * HrvCard. Adherence-driven interventions don't have a chart to overlay on
+ * (no per-day adherence chart exists yet); they show up in the coach thread
+ * and the workout detail card only.
  *
  * Surface is intentionally narrow: only the fields a chart marker / tap sheet
  * needs to render. Workout-detail UI keeps using `activeForWorkout`.
@@ -30,6 +35,7 @@ export const list = query({
 
     return rows
       .filter((r) => r.firedAt <= upperBound)
+      .filter((r) => r.ruleId.startsWith("hrv_"))
       .sort((a, b) => a.firedAt - b.firedAt)
       .map((r) => ({
         _id: r._id,

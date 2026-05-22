@@ -130,7 +130,7 @@ export function PlanScreen() {
   // Hydrate the "coach adjusted" badge for the currently-selected workout.
   // The query is skipped when no workout is selected (rest day fallback).
   const selectedIntervention = useQuery(
-    api.engine.checkHrv.activeForWorkout,
+    api.engine.interventions.activeForWorkout,
     baseSelectedWorkout.workoutId
       ? { workoutId: baseSelectedWorkout.workoutId }
       : "skip",

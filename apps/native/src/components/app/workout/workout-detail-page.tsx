@@ -223,7 +223,7 @@ export function WorkoutDetailPage({ workoutId }: WorkoutDetailPageProps) {
   const result = useQuery(api.agoge.workouts.getWorkout, {
     workoutId,
   });
-  const intervention = useQuery(api.engine.checkHrv.activeForWorkout, {
+  const intervention = useQuery(api.engine.interventions.activeForWorkout, {
     workoutId,
   });
   const deleteWorkout = useMutation(api.agoge.workouts.deleteWorkout);

@@ -71,7 +71,7 @@ export async function runCoachTurn(
  * The caller provides a deterministic `fallback` string. If the LLM call
  * throws or returns empty, we save the fallback instead so the user always
  * gets a notification. Returns the text that was saved (LLM output or
- * fallback) so callers like hrvLowReadiness can persist it on their own rows.
+ * fallback) so callers like dailyEvaluation can persist it on their own rows.
  *
  * The push notification fires as a consequence of the new assistant message.
  */

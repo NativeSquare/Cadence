@@ -54,7 +54,7 @@ export function CoachInterventionCard({
   intervention: Intervention;
 }) {
   const { t } = useTranslation();
-  const revert = useMutation(api.engine.checkHrv.revertIntervention);
+  const revert = useMutation(api.engine.interventions.revertIntervention);
   const sheetRef = React.useRef<BottomSheetModal>(null);
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
@@ -62,22 +62,40 @@ export function CoachInterventionCard({
   const reverted = intervention.revertedAt != null;
   const title = intervention.notificationTitle ?? t("workout.coachIntervention.cardTitle");
 
-  const hrvLine = t("workout.coachIntervention.signals.hrv", {
-    today: Math.round(intervention.signals.hrvToday),
-    baseline: Math.round(intervention.signals.hrvBaseline14d),
-  });
-  const sleepLine =
-    intervention.signals.sleepHoursLastNight != null
-      ? t("workout.coachIntervention.signals.sleep", {
+  // Signals section depends on which rule fired. Adherence-driven interventions
+  // surface the missed-count; HRV-driven ones surface HRV/sleep/RHR.
+  const isAdherence = intervention.ruleId === "adherence_low_v1";
+  const signalLines: string[] = [];
+  if (isAdherence) {
+    signalLines.push(
+      t("workout.coachIntervention.signals.adherence", {
+        count: intervention.signals.weekMissedQualityCount ?? 0,
+      }),
+    );
+  } else {
+    if (intervention.signals.hrvToday != null && intervention.signals.hrvBaseline14d != null) {
+      signalLines.push(
+        t("workout.coachIntervention.signals.hrv", {
+          today: Math.round(intervention.signals.hrvToday),
+          baseline: Math.round(intervention.signals.hrvBaseline14d),
+        }),
+      );
+    }
+    if (intervention.signals.sleepHoursLastNight != null) {
+      signalLines.push(
+        t("workout.coachIntervention.signals.sleep", {
           hours: intervention.signals.sleepHoursLastNight.toFixed(1),
-        })
-      : null;
-  const rhrLine =
-    intervention.signals.rhrToday != null
-      ? t("workout.coachIntervention.signals.rhr", {
+        }),
+      );
+    }
+    if (intervention.signals.rhrToday != null) {
+      signalLines.push(
+        t("workout.coachIntervention.signals.rhr", {
           bpm: Math.round(intervention.signals.rhrToday),
-        })
-      : null;
+        }),
+      );
+    }
+  }
 
   const handleRevert = async () => {
     setBusy(true);
@@ -148,28 +166,15 @@ export function CoachInterventionCard({
         >
           {t("workout.coachIntervention.subtitle")}
         </Text>
-        <Text
-          className="font-coach text-[13px] leading-5"
-          style={{ color: LIGHT_THEME.wText }}
-        >
-          • {hrvLine}
-        </Text>
-        {sleepLine && (
+        {signalLines.map((line, i) => (
           <Text
+            key={i}
             className="font-coach text-[13px] leading-5"
             style={{ color: LIGHT_THEME.wText }}
           >
-            • {sleepLine}
+            • {line}
           </Text>
-        )}
-        {rhrLine && (
-          <Text
-            className="font-coach text-[13px] leading-5"
-            style={{ color: LIGHT_THEME.wText }}
-          >
-            • {rhrLine}
-          </Text>
-        )}
+        ))}
       </View>
 
       <View className="flex-row gap-3">
