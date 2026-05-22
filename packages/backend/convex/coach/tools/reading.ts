@@ -2,7 +2,8 @@
  * Reading tools — auto-execute, no user approval.
  *
  * Every entry in this object MUST be created with `needsApproval: false`.
- * If a tool needs approval, put it in `./writing.ts` instead.
+ * The coach has no writing tools; plan changes go through the deterministic
+ * Engine or the athlete's own UI.
  *
  * The coach's reads cover two domains:
  *  - Agoge (training state): plan, blocks, workouts, athlete profile.

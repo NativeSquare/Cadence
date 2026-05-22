@@ -88,7 +88,7 @@ export default function Onboarding() {
   const createRaceWithGoal = useMutation(api.agoge.races.createMyRaceWithGoal);
   const createFitnessGoal = useMutation(api.agoge.goals.createMyFitnessGoal);
   const setVdotFromRaceResult = useMutation(
-    api.agoge.baselineTest.setVdotFromRaceResult,
+    api.engine.baselineTest.setVdotFromRaceResult,
   );
 
   // Step indexing is 1-based and unified across branches. Concrete screen per

@@ -1,5 +1,5 @@
 /**
- * Pre-plan baseline assessment.
+ * Engine: pre-plan baseline assessment.
  *
  * Plan generation is gated on the athlete having a recorded VDOT metric. If
  * they do, the appropriate plan generator is scheduled immediately. If not, a
@@ -12,13 +12,13 @@ import { ConvexError, v } from "convex/values";
 import { api, components, internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { mutation, type MutationCtx } from "../_generated/server";
-import { loadAthlete, requireAuthError } from "./helpers";
+import { loadAthlete, requireAuthError } from "../agoge/helpers";
 import {
   buildTestStructure,
   computeVdot,
   type Locale,
   ymdToNoonUtc,
-} from "./periodization";
+} from "../agoge/periodization";
 
 export const TEST_NAME: Record<Locale, string> = {
   en: "5K time trial",
@@ -48,8 +48,8 @@ export async function scheduleGenerate(
   await ctx.scheduler.runAfter(
     0,
     category === "race"
-      ? internal.agoge.planGenerator.generate
-      : internal.agoge.planGenerator.generateFitness,
+      ? internal.engine.generatePlan.generate
+      : internal.engine.generatePlan.generateFitness,
     { planId },
   );
 }

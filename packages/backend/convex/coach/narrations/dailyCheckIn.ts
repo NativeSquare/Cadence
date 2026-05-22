@@ -1,11 +1,11 @@
 /**
- * Daily check-in trigger.
+ * Daily check-in narration.
  *
  * Action-only for now — invoke from the Convex dashboard as
- * `internal.coach.triggers.dailyCheckIn.evaluateForUser({ userId })`. No cron,
- * no opt-in flag check, no cooldown, no decision log. Its job is to validate
- * the trigger → LLM → thread-message → push pipeline end-to-end with the
- * minimum moving parts.
+ * `internal.coach.narrations.dailyCheckIn.evaluateForUser({ userId })`. No
+ * cron, no opt-in flag check, no cooldown, no decision log. Its job is to
+ * validate the read → LLM → thread-message → push pipeline end-to-end with
+ * the minimum moving parts.
  *
  * Reads today's and tomorrow's planned workout from Agoge, asks Haiku for a
  * short morning briefing in the user's locale + tone as plain prose, and

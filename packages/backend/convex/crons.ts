@@ -1,8 +1,7 @@
 import { cronJobs } from "convex/server";
 import { v } from "convex/values";
-import { components } from "./_generated/api";
-import { internal } from "./_generated/api";
-import { internalMutation } from "./_generated/server";
+import { components, internal } from "./_generated/api";
+import { internalAction, internalMutation } from "./_generated/server";
 
 const crons = cronJobs();
 
@@ -54,7 +53,7 @@ export const cleanupResendEmails = internalMutation({
 /**
  * Fan out one HRV-readiness evaluation per opted-in user. We page through the
  * users table inline (the cohort is small enough) and let the scheduler run
- * each user's evaluator independently. Per-user failures don't block others.
+ * each user's orchestrator independently. Per-user failures don't block others.
  */
 export const runHrvReadinessCheck = internalMutation({
   args: {},
@@ -65,12 +64,33 @@ export const runHrvReadinessCheck = internalMutation({
       if (user.banned) continue;
       if (!user.hasCompletedOnboarding) continue;
       if (user.coachInterventionsEnabled === false) continue;
-      await ctx.scheduler.runAfter(
-        0,
-        internal.coach.triggers.hrvLowReadiness.evaluateAndApplyForUser,
-        { userId: user._id },
-      );
+      await ctx.scheduler.runAfter(0, internal.crons.evaluateHrvForUser, {
+        userId: user._id,
+      });
     }
+    return null;
+  },
+});
+
+/**
+ * Per-user HRV orchestrator: call the Engine to decide + (maybe) write, then
+ * — if the Engine modified a workout — hand the new intervention to the
+ * Coach narration. Engine owns the plan write; Coach owns telling the
+ * athlete what happened.
+ */
+export const evaluateHrvForUser = internalAction({
+  args: { userId: v.id("users") },
+  returns: v.null(),
+  handler: async (ctx, { userId }): Promise<null> => {
+    const interventionId = await ctx.runAction(
+      internal.engine.checkHrv.runForUser,
+      { userId },
+    );
+    if (!interventionId) return null;
+    await ctx.runAction(
+      internal.coach.narrations.hrvLowReadiness.sendForIntervention,
+      { interventionId },
+    );
     return null;
   },
 });
@@ -89,7 +109,7 @@ export const runNeedsFeedbackReminders = internalMutation({
       if (!user.hasCompletedOnboarding) continue;
       await ctx.scheduler.runAfter(
         0,
-        internal.coach.triggers.needsFeedbackReminder.evaluateAndSendForUser,
+        internal.coach.narrations.needsFeedbackReminder.evaluateAndSendForUser,
         { userId: user._id },
       );
     }

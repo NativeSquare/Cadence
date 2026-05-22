@@ -92,7 +92,7 @@ export default function NewGoalScreen() {
   const createRace = useMutation(api.agoge.races.createMyRaceWithGoal);
   const createFitnessGoal = useMutation(api.agoge.goals.createMyFitnessGoal);
   const setVdotFromRaceResult = useMutation(
-    api.agoge.baselineTest.setVdotFromRaceResult,
+    api.engine.baselineTest.setVdotFromRaceResult,
   );
 
   const [step, setStep] = useState<Step>(1);

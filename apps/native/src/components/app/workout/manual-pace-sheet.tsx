@@ -42,7 +42,7 @@ export interface ManualPaceSheetProps {
 export function ManualPaceSheet({ sheetRef, onSuccess }: ManualPaceSheetProps) {
   const { t } = useTranslation();
   const setVdotFromRaceResult = useMutation(
-    api.agoge.baselineTest.setVdotFromRaceResult,
+    api.engine.baselineTest.setVdotFromRaceResult,
   );
 
   const [race, setRace] = React.useState<RecentRaceValue>(EMPTY_RECENT_RACE);

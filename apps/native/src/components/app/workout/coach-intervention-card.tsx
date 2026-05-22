@@ -54,9 +54,7 @@ export function CoachInterventionCard({
   intervention: Intervention;
 }) {
   const { t } = useTranslation();
-  const revert = useMutation(
-    api.coach.triggers.hrvLowReadiness.revertIntervention,
-  );
+  const revert = useMutation(api.engine.checkHrv.revertIntervention);
   const sheetRef = React.useRef<BottomSheetModal>(null);
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);

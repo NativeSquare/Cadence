@@ -1,5 +1,6 @@
 /**
- * Plan generators. Fill a freshly-created Plan with Blocks + planned Workouts.
+ * Engine: plan generation. Fill a freshly-created Plan with Blocks + planned
+ * Workouts.
  *
  * - `generate`: race-category goals (finish + time targets). Paces from
  *   Daniels VDOT; 80/20 easy/quality split in Base/Build/Taper; Peak goes
@@ -7,9 +8,9 @@
  * - `generateFitness`: fitness-category goals — single base block, no peak,
  *   no taper, no paces. Length + volume tuned per `fitnessIntent`.
  *
- * Math is in `./periodization.ts`. Both actions are idempotent: if Blocks
- * already exist for the plan, the action returns early (handles scheduler
- * retries and accidental double-fires).
+ * Math is in `../agoge/periodization.ts`. Both actions are idempotent: if
+ * Blocks already exist for the plan, the action returns early (handles
+ * scheduler retries and accidental double-fires).
  */
 
 import type { BlockType } from "@nativesquare/agoge/schema";
@@ -45,7 +46,7 @@ import {
   weeklyVolumeCurve,
   workoutName,
   ymdToNoonUtc,
-} from "./periodization";
+} from "../agoge/periodization";
 
 const GENERATOR_VERSION = "v1";
 const BASELINE_LOOKBACK_DAYS = 56;
@@ -57,7 +58,8 @@ function scheduleFromAthlete(athlete: {
 }): Schedule {
   return {
     availableDays: athlete.availableDays ?? DEFAULT_SCHEDULE.availableDays,
-    sessionsPerWeek: athlete.sessionsPerWeek ?? DEFAULT_SCHEDULE.sessionsPerWeek,
+    sessionsPerWeek:
+      athlete.sessionsPerWeek ?? DEFAULT_SCHEDULE.sessionsPerWeek,
   };
 }
 
@@ -337,7 +339,10 @@ async function createBlocks(
     const startIdx = phaseByWeek.indexOf(phase);
     if (startIdx === -1) continue;
     let endIdx = startIdx;
-    while (endIdx + 1 < phaseByWeek.length && phaseByWeek[endIdx + 1] === phase) {
+    while (
+      endIdx + 1 < phaseByWeek.length &&
+      phaseByWeek[endIdx + 1] === phase
+    ) {
       endIdx++;
     }
     const startDate = addDaysYmd(planStart, startIdx * 7);
@@ -387,4 +392,3 @@ function expandPhases(phases: {
   for (let i = 0; i < phases.taper; i++) out.push("taper");
   return out;
 }
-

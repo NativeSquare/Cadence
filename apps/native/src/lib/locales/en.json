@@ -276,26 +276,6 @@
       "badge": "Coach"
     },
     "tools": {
-      "actions": {
-        "applying": "Applying…",
-        "applied": "Applied",
-        "failed": "Failed"
-      },
-      "card": {
-        "markWorkoutStatusTitle": "Mark workout",
-        "correctActualTitle": "Correct recorded result",
-        "requestRescheduleTitle": "Reschedule workout",
-        "requestRescheduleSwappedTitle": "Swap workouts",
-        "workoutFallback": "Workout",
-        "noFieldChanges": "No field changes detected.",
-        "rows": {
-          "status": "Status",
-          "distance": "Distance",
-          "duration": "Duration",
-          "avgHr": "Avg HR",
-          "reason": "Reason"
-        }
-      },
       "reading": {
         "checkingFormat": "Checking {{label}}…",
         "checkedFormat": "Checked {{label}}",

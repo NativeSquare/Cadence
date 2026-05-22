@@ -1,13 +1,12 @@
 /**
  * Memory tool — silent write, no approval card.
  *
- * Sits between reading.ts (auto-execute, no DB write) and writing.ts (DB
- * write gated by approval). The coach uses this to record stable facts about
- * the athlete that don't change turn-to-turn. Every row inserted here is
- * appended verbatim to the athlete's system prompt on every future turn, and
- * is shown verbatim in the in-app Context sheet — so the user always sees
- * what the coach is being told. No notification, no inline pill: the Context
- * sheet is the only surface.
+ * The only writing tool the coach has. Records stable facts about the athlete
+ * that don't change turn-to-turn. Every row inserted here is appended verbatim
+ * to the athlete's system prompt on every future turn, and is shown verbatim
+ * in the in-app Context sheet — so the user always sees what the coach is
+ * being told. No notification, no inline pill: the Context sheet is the only
+ * surface.
  */
 
 import { createTool } from "@convex-dev/agent";

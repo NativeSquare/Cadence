@@ -7,7 +7,7 @@ import {
   query,
   type QueryCtx,
 } from "../_generated/server";
-import { recordVdotFromCompletedTest } from "./baselineTest";
+import { recordVdotFromCompletedTest } from "../engine/baselineTest";
 import {
   fail,
   loadAthlete,

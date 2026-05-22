@@ -11,7 +11,7 @@ import {
   query,
   type QueryCtx,
 } from "../_generated/server";
-import { gatePlanGeneration } from "./baselineTest";
+import { gatePlanGeneration } from "../engine/baselineTest";
 import {
   fail,
   loadAthlete,

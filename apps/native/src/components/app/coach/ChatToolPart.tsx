@@ -1,17 +1,11 @@
 /**
- * Renders a single tool message part — dispatches to the tool-cards registry.
- *
- * Reading tools render as a compact pill. Writing tools render as a card
- * showing what the coach just did (no approval flow — writes are immediate).
- *
- * Silent-retry writing-tool calls render nothing. When a writing tool's
- * inline validation fails, `execute()` returns `{ ok: false, errors }` so the
- * LLM can retry with corrected args; the resulting tool part is noise the
- * athlete should not see.
+ * Renders a single tool message part as a compact reading pill. The coach's
+ * only "writing" tool is `rememberAboutAthlete`, which is silent in chat —
+ * `resolveToolCard` returns null for it so nothing renders here.
  */
 
 import { getToolPartName, type ToolPart } from "@/lib/ai-stream";
-import { isKnownWritingTool, resolveToolCard } from "./tool-cards";
+import { resolveToolCard } from "./tool-cards";
 
 interface ChatToolPartProps {
   part: ToolPart;
@@ -19,13 +13,7 @@ interface ChatToolPartProps {
 
 export function ChatToolPart({ part }: ChatToolPartProps) {
   const toolName = getToolPartName(part);
-  const isWriting = isKnownWritingTool(toolName);
-
-  if (isWriting && isSilentRetryFailure(part)) {
-    return null;
-  }
-
-  const Card = resolveToolCard({ toolName, isWriting });
+  const Card = resolveToolCard(toolName);
   if (!Card) return null;
 
   return (
@@ -38,10 +26,4 @@ export function ChatToolPart({ part }: ChatToolPartProps) {
       errorText={part.errorText}
     />
   );
-}
-
-function isSilentRetryFailure(part: ToolPart): boolean {
-  if (part.state !== "output-available") return false;
-  const out = part.output as { ok?: boolean } | undefined;
-  return out?.ok === false;
 }

@@ -3,35 +3,20 @@ import type { UIMessage } from "@convex-dev/agent/react";
 import { ChatMessage as ChatMessageBubble } from "./ChatMessage";
 import { ChatAttachmentBubble } from "./ChatAttachmentBubble";
 import { ChatToolPart } from "./ChatToolPart";
-import {
-  getToolPartName,
-  isToolPart,
-  type ToolPart,
-} from "@/lib/ai-stream";
-import { isKnownWritingTool } from "./tool-cards";
+import { getToolPartName, isToolPart } from "@/lib/ai-stream";
 
 interface MessageGroupProps {
   message: UIMessage;
 }
 
-function isSilentRetryFailure(part: ToolPart): boolean {
-  if (part.state !== "output-available") return false;
-  const out = part.output as { ok?: boolean } | undefined;
-  return out?.ok === false;
-}
+const SILENT_TOOLS = new Set(["rememberAboutAthlete"]);
 
 export function hasRenderableParts(message: UIMessage): boolean {
   return message.parts.some((part) => {
     if (part.type === "text") return !!part.text;
     if (part.type === "file") return true;
     if (!isToolPart(part)) return false;
-    if (
-      isKnownWritingTool(getToolPartName(part)) &&
-      isSilentRetryFailure(part)
-    ) {
-      return false;
-    }
-    return true;
+    return !SILENT_TOOLS.has(getToolPartName(part));
   });
 }
 

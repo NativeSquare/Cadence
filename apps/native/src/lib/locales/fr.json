@@ -276,26 +276,6 @@
       "badge": "Coach"
     },
     "tools": {
-      "actions": {
-        "applying": "Application…",
-        "applied": "Appliqué",
-        "failed": "Échec"
-      },
-      "card": {
-        "markWorkoutStatusTitle": "Marquer la séance",
-        "correctActualTitle": "Corriger le résultat enregistré",
-        "requestRescheduleTitle": "Replanifier la séance",
-        "requestRescheduleSwappedTitle": "Échanger les séances",
-        "workoutFallback": "Séance",
-        "noFieldChanges": "Aucun changement détecté.",
-        "rows": {
-          "status": "Statut",
-          "distance": "Distance",
-          "duration": "Durée",
-          "avgHr": "FC moy.",
-          "reason": "Raison"
-        }
-      },
       "reading": {
         "checkingFormat": "Vérification : {{label}}…",
         "checkedFormat": "Vérifié : {{label}}",
