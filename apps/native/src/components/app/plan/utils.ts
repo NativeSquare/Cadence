@@ -103,14 +103,17 @@ export function workoutToWorkoutData(
     date.getMonth() === today.getMonth() &&
     date.getDate() === today.getDate();
 
-  // Actual carries explicit distance/duration; planned only has structure,
-  // so derive from the structure when no actual is available.
-  const summary = summarizeWorkout(workout.actual ?? workout.planned);
+  // Structure always comes from the planned face — it's the prescription and
+  // is shown regardless of completion status. Volume totals prefer the actual
+  // recorded values once available, falling back to planned-structure sums.
+  const plannedSummary = summarizeWorkout(workout.planned);
   const distanceMeters =
-    workout.actual?.distanceMeters ?? summary.totalDistanceMeters ?? undefined;
+    workout.actual?.distanceMeters ??
+    plannedSummary.totalDistanceMeters ??
+    undefined;
   const durationSeconds =
     workout.actual?.durationSeconds ??
-    summary.totalDurationSeconds ??
+    plannedSummary.totalDurationSeconds ??
     undefined;
 
   const exportedRef = workout.providerRefs?.[0];
@@ -129,7 +132,7 @@ export function workoutToWorkoutData(
     desc: workout.description ?? "",
     zone: "-",
     today: isToday,
-    structure: summary.structure,
+    structure: plannedSummary.structure,
     syncStatus: exportedRef ? "exported" : undefined,
     syncSource: exportedRef?.provider,
   };

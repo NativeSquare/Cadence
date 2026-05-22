@@ -5,8 +5,7 @@
  * workout's status needs to be communicated at a glance (TodayCard,
  * detail hero, future surfaces). The `tone` prop swaps the palette so the
  * badge stays legible on dark vs. light backgrounds without changing
- * silhouette. Returns null for `planned` — no badge needed when the
- * workout hasn't transitioned yet.
+ * silhouette.
  */
 
 import { Text } from "@/components/ui/text";
@@ -27,9 +26,19 @@ interface Palette {
   fg: string;
 }
 
-type StatusWithBadge = Exclude<DerivedWorkoutStatus, "planned">;
-
-const PALETTES: Record<StatusWithBadge, Record<Tone, Palette>> = {
+const PALETTES: Record<DerivedWorkoutStatus, Record<Tone, Palette>> = {
+  planned: {
+    dark: {
+      bg: "rgba(255,255,255,0.06)",
+      border: "rgba(255,255,255,0.12)",
+      fg: "rgba(255,255,255,0.65)",
+    },
+    light: {
+      bg: "rgba(0,0,0,0.04)",
+      border: "rgba(0,0,0,0.08)",
+      fg: "#5C5C5C",
+    },
+  },
   completed: {
     dark: {
       bg: "rgba(200,255,0,0.14)",
@@ -91,8 +100,24 @@ function AlertIcon({ color }: { color: string }) {
   );
 }
 
-function iconFor(status: StatusWithBadge, color: string) {
+function CalendarIcon({ color }: { color: string }) {
+  return (
+    <Svg width={10} height={10} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M4 7H20M7 3V6M17 3V6M5 7H19V20H5V7Z"
+        stroke={color}
+        strokeWidth={2.5}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+function iconFor(status: DerivedWorkoutStatus, color: string) {
   switch (status) {
+    case "planned":
+      return <CalendarIcon color={color} />;
     case "completed":
       return <CheckIcon color={color} />;
     case "missed":
@@ -111,7 +136,6 @@ export function WorkoutStatusBadge({
   tone = "dark",
 }: WorkoutStatusBadgeProps) {
   const { t } = useTranslation();
-  if (status === "planned") return null;
   const palette = PALETTES[status][tone];
   return (
     <View

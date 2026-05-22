@@ -109,12 +109,10 @@ async function upsertGarmin(
     return null;
   }
 
-  const ref = await ctx.runQuery(
-    components.agoge.public.getWorkoutProviderRef,
-    { workoutId, provider: "garmin" },
-  );
-
-  if (!ref) {
+  const createOnGarmin = async (): Promise<{
+    garminWorkoutId: number;
+    garminScheduleId: number | null;
+  }> => {
     const { workoutId: garminWorkoutId } = await ctx.runAction(
       components.agoge.garmin.public.createWorkout,
       { accessToken, workout: { ...structure, name: workout.name } },
@@ -146,37 +144,57 @@ async function upsertGarmin(
       syncedAt: Date.now(),
     });
     return { garminWorkoutId, garminScheduleId };
+  };
+
+  const ref = await ctx.runQuery(
+    components.agoge.public.getWorkoutProviderRef,
+    { workoutId, provider: "garmin" },
+  );
+
+  if (!ref) {
+    return createOnGarmin();
   }
 
-  const externalWorkoutId = Number(ref.externalWorkoutId);
-  await ctx.runAction(components.agoge.garmin.public.updateWorkout, {
-    accessToken,
-    workoutId: externalWorkoutId,
-    workout: { ...structure, name: workout.name },
-  });
-
-  const garminScheduleId: number | null = ref.externalScheduleId
-    ? Number(ref.externalScheduleId)
-    : null;
-  if (ref.externalScheduleId) {
-    await ctx.runAction(components.agoge.garmin.public.updateSchedule, {
+  // Update path. If the Garmin-side workout was deleted out from under us
+  // (user removed it in Garmin Connect), the update calls will 404 — fall
+  // back to create so re-exporting always succeeds.
+  try {
+    const externalWorkoutId = Number(ref.externalWorkoutId);
+    await ctx.runAction(components.agoge.garmin.public.updateWorkout, {
       accessToken,
-      scheduleId: Number(ref.externalScheduleId),
-      schedule: {
-        workoutId: externalWorkoutId,
-        date: scheduleDate,
-      },
+      workoutId: externalWorkoutId,
+      workout: { ...structure, name: workout.name },
     });
-  }
 
-  await ctx.runMutation(components.agoge.public.upsertWorkoutProviderRef, {
-    workoutId,
-    provider: "garmin",
-    externalWorkoutId: ref.externalWorkoutId,
-    externalScheduleId: ref.externalScheduleId,
-    syncedAt: Date.now(),
-  });
-  return { garminWorkoutId: externalWorkoutId, garminScheduleId };
+    const garminScheduleId: number | null = ref.externalScheduleId
+      ? Number(ref.externalScheduleId)
+      : null;
+    if (ref.externalScheduleId) {
+      await ctx.runAction(components.agoge.garmin.public.updateSchedule, {
+        accessToken,
+        scheduleId: Number(ref.externalScheduleId),
+        schedule: {
+          workoutId: externalWorkoutId,
+          date: scheduleDate,
+        },
+      });
+    }
+
+    await ctx.runMutation(components.agoge.public.upsertWorkoutProviderRef, {
+      workoutId,
+      provider: "garmin",
+      externalWorkoutId: ref.externalWorkoutId,
+      externalScheduleId: ref.externalScheduleId,
+      syncedAt: Date.now(),
+    });
+    return { garminWorkoutId: externalWorkoutId, garminScheduleId };
+  } catch (error) {
+    console.warn(
+      `${tag} update failed, falling back to create (workout likely removed on Garmin)`,
+      error,
+    );
+    return createOnGarmin();
+  }
 }
 
 export const upsertWorkoutToGarmin = action({
