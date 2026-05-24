@@ -11,13 +11,10 @@ import { Text } from "@/components/ui/text";
 import { LIGHT_THEME } from "@/lib/design-tokens";
 
 type CoachTone = "mentor" | "drillSergeant" | "pragmatic";
-type CoachVerbosity = "concise" | "detailed";
 
 const TONES: CoachTone[] = ["mentor", "drillSergeant", "pragmatic"];
-const VERBOSITIES: CoachVerbosity[] = ["concise", "detailed"];
 
 const DEFAULT_TONE: CoachTone = "mentor";
-const DEFAULT_VERBOSITY: CoachVerbosity = "concise";
 
 export default function CoachSettingsScreen() {
   const router = useRouter();
@@ -29,18 +26,13 @@ export default function CoachSettingsScreen() {
   );
 
   const tone: CoachTone = user?.coachPrefs?.tone ?? DEFAULT_TONE;
-  const verbosity: CoachVerbosity =
-    user?.coachPrefs?.verbosity ?? DEFAULT_VERBOSITY;
   // Default ON: a missing field is treated as enabled. Only an explicit
   // `false` opts the user out.
   const interventionsEnabled = user?.coachInterventionsEnabled !== false;
 
-  const update = (next: { tone?: CoachTone; verbosity?: CoachVerbosity }) => {
+  const update = (next: { tone: CoachTone }) => {
     setCoachPrefs({
-      prefs: {
-        tone: next.tone ?? tone,
-        verbosity: next.verbosity ?? verbosity,
-      },
+      prefs: { tone: next.tone },
     }).catch((err) => console.warn("[coach] setCoachPrefs failed", err));
   };
 
@@ -85,19 +77,6 @@ export default function CoachSettingsScreen() {
                 isActive={tone === value}
                 isLast={index === TONES.length - 1}
                 onPress={() => update({ tone: value })}
-              />
-            ))}
-          </SettingsGroup>
-
-          <SettingsGroup title={t("account.coach.verbositySection")}>
-            {VERBOSITIES.map((value, index) => (
-              <OptionRow
-                key={value}
-                label={t(`account.coach.verbosities.${value}.label`)}
-                description={t(`account.coach.verbosities.${value}.description`)}
-                isActive={verbosity === value}
-                isLast={index === VERBOSITIES.length - 1}
-                onPress={() => update({ verbosity: value })}
               />
             ))}
           </SettingsGroup>

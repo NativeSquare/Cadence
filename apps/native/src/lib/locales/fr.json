@@ -909,7 +909,6 @@
     "coach": {
       "title": "Coach",
       "toneSection": "Ton",
-      "verbositySection": "Style des réponses",
       "tones": {
         "mentor": {
           "label": "Mentor",
@@ -922,16 +921,6 @@
         "pragmatic": {
           "label": "Pragmatique",
           "description": "Concis et opérationnel. Que les faits."
-        }
-      },
-      "verbosities": {
-        "concise": {
-          "label": "Concis",
-          "description": "Réponses d'une à deux phrases par défaut."
-        },
-        "detailed": {
-          "label": "Détaillé",
-          "description": "Explique brièvement le raisonnement des suggestions."
         }
       },
       "interventionsSection": "Coaching proactif",

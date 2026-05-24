@@ -909,7 +909,6 @@
     "coach": {
       "title": "Coach",
       "toneSection": "Tone",
-      "verbositySection": "Response style",
       "tones": {
         "mentor": {
           "label": "Mentor",
@@ -922,16 +921,6 @@
         "pragmatic": {
           "label": "Pragmatic",
           "description": "Terse and operational. Just the facts."
-        }
-      },
-      "verbosities": {
-        "concise": {
-          "label": "Concise",
-          "description": "One- or two-sentence replies by default."
-        },
-        "detailed": {
-          "label": "Detailed",
-          "description": "Briefly explains the reasoning behind suggestions."
         }
       },
       "interventionsSection": "Proactive coaching",

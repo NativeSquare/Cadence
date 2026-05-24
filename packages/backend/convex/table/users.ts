@@ -9,10 +9,8 @@ const coachTone = v.union(
   v.literal("drillSergeant"),
   v.literal("pragmatic"),
 );
-const coachVerbosity = v.union(v.literal("concise"), v.literal("detailed"));
 const coachPrefs = v.object({
   tone: v.optional(coachTone),
-  verbosity: v.optional(coachVerbosity),
 });
 
 const documentSchema = {
