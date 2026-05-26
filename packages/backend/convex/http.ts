@@ -122,6 +122,80 @@ http.route({
   }),
 });
 
+// ---------------------------------------------------------------------------
+// RevenueCat webhook — authoritative mirror of the "pro" entitlement.
+// Configure in the RevenueCat dashboard pointing to:
+//   https://<your-deployment>.convex.site/revenuecat-webhook
+// Set the dashboard's "Authorization header value" and store the same string
+// in the REVENUECAT_WEBHOOK_AUTH env var.
+// ---------------------------------------------------------------------------
+
+type RevenueCatEvent = {
+  type?: string;
+  app_user_id?: string;
+  product_id?: string;
+  expiration_at_ms?: number;
+  period_type?: string;
+  store?: string;
+};
+
+// Events that revoke access outright. Everything else keeps access until the
+// reported expiration (e.g. CANCELLATION = auto-renew off, access until period
+// end). Refund-driven revocations arrive with an expiration in the past.
+const INACTIVE_EVENT_TYPES = new Set([
+  "EXPIRATION",
+  "SUBSCRIPTION_PAUSED",
+]);
+
+http.route({
+  path: "/revenuecat-webhook",
+  method: "POST",
+  handler: httpAction(async (ctx, req) => {
+    const expected = process.env.REVENUECAT_WEBHOOK_AUTH;
+    if (expected) {
+      if (req.headers.get("Authorization") !== expected) {
+        return new Response("Unauthorized", { status: 401 });
+      }
+    } else {
+      console.warn(
+        "[RevenueCat] REVENUECAT_WEBHOOK_AUTH not set — webhook is unauthenticated",
+      );
+    }
+
+    let event: RevenueCatEvent | undefined;
+    try {
+      const body = (await req.json()) as { event?: RevenueCatEvent };
+      event = body.event;
+    } catch {
+      return new Response("Bad request", { status: 400 });
+    }
+
+    // TEST events and anything without an app_user_id are acknowledged & dropped.
+    if (!event?.app_user_id || event.type === "TEST") {
+      return new Response("Ignored", { status: 200 });
+    }
+
+    const expirationMs = event.expiration_at_ms ?? null;
+    const active =
+      !INACTIVE_EVENT_TYPES.has(event.type ?? "") &&
+      (expirationMs == null || expirationMs > Date.now());
+
+    await ctx.runMutation(internal.table.users.applyRevenueCatEvent, {
+      appUserId: event.app_user_id,
+      active,
+      productId: event.product_id ?? undefined,
+      expiresAt: expirationMs
+        ? new Date(expirationMs).toISOString()
+        : undefined,
+      isTrial: event.period_type === "TRIAL",
+      willRenew: event.type !== "CANCELLATION",
+      store: event.store ?? undefined,
+    });
+
+    return new Response("OK", { status: 200 });
+  }),
+});
+
 // Soma webhook endpoints
 registerRoutes(http, components.soma, {
   strava: {

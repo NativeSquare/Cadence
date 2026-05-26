@@ -869,7 +869,6 @@
   },
   "profile": {
     "guest": "Guest",
-    "noActivePlan": "No active plan",
     "sections": {
       "account": "Account",
       "training": "Training",
@@ -943,7 +942,17 @@
     },
     "subscription": {
       "title": "Subscription",
-      "comingSoon": "Coming soon — plan, billing, manage."
+      "proTitle": "Cadence Pro",
+      "statusActive": "Active",
+      "statusTrial": "Free trial",
+      "statusCancelled": "Cancels at period end",
+      "statusInactive": "No active subscription",
+      "plan": "Plan",
+      "renewsOn": "Renews on",
+      "accessUntil": "Access until",
+      "manageSection": "Manage",
+      "manageApple": "Manage in App Store",
+      "restore": "Restore purchases"
     },
     "calendars": {
       "title": "Calendars",
@@ -1325,5 +1334,34 @@
         }
       }
     }
+  },
+  "paywall": {
+    "title": "Unlock\nCadence Pro",
+    "subtitle": "Your AI running coach — adapting every session to how you actually train and recover.",
+    "features": {
+      "coach": "AI coach that adapts your plan daily",
+      "sync": "Garmin & Strava auto-sync",
+      "analytics": "Race predictions & training analytics",
+      "recovery": "Proactive changes based on your recovery"
+    },
+    "planMonthly": "Monthly",
+    "planAnnual": "Annual",
+    "perMonth": "per month",
+    "perYear": "per year",
+    "trialBadge": "14-day free trial",
+    "save": "SAVE {{percent}}%",
+    "cta": "Start 14-day free trial",
+    "afterTrialMonthly": "Then {{price}}/month after the trial. Cancel anytime.",
+    "afterTrialAnnual": "Then {{price}}/year after the trial. Cancel anytime.",
+    "restore": "Restore",
+    "restoring": "Restoring…",
+    "terms": "Terms",
+    "privacy": "Privacy",
+    "legal": "Payment is charged to your Apple ID at the end of the 14-day free trial. The subscription renews automatically unless cancelled at least 24 hours before the period ends. Manage or cancel anytime in Settings.",
+    "signOut": "Not now — sign out",
+    "loadError": "Plans couldn't load. Check your connection and try again.",
+    "errorTitle": "Something went wrong",
+    "restoreNoneTitle": "Nothing to restore",
+    "restoreNoneBody": "We couldn't find an active subscription on this Apple ID."
   }
 }

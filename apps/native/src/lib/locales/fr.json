@@ -869,7 +869,6 @@
   },
   "profile": {
     "guest": "Invité",
-    "noActivePlan": "Aucun plan actif",
     "sections": {
       "account": "Compte",
       "training": "Entraînement",
@@ -943,7 +942,17 @@
     },
     "subscription": {
       "title": "Abonnement",
-      "comingSoon": "Bientôt disponible — formule, facturation, gestion."
+      "proTitle": "Cadence Pro",
+      "statusActive": "Actif",
+      "statusTrial": "Essai gratuit",
+      "statusCancelled": "Se termine à la fin de la période",
+      "statusInactive": "Aucun abonnement actif",
+      "plan": "Formule",
+      "renewsOn": "Renouvellement le",
+      "accessUntil": "Accès jusqu'au",
+      "manageSection": "Gérer",
+      "manageApple": "Gérer dans l'App Store",
+      "restore": "Restaurer les achats"
     },
     "calendars": {
       "title": "Calendriers",
@@ -1325,5 +1334,34 @@
         }
       }
     }
+  },
+  "paywall": {
+    "title": "Débloquez\nCadence Pro",
+    "subtitle": "Votre coach IA de course — qui adapte chaque séance à votre entraînement et votre récupération réels.",
+    "features": {
+      "coach": "Un coach IA qui adapte votre plan chaque jour",
+      "sync": "Synchro automatique Garmin & Strava",
+      "analytics": "Prévisions de course & analyses d'entraînement",
+      "recovery": "Ajustements proactifs selon votre récupération"
+    },
+    "planMonthly": "Mensuel",
+    "planAnnual": "Annuel",
+    "perMonth": "par mois",
+    "perYear": "par an",
+    "trialBadge": "14 jours d'essai gratuit",
+    "save": "-{{percent}} %",
+    "cta": "Commencer l'essai gratuit",
+    "afterTrialMonthly": "Puis {{price}}/mois après l'essai. Annulable à tout moment.",
+    "afterTrialAnnual": "Puis {{price}}/an après l'essai. Annulable à tout moment.",
+    "restore": "Restaurer",
+    "restoring": "Restauration…",
+    "terms": "CGU",
+    "privacy": "Confidentialité",
+    "legal": "Le paiement est prélevé sur votre compte Apple à la fin de l'essai gratuit de 14 jours. L'abonnement se renouvelle automatiquement sauf résiliation au moins 24 heures avant la fin de la période. Gérez ou résiliez à tout moment dans Réglages.",
+    "signOut": "Plus tard — se déconnecter",
+    "loadError": "Impossible de charger les offres. Vérifiez votre connexion et réessayez.",
+    "errorTitle": "Une erreur est survenue",
+    "restoreNoneTitle": "Rien à restaurer",
+    "restoreNoneBody": "Aucun abonnement actif trouvé sur ce compte Apple."
   }
 }

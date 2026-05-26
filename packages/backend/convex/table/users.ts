@@ -1,7 +1,13 @@
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { defineTable } from "convex/server";
 import { v } from "convex/values";
-import { mutation, query } from "../_generated/server";
+import type { Doc, Id } from "../_generated/dataModel";
+import {
+  internalMutation,
+  internalQuery,
+  mutation,
+  query,
+} from "../_generated/server";
 import { generateFunctions } from "../utils/generateFunctions";
 
 const coachTone = v.union(
@@ -11,6 +17,22 @@ const coachTone = v.union(
 );
 const coachPrefs = v.object({
   tone: v.optional(coachTone),
+});
+
+// Mirror of the user's RevenueCat "pro" entitlement. The authoritative writer
+// is the RevenueCat webhook (server-side); the client also calls
+// `syncSubscription` after a purchase/restore so the value is fresh without
+// waiting for webhook latency. The client UI gate reads RevenueCat directly —
+// this mirror exists so the backend can refuse expensive ops to non-subscribers.
+// Dates are canonical UTC ISO 8601 per the FE↔BE date contract.
+const subscription = v.object({
+  active: v.boolean(),
+  productId: v.optional(v.string()),
+  expiresAt: v.optional(v.string()), // ISO 8601, when the current period ends
+  isTrial: v.optional(v.boolean()),
+  willRenew: v.optional(v.boolean()),
+  store: v.optional(v.string()), // "APP_STORE" | "PLAY_STORE" | ...
+  updatedAt: v.string(), // ISO 8601, when this mirror was last written
 });
 
 const documentSchema = {
@@ -33,6 +55,9 @@ const documentSchema = {
   // Default ON: absence / undefined is treated as enabled. Explicit `false`
   // opts out of proactive plan modifications (HRV-readiness trigger etc.).
   coachInterventionsEnabled: v.optional(v.boolean()),
+
+  // Pro subscription mirror (RevenueCat). undefined = never subscribed.
+  subscription: v.optional(subscription),
 
   // Ban fields
   banned: v.optional(v.boolean()),
@@ -60,6 +85,9 @@ const partialSchema = {
   // Default ON: absence / undefined is treated as enabled. Explicit `false`
   // opts out of proactive plan modifications (HRV-readiness trigger etc.).
   coachInterventionsEnabled: v.optional(v.boolean()),
+
+  // Pro subscription mirror (RevenueCat). undefined = never subscribed.
+  subscription: v.optional(subscription),
 
   // Ban fields
   banned: v.optional(v.boolean()),
@@ -122,6 +150,85 @@ export const setCoachPrefs = mutation({
     }
     await ctx.db.patch(userId, { coachPrefs: args.prefs });
   },
+});
+
+// Client mirror of the RevenueCat "pro" entitlement, written after a purchase,
+// restore, or CustomerInfo update. The RevenueCat webhook is the authoritative
+// writer; this keeps the value fresh without waiting on webhook latency.
+export const syncSubscription = mutation({
+  args: {
+    active: v.boolean(),
+    productId: v.optional(v.string()),
+    expiresAt: v.optional(v.string()),
+    isTrial: v.optional(v.boolean()),
+    willRenew: v.optional(v.boolean()),
+    store: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) {
+      throw new Error("Not authenticated");
+    }
+    await ctx.db.patch(userId, {
+      subscription: { ...args, updatedAt: new Date().toISOString() },
+    });
+  },
+});
+
+// Authoritative subscription writer, called by the RevenueCat webhook
+// (`/revenuecat-webhook` in http.ts). `appUserId` is the RevenueCat
+// app_user_id, which we set to the Convex user id at logIn. Unknown ids are
+// logged and ignored (e.g. anonymous purchases before identify, or stale ids).
+export const applyRevenueCatEvent = internalMutation({
+  args: {
+    appUserId: v.string(),
+    active: v.boolean(),
+    productId: v.optional(v.string()),
+    expiresAt: v.optional(v.string()),
+    isTrial: v.optional(v.boolean()),
+    willRenew: v.optional(v.boolean()),
+    store: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const userId = ctx.db.normalizeId("users", args.appUserId);
+    if (!userId || !(await ctx.db.get(userId))) {
+      console.warn(`[RevenueCat] no user for app_user_id=${args.appUserId}`);
+      return;
+    }
+    await ctx.db.patch(userId, {
+      subscription: {
+        active: args.active,
+        productId: args.productId,
+        expiresAt: args.expiresAt,
+        isTrial: args.isTrial,
+        willRenew: args.willRenew,
+        store: args.store,
+        updatedAt: new Date().toISOString(),
+      },
+    });
+  },
+});
+
+// Server-side entitlement check. Gate expensive operations (AI coach calls,
+// etc.) on this so non-subscribers can't drive backend cost. An active
+// subscription whose `expiresAt` is in the past is treated as lapsed.
+export async function hasPro(
+  ctx: { db: { get: (id: Id<"users">) => Promise<Doc<"users"> | null> } },
+  userId: Id<"users">,
+): Promise<boolean> {
+  const user = await ctx.db.get(userId);
+  const sub = user?.subscription;
+  if (!sub?.active) return false;
+  if (sub.expiresAt && Date.parse(sub.expiresAt) < Date.now()) return false;
+  return true;
+}
+
+// Entitlement check callable from actions, which have no `ctx.db`. Resolve the
+// user id in the action (via getAuthUserId) and pass it here over runQuery, then
+// throw when this returns false. See `hasPro` for the actual rule.
+export const checkPro = internalQuery({
+  args: { userId: v.id("users") },
+  handler: async (ctx, { userId }) => hasPro(ctx, userId),
 });
 
 export const setCoachInterventionsEnabled = mutation({

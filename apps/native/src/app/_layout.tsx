@@ -5,6 +5,10 @@ import { ThemeStatusBar } from "@/lib/theme-status-bar";
 import { usePushNotifications } from "@/hooks/use-push-notifications";
 import { checkForUpdates } from "@/utils/expo/check-for-updates";
 import { NetworkProvider } from "@/contexts/network-context";
+import {
+  EntitlementProvider,
+  useEntitlement,
+} from "@/contexts/entitlement-context";
 import { ConvexAuthProvider, useAuthActions } from "@convex-dev/auth/react";
 import { api } from "@packages/backend/convex/_generated/api";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
@@ -91,7 +95,9 @@ export default function RootLayout() {
             <BottomSheetModalProvider>
               <SafeAreaProvider>
                 <ThemeStatusBar />
-                <RootStack />
+                <EntitlementProvider>
+                  <RootStack />
+                </EntitlementProvider>
                 <PortalHost />
               </SafeAreaProvider>
             </BottomSheetModalProvider>
@@ -105,6 +111,11 @@ export default function RootLayout() {
 function RootStack() {
   const { t } = useTranslation();
   const { isAuthenticated, isLoading } = useConvexAuth();
+  const {
+    isPro,
+    isLoading: entitlementLoading,
+    gateActive,
+  } = useEntitlement();
   const { signOut } = useAuthActions();
   const user = useQuery(
     api.table.users.currentUser,
@@ -185,7 +196,9 @@ function RootStack() {
     }
   }, [isAuthenticated, isBanned]);
 
-  if (isLoading) {
+  // Wait on auth, and on the entitlement check when the paywall gate is live,
+  // so we don't flash the wrong screen (app→paywall or paywall→app).
+  if (isLoading || (gateActive && isAuthenticated && entitlementLoading)) {
     return (
       <View className="flex-1 justify-center items-center bg-background">
         <ActivityIndicator color="black" />
@@ -209,7 +222,23 @@ function RootStack() {
           <Stack.Screen name="(onboarding)" />
         </Stack.Protected>
 
-        <Stack.Protected guard={isAuthenticated && hasCompletedOnboarding}>
+        {/* Hard paywall: onboarded users without "pro" are sent here before
+            reaching the app. Only enforced once billing is configured. */}
+        <Stack.Protected
+          guard={
+            isAuthenticated && hasCompletedOnboarding && gateActive && !isPro
+          }
+        >
+          <Stack.Screen name="(paywall)" />
+        </Stack.Protected>
+
+        <Stack.Protected
+          guard={
+            isAuthenticated &&
+            hasCompletedOnboarding &&
+            (!gateActive || isPro)
+          }
+        >
           <Stack.Screen name="(app)" />
         </Stack.Protected>
       </Stack>

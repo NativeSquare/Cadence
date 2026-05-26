@@ -1,5 +1,6 @@
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { ConvexError, v } from "convex/values";
+import { internal } from "../_generated/api";
 import { action } from "../_generated/server";
 
 const WHISPER_ENDPOINT = "https://api.openai.com/v1/audio/transcriptions";
@@ -16,6 +17,13 @@ export const transcribe = action({
       throw new ConvexError({
         code: "UNAUTHORIZED",
         message: "Not authenticated",
+      });
+    }
+
+    if (!(await ctx.runQuery(internal.table.users.checkPro, { userId }))) {
+      throw new ConvexError({
+        code: "SUBSCRIPTION_REQUIRED",
+        message: "An active Cadence Pro subscription is required.",
       });
     }
 

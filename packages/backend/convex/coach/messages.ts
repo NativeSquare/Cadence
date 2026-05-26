@@ -6,7 +6,7 @@ import {
 } from "@convex-dev/agent";
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
-import { components } from "../_generated/api";
+import { components, internal } from "../_generated/api";
 import { action, query } from "../_generated/server";
 import { type TurnSeed, runCoachTurn } from "./turns";
 
@@ -41,6 +41,13 @@ export const send = action({
     const userId = await getAuthUserId(ctx);
     if (userId === null) {
       throw new ConvexError({ code: "UNAUTHORIZED", message: "Not authenticated" });
+    }
+
+    if (!(await ctx.runQuery(internal.table.users.checkPro, { userId }))) {
+      throw new ConvexError({
+        code: "SUBSCRIPTION_REQUIRED",
+        message: "An active Cadence Pro subscription is required.",
+      });
     }
 
     const seed: TurnSeed = attachments && attachments.length > 0

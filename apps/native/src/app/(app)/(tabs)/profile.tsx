@@ -54,8 +54,6 @@ export default function Profile() {
     return (fromName || "?").toUpperCase();
   }, [displayName]);
 
-  const planPhase = t("profile.noActivePlan");
-
   // Scroll-driven status bar transition (dark -> light)
   const scrollY = useSharedValue(0);
   const headerHeight = useSharedValue(0);
@@ -171,10 +169,6 @@ export default function Profile() {
                 </Text>
               </View>
             </View>
-
-            <Text className="mt-1 font-coach text-[13px] text-g3">
-              {planPhase}
-            </Text>
           </View>
 
           <View
