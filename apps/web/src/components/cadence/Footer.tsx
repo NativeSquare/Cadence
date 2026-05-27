@@ -63,6 +63,9 @@ export function CadenceFooter() {
             <Link href="/mentions-legales" className="block py-1.5 text-[13px] text-white/35 no-underline transition-colors hover:text-lime">
               {t.footer.mentionsLegales}
             </Link>
+            <Link href="/support" className="block py-1.5 text-[13px] text-white/35 no-underline transition-colors hover:text-lime">
+              {t.footer.support}
+            </Link>
           </div>
 
           {/* Integrations */}
