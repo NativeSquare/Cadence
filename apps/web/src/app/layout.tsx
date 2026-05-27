@@ -20,11 +20,11 @@ const robotoMono = Roboto_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://cadence.run"),
+  metadataBase: new URL("https://cadencerun.fr"),
   alternates: { canonical: "/" },
-  title: "Cadence — Your AI Running Coach",
+  title: "Cadence — AI Running Coach that Anticipates",
   description:
-    "Train smarter with an AI coach that explains every decision. Personalized plans, wearable integration, and real-time coaching for runners chasing their next PR.",
+    "Cadence reads your sleep, recovery, heart rate, and load — then adjusts your plan before you even open the app. Not a tool that responds. A coach that observes, anticipates, and prevents.",
   keywords: [
     "running",
     "AI coach",
@@ -33,23 +33,26 @@ export const metadata: Metadata = {
     "running app",
     "Garmin",
     "Apple Watch",
-    "periodization",
+    "HRV",
+    "recovery",
+    "proactive coaching",
   ],
   openGraph: {
-    title: "Cadence — Your AI Running Coach",
+    title: "Cadence — AI Running Coach that Anticipates",
     description:
-      "Personalized AI coaching that explains every decision. Train smarter, race faster, stay healthy.",
+      "Not reactive. Cadence reads your sleep, recovery, and load continuously — and adjusts tomorrow's session before you open the app.",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Cadence — Your AI Running Coach",
+    title: "Cadence — AI Running Coach that Anticipates",
     description:
-      "Personalized AI coaching that explains every decision. Train smarter, race faster, stay healthy.",
+      "Not reactive. Cadence reads your sleep, recovery, and load continuously — and adjusts tomorrow's session before you open the app.",
   },
   icons: {
     icon: "/favicon.svg",
-    apple: "/logo-cadence.svg",
+    shortcut: "/favicon.png",
+    apple: "/favicon.png",
   },
 };
 
