@@ -29,8 +29,8 @@ export function DebriefSection() {
                   <div className="relative overflow-hidden rounded-[40px] border-[3px] border-[#3a3a3a] bg-black shadow-2xl shadow-black/50">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src="/screenshots/chat-coach.png"
-                      alt="Coach chat"
+                      src="/screenshots/coach.png"
+                      alt="Coach IA"
                       className="block w-full rounded-[37px]"
                     />
                   </div>

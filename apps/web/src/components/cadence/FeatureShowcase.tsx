@@ -4,9 +4,9 @@ import { motion } from "framer-motion";
 import { useLocale } from "@/lib/i18n";
 
 const featureScreenshots = [
-  "/screenshots/welcome_screen.png",
-  "/screenshots/monthly-view.png",
-  "/screenshots/chat-coach.png",
+  "/screenshots/home.png",
+  "/screenshots/calendar.png",
+  "/screenshots/coach.png",
 ];
 
 export function FeatureShowcase() {

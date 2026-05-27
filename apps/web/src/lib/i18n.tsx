@@ -9,12 +9,12 @@ const translations = {
     // Hero
     hero: {
       badge: "Launching soon",
-      headline1: "Elite coaching.",
-      headline2pre: "For ",
-      headline2highlight: "every",
-      headline2post: " runner.",
+      headline1: "Not reactive.",
+      headline2pre: "A coach that ",
+      headline2highlight: "anticipates.",
+      headline2post: "",
       subtitle:
-        "The training intelligence of a world-class coach — adaptive, personal, and always paying attention.",
+        "Cadence reads your sleep, recovery, heart rate, and accumulated load — then adjusts tomorrow's session before you even open the app.",
       socialProofPre: "Join ",
       socialProofPost: " runners on the waitlist",
       inputPlaceholder: "Enter your email",
@@ -44,63 +44,63 @@ const translations = {
       quotes: [
         {
           quote:
-            "Cadence saw what I couldn't — I was overtraining every easy day. Two weeks of slowing down and my tempo pace dropped by 15 seconds.",
+            "Cadence flagged my overtraining before I even noticed. Three days before a hard session it quietly dropped the intensity. I PR'd the following week.",
           name: "Sarah M.",
           level: "Intermediate",
-          result: "1:38 half marathon",
-          meta: "Paris 15e · 12 weeks",
+          result: "5-min 5K improvement",
+          meta: "Paris 15e · 10 weeks",
         },
         {
           quote:
-            "The plan adapted after my knee flared up. It didn't just delete sessions — it restructured everything around the injury. No other app does that.",
+            "The app adjusted my entire block when my sleep dropped. I didn't ask it to — it just did it, explained why, and it was exactly the right call.",
           name: "Thomas K.",
           level: "Advanced",
-          result: "Sub-3:15 marathon",
+          result: "Sub-3:10 marathon",
           meta: "Paris 11e · 16 weeks",
         },
         {
           quote:
-            "I went from not running at all to completing my first 10K. The AI debrief after each run kept me motivated and accountable.",
+            "I never thought I'd need a coach. Cadence caught a warning sign I would've missed and reshuffled my week. No injury, no burnout.",
           name: "Léa R.",
           level: "Beginner",
-          result: "First 10K completed",
-          meta: "Paris 3e · 8 weeks",
+          result: "First half marathon completed",
+          meta: "Paris 3e · 14 weeks",
         },
       ],
     },
     // FeatureShowcase
     featureShowcase: {
       tag: "Your AI Coach",
-      headlinePre: "Built to make you ",
-      headlineHighlight: "faster.",
+      headlinePre: "Built to stay ",
+      headlineHighlight: "one step ahead.",
       features: [
         {
-          tag: "Adaptive Plans",
-          title: "A plan that evolves with you.",
+          tag: "Full Intelligence",
+          title: "The complete picture.",
           description:
-            "No static templates. Cadence builds your training plan from your actual data — and reshapes it after every single run. Missed a session? It adapts. Feeling strong? It pushes you.",
+            "Sleep, recovery, heart rate, cycles, nutrition, accumulated load. Not one indicator — the full image. Cadence tracks every signal your body sends, continuously, so every decision is grounded in reality.",
         },
         {
-          tag: "Phase System",
-          title: "See the bigger picture.",
+          tag: "Proactive Coach",
+          title: "Acts before you open the app.",
           description:
-            "Your training is structured into phases — Base, Build, Peak, Recovery. Each phase has a clear purpose, and you always know exactly where you stand in your progression.",
+            "Tomorrow's session is already adjusted. Cadence spots overload before it becomes injury, reshapes the week's block when recovery falls short, and keeps your plan aligned with how your body actually feels.",
         },
         {
-          tag: "AI Debrief",
-          title: "Your coach talks back.",
+          tag: "Reasoned Decisions",
+          title: "Every decision explained.",
           description:
-            "After every run, your AI coach analyzes pace consistency, heart rate zones, cadence patterns, and more. You get actionable feedback — not just numbers.",
+            "Each change comes with a reason. Cadence tells you what changed, why it changed, and what it means for the road ahead. Full transparency — no black box.",
         },
       ],
     },
     // PhaseCalendar
     phaseCalendar: {
       tag: "Training Phases",
-      headlinePre: "Structured for ",
-      headlineHighlight: "results.",
+      headlinePre: "Always knowing ",
+      headlineHighlight: "where you stand.",
       subtitle:
-        "Like a real coach, Cadence structures your season into phases. Each one has a purpose — and you always know where you are.",
+        "Cadence structures your training into phases — and proactively adjusts within each one based on how your body is actually responding.",
       phases: [
         {
           name: "Base",
@@ -130,28 +130,28 @@ const translations = {
     },
     // DebriefSection
     debrief: {
-      tag: "Post-Run Debrief",
-      headlinePre: "What happens after ",
-      headlineHighlight: "every run.",
+      tag: "Proactive Intelligence",
+      headlinePre: "Adjusted ",
+      headlineHighlight: "before you ask.",
       subtitle:
-        "Your AI coach analyzes every session in real time. Pace consistency, heart rate zones, cadence patterns — then gives you feedback that actually helps you improve.",
-      coachLabel: "Coach IA",
+        "Cadence doesn't wait for you to report a problem. It monitors your signals continuously and acts — then explains exactly what it did and why.",
+      coachLabel: "Coach",
       chatMessages: [
         {
           role: "coach" as const,
-          text: "Nice tempo session today! Your pace was remarkably consistent — only 0.3% variation across all splits.",
+          text: "I've adjusted tomorrow's session. Your HRV has been declining for 3 days — recovery score: 61%.",
         },
         {
           role: "coach" as const,
-          text: "Heart rate stayed in Zone 3 for 82% of the run. That's exactly where you should be for tempo work.",
+          text: "I've reduced the interval sets from 6 to 4 and lowered the target pace by 15 sec/km.",
         },
         {
           role: "user" as const,
-          text: "My legs felt heavy in the last 2km though.",
+          text: "Should I still run?",
         },
         {
           role: "coach" as const,
-          text: "That's normal at this point in Build phase. Your cumulative fatigue is at 64%. Tomorrow is a recovery day — I've adjusted the pace down by 15 sec/km.",
+          text: "Yes — at an easy pace. Your body needs to absorb last week's load. I've rescheduled the intensity work to Thursday.",
         },
       ],
     },
@@ -160,37 +160,37 @@ const translations = {
       tag: "Pricing",
       headlinePre: "Start free. ",
       headlineHighlight: "Stay coached.",
-      subtitle: "7-day free trial, cancel anytime. No credit card required.",
+      subtitle: "14-day free trial, cancel anytime. No credit card required.",
       freeTrialLabel: "Free Trial",
-      freeTrialPrice: "\u20AC0",
-      freeTrialPeriod: "/7 days",
+      freeTrialPrice: "€0",
+      freeTrialPeriod: "/14 days",
       freeTrialDescription: "Full access. See if Cadence is right for you.",
       freeTrialFeatures: [
         "Full onboarding conversation",
-        "Runner profile + radar chart",
-        "10-week volume plan",
-        "Weekly structure",
-        "Decision audit",
+        "Runner profile + fitness score",
+        "Adaptive training plan",
+        "Proactive daily adjustments",
+        "Decision audit log",
       ],
       freeTrialButton: "Start Free Trial",
       proLabel: "RECOMMENDED",
-      proPrice: "\u20AC9.99",
+      proPrice: "€18.99",
       proPeriod: "/month",
       proDescription: "Everything in trial, plus continuous coaching.",
       proFeatures: [
         "Unlimited plan adaptations",
-        "Daily session adjustments",
+        "Daily proactive adjustments",
         "Injury-responsive reshaping",
-        "Race day predictions",
+        "Full body signal monitoring",
         "Priority wearable sync",
-        "Full coaching history",
+        "Complete coaching history",
       ],
       proButton: "Get Started",
     },
     // DownloadCta (bottom waitlist CTA)
     downloadCta: {
-      headlinePre: "Your next PR starts ",
-      headlineHighlight: "today.",
+      headlinePre: "Your coach is already ",
+      headlineHighlight: "watching.",
       subtitlePre: "Join ",
       subtitlePost: "+ runners already on the waitlist. Be first in line when we launch.",
       inputPlaceholder: "Enter your email",
@@ -208,31 +208,103 @@ const translations = {
       headline: "Questions you might have.",
       items: [
         {
-          q: "How does Cadence differ from Strava or Nike Run Club?",
-          a: "Strava and NRC are trackers — they record what you did. Cadence is a coach — it tells you what to do next and why. Every plan adapts in real time based on your actual performance data.",
+          q: "How is Cadence different from other AI running apps?",
+          a: "Most AI coaches wait for you to report a problem — then react. Cadence acts before you do. It reads your sleep, recovery, and load continuously and adjusts your plan autonomously, before you open the app.",
+        },
+        {
+          q: "What data does Cadence use to make decisions?",
+          a: "Sleep quality, HRV, resting heart rate, training load, nutrition signals, menstrual cycles where relevant, and workout history. The more connected devices you have, the richer the picture.",
+        },
+        {
+          q: "How does Cadence adjust my plan automatically?",
+          a: "Cadence monitors all your signals against expected recovery curves. When something's off — say, 3 days of declining HRV — it recalculates your next session or block and pushes the change, with a clear explanation.",
+        },
+        {
+          q: "What if I disagree with a change Cadence made?",
+          a: "You can override any adjustment. Cadence logs it, learns from the outcome, and factors your preferences into future decisions.",
         },
         {
           q: "Do I need a smartwatch to use Cadence?",
-          a: "No. You can manually log runs or answer questions about your sessions. However, connecting a watch (Apple Watch, Garmin) gives the AI much richer data to work with.",
+          a: "No. You can manually log runs or answer questions about your sessions. But the more data Cadence has, the more proactive it can be. With an Apple Watch or Garmin, it makes adjustments you'd never have thought to ask for.",
+        },
+      ],
+    },
+    // MarketLandscape
+    marketLandscape: {
+      tier1Label: "THE STANDARD — EVERYONE HAS IT",
+      tier2Label: "WHAT WE'RE STARTING TO SEE",
+      tier3Label: "WHAT DIDN'T EXIST YET",
+      tier1Products: [
+        {
+          name: "KiprunPacer",
+          tagline: "Plan + Watch",
+          features: [
+            { label: "Structured plan", status: "full" as const },
+            { label: "Watch integration", status: "full" as const },
+            { label: "Adaptive AI", status: "none" as const },
+            { label: "Health data", status: "none" as const },
+            { label: "Autonomy", status: "none" as const },
+            { label: "Transparency", status: "none" as const },
+          ],
+        },
+      ],
+      tier2Products: [
+        {
+          name: "Nolio",
+          tagline: "Plan + HRV + Human coach",
+          features: [
+            { label: "Structured plan", status: "full" as const },
+            { label: "Watch integration", status: "full" as const },
+            { label: "HRV (manual)", status: "partial" as const },
+            { label: "Multi-signal data", status: "none" as const },
+            { label: "Autonomy", status: "none" as const },
+            { label: "Transparency", status: "none" as const },
+          ],
         },
         {
-          q: "How does the AI build my plan?",
-          a: "Cadence analyzes your running history, goals, available days, and current fitness level. It uses periodization principles (Base \u2192 Build \u2192 Peak \u2192 Recovery) and adjusts the plan after every session.",
+          name: "Runna / Strava",
+          tagline: "Plan + AI + Chat",
+          features: [
+            { label: "Structured plan", status: "full" as const },
+            { label: "Watch integration", status: "full" as const },
+            { label: "AI (load only)", status: "partial" as const },
+            { label: "Multi-signal data", status: "none" as const },
+            { label: "Autonomy", status: "none" as const },
+            { label: "Transparency", status: "none" as const },
+          ],
         },
         {
-          q: "What happens if I miss a training day?",
-          a: "The plan reshapes automatically. Cadence doesn't just skip the session — it recalculates your weekly volume, adjusts upcoming intensity, and keeps you on track for your goal.",
+          name: "IAMCOACH / STAS",
+          tagline: "AI Chat + watch data",
+          features: [
+            { label: "Flexible plan", status: "partial" as const },
+            { label: "Watch integration", status: "full" as const },
+            { label: "Conversational AI", status: "full" as const },
+            { label: "Partial data", status: "partial" as const },
+            { label: "Autonomy", status: "none" as const },
+            { label: "Transparency", status: "none" as const },
+          ],
         },
+      ],
+      tier3Products: [
         {
-          q: "Is it suitable for beginners?",
-          a: "Absolutely. Cadence adapts to all levels. Whether you're running your first 5K or training for an ultra, the AI calibrates to your current fitness and progresses you safely.",
+          name: "Cadence Coach",
+          tagline: "Autonomous & transparent coach",
+          features: [
+            { label: "Structured plan", status: "full" as const },
+            { label: "Watch integration", status: "full" as const },
+            { label: "Conversational AI", status: "full" as const },
+            { label: "Multi-signal data", status: "full" as const },
+            { label: "Proactive autonomy", status: "full" as const },
+            { label: "Full transparency", status: "full" as const },
+          ],
         },
       ],
     },
     // Footer
     footer: {
       description:
-        "AI coaching that adapts to every run. Built for runners who want to understand their training.",
+        "AI coaching that observes, anticipates, and prevents. Like a world-class physio — always available.",
       productHeading: "Product",
       productLinks: ["Features", "How it works"],
       legalHeading: "Legal",
@@ -241,34 +313,34 @@ const translations = {
       mentionsLegales: "Legal Notice",
       support: "Support",
       integrationsHeading: "Integrations",
-      copyright: "\u00A9 2026 Cadence. All rights reserved.",
+      copyright: "© 2026 Cadence. All rights reserved.",
       tagline: "Made for runners, by runners.",
     },
   },
   fr: {
     // Hero
     hero: {
-      badge: "Bient\u00F4t disponible",
-      headline1: "Coaching d'élite.",
-      headline2pre: "Accessible à ",
-      headline2highlight: "tous.",
+      badge: "Bientôt disponible",
+      headline1: "Pas un outil.",
+      headline2pre: "Un coach qui ",
+      headline2highlight: "anticipe.",
       headline2post: "",
       subtitle:
-        "L'intelligence d'entra\u00EEnement d'un coach de classe mondiale — adaptatif, personnel, et toujours attentif.",
+        "Cadence lit votre sommeil, récupération, fréquence cardiaque et charge accumulée — et ajuste la séance de demain avant même que vous ouvriez l’app.",
       socialProofPre: "Rejoignez ",
-      socialProofPost: " coureurs sur la liste d'attente",
+      socialProofPost: " coureurs sur la liste d’attente",
       inputPlaceholder: "Votre adresse email",
       button: "Réserver ma place",
       buttonLoading: "En cours...",
-      success: "Vous \u00EAtes inscrit !",
-      already: "Vous \u00EAtes d\u00E9j\u00E0 inscrit !",
+      success: "Vous êtes inscrit !",
+      already: "Vous êtes déjà inscrit !",
       successSub:
-        "V\u00E9rifiez votre bo\u00EEte mail — un email de bienvenue vous attend.",
+        "Vérifiez votre boîte mail — un email de bienvenue vous attend.",
       alreadySub:
-        "Nous avons d\u00E9j\u00E0 votre email. Restez \u00E0 l'\u00E9coute !",
-      youAreNumber: "VOUS \u00CATES LE COUREUR #",
+        "Nous avons déjà votre email. Restez à l’écoute !",
+      youAreNumber: "VOUS ÊTES LE COUREUR #",
       disclaimer: "",
-      error: "Une erreur est survenue. Veuillez r\u00E9essayer.",
+      error: "Une erreur est survenue. Veuillez réessayer.",
     },
     // Nav
     nav: {
@@ -276,7 +348,7 @@ const translations = {
     },
     // StatsBar
     statsBar: {
-      heading: "Se connecte \u00E0 votre \u00E9quipement",
+      heading: "Se connecte à votre équipement",
     },
     // Testimonials
     testimonials: {
@@ -286,114 +358,114 @@ const translations = {
       quotes: [
         {
           quote:
-            "Cadence a vu ce que je ne voyais pas — je for\u00E7ais trop chaque jour facile. Deux semaines \u00E0 ralentir et mon allure tempo a baiss\u00E9 de 15 secondes.",
+            "Cadence a repéré mon surentraînement avant même que je m’en rende compte. Trois jours avant une séance difficile, il a baissé l’intensité. J’ai fait un PR la semaine suivante.",
           name: "Sarah M.",
           level: "Intermédiaire",
-          result: "1:38 semi-marathon",
-          meta: "Paris 15e · 12 semaines",
+          result: "5 min de mieux sur 5 km",
+          meta: "Paris 15e · 10 semaines",
         },
         {
           quote:
-            "Le plan s'est adapté après ma douleur au genou. Il n'a pas juste supprimé des séances — il a tout restructuré autour de la blessure. Aucune autre app ne fait ça.",
+            "L’app a ajusté tout mon bloc quand mon sommeil a chuté. Je n’avais rien demandé — il l’a fait, expliqué pourquoi, et c’était exactement la bonne décision.",
           name: "Thomas K.",
           level: "Avancé",
-          result: "Marathon sub-3:15",
+          result: "Marathon sub-3:10",
           meta: "Paris 11e · 16 semaines",
         },
         {
           quote:
-            "Je suis passée de zéro course à mon premier 10 km. Le débrief IA après chaque sortie m'a gardée motivée et responsable.",
+            "Je ne pensais pas avoir besoin d’un coach. Cadence a repéré un signal d’alerte que j’aurais raté et a réorganisé ma semaine. Ni blessure, ni burn-out.",
           name: "Léa R.",
           level: "Débutante",
-          result: "Premier 10 km terminé",
-          meta: "Paris 3e · 8 semaines",
+          result: "Premier semi-marathon terminé",
+          meta: "Paris 3e · 14 semaines",
         },
       ],
     },
     // FeatureShowcase
     featureShowcase: {
       tag: "Votre coach IA",
-      headlinePre: "Con\u00E7u pour vous rendre plus ",
-      headlineHighlight: "rapide.",
+      headlinePre: "Conçu pour avoir ",
+      headlineHighlight: "toujours un temps d’avance.",
       features: [
         {
-          tag: "Plans adaptatifs",
-          title: "Un plan qui \u00E9volue avec vous.",
+          tag: "Intelligence complète",
+          title: "L’image complète.",
           description:
-            "Pas de templates fig\u00E9s. Cadence construit votre plan d'entra\u00EEnement \u00E0 partir de vos donn\u00E9es r\u00E9elles — et le remodelle apr\u00E8s chaque sortie. S\u00E9ance manqu\u00E9e ? Il s'adapte. En forme ? Il vous pousse.",
+            "Sommeil, récupération, fréquence cardiaque, cycles, nutrition, charge accumulée. Pas un indicateur — l’image complète. Cadence suit en continu chaque signal que votre corps envoie, pour que chaque décision soit ancrée dans la réalité.",
         },
         {
-          tag: "Syst\u00E8me de phases",
-          title: "Voyez la vue d'ensemble.",
+          tag: "Coach proactif",
+          title: "Il agit avant que vous ouvriez l’app.",
           description:
-            "Votre entra\u00EEnement est structur\u00E9 en phases — Base, Construction, Pic, R\u00E9cup\u00E9ration. Chaque phase a un objectif clair, et vous savez toujours o\u00F9 vous en \u00EAtes.",
+            "La séance de demain est déjà ajustée. Cadence détecte la surcharge avant qu’elle devienne une blessure, restructure le bloc de la semaine quand la récupération ne suit pas, et garde votre plan aligné sur ce que ressent vraiment votre corps.",
         },
         {
-          tag: "D\u00E9brief IA",
-          title: "Votre coach vous r\u00E9pond.",
+          tag: "Décisions expliquées",
+          title: "Chaque décision est expliquée.",
           description:
-            "Apr\u00E8s chaque sortie, votre coach IA analyse la r\u00E9gularit\u00E9 de l'allure, les zones cardiaques, les patterns de cadence, et plus. Vous recevez des retours concrets — pas juste des chiffres.",
+            "Chaque changement est accompagné d’une raison. Cadence vous dit ce qui a changé, pourquoi, et ce que ça implique pour la suite. Transparence totale — aucune boîte noire.",
         },
       ],
     },
     // PhaseCalendar
     phaseCalendar: {
-      tag: "Phases d'entra\u00EEnement",
-      headlinePre: "Structur\u00E9 pour les ",
-      headlineHighlight: "r\u00E9sultats.",
+      tag: "Phases d’entraînement",
+      headlinePre: "Toujours savoir ",
+      headlineHighlight: "où vous en êtes.",
       subtitle:
-        "Comme un vrai coach, Cadence structure votre saison en phases. Chacune a un objectif — et vous savez toujours o\u00F9 vous en \u00EAtes.",
+        "Cadence structure votre entraînement en phases — et ajuste de manière proactive au sein de chaque phase selon la façon dont votre corps répond réellement.",
       phases: [
         {
           name: "Base",
           weeks: "Semaines 1-4",
           description:
-            "Construisez votre fondation a\u00E9robie avec des sorties faciles et une augmentation progressive du volume.",
+            "Construisez votre fondation aérobie avec des sorties faciles et une augmentation progressive du volume.",
         },
         {
           name: "Construction",
           weeks: "Semaines 5-10",
           description:
-            "Introduisez les sorties tempo, les intervalles et les s\u00E9ances sp\u00E9cifiques course.",
+            "Introduisez les sorties tempo, les intervalles et les séances spécifiques course.",
         },
         {
           name: "Pic",
           weeks: "Semaines 11-13",
           description:
-            "Affinez la performance avec un entra\u00EEnement haute intensit\u00E9 et volume r\u00E9duit.",
+            "Affinez la performance avec un entraînement haute intensité et volume réduit.",
         },
         {
-          name: "R\u00E9cup\u00E9ration",
+          name: "Récupération",
           weeks: "Semaines 14-16",
           description:
-            "Affutage et r\u00E9cup\u00E9ration. Repos actif et course facile pour assimiler les gains.",
+            "Affutage et récupération. Repos actif et course facile pour assimiler les gains.",
         },
       ],
     },
     // DebriefSection
     debrief: {
-      tag: "D\u00E9brief post-sortie",
-      headlinePre: "Ce qui se passe apr\u00E8s ",
-      headlineHighlight: "chaque sortie.",
+      tag: "Intelligence proactive",
+      headlinePre: "Ajusté ",
+      headlineHighlight: "avant même que vous demandiez.",
       subtitle:
-        "Votre coach IA analyse chaque s\u00E9ance en temps r\u00E9el. R\u00E9gularit\u00E9 de l'allure, zones cardiaques, patterns de cadence — puis vous donne des retours qui vous aident vraiment \u00E0 progresser.",
-      coachLabel: "Coach IA",
+        "Cadence n’attend pas que vous signalez un problème. Il surveille vos signaux en continu et agit — puis explique exactement ce qu’il a fait et pourquoi.",
+      coachLabel: "Coach",
       chatMessages: [
         {
           role: "coach" as const,
-          text: "Belle s\u00E9ance tempo aujourd'hui ! Votre allure \u00E9tait remarquablement r\u00E9guli\u00E8re — seulement 0.3% de variation sur tous les splits.",
+          text: "J’ai ajusté la séance de demain. Votre HRV baisse depuis 3 jours — score de récupération : 61 %.",
         },
         {
           role: "coach" as const,
-          text: "La fr\u00E9quence cardiaque est rest\u00E9e en Zone 3 pendant 82% de la sortie. C'est exactement l\u00E0 o\u00F9 vous devez \u00EAtre pour un travail tempo.",
+          text: "J’ai réduit les répétitions d’intervalles de 6 à 4 et abaissé l’allure cible de 15 sec/km.",
         },
         {
           role: "user" as const,
-          text: "Mes jambes \u00E9taient lourdes sur les 2 derniers km quand m\u00EAme.",
+          text: "Est-ce que je dois quand même courir ?",
         },
         {
           role: "coach" as const,
-          text: "C'est normal \u00E0 ce stade de la phase Construction. Votre fatigue cumul\u00E9e est \u00E0 64%. Demain est un jour de r\u00E9cup\u00E9ration — j'ai ajust\u00E9 l'allure de -15 sec/km.",
+          text: "Oui — mais en endurance fondamentale. Votre corps doit assimiler la charge de la semaine passée. J’ai reporté le travail intense à jeudi.",
         },
       ],
     },
@@ -401,32 +473,32 @@ const translations = {
     pricing: {
       tag: "Tarifs",
       headlinePre: "Commencez gratuitement. ",
-      headlineHighlight: "Restez coach\u00E9.",
+      headlineHighlight: "Restez coaché.",
       subtitle:
-        "Essai gratuit de 7 jours, annulation \u00E0 tout moment. Pas de carte bancaire requise.",
+        "Essai gratuit de 14 jours, annulation à tout moment. Pas de carte bancaire requise.",
       freeTrialLabel: "Essai gratuit",
-      freeTrialPrice: "\u20AC0",
-      freeTrialPeriod: "/7 jours",
+      freeTrialPrice: "€0",
+      freeTrialPeriod: "/14 jours",
       freeTrialDescription:
-        "Acc\u00E8s complet. Voyez si Cadence vous convient.",
+        "Accès complet. Voyez si Cadence vous convient.",
       freeTrialFeatures: [
-        "Conversation d'accueil compl\u00E8te",
-        "Profil coureur + graphique radar",
-        "Plan de volume sur 10 semaines",
-        "Structure hebdomadaire",
-        "Audit des d\u00E9cisions",
+        "Conversation d’accueil complète",
+        "Profil coureur + score de forme",
+        "Plan d’entraînement adaptatif",
+        "Ajustements quotidiens proactifs",
+        "Journal des décisions",
       ],
-      freeTrialButton: "Commencer l'essai gratuit",
-      proLabel: "RECOMMAND\u00C9",
-      proPrice: "\u20AC9,99",
+      freeTrialButton: "Commencer l’essai gratuit",
+      proLabel: "RECOMMANDÉ",
+      proPrice: "€18,99",
       proPeriod: "/mois",
       proDescription:
-        "Tout l'essai, plus un coaching continu.",
+        "Tout l’essai, plus un coaching continu.",
       proFeatures: [
-        "Adaptations de plan illimit\u00E9es",
-        "Ajustements quotidiens de s\u00E9ance",
+        "Adaptations de plan illimitées",
+        "Ajustements quotidiens proactifs",
         "Restructuration en cas de blessure",
-        "Pr\u00E9dictions jour de course",
+        "Surveillance complète des signaux",
         "Sync wearable prioritaire",
         "Historique de coaching complet",
       ],
@@ -434,59 +506,131 @@ const translations = {
     },
     // DownloadCta (bottom waitlist CTA)
     downloadCta: {
-      headlinePre: "Votre prochain record commence ",
-      headlineHighlight: "aujourd'hui.",
+      headlinePre: "Votre coach observe ",
+      headlineHighlight: "déjà.",
       subtitlePre: "Rejoignez ",
-      subtitlePost: "+ coureurs d\u00E9j\u00E0 sur la liste d'attente. Soyez les premiers inform\u00E9s au lancement.",
+      subtitlePost: "+ coureurs déjà sur la liste d’attente. Soyez les premiers informés au lancement.",
       inputPlaceholder: "Votre adresse email",
       button: "Réserver ma place",
       buttonLoading: "En cours...",
-      success: "Vous \u00EAtes inscrit !",
-      already: "Vous \u00EAtes d\u00E9j\u00E0 inscrit !",
-      successSub: "V\u00E9rifiez votre bo\u00EEte mail pour un email de bienvenue.",
-      alreadySub: "Restez \u00E0 l'\u00E9coute — nous vous contacterons bient\u00F4t.",
-      error: "Une erreur est survenue. Veuillez r\u00E9essayer.",
+      success: "Vous êtes inscrit !",
+      already: "Vous êtes déjà inscrit !",
+      successSub: "Vérifiez votre boîte mail pour un email de bienvenue.",
+      alreadySub: "Restez à l’écoute — nous vous contacterons bientôt.",
+      error: "Une erreur est survenue. Veuillez réessayer.",
     },
     // FaqSection
     faq: {
       tag: "FAQ",
-      headline: "Questions fr\u00E9quentes.",
+      headline: "Questions fréquentes.",
       items: [
         {
-          q: "En quoi Cadence diff\u00E8re de Strava ou Nike Run Club ?",
-          a: "Strava et NRC sont des trackers — ils enregistrent ce que vous avez fait. Cadence est un coach — il vous dit quoi faire ensuite et pourquoi. Chaque plan s'adapte en temps r\u00E9el selon vos donn\u00E9es de performance.",
+          q: "En quoi Cadence est différent des autres apps de running IA ?",
+          a: "La plupart des coaches IA attendent que vous signalez un problème — puis réagissent. Cadence agit avant vous. Il lit votre sommeil, récupération et charge en continu et ajuste votre plan de façon autonome, avant que vous ouvriez l’app.",
         },
         {
-          q: "Ai-je besoin d'une montre connect\u00E9e pour utiliser Cadence ?",
-          a: "Non. Vous pouvez enregistrer manuellement vos sorties ou r\u00E9pondre \u00E0 des questions sur vos s\u00E9ances. Cependant, connecter une montre (Apple Watch, Garmin) donne \u00E0 l'IA des donn\u00E9es beaucoup plus riches.",
+          q: "Quelles données Cadence utilise-t-il pour prendre ses décisions ?",
+          a: "Qualité du sommeil, HRV, fréquence cardiaque au repos, charge d’entraînement, signaux nutritionnels, cycles menstruels le cas échéant, et historique d’entraînement. Plus vous avez d’appareils connectés, plus l’image est précise.",
         },
         {
-          q: "Comment l'IA construit-elle mon plan ?",
-          a: "Cadence analyse votre historique de course, vos objectifs, vos jours disponibles et votre niveau actuel. Il utilise les principes de p\u00E9riodisation (Base \u2192 Construction \u2192 Pic \u2192 R\u00E9cup\u00E9ration) et ajuste le plan apr\u00E8s chaque s\u00E9ance.",
+          q: "Comment Cadence ajuste-t-il mon plan automatiquement ?",
+          a: "Cadence surveille tous vos signaux par rapport aux courbes de récupération attendues. Quand quelque chose dévie — par exemple, 3 jours de baisse de HRV — il recalcule votre prochaine séance ou bloc et pousse le changement, avec une explication claire.",
         },
         {
-          q: "Que se passe-t-il si je manque un jour d'entra\u00EEnement ?",
-          a: "Le plan se restructure automatiquement. Cadence ne supprime pas juste la s\u00E9ance — il recalcule votre volume hebdomadaire, ajuste l'intensit\u00E9 \u00E0 venir et vous garde sur la bonne voie pour votre objectif.",
+          q: "Et si je ne suis pas d’accord avec un changement ?",
+          a: "Vous pouvez annuler n’importe quel ajustement. Cadence l’enregistre, apprend du résultat et intègre vos préférences dans les décisions futures.",
         },
         {
-          q: "Est-ce adapt\u00E9 aux d\u00E9butants ?",
-          a: "Absolument. Cadence s'adapte \u00E0 tous les niveaux. Que vous couriez votre premier 5 km ou pr\u00E9pariez un ultra, l'IA se calibre sur votre forme actuelle et vous fait progresser en toute s\u00E9curit\u00E9.",
+          q: "Ai-je besoin d’une montre connectée ?",
+          a: "Non. Vous pouvez enregistrer manuellement vos sorties ou répondre à des questions sur vos séances. Mais plus Cadence a de données, plus il peut être proactif. Avec une Apple Watch ou un Garmin, il fait des ajustements auxquels vous n’auriez jamais pensé à demander.",
+        },
+      ],
+    },
+    // MarketLandscape
+    marketLandscape: {
+      tier1Label: "LE STANDARD — TOUT LE MONDE L'A",
+      tier2Label: "CE QU'ON COMMENCE À VOIR",
+      tier3Label: "CE QUI N'EXISTAIT PAS ENCORE",
+      tier1Products: [
+        {
+          name: "KiprunPacer",
+          tagline: "Plan + Montre",
+          features: [
+            { label: "Plan structuré", status: "full" as const },
+            { label: "Intégration montre", status: "full" as const },
+            { label: "IA adaptive", status: "none" as const },
+            { label: "Données de santé", status: "none" as const },
+            { label: "Autonomie", status: "none" as const },
+            { label: "Transparence", status: "none" as const },
+          ],
+        },
+      ],
+      tier2Products: [
+        {
+          name: "Nolio",
+          tagline: "Plan + HRV + Coach humain",
+          features: [
+            { label: "Plan structuré", status: "full" as const },
+            { label: "Intégration montre", status: "full" as const },
+            { label: "HRV (manuel)", status: "partial" as const },
+            { label: "Données multi-facettes", status: "none" as const },
+            { label: "Autonomie", status: "none" as const },
+            { label: "Transparence", status: "none" as const },
+          ],
+        },
+        {
+          name: "Runna / Strava",
+          tagline: "Plan + IA + Chat",
+          features: [
+            { label: "Plan structuré", status: "full" as const },
+            { label: "Intégration montre", status: "full" as const },
+            { label: "IA (charge seule)", status: "partial" as const },
+            { label: "Données multi-facettes", status: "none" as const },
+            { label: "Autonomie", status: "none" as const },
+            { label: "Transparence", status: "none" as const },
+          ],
+        },
+        {
+          name: "IAMCOACH / STAS",
+          tagline: "Chat IA + données montre",
+          features: [
+            { label: "Plan flexible", status: "partial" as const },
+            { label: "Intégration montre", status: "full" as const },
+            { label: "IA conversationnelle", status: "full" as const },
+            { label: "Données partielles", status: "partial" as const },
+            { label: "Autonomie", status: "none" as const },
+            { label: "Transparence", status: "none" as const },
+          ],
+        },
+      ],
+      tier3Products: [
+        {
+          name: "Cadence Coach",
+          tagline: "Coach autonome & transparent",
+          features: [
+            { label: "Plan structuré", status: "full" as const },
+            { label: "Intégration montre", status: "full" as const },
+            { label: "IA conversationnelle", status: "full" as const },
+            { label: "Données multi-facettes", status: "full" as const },
+            { label: "Autonomie proactive", status: "full" as const },
+            { label: "Transparence totale", status: "full" as const },
+          ],
         },
       ],
     },
     // Footer
     footer: {
       description:
-        "Un coaching IA qui s'adapte \u00E0 chaque sortie. Con\u00E7u pour les coureurs qui veulent comprendre leur entra\u00EEnement.",
+        "Un coaching IA qui observe, anticipe et prévient. Comme un préparateur physique de classe mondiale — toujours disponible.",
       productHeading: "Produit",
-      productLinks: ["Fonctionnalit\u00E9s", "Comment \u00E7a marche"],
-      legalHeading: "L\u00E9gal",
-      privacyPolicy: "Politique de confidentialit\u00E9",
-      termsOfService: "Conditions d'utilisation",
-      mentionsLegales: "Mentions l\u00E9gales",
+      productLinks: ["Fonctionnalités", "Comment ça marche"],
+      legalHeading: "Légal",
+      privacyPolicy: "Politique de confidentialité",
+      termsOfService: "Conditions d’utilisation",
+      mentionsLegales: "Mentions légales",
       support: "Assistance",
-      integrationsHeading: "Int\u00E9grations",
-      copyright: "\u00A9 2026 Cadence. Tous droits r\u00E9serv\u00E9s.",
+      integrationsHeading: "Intégrations",
+      copyright: "© 2026 Cadence. Tous droits réservés.",
       tagline: "Fait pour les coureurs, par des coureurs.",
     },
   },

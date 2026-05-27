@@ -2,7 +2,7 @@ import { Nav } from "@/components/cadence/Nav";
 import { Hero } from "@/components/cadence/Hero";
 import { StatsBar } from "@/components/cadence/StatsBar";
 import { FeatureShowcase } from "@/components/cadence/FeatureShowcase";
-import { PhaseCalendar } from "@/components/cadence/PhaseCalendar";
+import { MarketLandscape } from "@/components/cadence/MarketLandscape";
 import { DebriefSection } from "@/components/cadence/DebriefSection";
 import { Testimonials } from "@/components/cadence/Testimonials";
 import { DownloadCta } from "@/components/cadence/DownloadCta";
@@ -16,7 +16,7 @@ export default function Home() {
       <Hero />
       <StatsBar />
       <FeatureShowcase />
-      <PhaseCalendar />
+      <MarketLandscape />
       <DebriefSection />
       <Testimonials />
       <DownloadCta />
