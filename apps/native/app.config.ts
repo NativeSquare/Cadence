@@ -50,7 +50,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   userInterfaceStyle: "light",
   newArchEnabled: true,
   ios: {
-    supportsTablet: true,
+    supportsTablet: false,
     bundleIdentifier: getUniqueIdentifier(),
     infoPlist: {
       ITSAppUsesNonExemptEncryption: false,
