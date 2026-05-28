@@ -78,6 +78,44 @@ export const FORMAT_DISTANCE_METERS: Record<
   marathon: 42195,
 };
 
+// Local mirror of backend's `minimumPlanWeeksForFormat` — keep in sync with
+// packages/backend/convex/agoge/periodization.ts. Backend is the source of
+// truth: the UI uses this to give immediate feedback before submission, but
+// the mutation enforces it regardless.
+export const MIN_PLAN_WEEKS_BY_FORMAT: Partial<Record<Format, number>> = {
+  "5k": 4,
+};
+
+export function daysBetweenYmd(fromYmd: string, toYmd: string): number {
+  const [yf, mf, df] = fromYmd.split("-").map((p) => Number.parseInt(p, 10));
+  const [yt, mt, dt] = toYmd.split("-").map((p) => Number.parseInt(p, 10));
+  const a = Date.UTC(yf, mf - 1, df);
+  const b = Date.UTC(yt, mt - 1, dt);
+  return Math.round((b - a) / 86_400_000);
+}
+
+export type RaceDateError = { format: Format; minWeeks: number; days: number };
+
+/**
+ * Validate that the race date leaves enough lead time for a meaningful plan
+ * of the chosen format. Returns null when the combo is valid OR when we don't
+ * have enough info to validate (no format yet, custom format, no date).
+ */
+export function getRaceDateError(
+  todayYmd: string,
+  raceYmd: string,
+  format: Format | "" | undefined,
+): RaceDateError | null {
+  if (!format || format === "custom" || !raceYmd) return null;
+  const minWeeks = MIN_PLAN_WEEKS_BY_FORMAT[format];
+  if (!minWeeks) return null;
+  const days = daysBetweenYmd(todayYmd, raceYmd);
+  if (days < minWeeks * 7) {
+    return { format, minWeeks, days };
+  }
+  return null;
+}
+
 const CUSTOM_DISTANCE_MIN_KM = 1;
 const CUSTOM_DISTANCE_MAX_KM = 500;
 

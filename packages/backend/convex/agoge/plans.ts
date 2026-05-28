@@ -28,6 +28,7 @@ import {
   push,
   requireAuthError,
   result,
+  validateMinimumPlanDuration,
   validatePlanStart,
   type ValidationError,
   type ValidationResult,
@@ -100,6 +101,10 @@ async function validateCreatePlan(
   const effectiveStartDate =
     args.startDate ?? new Date().toISOString().slice(0, 10);
   push(errors, validatePlanStart(effectiveStartDate, race.date));
+  push(
+    errors,
+    validateMinimumPlanDuration(effectiveStartDate, race.date, race.format),
+  );
 
   const conflict = await findOverlappingPlan(ctx, auth.athlete._id, {
     startDate: effectiveStartDate,

@@ -47,6 +47,7 @@ import {
   workoutName,
   ymdToNoonUtc,
 } from "../agoge/periodization";
+import { microcycle5K } from "../agoge/plans/fiveK";
 
 const GENERATOR_VERSION = "v1";
 const BASELINE_LOOKBACK_DAYS = 56;
@@ -126,15 +127,23 @@ export const generate = internalAction({
 
     const phaseByWeek = expandPhases(splitPhases(planWeeks, race.format));
 
-    const paces: Paces | undefined =
+    const vdot: number | undefined =
       goal.raceTarget?.type === "time" && goal.raceTarget.seconds > 0
-        ? trainingPaces(
-            computeVdot(race.distanceMeters, goal.raceTarget.seconds),
-          )
+        ? computeVdot(race.distanceMeters, goal.raceTarget.seconds)
         : undefined;
+    const paces: Paces | undefined =
+      vdot !== undefined ? trainingPaces(vdot) : undefined;
+
+    // Plan's peak weekly km — fuels warmup/cooldown time scaling in the 5K
+    // module. Using the actual curve's max (not just the recommended peak)
+    // so we respect the maxBuildMultiple cap.
+    const planPeakKm = Math.max(currentKm, ...volumeCurve);
 
     const blockIds = await createBlocks(ctx, plan._id, planStart, phaseByWeek);
     const schedule = scheduleFromAthlete(athlete);
+
+    let weekIndexInPhase = 0;
+    let prevPhase: BlockType | undefined;
 
     for (let w = 0; w < planWeeks; w++) {
       const phase = phaseByWeek[w];
@@ -145,18 +154,39 @@ export const generate = internalAction({
       const weekStart = addDaysYmd(planStart, w * 7);
       const weekStartDow = isoDayOfWeek(weekStart);
 
-      for (const session of microcycle(phase, weekKm, schedule)) {
+      if (phase === prevPhase) {
+        weekIndexInPhase += 1;
+      } else {
+        weekIndexInPhase = 0;
+        prevPhase = phase;
+      }
+
+      const sessions =
+        race.format === "5k"
+          ? microcycle5K({
+              phase,
+              weekIndexInPhase,
+              weekKm,
+              schedule,
+              peakKm: planPeakKm,
+              paces,
+              vdot,
+            })
+          : microcycle(phase, weekKm, schedule);
+
+      for (const session of sessions) {
         const dayOffset = (session.dayOfWeek - weekStartDow + 7) % 7;
         const dateYmd = addDaysYmd(weekStart, dayOffset);
         // Race day is reserved for the race workout itself.
         if (dateYmd < planStart || dateYmd >= raceYmd) continue;
         const distanceMeters = Math.round(session.distanceKm * 1000);
-        if (distanceMeters < 500) continue;
+        if (distanceMeters < 500 && !session.structureSpec) continue;
         const structure = buildStructure(
           session.type,
           session.intensity,
           distanceMeters,
           paces,
+          session.structureSpec,
         );
         if (!structure) continue;
 

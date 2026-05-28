@@ -1,6 +1,7 @@
 import {
   DISCIPLINES,
   FORMATS,
+  getRaceDateError,
   type Discipline,
   type Format,
 } from "@/components/app/account/race-form";
@@ -75,6 +76,20 @@ export function StepRaceDetails({
     [t],
   );
 
+  const dateError = useMemo(() => {
+    const err = getRaceDateError(
+      todayIso(),
+      value.date,
+      value.format === "" ? undefined : value.format,
+    );
+    if (!err) return undefined;
+    return t("goal.raceDetails.tooSoonForFormat", {
+      format: formatLabels[err.format],
+      minWeeks: err.minWeeks,
+      days: err.days,
+    });
+  }, [t, value.date, value.format, formatLabels]);
+
   return (
     <View className="gap-5">
       <Text
@@ -102,6 +117,7 @@ export function StepRaceDetails({
         value={value.date || undefined}
         onChange={(v) => onChange({ ...value, date: v })}
         minDate={todayIso()}
+        error={dateError}
       />
 
       <FormField label={t("goal.raceDetails.format")}>

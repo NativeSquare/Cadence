@@ -3,12 +3,17 @@ import { safeParseWorkout, type Workout } from "@nativesquare/agoge";
 import type {
   PlanDoc,
   RaceDoc,
+  RaceFormat,
   RaceStatus,
   WorkoutStatus,
 } from "@nativesquare/agoge/schema";
 import { Infer, v } from "convex/values";
 import { components } from "../_generated/api";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
+import {
+  daysBetweenYmd,
+  minimumPlanWeeksForFormat,
+} from "./periodization";
 
 // ---------------------------------------------------------------------------
 // Validation result shape
@@ -376,6 +381,30 @@ export function validatePlanStart(
     return {
       code: "DATE_OUT_OF_RANGE",
       message: `Plan startDate (${startDate}) cannot be after race date (${raceYmd}).`,
+    };
+  }
+  return null;
+}
+
+/**
+ * Format-specific floor on `raceDate - startDate`. Below the floor the plan
+ * has no pedagogical value (e.g. a 5K plan needs at least 4 weeks to land
+ * one construction-early + one construction-late + spécifique + taper).
+ * Returns null when the format has no enforced minimum.
+ */
+export function validateMinimumPlanDuration(
+  startDate: string,
+  raceDate: string,
+  format: RaceFormat | undefined,
+): ValidationError | null {
+  const minWeeks = minimumPlanWeeksForFormat(format);
+  if (minWeeks === undefined) return null;
+  const raceYmd = raceDate.slice(0, 10);
+  const days = daysBetweenYmd(startDate, raceYmd);
+  if (days < minWeeks * 7) {
+    return {
+      code: "DATE_OUT_OF_RANGE",
+      message: `A ${format} plan needs at least ${minWeeks} weeks before the race (only ${days} days from ${startDate} to ${raceYmd}).`,
     };
   }
   return null;

@@ -20,6 +20,7 @@ import {
   requireAuthError,
   result,
   validateIsoCalendarDate,
+  validateMinimumPlanDuration,
   validateNoUpcomingARaceConflict,
   validateRaceDateStatusCoherent,
   validateRaceOwnership,
@@ -56,6 +57,8 @@ async function validateCreateMyRace(
   push(errors, validateRaceDateStatusCoherent(args.date, args.status));
   if (args.priority === "A" && args.status === "upcoming") {
     push(errors, await validateNoUpcomingARaceConflict(ctx, auth.athlete._id));
+    const today = new Date().toISOString().slice(0, 10);
+    push(errors, validateMinimumPlanDuration(today, args.date, args.format));
   }
   return result(errors);
 }

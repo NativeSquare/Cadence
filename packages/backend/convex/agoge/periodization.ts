@@ -80,6 +80,17 @@ export function trainingPaces(vdot: number): Paces {
 }
 
 /**
+ * 5K-specific race pace in m/s, derived from VDOT via inverse race-time prediction.
+ * Slightly faster than I (vVO2max) for elites, slower for beginners — this is
+ * "what the runner will actually race at 5K", not a fixed % of VO2max.
+ */
+export function fiveKPaceMps(vdot: number): number {
+  if (!(vdot > 0)) return 0;
+  const t = predictRaceTime(vdot, 5000);
+  return t > 0 ? 5000 / t : 0;
+}
+
+/**
  * Predict the finish time (seconds) for `distanceMeters` at the athlete's
  * current `vdot` — the inverse of `computeVdot`. Race effort means the
  * %VO2max curve is solved as a function of time (not a fixed intensity), so
@@ -157,6 +168,22 @@ export function distancePeakKm(
   }
 }
 
+/**
+ * Minimum weeks between plan start and race for the plan to be pedagogically
+ * meaningful for this format. `undefined` = no minimum enforced (yet).
+ *
+ * 5K floor = 4 weeks: that's the shortest split that still produces
+ * build=2 + peak=1 + taper=1 (one construction-early + one construction-late
+ * + spécifique + taper). Below 4 weeks, the build collapses to 0 or 1 week
+ * and the plan has no training value.
+ */
+export function minimumPlanWeeksForFormat(
+  format: RaceFormat | undefined,
+): number | undefined {
+  if (format === "5k") return 4;
+  return undefined;
+}
+
 /** Taper duration by race format. */
 export function taperWeeksForFormat(format: RaceFormat | undefined): number {
   switch (format) {
@@ -183,6 +210,9 @@ export type PhaseSplit = {
 /**
  * Split a plan into Base/Build/Peak/Taper week counts.
  * Compressed plans (<6 weeks) skip Base.
+ *
+ * 5K override: build = 4 (2 early + 2 late), peak = 1 (race-specific week),
+ * base = remaining. Compressed 5K plans clamp build/peak first, base last.
  */
 export function splitPhases(
   totalWeeks: number,
@@ -194,6 +224,27 @@ export function splitPhases(
   }
   const taper = Math.min(taperWeeksForFormat(format), Math.max(1, weeks - 2));
   const remaining = weeks - taper;
+
+  if (format === "5k") {
+    // 5K targets: peak = 1 (spécifique), build = 4 (2 début + 2 fin), base = rest.
+    // Below 6 total weeks, compress build/peak first.
+    if (remaining <= 1) {
+      return { base: 0, build: 0, peak: remaining, taper };
+    }
+    if (remaining <= 2) {
+      return { base: 0, build: 1, peak: 1, taper };
+    }
+    if (remaining <= 5) {
+      // Not enough for full 4-week build — split remaining as build + 1 peak.
+      const peak = 1;
+      const build = remaining - peak;
+      return { base: 0, build, peak, taper };
+    }
+    const peak = 1;
+    const build = 4;
+    const base = remaining - build - peak;
+    return { base, build, peak, taper };
+  }
 
   if (weeks < 6) {
     // Compressed: skip Base, split remaining 50/50 between Build and Peak.
@@ -322,6 +373,13 @@ export type SessionSpec = {
   distanceKm: number;
   /** ISO day-of-week: 0=Mon … 6=Sun. */
   dayOfWeek: number;
+  /** 0-based week index within the current phase block. Used by per-distance
+   * planners to vary content week-over-week (e.g. SV1 alternating with a
+   * non-quality long in 5K build-late). */
+  weekIndexInPhase?: number;
+  /** When set, `buildStructure` ignores type/intensity/distance and uses this
+   * spec verbatim. Set by per-distance planners (5K, 10K, ...). */
+  structureSpec?: StructureSpec;
 };
 
 export type Schedule = {
@@ -344,7 +402,7 @@ type Role = "easy" | "long" | "threshold" | "intervals";
  * Spreads picks evenly across `availableDays` to maximise recovery gaps —
  * e.g. with 7 days available and 3 sessions/week, returns [Mon, Thu, Sun].
  */
-function pickTrainingDays(schedule: Schedule): number[] {
+export function pickTrainingDays(schedule: Schedule): number[] {
   const sorted = [...new Set(schedule.availableDays)]
     .filter((d) => Number.isInteger(d) && d >= 0 && d <= 6)
     .sort((a, b) => a - b);
@@ -400,6 +458,9 @@ function rolesForPhase(phase: BlockType, n: number): Role[] {
  * athlete's `schedule`. Volume is split: long ≈ 30 % (35 % in peak), each
  * quality ≈ 20 %, easies share what's left. If a role's normal share has
  * nowhere to land (e.g. 1 session/week), it folds into the long run.
+ *
+ * Generic algorithm — distance-specific philosophies live in `./plans/<dist>.ts`
+ * and are dispatched at the engine layer (`engine/generatePlan.ts`), not here.
  */
 export function microcycle(
   phase: BlockType,
@@ -517,6 +578,41 @@ function distanceStep(
   };
 }
 
+function timeStep(
+  intent: Step["intent"],
+  seconds: number,
+  intensity: IntensityAnchor,
+  paces: Paces | undefined,
+): Step {
+  return {
+    kind: "step",
+    intent,
+    duration: { type: "time", seconds: Math.round(seconds) },
+    target: paceTarget(intensity, paces),
+  };
+}
+
+function pacedDistanceStep(
+  intent: Step["intent"],
+  meters: number,
+  paceMps: number,
+): Step {
+  const band = 0.02;
+  return {
+    kind: "step",
+    intent,
+    duration: { type: "distance", meters: Math.round(meters) },
+    target:
+      paceMps > 0
+        ? {
+            type: "pace_range",
+            min_speed_mps: round2(paceMps * (1 - band)),
+            max_speed_mps: round2(paceMps * (1 + band)),
+          }
+        : { type: "rpe", value: 9 },
+  };
+}
+
 function clamp(n: number, lo: number, hi: number): number {
   return Math.max(lo, Math.min(hi, n));
 }
@@ -526,17 +622,199 @@ function round2(n: number): number {
 }
 
 /**
+ * Distance-specific session shape. Lets a per-distance planner (5K, 10K, etc.)
+ * own exactly which intervals/recoveries to emit, instead of stretching the
+ * generic shape-by-type-and-distance logic in `buildStructure` below.
+ *
+ * Recoveries are time-based (the right unit for an interval rest); warmup/cooldown
+ * are time-based too so they scale to the runner's E pace, not a fixed distance.
+ */
+export type StructureSpec =
+  | { kind: "easy_continuous"; durationSec: number; addStrides?: boolean }
+  | { kind: "long_continuous"; durationSec: number }
+  | {
+      kind: "long_with_blocks";
+      warmupSec: number;
+      cooldownSec: number;
+      reps: number;
+      workDurationSec: number;
+      recoveryDurationSec: number;
+      workIntensity: IntensityAnchor; // M for SV1, T for SV2-tempo, etc.
+    }
+  | {
+      kind: "intervals_distance";
+      warmupSec: number;
+      cooldownSec: number;
+      reps: number;
+      repDistanceM: number;
+      repIntensity: IntensityAnchor;
+      recoverySec: number;
+    }
+  | {
+      kind: "intervals_paced";
+      warmupSec: number;
+      cooldownSec: number;
+      reps: number;
+      repDistanceM: number;
+      targetPaceMps: number; // explicit pace (e.g. 5K race pace from VDOT)
+      recoverySec: number;
+    }
+  | {
+      kind: "mixed";
+      warmupSec: number;
+      cooldownSec: number;
+      first: {
+        reps: number;
+        repDistanceM: number;
+        repIntensity: IntensityAnchor;
+        recoverySec: number;
+      };
+      second: {
+        reps: number;
+        repDistanceM: number;
+        repIntensity: IntensityAnchor;
+        recoverySec: number;
+      };
+      bridgeSec: number; // recovery between the two blocks
+    };
+
+const STRIDES_REPS = 6;
+const STRIDES_DISTANCE_M = 100;
+const STRIDES_RECOVERY_M = 100;
+
+function stridesRepeat(paces: Paces | undefined): Repeat {
+  return {
+    kind: "repeat",
+    count: STRIDES_REPS,
+    children: [
+      distanceStep("active", STRIDES_DISTANCE_M, "R", paces),
+      distanceStep("recovery", STRIDES_RECOVERY_M, "E", paces),
+    ],
+  };
+}
+
+/**
+ * Build a structure from a per-distance planner's `StructureSpec`. This is
+ * the path used by 5K (and future 10K/Half/Marathon) modules. The generic
+ * `buildStructure` switch on `type` stays as the fallback for any caller
+ * that hasn't been migrated.
+ */
+export function buildFromSpec(
+  spec: StructureSpec,
+  paces: Paces | undefined,
+): WorkoutStructure | undefined {
+  const blocks: (Step | Repeat)[] = (() => {
+    switch (spec.kind) {
+      case "easy_continuous": {
+        const out: (Step | Repeat)[] = [
+          timeStep("work", spec.durationSec, "E", paces),
+        ];
+        if (spec.addStrides) out.push(stridesRepeat(paces));
+        return out;
+      }
+      case "long_continuous":
+        return [timeStep("work", spec.durationSec, "E", paces)];
+      case "long_with_blocks":
+        return [
+          timeStep("warmup", spec.warmupSec, "E", paces),
+          {
+            kind: "repeat",
+            count: spec.reps,
+            children: [
+              timeStep("work", spec.workDurationSec, spec.workIntensity, paces),
+              timeStep("recovery", spec.recoveryDurationSec, "E", paces),
+            ],
+          },
+          timeStep("cooldown", spec.cooldownSec, "E", paces),
+        ];
+      case "intervals_distance":
+        return [
+          timeStep("warmup", spec.warmupSec, "E", paces),
+          {
+            kind: "repeat",
+            count: spec.reps,
+            children: [
+              distanceStep("work", spec.repDistanceM, spec.repIntensity, paces),
+              timeStep("recovery", spec.recoverySec, "E", paces),
+            ],
+          },
+          timeStep("cooldown", spec.cooldownSec, "E", paces),
+        ];
+      case "intervals_paced":
+        return [
+          timeStep("warmup", spec.warmupSec, "E", paces),
+          {
+            kind: "repeat",
+            count: spec.reps,
+            children: [
+              pacedDistanceStep("work", spec.repDistanceM, spec.targetPaceMps),
+              timeStep("recovery", spec.recoverySec, "E", paces),
+            ],
+          },
+          timeStep("cooldown", spec.cooldownSec, "E", paces),
+        ];
+      case "mixed":
+        return [
+          timeStep("warmup", spec.warmupSec, "E", paces),
+          {
+            kind: "repeat",
+            count: spec.first.reps,
+            children: [
+              distanceStep(
+                "work",
+                spec.first.repDistanceM,
+                spec.first.repIntensity,
+                paces,
+              ),
+              timeStep("recovery", spec.first.recoverySec, "E", paces),
+            ],
+          },
+          timeStep("recovery", spec.bridgeSec, "E", paces),
+          {
+            kind: "repeat",
+            count: spec.second.reps,
+            children: [
+              distanceStep(
+                "work",
+                spec.second.repDistanceM,
+                spec.second.repIntensity,
+                paces,
+              ),
+              timeStep("recovery", spec.second.recoverySec, "E", paces),
+            ],
+          },
+          timeStep("cooldown", spec.cooldownSec, "E", paces),
+        ];
+    }
+  })();
+
+  if (blocks.length === 0) return undefined;
+  return {
+    schema_version: 1,
+    discipline: "endurance",
+    sport: "run",
+    blocks,
+  };
+}
+
+/**
  * Build a FIT-shaped Workout for a single session. Every training session gets
  * a structure — continuous efforts (easy, recovery, sub-peak long) collapse to
  * a single `work` step so device export and UI breakdown work uniformly.
  * Returns undefined only for sessions too short to bother with (< 500m).
+ *
+ * If a `spec` is provided, delegates to `buildFromSpec` and ignores the
+ * type/intensity/totalMeters shape. Per-distance modules (5K, 10K, etc.)
+ * pass a spec; the legacy generic path keeps the type-based switch.
  */
 export function buildStructure(
   type: WorkoutType,
   intensity: IntensityAnchor,
   totalMeters: number,
   paces: Paces | undefined,
+  spec?: StructureSpec,
 ): WorkoutStructure | undefined {
+  if (spec) return buildFromSpec(spec, paces);
   if (totalMeters < 500) return undefined;
 
   const blocks: (Step | Repeat)[] = (() => {

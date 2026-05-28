@@ -1,4 +1,7 @@
-import { FORMAT_DISTANCE_METERS } from "@/components/app/account/race-form";
+import {
+  FORMAT_DISTANCE_METERS,
+  getRaceDateError,
+} from "@/components/app/account/race-form";
 import {
   StepChooseType,
   StepFitnessGoal,
@@ -116,14 +119,22 @@ export default function NewGoalScreen() {
   const canProceed = useMemo(() => {
     if (step === 1) return branch != null;
     if (step === 2 && branch === "race") {
-      return (
+      const fieldsFilled =
         raceDetails.name.trim() !== "" &&
         raceDetails.date !== "" &&
         raceDetails.format !== "" &&
         raceDetails.discipline !== "" &&
         (raceDetails.format !== "custom" ||
-          raceDetails.customDistanceKm.trim() !== "")
+          raceDetails.customDistanceKm.trim() !== "");
+      if (!fieldsFilled) return false;
+      // Mirror of backend rule: 5K needs ≥ 4 weeks lead time. Other formats
+      // currently have no enforced minimum.
+      const dateError = getRaceDateError(
+        todayIso(),
+        raceDetails.date,
+        raceDetails.format === "" ? undefined : raceDetails.format,
       );
+      return dateError === null;
     }
     if (step === 2 && branch === "fitness") return fitnessGoal != null;
     if (step === 3 && branch === "race") {

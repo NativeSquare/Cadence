@@ -417,7 +417,8 @@
       "format": "Format",
       "discipline": "Discipline",
       "customDistance": "Distance (km)",
-      "customDistancePlaceholder": "42.2"
+      "customDistancePlaceholder": "42.2",
+      "tooSoonForFormat": "Race is too soon for a {{format}} plan — need at least {{minWeeks}} weeks (currently {{days}} days)."
     },
     "raceGoal": {
       "heading": "What's your goal?",
