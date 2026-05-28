@@ -225,7 +225,7 @@ export default function Profile() {
               items={[
                 {
                   label: t("profile.items.appsAndDevices"),
-                  icon: "apps-outline",
+                  icon: "heart-outline",
                   onPress: () => router.push("/account/connections"),
                 },
                 {

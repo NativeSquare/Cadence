@@ -86,9 +86,23 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
           "Cadence uses your microphone to transcribe what you say to your coach.",
       },
     ],
-    "expo-camera",
-    "expo-image-picker",
-    "expo-media-library",
+    [
+      "expo-camera",
+      {
+        cameraPermission:
+          "Cadence uses the camera so you can take a photo to set as your profile picture, attach to a message in your AI coach chat (for example a race bib or a hand-written workout), or include with feedback you send to our team.",
+        recordAudioAndroid: false,
+      },
+    ],
+    [
+      "expo-image-picker",
+      {
+        photosPermission:
+          "Cadence accesses your photo library so you can pick an image to set as your profile picture, attach to a message in your AI coach chat (for example a screenshot of a workout), or include with feedback you send to our team.",
+        cameraPermission:
+          "Cadence uses the camera so you can take a photo to set as your profile picture, attach to a message in your AI coach chat (for example a race bib or a hand-written workout), or include with feedback you send to our team.",
+      },
+    ],
     "expo-notifications",
     "expo-router",
     "expo-secure-store",
