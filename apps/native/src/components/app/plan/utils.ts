@@ -7,7 +7,10 @@
  */
 
 import { WORKOUT_TYPES_COLORS } from "@packages/shared/colors";
-import { summarizeWorkout } from "@/components/app/workout/workout-summary";
+import {
+  parseStructure,
+  summarizeStructure,
+} from "@packages/shared/workout-summary";
 import {
   deriveWorkoutStatus,
   localTodayYmd,
@@ -106,15 +109,14 @@ export function workoutToWorkoutData(
   // Structure always comes from the planned face — it's the prescription and
   // is shown regardless of completion status. Volume totals prefer the actual
   // recorded values once available, falling back to planned-structure sums.
-  const plannedSummary = summarizeWorkout(workout.planned);
+  const plannedStructure = parseStructure(workout.planned?.structure);
+  const plannedSummary = plannedStructure
+    ? summarizeStructure(plannedStructure)
+    : null;
   const distanceMeters =
-    workout.actual?.distanceMeters ??
-    plannedSummary.totalDistanceMeters ??
-    undefined;
+    workout.actual?.distanceMeters ?? plannedSummary?.distanceMeters;
   const durationSeconds =
-    workout.actual?.durationSeconds ??
-    plannedSummary.totalDurationSeconds ??
-    undefined;
+    workout.actual?.durationSeconds ?? plannedSummary?.durationSeconds;
 
   const exportedRef = workout.providerRefs?.[0];
   const derivedStatus = deriveWorkoutStatus(workout, localTodayYmd(today));
@@ -132,7 +134,7 @@ export function workoutToWorkoutData(
     desc: workout.description ?? "",
     zone: "-",
     today: isToday,
-    structure: plannedSummary.structure,
+    structure: plannedStructure,
     syncStatus: exportedRef ? "exported" : undefined,
     syncSource: exportedRef?.provider,
   };
@@ -237,9 +239,11 @@ export function computeTrainingPulse(
     const dateIso = workoutDate(w);
     if (!dateIso) continue;
     const wkStart = isoWeekStart(localDateFromIso(dateIso)).getTime();
-    const summary = summarizeWorkout(w.actual ?? w.planned);
-    const meters =
-      w.actual?.distanceMeters ?? summary.totalDistanceMeters ?? 0;
+    const plannedStructure = parseStructure(w.planned?.structure);
+    const plannedDistance = plannedStructure
+      ? summarizeStructure(plannedStructure).distanceMeters
+      : 0;
+    const meters = w.actual?.distanceMeters ?? plannedDistance;
     const bucket = byWeek.get(wkStart) ?? { volumeM: 0, count: 0 };
     bucket.volumeM += meters;
     bucket.count += 1;

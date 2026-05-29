@@ -15,6 +15,7 @@ import type { TFunction } from "i18next";
 import Svg, { Path, Circle } from "react-native-svg";
 import type { Repeat, Step } from "@nativesquare/agoge";
 import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
+import { WORKOUT_TYPES_COLORS } from "@packages/shared/colors";
 import {
   INTENT_COLORS,
   formatDuration,
@@ -176,22 +177,6 @@ function volumeSummary(workout: WorkoutData): string | null {
   return hasKm ? `${workout.km} km` : (workout.dur ?? null);
 }
 
-function StructureTotal({ workout }: { workout: WorkoutData }) {
-  const { t } = useTranslation();
-  const total = volumeSummary(workout);
-  if (!total) return null;
-  return (
-    <View className="px-5 pb-3">
-      <Text
-        className="text-[12px] font-coach-medium"
-        style={{ color: "rgba(255,255,255,0.45)" }}
-      >
-        {t("plan.todayCard.totalSuffix", { total })}
-      </Text>
-    </View>
-  );
-}
-
 // ─── Header (shared) ────────────────────────────────────────────────────────
 
 function CardHeader({ workout }: { workout: WorkoutData }) {
@@ -204,10 +189,13 @@ function CardHeader({ workout }: { workout: WorkoutData }) {
   return (
     <View className="px-5 pt-5 pb-3">
       <View className="flex-row items-start justify-between mb-1.5">
-        {kindLabel ? (
+        {kindLabel && workout.kind ? (
           <Text
-            className="text-[11px] font-coach-semibold uppercase"
-            style={{ letterSpacing: 0.08 * 11, color: "rgba(255,255,255,0.45)" }}
+            className="text-[15px] font-coach-bold uppercase"
+            style={{
+              letterSpacing: 0.08 * 15,
+              color: WORKOUT_TYPES_COLORS[workout.kind],
+            }}
             numberOfLines={1}
           >
             {kindLabel}
@@ -223,7 +211,7 @@ function CardHeader({ workout }: { workout: WorkoutData }) {
           style={{ letterSpacing: -0.02 * 26, lineHeight: 30 }}
           numberOfLines={2}
         >
-          {workout.type}
+          {volumeSummary(workout) ?? workout.type}
         </Text>
         <ChevronRight />
       </View>
@@ -293,7 +281,6 @@ function WorkoutBody({
     <>
       <CardHeader workout={workout} />
       <StructurePreview workout={workout} />
-      <StructureTotal workout={workout} />
       {(showMarkDone || showExport) && (
         <View className="px-4 pb-4 pt-2 gap-2">
           {showMarkDone && <MarkAsDoneCTA onPress={onMarkDonePress} />}

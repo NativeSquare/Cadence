@@ -278,14 +278,6 @@ export function WorkoutDetailPage({ workoutId }: WorkoutDetailPageProps) {
     block && heroDate ? computeBlockProgress(block, heroDate) : null;
   const effectiveStatus = deriveWorkoutStatus(workout, localTodayYmd());
 
-  const handleEdit = () => {
-    selectionFeedback();
-    router.push({
-      pathname: "/(app)/workouts/[id]/edit",
-      params: { id: workout._id },
-    });
-  };
-
   const handleMarkAsDone = () => {
     selectionFeedback();
     markDoneSheetRef.current?.present();
@@ -495,26 +487,6 @@ export function WorkoutDetailPage({ workoutId }: WorkoutDetailPageProps) {
           </Pressable>
         )}
         <Pressable
-          onPress={handleEdit}
-          className="items-center rounded-2xl py-3.5 active:opacity-90"
-          style={
-            canMarkAsDone
-              ? {
-                  backgroundColor: LIGHT_THEME.w1,
-                  borderColor: LIGHT_THEME.wBrd,
-                  borderWidth: 1,
-                }
-              : { backgroundColor: LIGHT_THEME.wText }
-          }
-        >
-          <Text
-            className="font-coach-bold text-sm"
-            style={{ color: canMarkAsDone ? LIGHT_THEME.wText : "#FFFFFF" }}
-          >
-            {t("workout.detail.actions.edit")}
-          </Text>
-        </Pressable>
-        <Pressable
           onPress={() => {
             selectionFeedback();
             deleteSheetRef.current?.present();
@@ -686,11 +658,15 @@ function ResultCard({
         actual.durationSeconds,
       ),
     });
+  const plannedPaceMps = paceFromDistanceDuration(
+    plannedSummary?.distanceMeters,
+    plannedSummary?.durationSeconds,
+  );
   if (pace)
     primary.push({
       label: t("workout.detail.metrics.avgPace"),
       value: pace,
-      delta: paceDelta(plannedSummary?.avgPaceMps, actualPaceMps),
+      delta: paceDelta(plannedPaceMps, actualPaceMps),
     });
   if (avgHr)
     primary.push({ label: t("workout.detail.metrics.avgHr"), value: avgHr });

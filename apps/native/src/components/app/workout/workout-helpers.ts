@@ -222,11 +222,9 @@ export function emptyDurationOf(kind: DurationKindOption): Duration {
 export function formatDuration(t: TFunction, d: Duration): string {
   switch (d.type) {
     case "time": {
-      const m = Math.floor(d.seconds / 60);
-      const s = d.seconds - m * 60;
-      if (m > 0 && s === 0) return `${m} min`;
-      if (m === 0) return `${s}s`;
-      return `${m}:${String(s).padStart(2, "0")}`;
+      if (d.seconds < 60) return `${d.seconds}s`;
+      const m = Math.ceil(d.seconds / 60);
+      return `${m} min`;
     }
     case "distance":
       return d.meters >= 1000
