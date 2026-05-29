@@ -10,15 +10,39 @@ import { describe, expect, it } from "vitest";
 import {
   computeVdot,
   fiveKPaceMps,
+  isoDayOfWeek,
   splitPhases,
   trainingPaces,
 } from "../periodization";
-import { microcycle5K } from "./fiveK";
+import {
+  fiveKGrid,
+  microcycle5K,
+  taperDaysForRaceDow,
+  taperSessions5K,
+} from "./fiveK";
 
+const SCHEDULE_2 = { availableDays: [2, 5], sessionsPerWeek: 2 };
 const SCHEDULE_4 = { availableDays: [1, 3, 5, 6], sessionsPerWeek: 4 };
 const SCHEDULE_5 = { availableDays: [0, 1, 3, 5, 6], sessionsPerWeek: 5 };
+const SCHEDULE_6 = { availableDays: [0, 1, 2, 3, 4, 5], sessionsPerWeek: 6 };
 const VDOT_50 = computeVdot(5000, 21 * 60); // ~50 VDOT (21:00 5K)
 const PACES_50 = trainingPaces(VDOT_50);
+
+const baseArgs = {
+  weekKm: 45,
+  peakKm: 60,
+  paces: PACES_50,
+  vdot: VDOT_50,
+};
+
+const isVma = (s: { structureSpec?: { kind: string; repIntensity?: string } }) =>
+  s.structureSpec?.kind === "intervals_distance" &&
+  s.structureSpec.repIntensity === "I";
+const isSv2 = (s: { structureSpec?: { kind: string; repIntensity?: string } }) =>
+  s.structureSpec?.kind === "intervals_distance" &&
+  s.structureSpec.repIntensity === "T";
+const isSv1Long = (s: { structureSpec?: { kind: string } }) =>
+  s.structureSpec?.kind === "long_with_blocks";
 
 describe("splitPhases(5k)", () => {
   it("12-week 5K → peak=1, taper=1, build=4, base=6", () => {
@@ -62,91 +86,93 @@ describe("fiveKPaceMps", () => {
 });
 
 describe("microcycle5K — base phase", () => {
-  it("base week 0 (no VMA): EFs + SV1 long, last role is sv1_long", () => {
-    const sessions = microcycle5K({
-      phase: "base",
-      weekIndexInPhase: 0,
-      weekKm: 40,
-      schedule: SCHEDULE_4,
-      peakKm: 60,
-      paces: PACES_50,
-      vdot: VDOT_50,
-    });
-    expect(sessions).toHaveLength(4);
-    const lastSpec = sessions[sessions.length - 1]!.structureSpec;
-    expect(lastSpec?.kind).toBe("long_with_blocks");
-    if (lastSpec?.kind === "long_with_blocks") {
-      expect(lastSpec.workIntensity).toBe("M"); // SV1 = M
-      expect(lastSpec.reps).toBe(3);
+  it("has VMA every week + SV1 long (4 sessions)", () => {
+    for (const week of [0, 1, 2, 3]) {
+      const sessions = microcycle5K({
+        ...baseArgs,
+        phase: "base",
+        weekIndexInPhase: week,
+        schedule: SCHEDULE_4,
+      });
+      expect(sessions).toHaveLength(4);
+      expect(sessions.some(isVma)).toBe(true);
+      expect(sessions.some(isSv1Long)).toBe(true);
     }
-    // No VMA in even-index base week
-    const hasVma = sessions.some(
-      (s) =>
-        s.structureSpec?.kind === "intervals_distance" &&
-        s.structureSpec.repIntensity === "I",
-    );
-    expect(hasVma).toBe(false);
   });
 
-  it("base week 1 (with VMA): one intervals at I", () => {
+  it("2 sessions/week → easy(+strides) + VMA, no long", () => {
     const sessions = microcycle5K({
+      ...baseArgs,
       phase: "base",
-      weekIndexInPhase: 1,
-      weekKm: 45,
-      schedule: SCHEDULE_4,
-      peakKm: 60,
-      paces: PACES_50,
-      vdot: VDOT_50,
+      weekIndexInPhase: 0,
+      schedule: SCHEDULE_2,
     });
-    const vma = sessions.find(
+    expect(sessions).toHaveLength(2);
+    expect(sessions.some(isVma)).toBe(true);
+    expect(sessions.some(isSv1Long)).toBe(false);
+    const stridesEasy = sessions.some(
       (s) =>
-        s.structureSpec?.kind === "intervals_distance" &&
-        s.structureSpec.repIntensity === "I",
+        s.structureSpec?.kind === "easy_continuous" &&
+        s.structureSpec.addStrides === true,
     );
-    expect(vma).toBeDefined();
+    expect(stridesEasy).toBe(true);
+  });
+
+  it("6 sessions/week → exactly two strides easies", () => {
+    const sessions = microcycle5K({
+      ...baseArgs,
+      phase: "base",
+      weekIndexInPhase: 0,
+      schedule: SCHEDULE_6,
+    });
+    expect(sessions).toHaveLength(6);
+    const stridesCount = sessions.filter(
+      (s) =>
+        s.structureSpec?.kind === "easy_continuous" &&
+        s.structureSpec.addStrides === true,
+    ).length;
+    expect(stridesCount).toBe(2);
+    expect(sessions.some(isVma)).toBe(true);
+    expect(sessions.some(isSv1Long)).toBe(true);
   });
 });
 
 describe("microcycle5K — build early (weeks 0-1)", () => {
-  it("contains SV2 (T) + VMA courte (I) + SV1 long (M)", () => {
+  it("5 sessions: SV2 (T) + VMA courte (I) + SV1 long (SV1)", () => {
     const sessions = microcycle5K({
+      ...baseArgs,
+      phase: "build",
+      weekIndexInPhase: 0,
+      weekKm: 50,
+      schedule: SCHEDULE_5,
+    });
+    expect(sessions.some(isSv2)).toBe(true);
+    expect(sessions.some(isVma)).toBe(true);
+    expect(sessions.some(isSv1Long)).toBe(true);
+  });
+
+  it("4 sessions: VMA + SV2, no SV1 long", () => {
+    const sessions = microcycle5K({
+      ...baseArgs,
       phase: "build",
       weekIndexInPhase: 0,
       weekKm: 50,
       schedule: SCHEDULE_4,
-      peakKm: 60,
-      paces: PACES_50,
-      vdot: VDOT_50,
     });
-    const sv2 = sessions.find(
-      (s) =>
-        s.structureSpec?.kind === "intervals_distance" &&
-        s.structureSpec.repIntensity === "T",
-    );
-    const vma = sessions.find(
-      (s) =>
-        s.structureSpec?.kind === "intervals_distance" &&
-        s.structureSpec.repIntensity === "I",
-    );
-    const sv1 = sessions.find(
-      (s) => s.structureSpec?.kind === "long_with_blocks",
-    );
-    expect(sv2).toBeDefined();
-    expect(vma).toBeDefined();
-    expect(sv1).toBeDefined();
+    expect(sessions.some(isVma)).toBe(true);
+    expect(sessions.some(isSv2)).toBe(true);
+    expect(sessions.some(isSv1Long)).toBe(false);
   });
 });
 
-describe("microcycle5K — build late", () => {
-  it("W1 (weekIndexInPhase=2): VMA longue (5-6×800) + SV2 + long continuous", () => {
+describe("microcycle5K — build late (alternation)", () => {
+  it("W1 (weekIndexInPhase=2): VMA longue (800m) + SV2 + SV1 long", () => {
     const sessions = microcycle5K({
+      ...baseArgs,
       phase: "build",
       weekIndexInPhase: 2,
       weekKm: 55,
-      schedule: SCHEDULE_4,
-      peakKm: 60,
-      paces: PACES_50,
-      vdot: VDOT_50,
+      schedule: SCHEDULE_5,
     });
     const vmaLong = sessions.find(
       (s) =>
@@ -154,48 +180,34 @@ describe("microcycle5K — build late", () => {
         s.structureSpec.repIntensity === "I" &&
         s.structureSpec.repDistanceM === 800,
     );
-    const sv2 = sessions.find(
-      (s) =>
-        s.structureSpec?.kind === "intervals_distance" &&
-        s.structureSpec.repIntensity === "T",
-    );
-    const longCont = sessions.find(
-      (s) => s.structureSpec?.kind === "long_continuous",
-    );
     expect(vmaLong).toBeDefined();
-    expect(sv2).toBeDefined();
-    expect(longCont).toBeDefined();
+    expect(sessions.some(isSv2)).toBe(true);
+    expect(sessions.some(isSv1Long)).toBe(true);
+    expect(sessions.some((s) => s.structureSpec?.kind === "mixed")).toBe(false);
   });
 
-  it("W2 (weekIndexInPhase=3): Mixte + SV1 long", () => {
+  it("W2 (weekIndexInPhase=3): Mixte + SV2 + SV1 long", () => {
     const sessions = microcycle5K({
+      ...baseArgs,
       phase: "build",
       weekIndexInPhase: 3,
       weekKm: 55,
-      schedule: SCHEDULE_4,
-      peakKm: 60,
-      paces: PACES_50,
-      vdot: VDOT_50,
+      schedule: SCHEDULE_5,
     });
-    const mixed = sessions.find((s) => s.structureSpec?.kind === "mixed");
-    const sv1 = sessions.find(
-      (s) => s.structureSpec?.kind === "long_with_blocks",
-    );
-    expect(mixed).toBeDefined();
-    expect(sv1).toBeDefined();
+    expect(sessions.some((s) => s.structureSpec?.kind === "mixed")).toBe(true);
+    expect(sessions.some(isSv2)).toBe(true);
+    expect(sessions.some(isSv1Long)).toBe(true);
   });
 });
 
 describe("microcycle5K — peak phase", () => {
   it("includes exactly one race-pace 5K session at 7×800", () => {
     const sessions = microcycle5K({
+      ...baseArgs,
       phase: "peak",
       weekIndexInPhase: 0,
       weekKm: 50,
       schedule: SCHEDULE_4,
-      peakKm: 60,
-      paces: PACES_50,
-      vdot: VDOT_50,
     });
     const racePaceSessions = sessions.filter(
       (s) => s.structureSpec?.kind === "intervals_paced",
@@ -209,21 +221,227 @@ describe("microcycle5K — peak phase", () => {
     }
   });
 
-  it("rest of peak week is EFs with strides on prior day", () => {
+  it("uses race-pace every week (no VMA longue / Mixte at peak)", () => {
+    const w1 = microcycle5K({
+      ...baseArgs,
+      phase: "peak",
+      weekIndexInPhase: 1,
+      weekKm: 50,
+      schedule: SCHEDULE_5,
+    });
+    expect(
+      w1.some(
+        (s) =>
+          s.structureSpec?.kind === "intervals_paced" &&
+          s.structureSpec.repDistanceM === 800,
+      ),
+    ).toBe(true);
+    expect(w1.some((s) => s.structureSpec?.kind === "mixed")).toBe(false);
+  });
+
+  it("lands the latest race-pace session on the latest day of the (Mon→Sun) peak week", () => {
+    // Mon→Sun weeks: the final spé touch lands on the Sunday-most available day.
     const sessions = microcycle5K({
+      ...baseArgs,
       phase: "peak",
       weekIndexInPhase: 0,
       weekKm: 50,
-      schedule: SCHEDULE_4,
-      peakKm: 60,
-      paces: PACES_50,
-      vdot: VDOT_50,
+      schedule: { availableDays: [0, 1, 2, 3, 4, 5, 6], sessionsPerWeek: 5 },
     });
-    const easies = sessions.filter(
-      (s) => s.structureSpec?.kind === "easy_continuous",
+    const racePaceDays = sessions
+      .filter(
+        (s) =>
+          s.structureSpec?.kind === "intervals_paced" &&
+          s.structureSpec.repDistanceM === 800,
+      )
+      .map((s) => s.dayOfWeek);
+    expect(Math.max(...racePaceDays)).toBe(6);
+  });
+
+  it("composition per frequency: easy(+strides) + race-pace spé only (no SV2/SV1 long)", () => {
+    const isStridesEasy = (s: {
+      structureSpec?: { kind: string; addStrides?: boolean };
+    }) =>
+      s.structureSpec?.kind === "easy_continuous" &&
+      s.structureSpec.addStrides === true;
+    const isPlainEasy = (s: {
+      structureSpec?: { kind: string; addStrides?: boolean };
+    }) =>
+      s.structureSpec?.kind === "easy_continuous" &&
+      s.structureSpec.addStrides === false;
+    const isRacePace = (s: { structureSpec?: { kind: string } }) =>
+      s.structureSpec?.kind === "intervals_paced";
+
+    // [availableDays, expected strides-easy, plain-easy, spé]
+    const cases: [number[], number, number, number][] = [
+      [[2, 5], 1, 0, 1], // 2 sessions
+      [[1, 3, 5], 1, 1, 1], // 3 sessions
+      [[1, 3, 5, 6], 2, 1, 1], // 4 sessions
+      [[0, 1, 3, 5, 6], 1, 2, 2], // 5 sessions
+      [[0, 1, 2, 3, 4, 5], 1, 3, 2], // 6 sessions
+    ];
+    for (const [availableDays, strides, plain, spe] of cases) {
+      const sessions = microcycle5K({
+        ...baseArgs,
+        phase: "peak",
+        weekIndexInPhase: 0,
+        weekKm: 50,
+        schedule: { availableDays, sessionsPerWeek: availableDays.length },
+      });
+      expect(sessions).toHaveLength(availableDays.length);
+      expect(sessions.filter(isStridesEasy)).toHaveLength(strides);
+      expect(sessions.filter(isPlainEasy)).toHaveLength(plain);
+      expect(sessions.filter(isRacePace)).toHaveLength(spe);
+      expect(sessions.some(isSv2)).toBe(false);
+      expect(sessions.some(isSv1Long)).toBe(false);
+    }
+  });
+});
+
+describe("taperDaysForRaceDow", () => {
+  it("Sunday race → 7-day taper (the race-week itself)", () => {
+    expect(taperDaysForRaceDow(6)).toBe(7);
+  });
+
+  it("Mon/Tue/Wed → extended 8/9/10-day taper", () => {
+    expect(taperDaysForRaceDow(0)).toBe(8);
+    expect(taperDaysForRaceDow(1)).toBe(9);
+    expect(taperDaysForRaceDow(2)).toBe(10);
+  });
+
+  it("Thu/Fri/Sat → shortened 4/5/6-day taper", () => {
+    expect(taperDaysForRaceDow(3)).toBe(4);
+    expect(taperDaysForRaceDow(4)).toBe(5);
+    expect(taperDaysForRaceDow(5)).toBe(6);
+  });
+});
+
+describe("fiveKGrid", () => {
+  it("anchors the week grid to the Monday of the plan-start week", () => {
+    // 2026-06-04 is a Thursday → grid starts Monday 2026-06-01.
+    const grid = fiveKGrid("2026-06-04", "2026-08-30"); // race Sunday
+    expect(grid.gridStartYmd).toBe("2026-06-01");
+  });
+
+  it("Sunday race → taper opens on the race-week Monday (7 days)", () => {
+    // Race Sunday 2026-08-30 → taper Mon 2026-08-24 .. Sun 2026-08-30.
+    const grid = fiveKGrid("2026-06-01", "2026-08-30");
+    expect(grid.taperDays).toBe(7);
+    expect(grid.taperStartYmd).toBe("2026-08-24");
+    expect(isoDayOfWeek(grid.taperStartYmd)).toBe(0); // Monday
+  });
+
+  it("Wednesday race → 10-day taper opening a Monday in the prior week", () => {
+    // Race Wed 2026-09-02 → taper opens Mon 2026-08-24 (10 days inclusive).
+    const grid = fiveKGrid("2026-06-01", "2026-09-02");
+    expect(grid.taperDays).toBe(10);
+    expect(grid.taperStartYmd).toBe("2026-08-24");
+    expect(isoDayOfWeek(grid.taperStartYmd)).toBe(0);
+  });
+
+  it("Thursday race → 4-day taper opening the race-week Monday", () => {
+    // Race Thu 2026-09-03 → taper opens Mon 2026-08-31 (4 days inclusive).
+    const grid = fiveKGrid("2026-06-01", "2026-09-03");
+    expect(grid.taperDays).toBe(4);
+    expect(grid.taperStartYmd).toBe("2026-08-31");
+    expect(isoDayOfWeek(grid.taperStartYmd)).toBe(0);
+  });
+
+  it("pre-taper weeks are whole Mon→Sun weeks before the taper", () => {
+    const grid = fiveKGrid("2026-06-01", "2026-08-30"); // 13-week span, Sun race
+    // gridStart 2026-06-01 → taperStart 2026-08-24 = 12 weeks.
+    expect(grid.preTaperWeeks).toBe(12);
+  });
+});
+
+describe("taperSessions5K", () => {
+  const taperArgs = {
+    weekKm: 27,
+    peakKm: 45,
+    paces: PACES_50,
+    vdot: VDOT_50,
+    schedule: { availableDays: [0, 1, 2, 3, 4, 5, 6], sessionsPerWeek: 5 },
+  };
+
+  it("includes one rappel d'allure at 5K pace (3×400)", () => {
+    const out = taperSessions5K({
+      ...taperArgs,
+      taperStartYmd: "2026-08-24",
+      raceYmd: "2026-08-30", // Sunday
+    });
+    const tune = out.find(
+      (s) =>
+        s.spec.structureSpec?.kind === "intervals_paced" &&
+        s.spec.structureSpec.repDistanceM === 400,
     );
-    expect(easies.length).toBeGreaterThan(0);
-    const hasStrides = easies.some(
+    expect(tune).toBeDefined();
+  });
+
+  it("pins the 20-min strides shakeout to race-eve and never touches race day", () => {
+    const raceYmd = "2026-08-30"; // Sunday → eve Saturday 2026-08-29
+    const out = taperSessions5K({
+      ...taperArgs,
+      taperStartYmd: "2026-08-24",
+      raceYmd,
+    });
+    const shakeout = out.find(
+      (s) =>
+        s.spec.structureSpec?.kind === "easy_continuous" &&
+        s.spec.structureSpec.addStrides === true &&
+        s.spec.structureSpec.durationSec === 20 * 60,
+    );
+    expect(shakeout?.dateYmd).toBe("2026-08-29");
+    // Nothing on or after race day.
+    expect(out.every((s) => s.dateYmd < raceYmd)).toBe(true);
+  });
+
+  it("spans both calendar weeks for an extended (Wednesday) taper", () => {
+    // 10-day taper: Mon 2026-08-24 .. Tue 2026-09-01 (race Wed 2026-09-02).
+    const raceYmd = "2026-09-02";
+    const out = taperSessions5K({
+      ...taperArgs,
+      taperStartYmd: "2026-08-24",
+      raceYmd,
+    });
+    expect(out.length).toBeGreaterThan(0);
+    expect(out.every((s) => s.dateYmd >= "2026-08-24" && s.dateYmd < raceYmd)).toBe(
+      true,
+    );
+    // Shakeout on race-eve Tuesday 2026-09-01.
+    const shakeout = out.find(
+      (s) =>
+        s.spec.structureSpec?.kind === "easy_continuous" &&
+        s.spec.structureSpec.durationSec === 20 * 60,
+    );
+    expect(shakeout?.dateYmd).toBe("2026-09-01");
+  });
+
+  it("low-frequency athletes (≤3 sessions/week) get no shakeout", () => {
+    const out = taperSessions5K({
+      ...taperArgs,
+      schedule: { availableDays: [1, 3, 5], sessionsPerWeek: 3 },
+      taperStartYmd: "2026-08-24",
+      raceYmd: "2026-08-30",
+    });
+    const shakeout = out.find(
+      (s) =>
+        s.spec.structureSpec?.kind === "easy_continuous" &&
+        s.spec.structureSpec.durationSec === 20 * 60,
+    );
+    expect(shakeout).toBeUndefined();
+  });
+});
+
+describe("microcycle5K — strides assignment", () => {
+  it("every quality-bearing phase week schedules at least one strides easy", () => {
+    const sessions = microcycle5K({
+      ...baseArgs,
+      phase: "build",
+      weekIndexInPhase: 0,
+      weekKm: 50,
+      schedule: SCHEDULE_5,
+    });
+    const hasStrides = sessions.some(
       (s) =>
         s.structureSpec?.kind === "easy_continuous" &&
         s.structureSpec.addStrides === true,
@@ -232,62 +450,45 @@ describe("microcycle5K — peak phase", () => {
   });
 });
 
-describe("microcycle5K — taper", () => {
-  it("includes one short tune-up at 5K pace + EFs", () => {
+describe("microcycle5K — day spacing", () => {
+  it("places the SV1 long on the latest available day", () => {
     const sessions = microcycle5K({
-      phase: "taper",
+      ...baseArgs,
+      phase: "base",
       weekIndexInPhase: 0,
-      weekKm: 25,
-      schedule: SCHEDULE_4,
-      peakKm: 60,
-      paces: PACES_50,
-      vdot: VDOT_50,
+      schedule: SCHEDULE_5, // [0,1,3,5,6]
     });
-    const tune = sessions.find(
-      (s) =>
-        s.structureSpec?.kind === "intervals_paced" &&
-        s.structureSpec.repDistanceM === 400,
-    );
-    expect(tune).toBeDefined();
+    const long = sessions.find(isSv1Long);
+    expect(long?.dayOfWeek).toBe(6); // latest day
   });
-});
 
-describe("microcycle5K — strides positioning", () => {
-  it("EF before a quality session is flagged addStrides=true", () => {
+  it("does not place two hard sessions on adjacent days when avoidable", () => {
+    // 5 sessions, 2 qualities + 1 long across [0,1,3,5,6] → spread 0 / 3 / 6.
     const sessions = microcycle5K({
+      ...baseArgs,
       phase: "build",
-      weekIndexInPhase: 0,
-      weekKm: 50,
+      weekIndexInPhase: 2,
+      weekKm: 55,
       schedule: SCHEDULE_5,
-      peakKm: 60,
-      paces: PACES_50,
-      vdot: VDOT_50,
     });
-    // Build early with 5 sessions → [EF, SV2, VMA short, SV1 long, ...]
-    // wait, rolesBuildEarly returns [EF, SV2, VMA, long] for slots>=4. Slot=5 → easies = 5-3=2, so [EF, EF, SV2, VMA, long]
-    // applyStrides should flag the EF immediately before SV2
-    const easyBeforeQuality = sessions.find(
-      (s, i) =>
-        s.structureSpec?.kind === "easy_continuous" &&
-        s.structureSpec.addStrides === true &&
-        i + 1 < sessions.length &&
-        sessions[i + 1]!.structureSpec?.kind !== "easy_continuous",
-    );
-    expect(easyBeforeQuality).toBeDefined();
+    const hardDays = sessions
+      .filter((s) => s.structureSpec?.kind !== "easy_continuous")
+      .map((s) => s.dayOfWeek)
+      .sort((a, b) => a - b);
+    for (let i = 1; i < hardDays.length; i++) {
+      expect(hardDays[i]! - hardDays[i - 1]!).toBeGreaterThanOrEqual(2);
+    }
   });
 });
 
 describe("microcycle5K — EF duration constraint", () => {
   it("easy_continuous durationSec clamps within [30min, 50min]", () => {
-    // Test with high volume → should hit max (50min)
     const sessionsHigh = microcycle5K({
+      ...baseArgs,
       phase: "base",
       weekIndexInPhase: 0,
       weekKm: 60,
       schedule: SCHEDULE_4,
-      peakKm: 60,
-      paces: PACES_50,
-      vdot: VDOT_50,
     });
     const easyHigh = sessionsHigh.find(
       (s) => s.structureSpec?.kind === "easy_continuous",
@@ -297,15 +498,12 @@ describe("microcycle5K — EF duration constraint", () => {
       expect(easyHigh.structureSpec.durationSec).toBeGreaterThanOrEqual(30 * 60);
     }
 
-    // Test with low volume → should hit min (30min)
     const sessionsLow = microcycle5K({
+      ...baseArgs,
       phase: "base",
       weekIndexInPhase: 0,
       weekKm: 10,
       schedule: SCHEDULE_4,
-      peakKm: 60,
-      paces: PACES_50,
-      vdot: VDOT_50,
     });
     const easyLow = sessionsLow.find(
       (s) => s.structureSpec?.kind === "easy_continuous",
@@ -320,19 +518,13 @@ describe("microcycle5K — EF duration constraint", () => {
 describe("microcycle5K — warmup/cooldown scaling", () => {
   it("warmup is 15-20min, cooldown is 5-10min", () => {
     const sessions = microcycle5K({
+      ...baseArgs,
       phase: "build",
       weekIndexInPhase: 0,
       weekKm: 50,
       schedule: SCHEDULE_4,
-      peakKm: 60,
-      paces: PACES_50,
-      vdot: VDOT_50,
     });
-    const sv2 = sessions.find(
-      (s) =>
-        s.structureSpec?.kind === "intervals_distance" &&
-        s.structureSpec.repIntensity === "T",
-    );
+    const sv2 = sessions.find(isSv2);
     if (sv2?.structureSpec?.kind === "intervals_distance") {
       expect(sv2.structureSpec.warmupSec).toBeGreaterThanOrEqual(15 * 60);
       expect(sv2.structureSpec.warmupSec).toBeLessThanOrEqual(20 * 60);

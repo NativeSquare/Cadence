@@ -15,7 +15,7 @@ import { ActivityIndicator, Pressable, ScrollView, View } from "react-native";
 type RaceKey = "5k" | "10k" | "half" | "marathon";
 const RACES: readonly RaceKey[] = ["5k", "10k", "half", "marathon"];
 
-const PACE_KEYS = ["E", "M", "T", "I", "R"] as const;
+const PACE_KEYS = ["E", "SV1", "M", "T", "I", "R"] as const;
 type PaceKey = (typeof PACE_KEYS)[number];
 
 function formatRaceTime(totalSeconds: number): string {

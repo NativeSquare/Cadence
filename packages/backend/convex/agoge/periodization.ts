@@ -63,10 +63,29 @@ export function paceMpsAtIntensity(vdot: number, intensity: number): number {
   return vMpmAtIntensity(vdot, intensity) / 60;
 }
 
-export type IntensityAnchor = "E" | "M" | "T" | "I" | "R";
+/**
+ * Ralentissement de l'allure Facile selon le niveau : plus l'allure E (VDOT) est
+ * rapide, plus on la ralentit. Cascade premier-match de haut en bas, comparée à
+ * l'allure E BRUTE (avant ajustement). Retourne une fraction (0.05 = 5 %).
+ */
+export function easySlowdownFraction(rawEasyMps: number): number {
+  if (!(rawEasyMps > 0)) return 0;
+  const secPerKm = 1000 / rawEasyMps;
+  if (secPerKm > 6.5 * 60) return 0.05; // plus lent que 6:30
+  if (secPerKm > 6.0 * 60) return 0.1; // 6:00–6:30
+  if (secPerKm > 5.5 * 60) return 0.13; // 5:30–6:00
+  if (secPerKm > 5.0 * 60) return 0.18; // 5:00–5:30
+  if (secPerKm > 4.5 * 60) return 0.2; // 4:30–5:00
+  if (secPerKm > 4.0 * 60) return 0.23; // 4:00–4:30
+  return 0.25; // plus rapide que 4:00 (plafond)
+}
+
+export type IntensityAnchor = "E" | "SV1" | "M" | "T" | "I" | "R";
 export type Paces = Record<IntensityAnchor, number>; // m/s
 
-const INTENSITY: Record<IntensityAnchor, number> = {
+// SV1 is derived from the fast edge of the raw VDOT-E band, not a fixed %VO2max
+// multiplier, so it has no INTENSITY entry.
+const INTENSITY: Record<Exclude<IntensityAnchor, "SV1">, number> = {
   E: 0.7,
   M: 0.84,
   T: 0.88,
@@ -74,9 +93,17 @@ const INTENSITY: Record<IntensityAnchor, number> = {
   R: 1.1,
 };
 
+// ±fraction of the raw VDOT-E pace that defines the Easy band. Its fast edge
+// (rawE × (1 + E_PACE_BAND)) is also the centre of the SV1 zone — SV1 captures
+// the aerobic-threshold regime that the fast end of "easy" otherwise flirts with.
+const E_PACE_BAND = 0.08;
+
 export function trainingPaces(vdot: number): Paces {
+  const rawE = paceMpsAtIntensity(vdot, INTENSITY.E);
+  const slowed = rawE / (1 + easySlowdownFraction(rawE));
   return {
-    E: paceMpsAtIntensity(vdot, INTENSITY.E),
+    E: slowed,
+    SV1: rawE * (1 + E_PACE_BAND),
     M: paceMpsAtIntensity(vdot, INTENSITY.M),
     T: paceMpsAtIntensity(vdot, INTENSITY.T),
     I: paceMpsAtIntensity(vdot, INTENSITY.I),
@@ -536,19 +563,26 @@ const WARMUP_M = 2000;
 const COOLDOWN_M = 1000;
 
 // ± tolerance around the point pace per intensity anchor. Tighter for hard
-// efforts (T/I) where pace discipline drives the adaptation; looser at E.
-const PACE_BAND: Record<IntensityAnchor, number> = {
-  E: 0.08,
+// efforts (T/I) where pace discipline drives the adaptation; looser at E. SV1
+// uses an absolute ±seconds/km band instead (see SV1_BAND_SEC) and is handled
+// separately in paceTarget.
+const PACE_BAND: Record<Exclude<IntensityAnchor, "SV1">, number> = {
+  E: E_PACE_BAND,
   M: 0.04,
   T: 0.03,
   I: 0.03,
   R: 0.04,
 };
 
+// SV1 fourchette is an absolute ±seconds/km band around the point pace (not a
+// percentage) — narrow enough to stay clear of the Easy zone for every runner.
+const SV1_BAND_SEC = 8;
+
 // RPE fallback when no paces are available (e.g. fitness plans with no VDOT).
 // Borg CR10-flavoured: conversational at E, all-out at R.
 const RPE_BY_INTENSITY: Record<IntensityAnchor, number> = {
   E: 3,
+  SV1: 4,
   M: 6,
   T: 7,
   I: 9,
@@ -561,6 +595,16 @@ function paceTarget(
 ): Step["target"] {
   if (!paces) return { type: "rpe", value: RPE_BY_INTENSITY[intensity] };
   const v = paces[intensity];
+  if (intensity === "SV1") {
+    // Absolute ±seconds/km band: convert the point pace to sec/km, widen, and
+    // convert back to m/s (faster pace → higher speed → subtract seconds).
+    const secPerKm = 1000 / v;
+    return {
+      type: "pace_range",
+      min_speed_mps: round2(1000 / (secPerKm + SV1_BAND_SEC)),
+      max_speed_mps: round2(1000 / (secPerKm - SV1_BAND_SEC)),
+    };
+  }
   const band = PACE_BAND[intensity];
   return {
     type: "pace_range",
@@ -644,7 +688,7 @@ export type StructureSpec =
       reps: number;
       workDurationSec: number;
       recoveryDurationSec: number;
-      workIntensity: IntensityAnchor; // M for SV1, T for SV2-tempo, etc.
+      workIntensity: IntensityAnchor; // SV1 for the threshold long, T for SV2-tempo, etc.
     }
   | {
       kind: "intervals_distance";

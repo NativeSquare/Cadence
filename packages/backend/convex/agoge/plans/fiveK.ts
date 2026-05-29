@@ -1,29 +1,45 @@
 /**
  * 5K-specific weekly microcycle.
  *
- * Philosophy (per project decision):
- * - Bases:           EF×many + Seuil SV1 (long w/ M blocks) + occasional VMA courte + strides.
- * - Construction-début (build week 0–1): EF + Seuil SV2 + Seuil SV1 + VMA courte.
- * - Construction-fin  (build week 2+):
- *     - W1 (even idx-in-late): VMA longue + Seuil SV2 + long continuous EF + EFs.
- *     - W2 (odd  idx-in-late): Mixte (préfatigue) + Seuil SV1 + EFs.
- * - Spécifique (peak): 3× EF (strides++) + 1× allure spé 5K.
- * - Taper:             EFs + 1 short tune-up @ 5K pace.
+ * Each phase has an explicit session composition per weekly frequency (2→6+),
+ * matching the coaching templates. Strides ("lignes droites") are assigned
+ * explicitly per template — not positionally. The composition (the role "bag")
+ * is decided per phase/frequency, then `placeRoles` lays it out across the
+ * athlete's available days for recovery spacing.
+ *
+ * Philosophy (per coaching templates):
+ * - Base:           EF (+strides) + VMA courte (every week) + Seuil SV1 long.
+ *                   No long at 2 sessions/week.
+ * - Construction-début (build week 0–1): EF + SV2 / VMA courte / SV1 long, scaled by frequency.
+ * - Construction-fin  (build week 2+): EF + SV2 + SV1 long, with one quality slot
+ *   alternating VMA longue (week 1) ↔ Mixte (week 2).
+ * - Spécifique (peak): easy runs + 5K race-pace sessions (7×800m @ allure course)
+ *   only — no SV2, no SV1 long. Composition per weekly frequency:
+ *     2: 1 easy+strides / 1 spé
+ *     3: 1 easy+strides / 1 spé / 1 easy
+ *     4: 1 easy / 2 easy+strides / 1 spé
+ *     5: 1 easy+strides / 2 easy / 2 spé
+ *     6: 1 easy+strides / 3 easy / 2 spé
+ * - Taper:           rappel d'allure (3×400m @ 5K pace) + EFs + a 20-min strides
+ *   shakeout pinned to the day before the race (the race itself is emitted separately).
  *
  * Constraints:
- * - EF duration always 30–50 min (clamped, derived from E pace).
+ * - EF duration 30–50 min (clamped, derived from E pace); shakeout is a fixed 20 min.
  * - Warmup 15–20 min, cooldown 5–10 min, scaled linearly with weekKm/peakKm.
- * - Strides = 6×100m R / 100m E recovery, appended to selected easy runs.
- *   Pattern: strides on the EF immediately before a quality session.
+ * - Strides = 6×100m R / 100m E recovery, appended to flagged easy runs.
  *
- * SV1 ≈ M pace (no separate SV1 anchor). All non-easy/long sessions surface
- * as WorkoutType `intervals`; structure variation lives in StructureSpec.
+ * SV1 long blocks run at the dedicated SV1 anchor (aerobic threshold, just
+ * above easy — slower than M). All non-easy/long sessions surface as
+ * WorkoutType `intervals`; structure variation lives in StructureSpec.
  */
 
 import type { BlockType } from "@nativesquare/agoge/schema";
 import {
+  addDaysYmd,
+  daysBetweenYmd,
   fiveKPaceMps,
   type IntensityAnchor,
+  isoDayOfWeek,
   type Paces,
   pickTrainingDays,
   type Schedule,
@@ -38,6 +54,9 @@ import {
 const EASY_MIN_SEC = 30 * 60;
 const EASY_MAX_SEC = 50 * 60;
 
+// Race-eve activation run: short and fixed, just to stay loose.
+const SHAKEOUT_SEC = 20 * 60;
+
 const WARMUP_MIN_SEC = 15 * 60;
 const WARMUP_MAX_SEC = 20 * 60;
 const COOLDOWN_MIN_SEC = 5 * 60;
@@ -50,7 +69,7 @@ const VMA_SHORT_RECOVERY_SEC = 60; // 1 min @ E
 const RACE_PACE_RECOVERY_SEC = 90; // 1 min 30 @ E
 const MIXED_BRIDGE_SEC = 180; // 3 min between SV2 block and VMA short block
 
-// Long-run with M-pace blocks (Seuil SV1): 3×8min @ M with 3min E recovery.
+// Long-run with SV1-pace blocks (Seuil SV1): 3×8min @ SV1 with 3min E recovery.
 const SV1_BLOCK_WORK_SEC = 8 * 60;
 const SV1_BLOCK_RECOVERY_SEC = 3 * 60;
 const SV1_BLOCK_REPS = 3;
@@ -76,8 +95,7 @@ export type Microcycle5KArgs = {
 };
 
 type Role5K =
-  | { kind: "easy"; addStrides: boolean }
-  | { kind: "long_continuous" }
+  | { kind: "easy"; addStrides: boolean; shakeout?: boolean }
   | { kind: "sv1_long" }
   | { kind: "sv2" }
   | { kind: "vma_short" }
@@ -86,19 +104,12 @@ type Role5K =
   | { kind: "race_pace_5k" }
   | { kind: "taper_tune_up" };
 
+const easy = (addStrides = false): Role5K => ({ kind: "easy", addStrides });
+
+/** Quality = anything that isn't an easy run. SV1 long is handled separately
+ * by `placeRoles` (it owns the latest day), so it's excluded here. */
 function isQuality(r: Role5K): boolean {
-  switch (r.kind) {
-    case "sv2":
-    case "vma_short":
-    case "vma_long":
-    case "mixed":
-    case "race_pace_5k":
-    case "sv1_long":
-    case "taper_tune_up":
-      return true;
-    default:
-      return false;
-  }
+  return r.kind !== "easy" && r.kind !== "sv1_long";
 }
 
 // ---------------------------------------------------------------------------
@@ -106,152 +117,248 @@ function isQuality(r: Role5K): boolean {
 // ---------------------------------------------------------------------------
 
 /**
- * Pick the ordered role list for a phase. The order is "earliest day → latest".
- * The last slot is reserved for the weekly long (SV1 or long continuous);
- * quality work sits in the middle; EFs fill remaining slots. Strides are
- * applied as a post-pass: any EF immediately before a quality role gets them.
+ * Build the role "bag" for a phase at a given weekly frequency. Strides are
+ * assigned explicitly per the coaching templates (not positionally). The list
+ * order is irrelevant — `placeRoles` lays roles out across days for spacing.
  */
 function rolesForPhase(args: Microcycle5KArgs, slots: number): Role5K[] {
   if (slots <= 0) return [];
-
   const { phase, weekIndexInPhase } = args;
-
-  let roles: Role5K[];
   switch (phase) {
     case "base":
-      roles = rolesBase(slots, weekIndexInPhase);
-      break;
+      return rolesBase(slots, weekIndexInPhase);
     case "build":
-      roles =
-        weekIndexInPhase < 2
-          ? rolesBuildEarly(slots)
-          : rolesBuildLate(slots, weekIndexInPhase);
-      break;
+      return weekIndexInPhase < 2
+        ? rolesBuildEarly(slots, weekIndexInPhase)
+        : rolesBuildLate(slots, weekIndexInPhase);
     case "peak":
-      roles = rolesPeak(slots);
-      break;
+      return rolesPeak(slots);
     case "taper":
-      roles = rolesTaper(slots);
-      break;
+      // Taper is a variable-length final block (4–10 days, race-anchored) laid
+      // out by `taperSessions5K` over absolute dates — never a weekly microcycle.
+      return [];
   }
-
-  return applyStrides(roles);
 }
 
-function rolesBase(slots: number, weekIndexInPhase: number): Role5K[] {
-  // Required tail: SV1 long. Optional VMA courte every other week.
-  // Fill rest with EFs (later passes add strides positionally).
+/** Base: EF (+strides) + VMA courte every week + SV1 long. No long at 2/week. */
+function rolesBase(slots: number, week: number): Role5K[] {
+  const altStrides = week % 2 === 0; // "6×100m une semaine sur deux"
+  const vma: Role5K = { kind: "vma_short" };
   const long: Role5K = { kind: "sv1_long" };
-  const wantsVma = weekIndexInPhase % 2 === 1; // weeks 1, 3, 5, ... within base
-
-  if (slots === 1) return [long];
-  if (slots === 2) return [{ kind: "easy", addStrides: false }, long];
-  if (slots === 3) {
-    return wantsVma
-      ? [{ kind: "easy", addStrides: false }, { kind: "vma_short" }, long]
-      : [
-          { kind: "easy", addStrides: false },
-          { kind: "easy", addStrides: false },
-          long,
-        ];
+  switch (slots) {
+    case 1:
+      return [long];
+    case 2:
+      return [easy(true), vma];
+    case 3:
+      return [easy(altStrides), vma, long];
+    case 4:
+      return [easy(), easy(true), vma, long];
+    case 5:
+      return [easy(true), easy(), easy(), vma, long];
+    default: {
+      // 6+: two strides-easies, the rest plain, + VMA + SV1 long.
+      const plain = slots - 4;
+      return [
+        easy(true),
+        easy(true),
+        ...Array.from({ length: plain }, () => easy()),
+        vma,
+        long,
+      ];
+    }
   }
-  // slots >= 4
-  const easies: Role5K[] = Array.from({ length: slots - (wantsVma ? 2 : 1) }, () => ({
-    kind: "easy" as const,
-    addStrides: false,
-  }));
-  if (wantsVma) {
-    // Spread: EF, EF, ..., VMA, long
-    return [...easies, { kind: "vma_short" }, long];
-  }
-  return [...easies, long];
 }
 
-function rolesBuildEarly(slots: number): Role5K[] {
-  // Target roles (in priority): sv1_long (long), sv2, vma_short, easies.
-  // sessionsPerWeek = 4 → [EF, SV2, VMA short, SV1 long]
+/** Construction-début (build weeks 0–1). */
+function rolesBuildEarly(slots: number, week: number): Role5K[] {
+  const altStrides = week % 2 === 0;
+  const sv2: Role5K = { kind: "sv2" };
+  const vma: Role5K = { kind: "vma_short" };
   const long: Role5K = { kind: "sv1_long" };
-  if (slots === 1) return [long];
-  if (slots === 2) return [{ kind: "sv2" }, long];
-  if (slots === 3) return [{ kind: "sv2" }, { kind: "vma_short" }, long];
-  // slots >= 4: pad easies at the front
-  const easies: Role5K[] = Array.from({ length: slots - 3 }, () => ({
-    kind: "easy" as const,
-    addStrides: false,
-  }));
-  return [...easies, { kind: "sv2" }, { kind: "vma_short" }, long];
-}
-
-function rolesBuildLate(slots: number, weekIndexInPhase: number): Role5K[] {
-  // W1 (even idx-in-late): VMA longue + SV2 + long continuous EF + EFs.
-  // W2 (odd  idx-in-late): Mixte             + SV1 long              + EFs.
-  // idx-in-late = weekIndexInPhase - 2 (since build-early was weeks 0,1).
-  const inLate = Math.max(0, weekIndexInPhase - 2);
-  const isW1 = inLate % 2 === 0;
-
-  if (isW1) {
-    // Two quality + one long-continuous EF (+ easies).
-    const longCont: Role5K = { kind: "long_continuous" };
-    if (slots === 1) return [longCont];
-    if (slots === 2) return [{ kind: "vma_long" }, longCont];
-    if (slots === 3) return [{ kind: "sv2" }, { kind: "vma_long" }, longCont];
-    const easies: Role5K[] = Array.from({ length: slots - 3 }, () => ({
-      kind: "easy" as const,
-      addStrides: false,
-    }));
-    return [...easies, { kind: "sv2" }, { kind: "vma_long" }, longCont];
+  switch (slots) {
+    case 1:
+      return [long];
+    case 2:
+      return [easy(true), sv2];
+    case 3:
+      return [easy(altStrides), vma, long];
+    case 4:
+      return [easy(), easy(true), vma, sv2];
+    case 5:
+      return [easy(true), easy(), sv2, vma, long];
+    default: {
+      // 6+: VMA + SV2 + SV1 long, one strides-easy, the rest plain.
+      const plain = slots - 4;
+      return [
+        easy(true),
+        ...Array.from({ length: plain }, () => easy()),
+        vma,
+        sv2,
+        long,
+      ];
+    }
   }
-
-  // W2: Mixte + SV1 long (SV1 doubles as the long).
-  const long: Role5K = { kind: "sv1_long" };
-  if (slots === 1) return [long];
-  if (slots === 2) return [{ kind: "mixed" }, long];
-  const easies: Role5K[] = Array.from({ length: slots - 2 }, () => ({
-    kind: "easy" as const,
-    addStrides: false,
-  }));
-  return [...easies, { kind: "mixed" }, long];
-}
-
-function rolesPeak(slots: number): Role5K[] {
-  // 1 race-pace 5K session, rest EFs (strides on most via applyStrides).
-  const quality: Role5K = { kind: "race_pace_5k" };
-  if (slots === 1) return [quality];
-  const easies: Role5K[] = Array.from({ length: slots - 1 }, () => ({
-    kind: "easy" as const,
-    addStrides: false,
-  }));
-  // Place the quality session second-to-last so the last day is recovery EF.
-  if (slots === 2) return [easies[0]!, quality];
-  return [...easies.slice(0, slots - 2), quality, easies[easies.length - 1]!];
-}
-
-function rolesTaper(slots: number): Role5K[] {
-  // 1 short tune-up at 5K pace mid-week, rest very easy EFs.
-  const tune: Role5K = { kind: "taper_tune_up" };
-  if (slots === 1) return [tune];
-  const easies: Role5K[] = Array.from({ length: slots - 1 }, () => ({
-    kind: "easy" as const,
-    addStrides: false,
-  }));
-  if (slots === 2) return [tune, easies[0]!];
-  return [easies[0]!, tune, ...easies.slice(1)];
 }
 
 /**
- * Flip any "easy" role to "easy + strides" when the immediately-following day
- * is a quality session. Neuromuscular priming the day before hard work.
+ * Construction-fin (build week ≥ 2): EF + SV2 + SV1 long, with one alternating
+ * quality slot — VMA longue (week 1) ↔ Mixte (week 2). Peak no longer shares
+ * this shape; see `rolesPeak`.
  */
-function applyStrides(roles: Role5K[]): Role5K[] {
-  const out = roles.map((r) => ({ ...r }));
-  for (let i = 0; i < out.length - 1; i++) {
-    const here = out[i]!;
-    const next = out[i + 1]!;
-    if (here.kind === "easy" && isQuality(next)) {
-      (here as { addStrides: boolean }).addStrides = true;
+function rolesFinShape(
+  slots: number,
+  altStrides: boolean,
+  alt: Role5K,
+): Role5K[] {
+  const sv2: Role5K = { kind: "sv2" };
+  const long: Role5K = { kind: "sv1_long" };
+  switch (slots) {
+    case 1:
+      return [long];
+    case 2:
+      return [easy(true), alt];
+    case 3:
+      return [easy(altStrides), alt, long];
+    case 4:
+      return [easy(), easy(true), alt, sv2];
+    case 5:
+      return [easy(true), easy(), alt, sv2, long];
+    default: {
+      const plain = slots - 4;
+      return [
+        easy(true),
+        ...Array.from({ length: plain }, () => easy()),
+        alt,
+        sv2,
+        long,
+      ];
     }
   }
-  return out;
+}
+
+function rolesBuildLate(slots: number, week: number): Role5K[] {
+  const inLate = Math.max(0, week - 2);
+  const alt: Role5K =
+    inLate % 2 === 0 ? { kind: "vma_long" } : { kind: "mixed" };
+  return rolesFinShape(slots, week % 2 === 0, alt);
+}
+
+/**
+ * Spécifique (peak): easy runs + 5K race-pace spé (7×800m @ allure course) only.
+ * No SV2, no SV1 long — the peak week sharpens toward the race. One race-pace
+ * session up to 4 sessions/week, two from 5 onward. Strides ("lignes droites")
+ * ride on a single easy each week (two strides-easies at 4 sessions).
+ */
+function rolesPeak(slots: number): Role5K[] {
+  const rp: Role5K = { kind: "race_pace_5k" };
+  switch (slots) {
+    case 1:
+      return [rp];
+    case 2:
+      return [easy(true), rp];
+    case 3:
+      return [easy(true), rp, easy()];
+    case 4:
+      return [easy(), easy(true), easy(true), rp];
+    default: {
+      // 5+: 1 strides-easy, (slots − 3) plain easies, 2 race-pace spé.
+      const plain = slots - 3;
+      return [easy(true), ...Array.from({ length: plain }, () => easy()), rp, rp];
+    }
+  }
+}
+
+// Taper roles are assigned over absolute calendar dates by `taperSessions5K`
+// (see below), not through the weekly microcycle.
+
+/**
+ * Lay roles out across available days for recovery spacing. Weeks are Mon→Sun
+ * (anchor = Monday), so "latest" means closest to Sunday — the natural end of
+ * the calendar week.
+ *
+ * - Hard days (qualities + SV1 long) are spread evenly across the week for
+ *   maximum recovery between them; the latest hard slot is Sunday-most, so the
+ *   SV1 long (base/build) or a race-pace spé (peak) lands as the final hard
+ *   touch before the taper. With two peak spé sessions, they spread to the
+ *   first and last hard slots.
+ * - Easies fill the rest.
+ *
+ * The latest `roles.length` days are used — drops the earliest when there are
+ * more available days than roles.
+ */
+function placeRoles(
+  roles: Role5K[],
+  days: number[],
+  anchor: number,
+): { role: Role5K; dayOfWeek: number }[] {
+  const n = roles.length;
+  if (n === 0 || days.length === 0) return [];
+  const offset = (d: number) => (d - anchor + 7) % 7;
+  const ordered = [...days].sort((a, b) => offset(a) - offset(b));
+  const slotDays = ordered.slice(Math.max(0, ordered.length - n));
+  const m = slotDays.length;
+
+  const assign: (number | undefined)[] = new Array(m).fill(undefined);
+  const taken = new Array<boolean>(m).fill(false);
+  const place = (slot: number, roleIdx: number) => {
+    if (slot < 0 || slot >= m || taken[slot]) return;
+    assign[slot] = roleIdx;
+    taken[slot] = true;
+  };
+
+  // SV1 long is the latest hard day (placed last in the `hard` list below).
+  const longIdx = roles.findIndex((r) => r.kind === "sv1_long");
+  const qualityIdxs: number[] = [];
+  const easyIdxs: number[] = [];
+  roles.forEach((r, i) => {
+    if (i === longIdx) return;
+    if (isQuality(r)) qualityIdxs.push(i);
+    else easyIdxs.push(i);
+  });
+
+  const hi = m - 1;
+
+  // Hard days = qualities then the SV1 long (long is the latest hard day),
+  // spread evenly across [0, hi] for maximum recovery between them.
+  const hard = [...qualityIdxs];
+  if (longIdx >= 0) hard.push(longIdx);
+  if (hard.length === 1) {
+    place(Math.max(0, hi), hard[0]!);
+  } else if (hard.length > 1) {
+    for (let k = 0; k < hard.length; k++) {
+      place(Math.round((k * Math.max(0, hi)) / (hard.length - 1)), hard[k]!);
+    }
+  }
+
+  // Easies fill the remaining free slots.
+  let e = 0;
+  for (let s = 0; s < m && e < easyIdxs.length; s++) {
+    if (!taken[s]) place(s, easyIdxs[e++]!);
+  }
+
+  // Safety net: assign any unplaced role to any free slot (shouldn't trigger).
+  const placedIdxs = new Set(
+    assign.filter((x): x is number => x !== undefined),
+  );
+  let free = 0;
+  roles.forEach((_, i) => {
+    if (placedIdxs.has(i)) return;
+    while (free < m && taken[free]) free++;
+    if (free < m) {
+      place(free, i);
+      placedIdxs.add(i);
+    }
+  });
+
+  const result: { role: Role5K; dayOfWeek: number }[] = [];
+  for (let s = 0; s < m; s++) {
+    const idx = assign[s];
+    if (idx !== undefined) {
+      result.push({ role: roles[idx]!, dayOfWeek: slotDays[s]! });
+    }
+  }
+  return result;
 }
 
 // ---------------------------------------------------------------------------
@@ -301,35 +408,26 @@ function roleToSessionSpec(
 
   switch (role.kind) {
     case "easy": {
+      // Shakeout = fixed 20-min activation run the day before the race; a
+      // normal easy scales 30–50 min with volume.
+      const durationSec = role.shakeout
+        ? SHAKEOUT_SEC
+        : easyDurationSec(weekKm, peakKm);
       const spec: StructureSpec = {
         kind: "easy_continuous",
-        durationSec: easyDurationSec(weekKm, peakKm),
+        durationSec,
         addStrides: role.addStrides,
       };
       return {
         ...base,
         type: "easy",
         intensity: "E",
-        distanceKm: round1(easyKm),
-        structureSpec: spec,
-      };
-    }
-    case "long_continuous": {
-      // Continuous easy long when SV1 isn't programmed this week. Duration
-      // sits at the top of the easy band (50 min) regardless of weekKm —
-      // it's "the long of the week" in a quality-heavy week.
-      const durSec = EASY_MAX_SEC + 15 * 60; // 50 + 15 = ~65 min default
-      const spec: StructureSpec = { kind: "long_continuous", durationSec: durSec };
-      return {
-        ...base,
-        type: "long",
-        intensity: "E",
-        distanceKm: round1(ePace > 0 ? (ePace * durSec) / 1000 : 12),
+        distanceKm: round1(ePace > 0 ? (ePace * durationSec) / 1000 : easyKm),
         structureSpec: spec,
       };
     }
     case "sv1_long": {
-      // Long with 3×8min @ M / 3min E. Total ≈ 33 min of structured work +
+      // Long with 3×8min @ SV1 / 3min E. Total ≈ 33 min of structured work +
       // warmup + cooldown ≈ 60–70 min depending on volume.
       const spec: StructureSpec = {
         kind: "long_with_blocks",
@@ -338,7 +436,7 @@ function roleToSessionSpec(
         reps: SV1_BLOCK_REPS,
         workDurationSec: SV1_BLOCK_WORK_SEC,
         recoveryDurationSec: SV1_BLOCK_RECOVERY_SEC,
-        workIntensity: "M",
+        workIntensity: "SV1",
       };
       const totalSec =
         wu +
@@ -347,7 +445,7 @@ function roleToSessionSpec(
       return {
         ...base,
         type: "long",
-        intensity: "M",
+        intensity: "SV1",
         distanceKm: round1(ePace > 0 ? (ePace * totalSec) / 1000 : 12),
         structureSpec: spec,
       };
@@ -512,24 +610,174 @@ function roleToSessionSpec(
 // ---------------------------------------------------------------------------
 
 /**
- * Build the week's session list for a 5K plan. Picks days from the schedule,
- * assigns roles per phase (+ week index for build sub-phasing), maps each
- * role to a SessionSpec with an explicit StructureSpec. The engine layer
- * calls buildStructure(_, _, _, paces, spec) to materialise the structure.
+ * Build the week's session list for a 5K base/build/peak week. Picks days from
+ * the schedule, assigns the phase's role bag (keyed on frequency + week index),
+ * lays them out across days for recovery spacing, then maps each role to a
+ * SessionSpec with an explicit StructureSpec. The engine layer calls
+ * buildStructure(_, _, _, paces, spec) to materialise the structure.
+ *
+ * Weeks are Mon→Sun, so days are ordered with Monday as the anchor and the long
+ * run / quality sessions gravitate toward the end of the week (Sunday-most). The
+ * taper is not a weekly microcycle — see `taperSessions5K`.
  */
 export function microcycle5K(args: Microcycle5KArgs): SessionSpec[] {
-  const days = pickTrainingDays(args.schedule);
-  if (days.length === 0) return [];
-  const roles = rolesForPhase(args, days.length);
+  const picked = pickTrainingDays(args.schedule);
+  if (picked.length === 0) return [];
+
+  const roles = rolesForPhase(args, picked.length);
+  if (roles.length === 0) return [];
+
+  // Mon→Sun weeks: anchor on Monday so "latest" means Sunday-most.
+  const MONDAY_ANCHOR = 0;
 
   const out: SessionSpec[] = [];
-  for (let i = 0; i < roles.length; i++) {
-    const role = roles[i]!;
-    const dayOfWeek = days[i]!;
+  for (const { role, dayOfWeek } of placeRoles(roles, picked, MONDAY_ANCHOR)) {
     const spec = roleToSessionSpec(role, args, dayOfWeek);
     if (spec) out.push(spec);
   }
   return out;
+}
+
+// ---------------------------------------------------------------------------
+// Monday-aligned grid + taper layout
+// ---------------------------------------------------------------------------
+
+/**
+ * Taper length in days as a function of the race's ISO day-of-week (0=Mon…6=Sun).
+ *
+ * Every base/build/peak block runs Mon→Sun; the taper is the variable tail that
+ * carries the plan to race day:
+ * - Sun (6):           7 days — the taper *is* the race-week (race on Sunday).
+ * - Mon/Tue/Wed (0–2): 8/9/10 days — extended back into the previous week, since
+ *   the race sits just after a Sunday and a 1–3 day taper would be too short.
+ * - Thu/Fri/Sat (3–5): 4/5/6 days — shortened to the start of the race-week, so
+ *   we don't append a near-empty extra week before the race.
+ *
+ * In every case the taper opens on a Monday (so the preceding peak block still
+ * ends on a Sunday).
+ */
+export function taperDaysForRaceDow(raceDow: number): number {
+  return raceDow <= 2 ? raceDow + 8 : raceDow + 1;
+}
+
+export type FiveKGrid = {
+  /** Monday of the plan-start week. Week rows are addDaysYmd(gridStartYmd, 7·w). */
+  gridStartYmd: string;
+  /** Monday opening the taper, clamped to never precede the plan start. */
+  taperStartYmd: string;
+  /** Taper length in days (4–10), pre-clamp. */
+  taperDays: number;
+  /** Count of full Mon→Sun weeks available for base/build/peak before the taper. */
+  preTaperWeeks: number;
+};
+
+/**
+ * Resolve the Mon→Sun week grid for a 5K plan from its start date and race date.
+ * `gridStartYmd` (Monday of the start week) anchors every week row; the first
+ * row may be partial when the plan starts mid-week (the engine's date guard
+ * drops pre-start days). The taper occupies the final `taperDays`.
+ */
+export function fiveKGrid(planStartYmd: string, raceYmd: string): FiveKGrid {
+  const taperDays = taperDaysForRaceDow(isoDayOfWeek(raceYmd));
+  // taperDays − 1 days before the race is always a Monday.
+  const taperStartRaw = addDaysYmd(raceYmd, -(taperDays - 1));
+  const gridStartYmd = addDaysYmd(planStartYmd, -isoDayOfWeek(planStartYmd));
+  const preTaperWeeks = Math.max(
+    0,
+    Math.round(daysBetweenYmd(gridStartYmd, taperStartRaw) / 7),
+  );
+  const taperStartYmd =
+    taperStartRaw < planStartYmd ? planStartYmd : taperStartRaw;
+  return { gridStartYmd, taperStartYmd, taperDays, preTaperWeeks };
+}
+
+export type TaperSessions5KArgs = {
+  /** First day of the taper (a Monday, unless clamped to the plan start). */
+  taperStartYmd: string;
+  /** Race day (YYYY-MM-DD). The taper covers [taperStartYmd, raceYmd). */
+  raceYmd: string;
+  /** Reduced taper volume — drives EF duration + warmup/cooldown scaling. */
+  weekKm: number;
+  peakKm: number;
+  schedule: Schedule;
+  paces?: Paces;
+  vdot?: number;
+};
+
+/**
+ * Lay out the taper across absolute calendar dates in [taperStartYmd, raceYmd).
+ *
+ * - A 20-min strides shakeout is pinned to race-eve for athletes training ≥4
+ *   days/week (it stays loose without depleting glycogen).
+ * - One "rappel d'allure" tune-up (3×400 @ 5K pace) lands on the latest
+ *   scheduled day that still leaves ≥2 days before the race.
+ * - Easies fill the remaining scheduled days.
+ *
+ * Returns each session with its absolute date so the engine can place it without
+ * a weekly day-of-week mapping (the taper may straddle two calendar weeks).
+ */
+export function taperSessions5K(
+  args: TaperSessions5KArgs,
+): { spec: SessionSpec; dateYmd: string }[] {
+  const { taperStartYmd, raceYmd, schedule } = args;
+
+  const dates: string[] = [];
+  for (let d = taperStartYmd; d < raceYmd; d = addDaysYmd(d, 1)) dates.push(d);
+  if (dates.length === 0) return [];
+
+  const availDays = new Set(
+    [...new Set(schedule.availableDays)].filter((x) => x >= 0 && x <= 6),
+  );
+  const eve = addDaysYmd(raceYmd, -1);
+
+  const placed: { role: Role5K; dateYmd: string }[] = [];
+  const used = new Set<string>();
+
+  // Race-eve shakeout (≥4 sessions/week only — lower-volume athletes just rest).
+  if (schedule.sessionsPerWeek >= 4 && eve >= taperStartYmd) {
+    placed.push({
+      role: { kind: "easy", addStrides: true, shakeout: true },
+      dateYmd: eve,
+    });
+    used.add(eve);
+  }
+
+  // Scheduled training days inside the window (eve already spoken for).
+  const pool = dates.filter((d) => availDays.has(isoDayOfWeek(d)) && !used.has(d));
+
+  // Tune-up: latest scheduled day leaving ≥2 days before the race; else latest.
+  const tuneCandidates = pool.filter((d) => daysBetweenYmd(d, raceYmd) >= 2);
+  const tuneDate = (tuneCandidates.length > 0 ? tuneCandidates : pool).at(-1);
+  if (tuneDate) {
+    placed.push({ role: { kind: "taper_tune_up" }, dateYmd: tuneDate });
+    used.add(tuneDate);
+  }
+
+  // Easies fill what's left.
+  for (const d of pool) {
+    if (used.has(d)) continue;
+    placed.push({ role: easy(false), dateYmd: d });
+    used.add(d);
+  }
+
+  return placed
+    .sort((a, b) => (a.dateYmd < b.dateYmd ? -1 : 1))
+    .flatMap(({ role, dateYmd }) => {
+      const spec = roleToSessionSpec(
+        role,
+        {
+          phase: "taper",
+          weekIndexInPhase: 0,
+          weekKm: args.weekKm,
+          peakKm: args.peakKm,
+          schedule,
+          paces: args.paces,
+          vdot: args.vdot,
+        },
+        isoDayOfWeek(dateYmd),
+      );
+      return spec ? [{ spec, dateYmd }] : [];
+    });
 }
 
 function round1(n: number): number {

@@ -1159,6 +1159,10 @@
           "label": "Facile",
           "description": "Conversationnel. La majorité de ton volume doit être à cette allure."
         },
+        "SV1": {
+          "label": "Seuil aérobie (SV1)",
+          "description": "Soutenu mais encore aérobie, juste au-dessus du facile — pour développer l'endurance."
+        },
         "M": {
           "label": "Marathon",
           "description": "Allure marathon — relâchée mais engagée."

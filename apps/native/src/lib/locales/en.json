@@ -1159,6 +1159,10 @@
           "label": "Easy",
           "description": "Conversational. The bulk of your training should live here."
         },
+        "SV1": {
+          "label": "Aerobic threshold (SV1)",
+          "description": "Steady but still aerobic, just above easy — builds endurance."
+        },
         "M": {
           "label": "Marathon",
           "description": "Marathon race effort — relaxed but committed."

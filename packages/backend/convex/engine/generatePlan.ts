@@ -39,6 +39,7 @@ import {
   microcycle,
   type Paces,
   type Schedule,
+  type SessionSpec,
   splitPhases,
   summarizeStructure,
   taperWeeksForFormat,
@@ -47,11 +48,28 @@ import {
   workoutName,
   ymdToNoonUtc,
 } from "../agoge/periodization";
-import { microcycle5K } from "../agoge/plans/fiveK";
+import {
+  fiveKGrid,
+  microcycle5K,
+  taperSessions5K,
+} from "../agoge/plans/fiveK";
 
 const GENERATOR_VERSION = "v1";
 const BASELINE_LOOKBACK_DAYS = 56;
 const FALLBACK_WEEKLY_KM = 20;
+// 5K taper volume as a fraction of peak — drives EF duration + warmup scaling
+// for the taper's easy days (the taper itself is mostly rest + a short tune-up).
+const TAPER_VOLUME_FACTOR = 0.6;
+
+/** Shared inputs for every emitted training workout in a single plan run. */
+type WorkoutCommon = {
+  athleteId: ComponentId;
+  planId: ComponentId;
+  locale: Locale;
+  paces: Paces | undefined;
+  planStart: string;
+  raceYmd: string;
+};
 
 function scheduleFromAthlete(athlete: {
   availableDays?: number[];
@@ -62,6 +80,54 @@ function scheduleFromAthlete(athlete: {
     sessionsPerWeek:
       athlete.sessionsPerWeek ?? DEFAULT_SCHEDULE.sessionsPerWeek,
   };
+}
+
+/**
+ * Materialise one planned training workout from a `SessionSpec` at `dateYmd`.
+ * Drops anything outside [planStart, raceYmd) (race day belongs to the race
+ * workout) and anything too short to be worth a workout.
+ */
+async function emitTrainingWorkout(
+  ctx: ActionCtx,
+  common: WorkoutCommon,
+  blockId: ComponentId,
+  dateYmd: string,
+  session: SessionSpec,
+): Promise<void> {
+  if (dateYmd < common.planStart || dateYmd >= common.raceYmd) return;
+  const distanceMeters = Math.round(session.distanceKm * 1000);
+  if (distanceMeters < 500 && !session.structureSpec) return;
+  const structure = buildStructure(
+    session.type,
+    session.intensity,
+    distanceMeters,
+    common.paces,
+    session.structureSpec,
+  );
+  if (!structure) return;
+
+  // Structure is the source of truth for what the workout demands —
+  // distance/pace/duration are derived from it on read.
+  const labelDistance = summarizeStructure(structure).distanceMeters;
+
+  await ctx.runMutation(components.agoge.public.createWorkout, {
+    athleteId: common.athleteId,
+    planId: common.planId,
+    blockId,
+    name: workoutName({
+      type: session.type,
+      distanceMeters: labelDistance,
+      structure,
+      locale: common.locale,
+    }),
+    type: session.type,
+    sport: "run",
+    status: "planned",
+    planned: {
+      date: ymdToNoonUtc(dateYmd),
+      structure,
+    },
+  });
 }
 
 export const generate = internalAction({
@@ -109,30 +175,10 @@ export const generate = internalAction({
       return;
     }
 
-    const planWeeks = Math.max(1, Math.ceil((totalDays + 1) / 7));
     const planStart = plan.startDate;
-
-    // Anchor the week grid to race day and count backward: the final training
-    // week ends the day before the race, so the taper culminates at the race
-    // instead of overhanging it. Any slack from a non-multiple-of-7 gap lands
-    // as a partial first week — its pre-`planStart` days are dropped by the
-    // date guard in the session loop below.
-    const gridStart = addDaysYmd(raceYmd, -planWeeks * 7);
-
     const currentKm = await loadBaselineVolume(ctx, plan.athleteId);
     const peakKm = distancePeakKm(race.format, race.distanceMeters);
-    const taperWeeks = Math.min(taperWeeksForFormat(race.format), planWeeks);
-    const maxBuildMultiple = planWeeks < 6 ? 1.2 : 2.5;
-
-    const volumeCurve = weeklyVolumeCurve({
-      weeks: planWeeks,
-      currentKm,
-      peakKm,
-      taperWeeks,
-      maxBuildMultiple,
-    });
-
-    const phaseByWeek = expandPhases(splitPhases(planWeeks, race.format));
+    const schedule = scheduleFromAthlete(athlete);
 
     const vdot: number | undefined =
       goal.raceTarget?.type === "time" && goal.raceTarget.seconds > 0
@@ -141,91 +187,140 @@ export const generate = internalAction({
     const paces: Paces | undefined =
       vdot !== undefined ? trainingPaces(vdot) : undefined;
 
-    // Plan's peak weekly km — fuels warmup/cooldown time scaling in the 5K
-    // module. Using the actual curve's max (not just the recommended peak)
-    // so we respect the maxBuildMultiple cap.
-    const planPeakKm = Math.max(currentKm, ...volumeCurve);
-
-    const blockIds = await createBlocks(
-      ctx,
-      plan._id,
-      gridStart,
+    const common: WorkoutCommon = {
+      athleteId: plan.athleteId,
+      planId: plan._id,
+      locale,
+      paces,
       planStart,
       raceYmd,
-      phaseByWeek,
-    );
-    const schedule = scheduleFromAthlete(athlete);
+    };
 
-    let weekIndexInPhase = 0;
-    let prevPhase: BlockType | undefined;
+    let blockIds: Partial<Record<BlockType, ComponentId>>;
 
-    for (let w = 0; w < planWeeks; w++) {
-      const phase = phaseByWeek[w];
-      if (!phase) continue;
-      const blockId = blockIds[phase];
-      if (!blockId) continue;
-      const weekKm = volumeCurve[w] ?? 0;
-      const weekStart = addDaysYmd(gridStart, w * 7);
-      const weekStartDow = isoDayOfWeek(weekStart);
+    if (race.format === "5k") {
+      // 5K: every base/build/peak block is a full Mon→Sun week and the taper is
+      // a variable 4–10 day tail anchored to race day (see `fiveKGrid`). The
+      // first week may be partial when the plan starts mid-week.
+      const { gridStartYmd, taperStartYmd, preTaperWeeks } = fiveKGrid(
+        planStart,
+        raceYmd,
+      );
+      const { base, build, peak } = fiveKPreTaperSplit(preTaperWeeks);
+      const phaseByWeek = expandPhases({ base, build, peak, taper: 0 });
+      const maxBuildMultiple = preTaperWeeks + 1 < 6 ? 1.2 : 2.5;
+      // No taper weeks in the curve — the taper's reduced volume is applied in
+      // the dedicated taper pass below.
+      const volumeCurve = weeklyVolumeCurve({
+        weeks: preTaperWeeks,
+        currentKm,
+        peakKm,
+        taperWeeks: 0,
+        maxBuildMultiple,
+      });
+      // Plan's peak weekly km — fuels warmup/cooldown + EF duration scaling.
+      const planPeakKm = Math.max(currentKm, ...volumeCurve);
 
-      if (phase === prevPhase) {
-        weekIndexInPhase += 1;
-      } else {
-        weekIndexInPhase = 0;
-        prevPhase = phase;
+      blockIds = await createBlocks5K(
+        ctx,
+        plan._id,
+        gridStartYmd,
+        planStart,
+        taperStartYmd,
+        raceYmd,
+        phaseByWeek,
+      );
+
+      let weekIndexInPhase = 0;
+      let prevPhase: BlockType | undefined;
+      for (let w = 0; w < preTaperWeeks; w++) {
+        const phase = phaseByWeek[w];
+        if (!phase) continue;
+        const blockId = blockIds[phase];
+        if (!blockId) continue;
+        const weekKm = volumeCurve[w] ?? 0;
+        const weekStart = addDaysYmd(gridStartYmd, w * 7); // a Monday
+
+        if (phase === prevPhase) {
+          weekIndexInPhase += 1;
+        } else {
+          weekIndexInPhase = 0;
+          prevPhase = phase;
+        }
+
+        const sessions = microcycle5K({
+          phase,
+          weekIndexInPhase,
+          weekKm,
+          schedule,
+          peakKm: planPeakKm,
+          paces,
+          vdot,
+        });
+        for (const session of sessions) {
+          // weekStart is a Monday, so day-of-week (0=Mon) is the offset directly.
+          const dateYmd = addDaysYmd(weekStart, session.dayOfWeek);
+          await emitTrainingWorkout(ctx, common, blockId, dateYmd, session);
+        }
       }
 
-      const sessions =
-        race.format === "5k"
-          ? microcycle5K({
-              phase,
-              weekIndexInPhase,
-              weekKm,
-              schedule,
-              peakKm: planPeakKm,
-              paces,
-              vdot,
-            })
-          : microcycle(phase, weekKm, schedule);
-
-      for (const session of sessions) {
-        const dayOffset = (session.dayOfWeek - weekStartDow + 7) % 7;
-        const dateYmd = addDaysYmd(weekStart, dayOffset);
-        // Race day is reserved for the race workout itself.
-        if (dateYmd < planStart || dateYmd >= raceYmd) continue;
-        const distanceMeters = Math.round(session.distanceKm * 1000);
-        if (distanceMeters < 500 && !session.structureSpec) continue;
-        const structure = buildStructure(
-          session.type,
-          session.intensity,
-          distanceMeters,
+      // Taper: variable-length tail laid out over absolute dates.
+      const taperBlockId = blockIds.taper;
+      if (taperBlockId) {
+        const taperList = taperSessions5K({
+          taperStartYmd,
+          raceYmd,
+          weekKm: planPeakKm * TAPER_VOLUME_FACTOR,
+          peakKm: planPeakKm,
+          schedule,
           paces,
-          session.structureSpec,
-        );
-        if (!structure) continue;
-
-        // Structure is the source of truth for what the workout demands —
-        // distance/pace/duration are derived from it on read.
-        const labelDistance = summarizeStructure(structure).distanceMeters;
-
-        await ctx.runMutation(components.agoge.public.createWorkout, {
-          athleteId: plan.athleteId,
-          planId: plan._id,
-          blockId,
-          name: workoutName({
-            type: session.type,
-            distanceMeters: labelDistance,
-            structure,
-            locale,
-          }),
-          type: session.type,
-          sport: "run",
-          status: "planned",
-          planned: {
-            date: ymdToNoonUtc(dateYmd),
-            structure,
-          },
+          vdot,
         });
+        for (const { spec, dateYmd } of taperList) {
+          await emitTrainingWorkout(ctx, common, taperBlockId, dateYmd, spec);
+        }
+      }
+    } else {
+      // Other formats: race-anchored week grid — weeks count back from race day
+      // so the final training week ends the day before the race and the taper
+      // culminates at the race. A non-multiple-of-7 gap lands as a partial first
+      // week, whose pre-`planStart` days are dropped by the date guard.
+      const planWeeks = Math.max(1, Math.ceil((totalDays + 1) / 7));
+      const gridStart = addDaysYmd(raceYmd, -planWeeks * 7);
+      const taperWeeks = Math.min(taperWeeksForFormat(race.format), planWeeks);
+      const maxBuildMultiple = planWeeks < 6 ? 1.2 : 2.5;
+      const volumeCurve = weeklyVolumeCurve({
+        weeks: planWeeks,
+        currentKm,
+        peakKm,
+        taperWeeks,
+        maxBuildMultiple,
+      });
+      const phaseByWeek = expandPhases(splitPhases(planWeeks, race.format));
+
+      blockIds = await createBlocks(
+        ctx,
+        plan._id,
+        gridStart,
+        planStart,
+        raceYmd,
+        phaseByWeek,
+      );
+
+      for (let w = 0; w < planWeeks; w++) {
+        const phase = phaseByWeek[w];
+        if (!phase) continue;
+        const blockId = blockIds[phase];
+        if (!blockId) continue;
+        const weekKm = volumeCurve[w] ?? 0;
+        const weekStart = addDaysYmd(gridStart, w * 7);
+        const weekStartDow = isoDayOfWeek(weekStart);
+
+        for (const session of microcycle(phase, weekKm, schedule)) {
+          const dayOffset = (session.dayOfWeek - weekStartDow + 7) % 7;
+          const dateYmd = addDaysYmd(weekStart, dayOffset);
+          await emitTrainingWorkout(ctx, common, blockId, dateYmd, session);
+        }
       }
     }
 
@@ -413,6 +508,74 @@ async function createBlocks(
     );
     blockIds[phase] = blockId;
   }
+
+  return blockIds;
+}
+
+/**
+ * Split a 5K plan's pre-taper Mon→Sun weeks into base/build/peak. Mirrors the
+ * 5K intent of `splitPhases` (peak = 1 spécifique week, build = up to 4, base =
+ * the rest) but operates on the week count directly, since the 5K taper is
+ * sized in days and created separately by `createBlocks5K`.
+ */
+function fiveKPreTaperSplit(preTaperWeeks: number): {
+  base: number;
+  build: number;
+  peak: number;
+} {
+  if (preTaperWeeks <= 0) return { base: 0, build: 0, peak: 0 };
+  if (preTaperWeeks === 1) return { base: 0, build: 0, peak: 1 };
+  const peak = 1;
+  const build = Math.min(4, preTaperWeeks - peak);
+  const base = preTaperWeeks - peak - build;
+  return { base, build, peak };
+}
+
+/**
+ * Create a 5K plan's blocks on a Mon→Sun grid. Base/build/peak each span full
+ * calendar weeks ending on a Sunday; the taper runs from its Monday (clamped to
+ * the plan start) through race day, which it owns. The opening block is clamped
+ * to the plan start when the grid's first week begins before it.
+ */
+async function createBlocks5K(
+  ctx: ActionCtx,
+  planId: ComponentId,
+  gridStartYmd: string,
+  planStart: string,
+  taperStartYmd: string,
+  raceYmd: string,
+  phaseByWeek: BlockType[],
+): Promise<Partial<Record<BlockType, ComponentId>>> {
+  const blockIds: Partial<Record<BlockType, ComponentId>> = {};
+  const order: BlockType[] = ["base", "build", "peak"];
+
+  for (const phase of order) {
+    const startIdx = phaseByWeek.indexOf(phase);
+    if (startIdx === -1) continue;
+    let endIdx = startIdx;
+    while (
+      endIdx + 1 < phaseByWeek.length &&
+      phaseByWeek[endIdx + 1] === phase
+    ) {
+      endIdx++;
+    }
+    const gridBlockStart = addDaysYmd(gridStartYmd, startIdx * 7);
+    const startDate = gridBlockStart < planStart ? planStart : gridBlockStart;
+    // Each pre-taper block ends on its last week's Sunday.
+    const endDate = addDaysYmd(gridStartYmd, (endIdx + 1) * 7 - 1);
+    blockIds[phase] = await ctx.runMutation(
+      components.agoge.public.createBlock,
+      { planId, type: phase, startDate, endDate },
+    );
+  }
+
+  const taperStart = taperStartYmd < planStart ? planStart : taperStartYmd;
+  blockIds.taper = await ctx.runMutation(components.agoge.public.createBlock, {
+    planId,
+    type: "taper",
+    startDate: taperStart,
+    endDate: raceYmd,
+  });
 
   return blockIds;
 }
