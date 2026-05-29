@@ -3,6 +3,7 @@ import { FormField } from "@/components/app/form/field";
 import { Text } from "@/components/ui/text";
 import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
 import { selectionFeedback } from "@/lib/haptics";
+import { Ionicons } from "@expo/vector-icons";
 import { BottomSheetModal as GorhomBottomSheetModal } from "@gorhom/bottom-sheet";
 import DateTimePicker, {
   DateTimePickerAndroid,
@@ -22,6 +23,16 @@ type Props = {
   placeholder?: string;
   minuteInterval?: 1 | 2 | 3 | 4 | 5 | 6 | 10 | 12 | 15 | 20 | 30;
   error?: string;
+  /** Optional explanatory callout shown above the spinner in the iOS sheet. */
+  note?: string;
+  /** When true, the field can't be opened and is visually dimmed. */
+  disabled?: boolean;
+  /**
+   * Render a calendar/month view instead of the spinner wheel (iOS `inline`,
+   * Android `calendar`). Best for picking a specific day; keep `false` for
+   * far-ranging dates like a birth date where the wheel is faster.
+   */
+  calendar?: boolean;
 };
 
 function parseValue(s: string, mode: DateFieldMode): Date {
@@ -80,6 +91,9 @@ export function DateField({
   placeholder = "Select date",
   minuteInterval = 5,
   error,
+  note,
+  disabled = false,
+  calendar = false,
 }: Props) {
   const sheetRef = React.useRef<GorhomBottomSheetModal>(null);
   const [pendingDate, setPendingDate] = React.useState<Date | null>(null);
@@ -98,6 +112,7 @@ export function DateField({
     DateTimePickerAndroid.open({
       value: seed,
       mode: "date",
+      display: calendar ? "calendar" : "default",
       minimumDate,
       maximumDate,
       onChange: (event, picked) => {
@@ -143,10 +158,12 @@ export function DateField({
     <FormField label={label} error={error}>
       <Pressable
         onPress={open}
+        disabled={disabled}
         className="h-12 flex-row items-center rounded-xl border px-4 active:opacity-80"
         style={{
           backgroundColor: LIGHT_THEME.w1,
           borderColor: error ? COLORS.red : LIGHT_THEME.wBrd,
+          opacity: disabled ? 0.5 : 1,
         }}
       >
         <Text
@@ -160,13 +177,32 @@ export function DateField({
       {Platform.OS === "ios" && (
         <BottomSheetModal ref={sheetRef}>
           <View className="gap-3 px-4 pb-2 pt-2">
+            {note ? (
+              <View
+                className="flex-row gap-2 rounded-xl px-3 py-2.5"
+                style={{ backgroundColor: LIGHT_THEME.w3 }}
+              >
+                <Ionicons
+                  name="information-circle-outline"
+                  size={18}
+                  color={LIGHT_THEME.wSub}
+                  style={{ marginTop: 1 }}
+                />
+                <Text
+                  className="flex-1 font-coach-medium text-[14px]"
+                  style={{ color: LIGHT_THEME.wSub, lineHeight: 20 }}
+                >
+                  {note}
+                </Text>
+              </View>
+            ) : null}
             <DateTimePicker
               value={
                 pendingDate ??
                 getSeedDate(value, mode, minimumDate, maximumDate)
               }
               mode={mode}
-              display="spinner"
+              display={calendar ? "inline" : "spinner"}
               minimumDate={minimumDate}
               maximumDate={maximumDate}
               minuteInterval={mode === "datetime" ? minuteInterval : undefined}
@@ -174,7 +210,7 @@ export function DateField({
                 if (selected) setPendingDate(selected);
               }}
               themeVariant="light"
-              style={{ alignSelf: "stretch", height: 216 }}
+              style={{ alignSelf: "stretch", height: calendar ? 360 : 216 }}
             />
             <Pressable
               onPress={handleConfirm}

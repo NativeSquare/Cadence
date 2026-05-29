@@ -1,5 +1,6 @@
 import {
   FORMAT_DISTANCE_METERS,
+  getRaceDateError,
   type RaceFormSubmit,
 } from "@/components/app/account/race-form";
 import {
@@ -46,6 +47,14 @@ import {
   StatusBar,
   View,
 } from "react-native";
+
+function todayIso(): string {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${dd}`;
+}
 
 const EMPTY_PROFILE: ProfileValue = { sex: null, dateOfBirth: "" };
 
@@ -124,13 +133,22 @@ export default function Onboarding() {
     if (step === 5) return branch !== null;
     if (step === 6) {
       if (branch === "race") {
-        return (
+        const fieldsFilled =
           raceDetails.name.trim() !== "" &&
           raceDetails.date !== "" &&
           raceDetails.format !== "" &&
           raceDetails.discipline !== "" &&
           (raceDetails.format !== "custom" ||
-            raceDetails.customDistanceKm.trim() !== "")
+            raceDetails.customDistanceKm.trim() !== "");
+        if (!fieldsFilled) return false;
+        // Mirror StepRaceDetails' lead-time guard so the red error and the
+        // Next button stay in agreement (e.g. a 5K must be 4–12 weeks out).
+        return (
+          getRaceDateError(
+            todayIso(),
+            raceDetails.date,
+            raceDetails.format === "" ? undefined : raceDetails.format,
+          ) === null
         );
       }
       return fitnessGoal !== null;

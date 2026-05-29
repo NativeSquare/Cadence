@@ -418,7 +418,9 @@
       "discipline": "Discipline",
       "customDistance": "Distance (km)",
       "customDistancePlaceholder": "42.2",
-      "tooSoonForFormat": "Course trop proche pour un plan {{format}} — il faut au moins {{minWeeks}} semaines (actuellement {{days}} jours)."
+      "tooSoonForFormat": "Course trop proche pour un plan {{format}} — il faut au moins {{minWeeks}} semaines (actuellement {{days}} jours).",
+      "tooFarForFormat": "Course trop loin pour un plan {{format}} — elle doit être dans les {{maxWeeks}} semaines (actuellement {{days}} jours).",
+      "fiveKWindowNote": "Choisis une date entre 4 et 12 semaines. Moins de 4 semaines ne suffit pas pour développer la vitesse en sécurité ; au-delà de 12, un bloc 5K dédié n'apporte plus grand-chose."
     },
     "raceGoal": {
       "heading": "Quel est votre objectif ?",
@@ -429,7 +431,10 @@
       "targetTime": "Temps visé",
       "targetHours": "HH",
       "targetMinutes": "MM",
-      "targetSeconds": "SS"
+      "targetSeconds": "SS",
+      "unitHours": "h",
+      "unitMinutes": "min",
+      "unitSeconds": "s"
     },
     "plan": {
       "heading": "Votre plan d'entraînement",
@@ -477,6 +482,21 @@
       "customDistanceRequired": "La distance est requise",
       "targetTimeRequired": "Le temps visé est requis",
       "submitFailed": "Impossible d'enregistrer votre objectif. Réessayez."
+    },
+    "myGoal": {
+      "title": "Mon objectif",
+      "changeGoal": "Changer d'objectif",
+      "raceDetailsTitle": "Détails de la course",
+      "target": "Objectif",
+      "targetFinish": "Terminer",
+      "distance": "Distance",
+      "location": "Lieu",
+      "confirm": {
+        "title": "Remplacer ton objectif ?",
+        "description": "Ton objectif actuel et son plan d'entraînement seront supprimés pour en définir un nouveau.",
+        "descriptionRace": "Cette course, ton objectif et son plan d'entraînement seront supprimés pour en définir un nouveau.",
+        "cta": "Remplacer l'objectif"
+      }
     }
   },
   "workout": {
@@ -880,7 +900,7 @@
     "items": {
       "profile": "Profil",
       "subscription": "Abonnement",
-      "races": "Courses",
+      "goal": "Mon objectif",
       "fitness": "Métriques",
       "workoutTemplates": "Modèles de séance",
       "appsAndDevices": "Apple Santé et appareils",

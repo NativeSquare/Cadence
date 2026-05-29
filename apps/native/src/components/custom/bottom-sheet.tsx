@@ -21,6 +21,12 @@ interface BottomSheetModalProps {
   scrollable?: boolean;
   /** Snap points (e.g. ["85%"]). Omit for dynamic sizing. */
   snapPoints?: (string | number)[];
+  /**
+   * Allow dragging the content area to move the sheet. Defaults to Gorhom's
+   * `true`. Set `false` when the content hosts its own vertical scrollables
+   * (e.g. wheel pickers) so their gestures aren't swallowed by the sheet.
+   */
+  enableContentPanningGesture?: boolean;
 }
 
 export type BottomSheetModalType = BottomSheetModalProps;
@@ -33,6 +39,7 @@ export function BottomSheetModal({
   onDismiss,
   scrollable = false,
   snapPoints,
+  enableContentPanningGesture,
 }: BottomSheetModalProps) {
   const { colorScheme } = useColorScheme();
   const insets = useSafeAreaInsets();
@@ -56,6 +63,9 @@ export function BottomSheetModal({
       ref={ref}
       stackBehavior="replace"
       onDismiss={onDismiss}
+      {...(enableContentPanningGesture === undefined
+        ? {}
+        : { enableContentPanningGesture })}
       {...(snapPoints ? { snapPoints, enableDynamicSizing: false } : {})}
       backgroundStyle={{
         backgroundColor: bgColor,

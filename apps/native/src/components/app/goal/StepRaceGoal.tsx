@@ -1,5 +1,5 @@
 import type { GoalType } from "@/components/app/account/race-form";
-import { DatePart, FormField } from "@/components/app/form";
+import { TimeField } from "@/components/app/form";
 import { Text } from "@/components/ui/text";
 import { LIGHT_THEME } from "@/lib/design-tokens";
 import { selectionFeedback } from "@/lib/haptics";
@@ -70,31 +70,25 @@ export function StepRaceGoal({
       </View>
 
       {value.type === "performance" && (
-        <FormField label={t("goal.raceGoal.targetTime")}>
-          <View className="flex-row gap-2">
-            <DatePart
-              placeholder={t("goal.raceGoal.targetHours")}
-              value={value.targetHours}
-              maxLength={2}
-              onChange={(v) => onChange({ ...value, targetHours: v })}
-              widthClassName="flex-1"
-            />
-            <DatePart
-              placeholder={t("goal.raceGoal.targetMinutes")}
-              value={value.targetMinutes}
-              maxLength={2}
-              onChange={(v) => onChange({ ...value, targetMinutes: v })}
-              widthClassName="flex-1"
-            />
-            <DatePart
-              placeholder={t("goal.raceGoal.targetSeconds")}
-              value={value.targetSeconds}
-              maxLength={2}
-              onChange={(v) => onChange({ ...value, targetSeconds: v })}
-              widthClassName="flex-1"
-            />
-          </View>
-        </FormField>
+        <TimeField
+          label={t("goal.raceGoal.targetTime")}
+          hours={Number.parseInt(value.targetHours || "0", 10) || 0}
+          minutes={Number.parseInt(value.targetMinutes || "0", 10) || 0}
+          seconds={Number.parseInt(value.targetSeconds || "0", 10) || 0}
+          onChange={({ hours, minutes, seconds }) =>
+            onChange({
+              ...value,
+              targetHours: String(hours),
+              targetMinutes: String(minutes),
+              targetSeconds: String(seconds),
+            })
+          }
+          labels={{
+            hours: t("goal.raceGoal.unitHours"),
+            minutes: t("goal.raceGoal.unitMinutes"),
+            seconds: t("goal.raceGoal.unitSeconds"),
+          }}
+        />
       )}
     </View>
   );

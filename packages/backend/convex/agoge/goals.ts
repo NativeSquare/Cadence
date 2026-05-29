@@ -30,6 +30,7 @@ import {
   type ValidationResult,
   validationResultValidator,
 } from "./helpers";
+import { deletePlansForRace } from "./plans";
 
 const GOAL_STATUSES = [
   "active",
@@ -306,5 +307,62 @@ export const createMyFitnessGoal = mutation({
     });
 
     return goalId;
+  },
+});
+
+/**
+ * Retire the athlete's active goal(s) so a fresh one can be created.
+ *
+ * "Change goal" in the app replaces the single active goal. Race goals are
+ * deleted outright (race + its cascaded goal + plans) so a new A-race won't
+ * trip the no-upcoming-A-race conflict rule; fitness goals are marked
+ * `abandoned` and their plans archived. Iterates over every active goal, which
+ * also clears the loose state where a fitness goal can linger active alongside
+ * a race goal.
+ */
+export const abandonMyActiveGoal = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const auth = await loadAthlete(ctx);
+    if (!auth)
+      throw new ConvexError({
+        code: "VALIDATION_FAILED",
+        errors: [requireAuthError],
+      });
+
+    const activeGoals = await ctx.runQuery(
+      components.agoge.public.getGoalsByAthleteAndStatus,
+      { athleteId: auth.athlete._id, status: "active" },
+    );
+
+    const now = new Date().toISOString();
+    for (const goal of activeGoals) {
+      if (goal.category === "race" && goal.raceId) {
+        // Delete the race; Agoge cascades the attached goal. Plans are removed
+        // up front (mirrors `deleteMyRace`) so the cascade doesn't trip the
+        // now-required `targetRaceId` field.
+        await deletePlansForRace(ctx, goal.raceId);
+        await ctx.runMutation(components.agoge.public.deleteRace, {
+          raceId: goal.raceId,
+        });
+      } else {
+        const plans = await ctx.runQuery(
+          components.agoge.public.getPlansByGoal,
+          { goalId: goal._id },
+        );
+        for (const plan of plans) {
+          if (plan.archivedAt !== undefined) continue;
+          await ctx.runMutation(components.agoge.public.updatePlan, {
+            planId: plan._id,
+            archivedAt: now,
+          });
+        }
+        await ctx.runMutation(components.agoge.public.updateGoal, {
+          goalId: goal._id,
+          status: "abandoned",
+        });
+      }
+    }
+    return null;
   },
 });

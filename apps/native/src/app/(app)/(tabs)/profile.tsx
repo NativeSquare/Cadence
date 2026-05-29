@@ -202,9 +202,9 @@ export default function Profile() {
               title={t("profile.sections.training")}
               items={[
                 {
-                  label: t("profile.items.races"),
+                  label: t("profile.items.goal"),
                   icon: "flag-outline",
-                  onPress: () => router.push("/account/races"),
+                  onPress: () => router.push("/goal"),
                 },
                 {
                   label: t("profile.items.fitness"),

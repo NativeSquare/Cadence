@@ -418,7 +418,9 @@
       "discipline": "Discipline",
       "customDistance": "Distance (km)",
       "customDistancePlaceholder": "42.2",
-      "tooSoonForFormat": "Race is too soon for a {{format}} plan — need at least {{minWeeks}} weeks (currently {{days}} days)."
+      "tooSoonForFormat": "Race is too soon for a {{format}} plan — need at least {{minWeeks}} weeks (currently {{days}} days).",
+      "tooFarForFormat": "Race is too far out for a {{format}} plan — must be within {{maxWeeks}} weeks (currently {{days}} days).",
+      "fiveKWindowNote": "Pick a date 4–12 weeks out. Under 4 weeks isn't enough to build speed safely; past 12, a focused 5K block stops adding much."
     },
     "raceGoal": {
       "heading": "What's your goal?",
@@ -429,7 +431,10 @@
       "targetTime": "Target time",
       "targetHours": "HH",
       "targetMinutes": "MM",
-      "targetSeconds": "SS"
+      "targetSeconds": "SS",
+      "unitHours": "hrs",
+      "unitMinutes": "min",
+      "unitSeconds": "sec"
     },
     "plan": {
       "heading": "Your training plan",
@@ -477,6 +482,21 @@
       "customDistanceRequired": "Distance is required",
       "targetTimeRequired": "Target time is required",
       "submitFailed": "Couldn't save your goal. Try again."
+    },
+    "myGoal": {
+      "title": "My Goal",
+      "changeGoal": "Change goal",
+      "raceDetailsTitle": "Race details",
+      "target": "Target",
+      "targetFinish": "Finish",
+      "distance": "Distance",
+      "location": "Location",
+      "confirm": {
+        "title": "Replace your goal?",
+        "description": "Your current goal and its training plan will be removed so you can set a new one.",
+        "descriptionRace": "This race, your goal, and its training plan will be removed so you can set a new one.",
+        "cta": "Replace goal"
+      }
     }
   },
   "workout": {
@@ -880,7 +900,7 @@
     "items": {
       "profile": "Profile",
       "subscription": "Subscription",
-      "races": "Races",
+      "goal": "My Goal",
       "fitness": "Metrics",
       "workoutTemplates": "Workout Templates",
       "appsAndDevices": "Apple Health & Devices",

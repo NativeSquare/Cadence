@@ -1,6 +1,7 @@
 import {
   DISCIPLINES,
   FORMATS,
+  getRaceDateBounds,
   getRaceDateError,
   type Discipline,
   type Format,
@@ -76,6 +77,11 @@ export function StepRaceDetails({
     [t],
   );
 
+  const dateBounds = useMemo(
+    () => getRaceDateBounds(todayIso(), value.format === "" ? undefined : value.format),
+    [value.format],
+  );
+
   const dateError = useMemo(() => {
     const err = getRaceDateError(
       todayIso(),
@@ -83,9 +89,14 @@ export function StepRaceDetails({
       value.format === "" ? undefined : value.format,
     );
     if (!err) return undefined;
-    return t("goal.raceDetails.tooSoonForFormat", {
+    const key =
+      err.kind === "too_far"
+        ? "goal.raceDetails.tooFarForFormat"
+        : "goal.raceDetails.tooSoonForFormat";
+    return t(key, {
       format: formatLabels[err.format],
-      minWeeks: err.minWeeks,
+      minWeeks: err.weeks,
+      maxWeeks: err.weeks,
       days: err.days,
     });
   }, [t, value.date, value.format, formatLabels]);
@@ -111,14 +122,6 @@ export function StepRaceDetails({
           cursorColor={COLORS.lime}
         />
       </FormField>
-
-      <DateField
-        label={t("goal.raceDetails.date")}
-        value={value.date || undefined}
-        onChange={(v) => onChange({ ...value, date: v })}
-        minDate={todayIso()}
-        error={dateError}
-      />
 
       <FormField label={t("goal.raceDetails.format")}>
         <PillSelect
@@ -154,6 +157,22 @@ export function StepRaceDetails({
           </View>
         </FormField>
       )}
+
+      <DateField
+        label={t("goal.raceDetails.date")}
+        value={value.date || undefined}
+        onChange={(v) => onChange({ ...value, date: v })}
+        minDate={dateBounds.minYmd}
+        maxDate={dateBounds.maxYmd}
+        error={dateError}
+        calendar
+        disabled={value.format === ""}
+        note={
+          value.format === "5k"
+            ? t("goal.raceDetails.fiveKWindowNote")
+            : undefined
+        }
+      />
 
       <FormField label={t("goal.raceDetails.discipline")}>
         <PillSelect

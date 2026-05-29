@@ -86,6 +86,13 @@ export const MIN_PLAN_WEEKS_BY_FORMAT: Partial<Record<Format, number>> = {
   "5k": 4,
 };
 
+// Upper bound on lead time per format. UI-only guardrail (no backend
+// counterpart yet): a 5K plan tops out at a 12-week build, so dates beyond
+// that don't map to a meaningful plan. Pairs with MIN_PLAN_WEEKS_BY_FORMAT.
+export const MAX_PLAN_WEEKS_BY_FORMAT: Partial<Record<Format, number>> = {
+  "5k": 12,
+};
+
 export function daysBetweenYmd(fromYmd: string, toYmd: string): number {
   const [yf, mf, df] = fromYmd.split("-").map((p) => Number.parseInt(p, 10));
   const [yt, mt, dt] = toYmd.split("-").map((p) => Number.parseInt(p, 10));
@@ -94,12 +101,48 @@ export function daysBetweenYmd(fromYmd: string, toYmd: string): number {
   return Math.round((b - a) / 86_400_000);
 }
 
-export type RaceDateError = { format: Format; minWeeks: number; days: number };
+function addDaysYmd(ymd: string, days: number): string {
+  const [y, m, d] = ymd.split("-").map((p) => Number.parseInt(p, 10));
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  dt.setUTCDate(dt.getUTCDate() + days);
+  const yy = dt.getUTCFullYear();
+  const mm = String(dt.getUTCMonth() + 1).padStart(2, "0");
+  const dd = String(dt.getUTCDate()).padStart(2, "0");
+  return `${yy}-${mm}-${dd}`;
+}
 
 /**
- * Validate that the race date leaves enough lead time for a meaningful plan
- * of the chosen format. Returns null when the combo is valid OR when we don't
- * have enough info to validate (no format yet, custom format, no date).
+ * The selectable race-date window for a format, relative to today. A 5K needs
+ * 4–12 weeks of lead time; formats with no bound floor at today and have no
+ * ceiling. Returns YYYY-MM-DD bounds (maxYmd omitted when uncapped) — feed
+ * straight into DateField's minDate/maxDate.
+ */
+export function getRaceDateBounds(
+  todayYmd: string,
+  format: Format | "" | undefined,
+): { minYmd: string; maxYmd?: string } {
+  const bounded = format && format !== "custom" ? format : undefined;
+  const minWeeks = bounded ? MIN_PLAN_WEEKS_BY_FORMAT[bounded] : undefined;
+  const maxWeeks = bounded ? MAX_PLAN_WEEKS_BY_FORMAT[bounded] : undefined;
+  return {
+    minYmd: minWeeks ? addDaysYmd(todayYmd, minWeeks * 7) : todayYmd,
+    maxYmd: maxWeeks ? addDaysYmd(todayYmd, maxWeeks * 7) : undefined,
+  };
+}
+
+export type RaceDateError = {
+  format: Format;
+  kind: "too_soon" | "too_far";
+  /** The violated bound, in weeks. */
+  weeks: number;
+  /** Actual lead time, in days. */
+  days: number;
+};
+
+/**
+ * Validate that the race date sits inside the format's allowed lead-time
+ * window. Returns null when the combo is valid OR when we don't have enough
+ * info to validate (no format yet, custom format, no date).
  */
 export function getRaceDateError(
   todayYmd: string,
@@ -108,10 +151,13 @@ export function getRaceDateError(
 ): RaceDateError | null {
   if (!format || format === "custom" || !raceYmd) return null;
   const minWeeks = MIN_PLAN_WEEKS_BY_FORMAT[format];
-  if (!minWeeks) return null;
+  const maxWeeks = MAX_PLAN_WEEKS_BY_FORMAT[format];
   const days = daysBetweenYmd(todayYmd, raceYmd);
-  if (days < minWeeks * 7) {
-    return { format, minWeeks, days };
+  if (minWeeks && days < minWeeks * 7) {
+    return { format, kind: "too_soon", weeks: minWeeks, days };
+  }
+  if (maxWeeks && days > maxWeeks * 7) {
+    return { format, kind: "too_far", weeks: maxWeeks, days };
   }
   return null;
 }
@@ -612,7 +658,7 @@ export function RaceForm({
       await onDelete();
       deleteSheetRef.current?.dismiss();
       router.dismissAll();
-      router.replace("/account/races");
+      router.replace("/goal");
     } catch (err) {
       setError(getConvexErrorMessage(err));
       setIsDeleting(false);
