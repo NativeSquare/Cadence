@@ -20,6 +20,11 @@ type Props = {
   mode?: DateFieldMode;
   minDate?: string;
   maxDate?: string;
+  /**
+   * Date the spinner opens on when no value is set yet. Falls back to today.
+   * Still clamped into [minDate, maxDate], so it's a hint, not an override.
+   */
+  defaultDate?: string;
   placeholder?: string;
   minuteInterval?: 1 | 2 | 3 | 4 | 5 | 6 | 10 | 12 | 15 | 20 | 30;
   error?: string;
@@ -68,10 +73,13 @@ function getSeedDate(
   mode: DateFieldMode,
   minimumDate: Date | undefined,
   maximumDate: Date | undefined,
+  defaultDate: string | undefined,
 ): Date {
   let seed: Date;
   if (value) {
     seed = parseValue(value, mode);
+  } else if (defaultDate) {
+    seed = parseValue(defaultDate, mode);
   } else {
     seed = new Date();
     if (mode === "date") seed.setHours(0, 0, 0, 0);
@@ -88,6 +96,7 @@ export function DateField({
   mode = "date",
   minDate,
   maxDate,
+  defaultDate,
   placeholder = "Select date",
   minuteInterval = 5,
   error,
@@ -103,7 +112,7 @@ export function DateField({
 
   const open = () => {
     Keyboard.dismiss();
-    const seed = getSeedDate(value, mode, minimumDate, maximumDate);
+    const seed = getSeedDate(value, mode, minimumDate, maximumDate, defaultDate);
     if (Platform.OS === "ios") {
       setPendingDate(seed);
       sheetRef.current?.present();
@@ -199,7 +208,7 @@ export function DateField({
             <DateTimePicker
               value={
                 pendingDate ??
-                getSeedDate(value, mode, minimumDate, maximumDate)
+                getSeedDate(value, mode, minimumDate, maximumDate, defaultDate)
               }
               mode={mode}
               display={calendar ? "inline" : "spinner"}

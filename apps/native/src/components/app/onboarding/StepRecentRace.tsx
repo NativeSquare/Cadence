@@ -1,5 +1,5 @@
 import { FORMAT_DISTANCE_METERS } from "@/components/app/account/race-form";
-import { DatePart, FormField, PillSelect } from "@/components/app/form";
+import { FormField, PillSelect, TimeField } from "@/components/app/form";
 import { Text } from "@/components/ui/text";
 import { LIGHT_THEME } from "@/lib/design-tokens";
 import { useTranslation } from "react-i18next";
@@ -90,31 +90,25 @@ export function StepRecentRace({
         />
       </FormField>
 
-      <FormField label={t("onboarding.recentRace.timeLabel")}>
-        <View className="flex-row gap-2">
-          <DatePart
-            placeholder={t("onboarding.recentRace.hours")}
-            value={value.hours}
-            maxLength={2}
-            onChange={(v) => onChange({ ...value, hours: v })}
-            widthClassName="flex-1"
-          />
-          <DatePart
-            placeholder={t("onboarding.recentRace.minutes")}
-            value={value.minutes}
-            maxLength={2}
-            onChange={(v) => onChange({ ...value, minutes: v })}
-            widthClassName="flex-1"
-          />
-          <DatePart
-            placeholder={t("onboarding.recentRace.seconds")}
-            value={value.seconds}
-            maxLength={2}
-            onChange={(v) => onChange({ ...value, seconds: v })}
-            widthClassName="flex-1"
-          />
-        </View>
-      </FormField>
+      <TimeField
+        label={t("onboarding.recentRace.timeLabel")}
+        hours={Number.parseInt(value.hours || "0", 10) || 0}
+        minutes={Number.parseInt(value.minutes || "0", 10) || 0}
+        seconds={Number.parseInt(value.seconds || "0", 10) || 0}
+        onChange={({ hours, minutes, seconds }) =>
+          onChange({
+            ...value,
+            hours: String(hours),
+            minutes: String(minutes),
+            seconds: String(seconds),
+          })
+        }
+        labels={{
+          hours: t("onboarding.recentRace.hours"),
+          minutes: t("onboarding.recentRace.minutes"),
+          seconds: t("onboarding.recentRace.seconds"),
+        }}
+      />
     </View>
   );
 }

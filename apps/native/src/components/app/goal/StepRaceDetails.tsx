@@ -46,6 +46,21 @@ function todayIso(): string {
   return `${y}-${m}-${dd}`;
 }
 
+// Where the date spinner opens when nothing's chosen yet: a comfortable
+// 6 weeks out rather than the bare 4-week minimum. DateField clamps this
+// into the format's allowed window, so it's only a starting hint.
+const DEFAULT_RACE_LEAD_WEEKS = 6;
+
+function defaultRaceDateIso(): string {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() + DEFAULT_RACE_LEAD_WEEKS * 7);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${dd}`;
+}
+
 export function StepRaceDetails({
   value,
   onChange,
@@ -164,6 +179,7 @@ export function StepRaceDetails({
         onChange={(v) => onChange({ ...value, date: v })}
         minDate={dateBounds.minYmd}
         maxDate={dateBounds.maxYmd}
+        defaultDate={defaultRaceDateIso()}
         error={dateError}
         calendar
         disabled={value.format === ""}

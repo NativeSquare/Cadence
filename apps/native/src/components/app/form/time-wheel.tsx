@@ -2,6 +2,7 @@ import { Text } from "@/components/ui/text";
 import { LIGHT_THEME } from "@/lib/design-tokens";
 import { selectionFeedback } from "@/lib/haptics";
 import { Picker } from "@react-native-picker/picker";
+import { useEffect, useState } from "react";
 import { Platform, View } from "react-native";
 
 const PICKER_HEIGHT = 216;
@@ -26,11 +27,23 @@ function WheelColumn({
   value: number;
   onSelect: (v: number) => void;
 }) {
+  // Track the spinner's position locally so we only ever feed the native
+  // picker values it has itself reported. Driving selectedValue straight from
+  // parent state lags a frame behind a flick, and the native wheel snaps back
+  // to that stale value mid-deceleration — the "re-rolling" glitch.
+  const [selected, setSelected] = useState(value);
+
+  // Re-seed when the value changes from outside (e.g. the sheet reopens).
+  useEffect(() => {
+    setSelected(value);
+  }, [value]);
+
   return (
     <Picker
-      selectedValue={value}
+      selectedValue={selected}
       onValueChange={(v) => {
         const next = typeof v === "number" ? v : Number(v);
+        setSelected(next);
         if (next !== value) {
           selectionFeedback();
           onSelect(next);

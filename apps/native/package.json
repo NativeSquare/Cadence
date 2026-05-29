@@ -64,6 +64,7 @@
     "clsx": "^2.1.1",
     "convex": "^1.31.7",
     "expo": "~54.0.25",
+    "expo-apple-authentication": "^56.0.4",
     "expo-audio": "~1.1.1",
     "expo-auth-session": "~7.0.9",
     "expo-camera": "~17.0.10",

@@ -1,8 +1,8 @@
 import {
   DateField,
-  DatePart,
   FormField,
   FormSection,
+  TimeField,
 } from "@/components/app/form";
 import { ConfirmationSheet } from "@/components/shared/confirmation-sheet";
 import { Text } from "@/components/ui/text";
@@ -571,10 +571,7 @@ export function RaceForm({
       const h = Number.parseInt(form.finishHours || "0", 10);
       const m = Number.parseInt(form.finishMinutes || "0", 10);
       const s = Number.parseInt(form.finishSeconds || "0", 10);
-      const hasTime =
-        form.finishHours.length > 0 ||
-        form.finishMinutes.length > 0 ||
-        form.finishSeconds.length > 0;
+      const hasTime = h + m + s > 0;
       let finishTime: string | undefined;
       let finishTimeSec: number | undefined;
       if (hasTime) {
@@ -1011,35 +1008,25 @@ export function RaceForm({
 
           {showResultSection && (
             <FormSection title={t("account.races.form.sections.result")}>
-              <FormField label={t("account.races.form.fields.finishTime")}>
-                <View className="flex-row gap-2">
-                  <DatePart
-                    placeholder={t("account.races.form.fields.finishHours")}
-                    value={form.finishHours}
-                    maxLength={2}
-                    onChange={(v) => setForm((f) => ({ ...f, finishHours: v }))}
-                    widthClassName="flex-1"
-                  />
-                  <DatePart
-                    placeholder={t("account.races.form.fields.finishMinutes")}
-                    value={form.finishMinutes}
-                    maxLength={2}
-                    onChange={(v) =>
-                      setForm((f) => ({ ...f, finishMinutes: v }))
-                    }
-                    widthClassName="flex-1"
-                  />
-                  <DatePart
-                    placeholder={t("account.races.form.fields.finishSeconds")}
-                    value={form.finishSeconds}
-                    maxLength={2}
-                    onChange={(v) =>
-                      setForm((f) => ({ ...f, finishSeconds: v }))
-                    }
-                    widthClassName="flex-1"
-                  />
-                </View>
-              </FormField>
+              <TimeField
+                label={t("account.races.form.fields.finishTime")}
+                hours={Number.parseInt(form.finishHours || "0", 10) || 0}
+                minutes={Number.parseInt(form.finishMinutes || "0", 10) || 0}
+                seconds={Number.parseInt(form.finishSeconds || "0", 10) || 0}
+                onChange={({ hours, minutes, seconds }) =>
+                  setForm((f) => ({
+                    ...f,
+                    finishHours: String(hours),
+                    finishMinutes: String(minutes),
+                    finishSeconds: String(seconds),
+                  }))
+                }
+                labels={{
+                  hours: t("account.races.form.fields.finishHours"),
+                  minutes: t("account.races.form.fields.finishMinutes"),
+                  seconds: t("account.races.form.fields.finishSeconds"),
+                }}
+              />
 
               <FormField label={t("account.races.form.fields.placementOptional")}>
                 <TextInput
