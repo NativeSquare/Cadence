@@ -112,6 +112,13 @@ export const generate = internalAction({
     const planWeeks = Math.max(1, Math.ceil((totalDays + 1) / 7));
     const planStart = plan.startDate;
 
+    // Anchor the week grid to race day and count backward: the final training
+    // week ends the day before the race, so the taper culminates at the race
+    // instead of overhanging it. Any slack from a non-multiple-of-7 gap lands
+    // as a partial first week — its pre-`planStart` days are dropped by the
+    // date guard in the session loop below.
+    const gridStart = addDaysYmd(raceYmd, -planWeeks * 7);
+
     const currentKm = await loadBaselineVolume(ctx, plan.athleteId);
     const peakKm = distancePeakKm(race.format, race.distanceMeters);
     const taperWeeks = Math.min(taperWeeksForFormat(race.format), planWeeks);
@@ -139,7 +146,14 @@ export const generate = internalAction({
     // so we respect the maxBuildMultiple cap.
     const planPeakKm = Math.max(currentKm, ...volumeCurve);
 
-    const blockIds = await createBlocks(ctx, plan._id, planStart, phaseByWeek);
+    const blockIds = await createBlocks(
+      ctx,
+      plan._id,
+      gridStart,
+      planStart,
+      raceYmd,
+      phaseByWeek,
+    );
     const schedule = scheduleFromAthlete(athlete);
 
     let weekIndexInPhase = 0;
@@ -151,7 +165,7 @@ export const generate = internalAction({
       const blockId = blockIds[phase];
       if (!blockId) continue;
       const weekKm = volumeCurve[w] ?? 0;
-      const weekStart = addDaysYmd(planStart, w * 7);
+      const weekStart = addDaysYmd(gridStart, w * 7);
       const weekStartDow = isoDayOfWeek(weekStart);
 
       if (phase === prevPhase) {
@@ -359,11 +373,14 @@ async function loadBaselineVolume(
 async function createBlocks(
   ctx: ActionCtx,
   planId: ComponentId,
+  gridStart: string,
   planStart: string,
+  raceYmd: string,
   phaseByWeek: BlockType[],
 ): Promise<Partial<Record<BlockType, ComponentId>>> {
   const blockIds: Partial<Record<BlockType, ComponentId>> = {};
   const order: BlockType[] = ["base", "build", "peak", "taper"];
+  const lastWeekIdx = phaseByWeek.length - 1;
 
   for (const phase of order) {
     const startIdx = phaseByWeek.indexOf(phase);
@@ -375,8 +392,16 @@ async function createBlocks(
     ) {
       endIdx++;
     }
-    const startDate = addDaysYmd(planStart, startIdx * 7);
-    const endDate = addDaysYmd(planStart, (endIdx + 1) * 7 - 1);
+    // Weeks count back from race day, so the grid's first week may start
+    // before `planStart`; clamp the opening block to the real start date.
+    const gridBlockStart = addDaysYmd(gridStart, startIdx * 7);
+    const startDate = gridBlockStart < planStart ? planStart : gridBlockStart;
+    // The closing block runs through race day (it owns the race workout);
+    // every other block ends the day before the next one begins.
+    const endDate =
+      endIdx === lastWeekIdx
+        ? raceYmd
+        : addDaysYmd(gridStart, (endIdx + 1) * 7 - 1);
     const blockId = await ctx.runMutation(
       components.agoge.public.createBlock,
       {
