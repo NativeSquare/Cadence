@@ -11,6 +11,7 @@ import {
   IconChevronRight,
   IconDotsVertical,
   IconFilter,
+  IconFlask,
   IconInnerShadowTop,
   IconLogout,
   IconMail,
@@ -86,6 +87,13 @@ const navGroups: NavGroup[] = [
       { label: "Contacts", icon: IconAddressBook, href: "/contacts" },
       { label: "Audiences", icon: IconFilter, href: "/audiences" },
       { label: "Broadcasts", icon: IconMail, href: "/broadcasts" },
+    ],
+  },
+  {
+    title: "Developer",
+    defaultOpen: true,
+    items: [
+      { label: "Plan Playground", icon: IconFlask, href: "/playground" },
     ],
   },
 ];

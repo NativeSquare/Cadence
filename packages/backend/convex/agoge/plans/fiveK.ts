@@ -92,6 +92,12 @@ export type Microcycle5KArgs = {
   peakKm: number;
   paces?: Paces;
   vdot?: number;
+  /**
+   * Race ISO day-of-week (0=Mon…6=Sun). Only consulted for the peak phase: the
+   * last race-pace spé must land 8–10 days before the race (see `microcycle5K`).
+   * When omitted, the peak spé keeps its natural latest-day placement.
+   */
+  raceDow?: number;
 };
 
 type Role5K =
@@ -630,12 +636,57 @@ export function microcycle5K(args: Microcycle5KArgs): SessionSpec[] {
   // Mon→Sun weeks: anchor on Monday so "latest" means Sunday-most.
   const MONDAY_ANCHOR = 0;
 
+  const placed = placeRoles(roles, picked, MONDAY_ANCHOR);
+  if (args.phase === "peak" && args.raceDow !== undefined) {
+    relocatePeakSpe(placed, args.raceDow);
+  }
+
   const out: SessionSpec[] = [];
-  for (const { role, dayOfWeek } of placeRoles(roles, picked, MONDAY_ANCHOR)) {
+  for (const { role, dayOfWeek } of placed) {
     const spec = roleToSessionSpec(role, args, dayOfWeek);
     if (spec) out.push(spec);
   }
   return out;
+}
+
+/**
+ * Pull the *last* race-pace spé of the peak week into the J-8→J-10 window before
+ * the race. The peak week is the Mon→Sun block ending `taperDays` before the race,
+ * so a day-of-week `d` sits `taperDays + 6 − d` days out; J-8→J-10 maps to the
+ * window `d ∈ [taperDays−4, taperDays−2]` (clamped to Mon..Sun). The spé swaps days
+ * with whatever (usually an easy) holds the best in-window day — keeping the set of
+ * training days intact. When no scheduled day falls in the window, the closest one
+ * is used, preferring the later (fresher) day on ties.
+ */
+function relocatePeakSpe(
+  placed: { role: Role5K; dayOfWeek: number }[],
+  raceDow: number,
+): void {
+  const speIdxs = placed.flatMap((p, i) =>
+    p.role.kind === "race_pace_5k" ? [i] : [],
+  );
+  if (speIdxs.length === 0) return;
+  // The "last specific session" is the latest-day spé.
+  const lastSpeIdx = speIdxs.reduce((a, b) =>
+    placed[a]!.dayOfWeek >= placed[b]!.dayOfWeek ? a : b,
+  );
+
+  const taperDays = taperDaysForRaceDow(raceDow);
+  const lo = Math.max(0, taperDays - 4);
+  const hi = Math.min(6, taperDays - 2);
+  const dist = (d: number) => (d < lo ? lo - d : d > hi ? d - hi : 0);
+
+  const targetIdx = placed.reduce((best, p, i) => {
+    const db = dist(p.dayOfWeek);
+    const bestDb = dist(placed[best]!.dayOfWeek);
+    if (db !== bestDb) return db < bestDb ? i : best;
+    // Tie: prefer the later (fresher) day within/near the window.
+    return p.dayOfWeek > placed[best]!.dayOfWeek ? i : best;
+  }, 0);
+
+  const tmp = placed[lastSpeIdx]!.dayOfWeek;
+  placed[lastSpeIdx]!.dayOfWeek = placed[targetIdx]!.dayOfWeek;
+  placed[targetIdx]!.dayOfWeek = tmp;
 }
 
 // ---------------------------------------------------------------------------
@@ -658,6 +709,31 @@ export function microcycle5K(args: Microcycle5KArgs): SessionSpec[] {
  */
 export function taperDaysForRaceDow(raceDow: number): number {
   return raceDow <= 2 ? raceDow + 8 : raceDow + 1;
+}
+
+/**
+ * Pick the date from `pool` whose distance-before-race lands in [loDays, hiDays];
+ * if none qualifies, the closest one to that window. Ties prefer the earlier day
+ * (more recovery before the race). Returns undefined for an empty pool.
+ */
+function pickDayNearWindow(
+  pool: string[],
+  loDays: number,
+  hiDays: number,
+  raceYmd: string,
+): string | undefined {
+  if (pool.length === 0) return undefined;
+  const dist = (d: string) => {
+    const db = daysBetweenYmd(d, raceYmd);
+    return db < loDays ? loDays - db : db > hiDays ? db - hiDays : 0;
+  };
+  return [...pool].sort((a, b) => {
+    const da = dist(a);
+    const dbb = dist(b);
+    if (da !== dbb) return da - dbb;
+    // Tie: prefer the earlier day (larger days-before-race).
+    return daysBetweenYmd(b, raceYmd) - daysBetweenYmd(a, raceYmd);
+  })[0];
 }
 
 export type FiveKGrid = {
@@ -730,34 +806,54 @@ export function taperSessions5K(
   );
   const eve = addDaysYmd(raceYmd, -1);
 
+  // The race itself is one of the athlete's weekly sessions, so training in the
+  // race's calendar week is capped to sessionsPerWeek − 1 (the race is the Nth).
+  // An extended taper can straddle two calendar weeks; days in the earlier week
+  // hold no race and keep the normal budget, so only race-week days are gated.
+  const raceWeekMonday = addDaysYmd(raceYmd, -isoDayOfWeek(raceYmd));
+  const raceWeekBudget = Math.max(0, schedule.sessionsPerWeek - 1);
+  let raceWeekUsed = 0;
+
   const placed: { role: Role5K; dateYmd: string }[] = [];
   const used = new Set<string>();
 
+  // Place a role unless it would push the race week past its budget. Earlier
+  // taper-week days are always allowed; race-week days are gated. Callers run in
+  // priority order (shakeout → tune-up → easies), so the budget drops the
+  // lowest-priority sessions first — and since easies arrive in ascending date
+  // order, the ones nearest the race are shed, leaving more rest before race day.
+  const tryPlace = (role: Role5K, dateYmd: string): boolean => {
+    if (dateYmd >= raceWeekMonday) {
+      if (raceWeekUsed >= raceWeekBudget) return false;
+      raceWeekUsed += 1;
+    }
+    placed.push({ role, dateYmd });
+    used.add(dateYmd);
+    return true;
+  };
+
   // Race-eve shakeout (≥4 sessions/week only — lower-volume athletes just rest).
   if (schedule.sessionsPerWeek >= 4 && eve >= taperStartYmd) {
-    placed.push({
-      role: { kind: "easy", addStrides: true, shakeout: true },
-      dateYmd: eve,
-    });
-    used.add(eve);
+    tryPlace({ kind: "easy", addStrides: true, shakeout: true }, eve);
   }
 
   // Scheduled training days inside the window (eve already spoken for).
   const pool = dates.filter((d) => availDays.has(isoDayOfWeek(d)) && !used.has(d));
 
-  // Tune-up: latest scheduled day leaving ≥2 days before the race; else latest.
-  const tuneCandidates = pool.filter((d) => daysBetweenYmd(d, raceYmd) >= 2);
-  const tuneDate = (tuneCandidates.length > 0 ? tuneCandidates : pool).at(-1);
+  // Rappel d'allure: a scheduled day in the J-5→J-4 window; if the athlete trains
+  // on neither, the closest scheduled day to that window, preferring more recovery
+  // (the earlier day) on ties so a quality touch never drifts too close to the race.
+  // Note: for a Thursday race the 4-day taper only reaches J-3, so the window sits
+  // in the peak week and this falls back to the latest taper day (J-3).
+  const tuneDate = pickDayNearWindow(pool, 4, 5, raceYmd);
   if (tuneDate) {
-    placed.push({ role: { kind: "taper_tune_up" }, dateYmd: tuneDate });
-    used.add(tuneDate);
+    tryPlace({ kind: "taper_tune_up" }, tuneDate);
   }
 
-  // Easies fill what's left.
+  // Easies fill what's left, up to the race-week budget.
   for (const d of pool) {
     if (used.has(d)) continue;
-    placed.push({ role: easy(false), dateYmd: d });
-    used.add(d);
+    tryPlace(easy(false), d);
   }
 
   return placed

@@ -4,6 +4,7 @@ import { ConvexError, v } from "convex/values";
 import { internal } from "../_generated/api";
 import { internalMutation, mutation, MutationCtx, query, QueryCtx } from "../_generated/server";
 import { adminInviteValidator } from "./adminInvites";
+import { users } from "./users";
 
 /**
  * Helper function to verify the current user is an admin.
@@ -40,32 +41,24 @@ function generateToken(): string {
 }
 
 /**
+ * Full users-document validator for queries that return a user verbatim
+ * (`ctx.db.get` / `ctx.db.query("users")`). Derived from the table schema so it
+ * never drifts as user fields are added; system fields aren't part of the table
+ * validator, so they're added explicitly.
+ */
+const userValidator = v.object({
+  _id: v.id("users"),
+  _creationTime: v.number(),
+  ...users.validator.fields,
+});
+
+/**
  * Get the current admin user. Returns null if not authenticated or not an admin.
  * Used for auth guard on the frontend.
  */
 export const currentAdmin = query({
   args: {},
-  returns: v.union(
-    v.object({
-      _id: v.id("users"),
-      _creationTime: v.number(),
-      name: v.optional(v.string()),
-      image: v.optional(v.string()),
-      email: v.optional(v.string()),
-      emailVerificationTime: v.optional(v.number()),
-      phone: v.optional(v.string()),
-      phoneVerificationTime: v.optional(v.number()),
-      isAnonymous: v.optional(v.boolean()),
-      bio: v.optional(v.string()),
-      birthDate: v.optional(v.string()),
-      hasCompletedOnboarding: v.optional(v.boolean()),
-      role: v.optional(v.union(v.literal("user"), v.literal("admin"))),
-      banned: v.optional(v.boolean()),
-      banReason: v.optional(v.string()),
-      banExpires: v.optional(v.number()),
-    }),
-    v.null()
-  ),
+  returns: v.union(userValidator, v.null()),
   handler: async (ctx) => {
     const userId = await getAuthUserId(ctx);
     if (userId === null) return null;
@@ -363,25 +356,6 @@ export const acceptInvite = mutation({
 // =============================================================================
 // User Management CRUD
 // =============================================================================
-
-const userValidator = v.object({
-  _id: v.id("users"),
-  _creationTime: v.number(),
-  name: v.optional(v.string()),
-  image: v.optional(v.string()),
-  email: v.optional(v.string()),
-  emailVerificationTime: v.optional(v.number()),
-  phone: v.optional(v.string()),
-  phoneVerificationTime: v.optional(v.number()),
-  isAnonymous: v.optional(v.boolean()),
-  bio: v.optional(v.string()),
-  birthDate: v.optional(v.string()),
-  hasCompletedOnboarding: v.optional(v.boolean()),
-  role: v.optional(v.union(v.literal("user"), v.literal("admin"))),
-  banned: v.optional(v.boolean()),
-  banReason: v.optional(v.string()),
-  banExpires: v.optional(v.number()),
-});
 
 /**
  * Get a single user by ID. Admin only.

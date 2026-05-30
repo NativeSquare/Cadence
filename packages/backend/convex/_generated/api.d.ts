@@ -15,6 +15,7 @@ import type * as agoge_goals from "../agoge/goals.js";
 import type * as agoge_helpers from "../agoge/helpers.js";
 import type * as agoge_periodization from "../agoge/periodization.js";
 import type * as agoge_plans from "../agoge/plans.js";
+import type * as agoge_plans_buildFiveKPlan from "../agoge/plans/buildFiveKPlan.js";
 import type * as agoge_plans_fiveK from "../agoge/plans/fiveK.js";
 import type * as agoge_races from "../agoge/races.js";
 import type * as agoge_sync from "../agoge/sync.js";
@@ -90,6 +91,7 @@ declare const fullApi: ApiFromModules<{
   "agoge/helpers": typeof agoge_helpers;
   "agoge/periodization": typeof agoge_periodization;
   "agoge/plans": typeof agoge_plans;
+  "agoge/plans/buildFiveKPlan": typeof agoge_plans_buildFiveKPlan;
   "agoge/plans/fiveK": typeof agoge_plans_fiveK;
   "agoge/races": typeof agoge_races;
   "agoge/sync": typeof agoge_sync;

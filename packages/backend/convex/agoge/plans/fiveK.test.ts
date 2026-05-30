@@ -11,6 +11,7 @@ import {
   computeVdot,
   fiveKPaceMps,
   isoDayOfWeek,
+  type SessionSpec,
   splitPhases,
   trainingPaces,
 } from "../periodization";
@@ -239,8 +240,50 @@ describe("microcycle5K — peak phase", () => {
     expect(w1.some((s) => s.structureSpec?.kind === "mixed")).toBe(false);
   });
 
-  it("lands the latest race-pace session on the latest day of the (Mon→Sun) peak week", () => {
-    // Mon→Sun weeks: the final spé touch lands on the Sunday-most available day.
+  it("anchors the last race-pace spé to the J-8→J-10 window (Sunday race → Saturday, J-8)", () => {
+    // Sunday race (raceDow 6) → 7-day taper; the peak week's Sunday is J-7, so the
+    // last spé caps at Saturday (J-8). Window day-of-week = [taperDays−4, taperDays−2]
+    // = [3, 5]; with all days available the latest in-window day (Sat, dow 5) wins.
+    const sessions = microcycle5K({
+      ...baseArgs,
+      phase: "peak",
+      weekIndexInPhase: 0,
+      weekKm: 50,
+      schedule: { availableDays: [0, 1, 2, 3, 4, 5, 6], sessionsPerWeek: 5 },
+      raceDow: 6,
+    });
+    const racePaceDays = sessions
+      .filter(
+        (s) =>
+          s.structureSpec?.kind === "intervals_paced" &&
+          s.structureSpec.repDistanceM === 800,
+      )
+      .map((s) => s.dayOfWeek);
+    expect(Math.max(...racePaceDays)).toBe(5);
+  });
+
+  it("anchors the last race-pace spé to Sunday (J-10) for a Wednesday race", () => {
+    // Wednesday race (raceDow 2) → 10-day taper; peak Sunday is J-10. Window dow =
+    // [taperDays−4, taperDays−2] = [6, 6], so the last spé must land on Sunday.
+    const sessions = microcycle5K({
+      ...baseArgs,
+      phase: "peak",
+      weekIndexInPhase: 0,
+      weekKm: 50,
+      schedule: { availableDays: [0, 1, 2, 3, 4, 5, 6], sessionsPerWeek: 5 },
+      raceDow: 2,
+    });
+    const racePaceDays = sessions
+      .filter(
+        (s) =>
+          s.structureSpec?.kind === "intervals_paced" &&
+          s.structureSpec.repDistanceM === 800,
+      )
+      .map((s) => s.dayOfWeek);
+    expect(Math.max(...racePaceDays)).toBe(6);
+  });
+
+  it("without raceDow the last spé keeps its natural latest-day placement", () => {
     const sessions = microcycle5K({
       ...baseArgs,
       phase: "peak",
@@ -363,18 +406,37 @@ describe("taperSessions5K", () => {
     schedule: { availableDays: [0, 1, 2, 3, 4, 5, 6], sessionsPerWeek: 5 },
   };
 
-  it("includes one rappel d'allure at 5K pace (3×400)", () => {
+  const findTune = (out: { spec: SessionSpec; dateYmd: string }[]) =>
+    out.find(
+      (s) =>
+        s.spec.structureSpec?.kind === "intervals_paced" &&
+        s.spec.structureSpec.repDistanceM === 400,
+    );
+
+  it("places the rappel d'allure in the J-5→J-4 window (Sunday race → J-5)", () => {
     const out = taperSessions5K({
       ...taperArgs,
       taperStartYmd: "2026-08-24",
       raceYmd: "2026-08-30", // Sunday
     });
-    const tune = out.find(
-      (s) =>
-        s.spec.structureSpec?.kind === "intervals_paced" &&
-        s.spec.structureSpec.repDistanceM === 400,
-    );
+    const tune = findTune(out);
     expect(tune).toBeDefined();
+    // All days available → window {Tue J-5, Wed J-4}; ties prefer more rest → J-5.
+    expect(tune?.dateYmd).toBe("2026-08-25"); // Tuesday, 5 days before the race
+  });
+
+  it("falls back to the closest day when the athlete trains neither J-4 nor J-5", () => {
+    // Trains Mon/Thu only. Sunday race → taper Mon 08-24 (J-6) .. Sat (eve). Pool:
+    // Mon 08-24 (J-6) and Thu 08-27 (J-3); both 1 day off the window, ties prefer
+    // more rest → Monday (J-6).
+    const out = taperSessions5K({
+      ...taperArgs,
+      schedule: { availableDays: [0, 3], sessionsPerWeek: 2 },
+      taperStartYmd: "2026-08-24",
+      raceYmd: "2026-08-30",
+    });
+    const tune = findTune(out);
+    expect(tune?.dateYmd).toBe("2026-08-24");
   });
 
   it("pins the 20-min strides shakeout to race-eve and never touches race day", () => {
@@ -414,6 +476,31 @@ describe("taperSessions5K", () => {
         s.spec.structureSpec.durationSec === 20 * 60,
     );
     expect(shakeout?.dateYmd).toBe("2026-09-01");
+  });
+
+  it("counts the race as a session: race week holds at most sessionsPerWeek − 1 trainings", () => {
+    // 4 sessions/week, Sunday race. Without the cap the week would carry 4
+    // trainings (shakeout + tune-up + 2 easies) + the race = 5 outings; the race
+    // is the 4th session, so training in the race's calendar week is capped to 3.
+    const raceYmd = "2026-08-30"; // Sunday → race-week Monday 2026-08-24
+    const out = taperSessions5K({
+      ...taperArgs,
+      schedule: { availableDays: [0, 1, 2, 3, 4, 5, 6], sessionsPerWeek: 4 },
+      taperStartYmd: "2026-08-24",
+      raceYmd,
+    });
+    const raceWeek = out.filter((s) => s.dateYmd >= "2026-08-24");
+    expect(raceWeek.length).toBe(3);
+    // The two highest-priority touches survive the cap.
+    expect(findTune(out)).toBeDefined();
+    expect(
+      out.some(
+        (s) =>
+          s.spec.structureSpec?.kind === "easy_continuous" &&
+          s.spec.structureSpec.addStrides === true &&
+          s.spec.structureSpec.durationSec === 20 * 60,
+      ),
+    ).toBe(true);
   });
 
   it("low-frequency athletes (≤3 sessions/week) get no shakeout", () => {
