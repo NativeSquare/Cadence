@@ -8,6 +8,7 @@ import { api } from "@packages/backend/convex/_generated/api";
 import { useAuthActions } from "@convex-dev/auth/react";
 import {
   IconAddressBook,
+  IconBook,
   IconChevronRight,
   IconDotsVertical,
   IconFilter,
@@ -93,6 +94,7 @@ const navGroups: NavGroup[] = [
     title: "Developer",
     defaultOpen: true,
     items: [
+      { label: "Plan Playbook", icon: IconBook, href: "/playbook" },
       { label: "Plan Playground", icon: IconFlask, href: "/playground" },
     ],
   },

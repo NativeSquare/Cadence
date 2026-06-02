@@ -46,39 +46,20 @@ import {
   type SessionSpec,
   type StructureSpec,
 } from "../periodization";
+import {
+  type Composition,
+  FIVE_K_PLAYBOOK as PB,
+  type RepCount,
+  type RoleTemplate,
+  type StridesRule,
+} from "./fiveKPlaybook";
 
-// ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
-
-const EASY_MIN_SEC = 30 * 60;
-const EASY_MAX_SEC = 50 * 60;
-
-// Race-eve activation run: short and fixed, just to stay loose.
-const SHAKEOUT_SEC = 20 * 60;
-
-const WARMUP_MIN_SEC = 15 * 60;
-const WARMUP_MAX_SEC = 20 * 60;
-const COOLDOWN_MIN_SEC = 5 * 60;
-const COOLDOWN_MAX_SEC = 10 * 60;
-
-// Recoveries (time-based, between reps within a block).
-const SV2_RECOVERY_SEC = 120; // 2 min @ E
-const VMA_LONG_RECOVERY_SEC = 90; // 1 min 30 @ E
-const VMA_SHORT_RECOVERY_SEC = 60; // 1 min @ E
-const RACE_PACE_RECOVERY_SEC = 90; // 1 min 30 @ E
-const MIXED_BRIDGE_SEC = 180; // 3 min between SV2 block and VMA short block
-
-// Long-run with SV1-pace blocks (Seuil SV1): 3×8min @ SV1 with 3min E recovery.
-const SV1_BLOCK_WORK_SEC = 8 * 60;
-const SV1_BLOCK_RECOVERY_SEC = 3 * 60;
-const SV1_BLOCK_REPS = 3;
-
-// VMA courte / longue rep distances.
-const VMA_SHORT_REP_M = 300;
-const VMA_LONG_REP_M = 800;
-const RACE_PACE_REP_M = 800;
-const SV2_REP_M = 1200;
+// Every coaching constant and per-phase session composition now lives in the
+// playbook (`PB`, see fiveKPlaybook.ts). This file is the *engine*: it reads
+// `PB` and applies the structural algorithms a coach should not have to touch —
+// recovery spacing (`placeRoles`), date math (`fiveKGrid`), and pace/duration
+// scaling (the `lerp` helpers). Moving the data out changes nothing the plans
+// produce; the values below are read straight from `PB`.
 
 // ---------------------------------------------------------------------------
 // Args + role types
@@ -123,22 +104,26 @@ function isQuality(r: Role5K): boolean {
 // ---------------------------------------------------------------------------
 
 /**
- * Build the role "bag" for a phase at a given weekly frequency. Strides are
- * assigned explicitly per the coaching templates (not positionally). The list
- * order is irrelevant — `placeRoles` lays roles out across days for spacing.
+ * Build the role "bag" for a phase at a given weekly frequency by expanding the
+ * playbook's composition for that phase. Strides and the late-build alternating
+ * quality slot are resolved against the week index here (see `templateToRole`).
+ * The list order is irrelevant — `placeRoles` lays roles out across days for
+ * spacing.
  */
 function rolesForPhase(args: Microcycle5KArgs, slots: number): Role5K[] {
   if (slots <= 0) return [];
-  const { phase, weekIndexInPhase } = args;
+  const { phase, weekIndexInPhase: week } = args;
   switch (phase) {
     case "base":
-      return rolesBase(slots, weekIndexInPhase);
+      return expandComposition(PB.compositions.base, slots, week);
     case "build":
-      return weekIndexInPhase < 2
-        ? rolesBuildEarly(slots, weekIndexInPhase)
-        : rolesBuildLate(slots, weekIndexInPhase);
+      return expandComposition(
+        week < 2 ? PB.compositions.buildEarly : PB.compositions.buildLate,
+        slots,
+        week,
+      );
     case "peak":
-      return rolesPeak(slots);
+      return expandComposition(PB.compositions.peak, slots, week);
     case "taper":
       // Taper is a variable-length final block (4–10 days, race-anchored) laid
       // out by `taperSessions5K` over absolute dates — never a weekly microcycle.
@@ -146,133 +131,57 @@ function rolesForPhase(args: Microcycle5KArgs, slots: number): Role5K[] {
   }
 }
 
-/** Base: EF (+strides) + VMA courte every week + SV1 long. No long at 2/week. */
-function rolesBase(slots: number, week: number): Role5K[] {
-  const altStrides = week % 2 === 0; // "6×100m une semaine sur deux"
-  const vma: Role5K = { kind: "vma_short" };
-  const long: Role5K = { kind: "sv1_long" };
-  switch (slots) {
-    case 1:
-      return [long];
-    case 2:
-      return [easy(true), vma];
-    case 3:
-      return [easy(altStrides), vma, long];
-    case 4:
-      return [easy(), easy(true), vma, long];
-    case 5:
-      return [easy(true), easy(), easy(), vma, long];
-    default: {
-      // 6+: two strides-easies, the rest plain, + VMA + SV1 long.
-      const plain = slots - 4;
-      return [
-        easy(true),
-        easy(true),
-        ...Array.from({ length: plain }, () => easy()),
-        vma,
-        long,
-      ];
-    }
-  }
+/** Resolve a playbook strides rule against the (0-based) week index in phase. */
+function resolveStrides(rule: StridesRule, week: number): boolean {
+  return rule === "always" ? true : rule === "never" ? false : week % 2 === 0;
 }
 
-/** Construction-début (build weeks 0–1). */
-function rolesBuildEarly(slots: number, week: number): Role5K[] {
-  const altStrides = week % 2 === 0;
-  const sv2: Role5K = { kind: "sv2" };
-  const vma: Role5K = { kind: "vma_short" };
-  const long: Role5K = { kind: "sv1_long" };
-  switch (slots) {
-    case 1:
-      return [long];
-    case 2:
-      return [easy(true), sv2];
-    case 3:
-      return [easy(altStrides), vma, long];
-    case 4:
-      return [easy(), easy(true), vma, sv2];
-    case 5:
-      return [easy(true), easy(), sv2, vma, long];
-    default: {
-      // 6+: VMA + SV2 + SV1 long, one strides-easy, the rest plain.
-      const plain = slots - 4;
-      return [
-        easy(true),
-        ...Array.from({ length: plain }, () => easy()),
-        vma,
-        sv2,
-        long,
-      ];
+/** Turn a playbook role template into the engine's internal `Role5K`. */
+function templateToRole(t: RoleTemplate, week: number): Role5K {
+  switch (t.kind) {
+    case "easy":
+      return { kind: "easy", addStrides: resolveStrides(t.strides, week) };
+    case "build_late_alt": {
+      // Late build alternates VMA longue (even late-week) ↔ Mixte (odd), keyed
+      // off `inLate = max(0, week − 2)` — the −2 offset must be preserved.
+      const inLate = Math.max(0, week - 2);
+      return inLate % 2 === 0 ? { kind: "vma_long" } : { kind: "mixed" };
     }
+    case "sv1_long":
+      return { kind: "sv1_long" };
+    case "sv2":
+      return { kind: "sv2" };
+    case "vma_short":
+      return { kind: "vma_short" };
+    case "vma_long":
+      return { kind: "vma_long" };
+    case "mixed":
+      return { kind: "mixed" };
+    case "race_pace_5k":
+      return { kind: "race_pace_5k" };
   }
 }
 
 /**
- * Construction-fin (build week ≥ 2): EF + SV2 + SV1 long, with one alternating
- * quality slot — VMA longue (week 1) ↔ Mixte (week 2). Peak no longer shares
- * this shape; see `rolesPeak`.
+ * Expand a phase composition at a given weekly frequency into a role bag. Slots
+ * 1–5 are explicit; 6+ falls to the `overflow` rule (`lead` templates, then
+ * `slots − padBase` plain easies, then `trail`), reproducing the former
+ * `default:` branches element-for-element.
  */
-function rolesFinShape(
+function expandComposition(
+  c: Composition,
   slots: number,
-  altStrides: boolean,
-  alt: Role5K,
+  week: number,
 ): Role5K[] {
-  const sv2: Role5K = { kind: "sv2" };
-  const long: Role5K = { kind: "sv1_long" };
-  switch (slots) {
-    case 1:
-      return [long];
-    case 2:
-      return [easy(true), alt];
-    case 3:
-      return [easy(altStrides), alt, long];
-    case 4:
-      return [easy(), easy(true), alt, sv2];
-    case 5:
-      return [easy(true), easy(), alt, sv2, long];
-    default: {
-      const plain = slots - 4;
-      return [
-        easy(true),
-        ...Array.from({ length: plain }, () => easy()),
-        alt,
-        sv2,
-        long,
-      ];
-    }
-  }
-}
-
-function rolesBuildLate(slots: number, week: number): Role5K[] {
-  const inLate = Math.max(0, week - 2);
-  const alt: Role5K =
-    inLate % 2 === 0 ? { kind: "vma_long" } : { kind: "mixed" };
-  return rolesFinShape(slots, week % 2 === 0, alt);
-}
-
-/**
- * Spécifique (peak): easy runs + 5K race-pace spé (7×800m @ allure course) only.
- * No SV2, no SV1 long — the peak week sharpens toward the race. One race-pace
- * session up to 4 sessions/week, two from 5 onward. Strides ("lignes droites")
- * ride on a single easy each week (two strides-easies at 4 sessions).
- */
-function rolesPeak(slots: number): Role5K[] {
-  const rp: Role5K = { kind: "race_pace_5k" };
-  switch (slots) {
-    case 1:
-      return [rp];
-    case 2:
-      return [easy(true), rp];
-    case 3:
-      return [easy(true), rp, easy()];
-    case 4:
-      return [easy(), easy(true), easy(true), rp];
-    default: {
-      // 5+: 1 strides-easy, (slots − 3) plain easies, 2 race-pace spé.
-      const plain = slots - 3;
-      return [easy(true), ...Array.from({ length: plain }, () => easy()), rp, rp];
-    }
-  }
+  const templates: RoleTemplate[] = c.bySlots[slots] ?? [
+    ...c.overflow.lead,
+    ...Array.from(
+      { length: slots - c.overflow.padBase },
+      (): RoleTemplate => ({ kind: "easy", strides: "never" }),
+    ),
+    ...c.overflow.trail,
+  ];
+  return templates.map((t) => templateToRole(t, week));
 }
 
 // Taper roles are assigned over absolute calendar dates by `taperSessions5K`
@@ -377,18 +286,26 @@ function lerp(min: number, max: number, t: number): number {
 
 function warmupSeconds(weekKm: number, peakKm: number): number {
   const t = weekKm / Math.max(peakKm, 1);
-  return Math.round(lerp(WARMUP_MIN_SEC, WARMUP_MAX_SEC, t));
+  const d = PB.constants.durationsSec;
+  return Math.round(lerp(d.warmupMin, d.warmupMax, t));
 }
 
 function cooldownSeconds(weekKm: number, peakKm: number): number {
   const t = weekKm / Math.max(peakKm, 1);
-  return Math.round(lerp(COOLDOWN_MIN_SEC, COOLDOWN_MAX_SEC, t));
+  const d = PB.constants.durationsSec;
+  return Math.round(lerp(d.cooldownMin, d.cooldownMax, t));
 }
 
 /** EF duration clamped 30–50 min, scaled by weekKm/peakKm within the band. */
 function easyDurationSec(weekKm: number, peakKm: number): number {
   const t = weekKm / Math.max(peakKm, 1);
-  return Math.round(lerp(EASY_MIN_SEC, EASY_MAX_SEC, t));
+  const d = PB.constants.durationsSec;
+  return Math.round(lerp(d.easyMin, d.easyMax, t));
+}
+
+/** Volume-conditional rep count: `weekKm >= hiThreshold·peakKm ? hi : lo`. */
+function pickReps(r: RepCount, weekKm: number, peakKm: number): number {
+  return weekKm >= r.hiThreshold * peakKm ? r.hi : r.lo;
 }
 
 function roleToSessionSpec(
@@ -396,6 +313,7 @@ function roleToSessionSpec(
   args: Microcycle5KArgs,
   dayOfWeek: number,
 ): SessionSpec | null {
+  const C = PB.constants;
   const { weekKm, peakKm, paces, vdot, weekIndexInPhase } = args;
   const wu = warmupSeconds(weekKm, peakKm);
   const cd = cooldownSeconds(weekKm, peakKm);
@@ -417,7 +335,7 @@ function roleToSessionSpec(
       // Shakeout = fixed 20-min activation run the day before the race; a
       // normal easy scales 30–50 min with volume.
       const durationSec = role.shakeout
-        ? SHAKEOUT_SEC
+        ? C.durationsSec.shakeout
         : easyDurationSec(weekKm, peakKm);
       const spec: StructureSpec = {
         kind: "easy_continuous",
@@ -435,19 +353,18 @@ function roleToSessionSpec(
     case "sv1_long": {
       // Long with 3×8min @ SV1 / 3min E. Total ≈ 33 min of structured work +
       // warmup + cooldown ≈ 60–70 min depending on volume.
+      const sv1 = C.sv1Block;
       const spec: StructureSpec = {
         kind: "long_with_blocks",
         warmupSec: wu,
         cooldownSec: cd,
-        reps: SV1_BLOCK_REPS,
-        workDurationSec: SV1_BLOCK_WORK_SEC,
-        recoveryDurationSec: SV1_BLOCK_RECOVERY_SEC,
+        reps: sv1.reps,
+        workDurationSec: sv1.workSec,
+        recoveryDurationSec: sv1.recoverySec,
         workIntensity: "SV1",
       };
       const totalSec =
-        wu +
-        cd +
-        SV1_BLOCK_REPS * (SV1_BLOCK_WORK_SEC + SV1_BLOCK_RECOVERY_SEC);
+        wu + cd + sv1.reps * (sv1.workSec + sv1.recoverySec);
       return {
         ...base,
         type: "long",
@@ -458,18 +375,20 @@ function roleToSessionSpec(
     }
     case "sv2": {
       // 4–5 × 1200m @ T, 2 min E recovery. Scale reps by volume.
-      const reps = weekKm >= 0.7 * peakKm ? 5 : 4;
+      const reps = pickReps(C.reps.sv2, weekKm, peakKm);
+      const repDistanceM = C.repDistancesM.sv2;
+      const recoverySec = C.recoveriesSec.sv2;
       const spec: StructureSpec = {
         kind: "intervals_distance",
         warmupSec: wu,
         cooldownSec: cd,
         reps,
-        repDistanceM: SV2_REP_M,
+        repDistanceM,
         repIntensity: "T",
-        recoverySec: SV2_RECOVERY_SEC,
+        recoverySec,
       };
       const totalM =
-        ePace * (wu + cd + reps * SV2_RECOVERY_SEC) + reps * SV2_REP_M;
+        ePace * (wu + cd + reps * recoverySec) + reps * repDistanceM;
       return {
         ...base,
         type: "intervals",
@@ -480,19 +399,20 @@ function roleToSessionSpec(
     }
     case "vma_short": {
       // 8–12 × 300m @ I, 1 min E recovery.
-      const reps = weekKm >= 0.7 * peakKm ? 12 : 8;
+      const reps = pickReps(C.reps.vmaShort, weekKm, peakKm);
+      const repDistanceM = C.repDistancesM.vmaShort;
+      const recoverySec = C.recoveriesSec.vmaShort;
       const spec: StructureSpec = {
         kind: "intervals_distance",
         warmupSec: wu,
         cooldownSec: cd,
         reps,
-        repDistanceM: VMA_SHORT_REP_M,
+        repDistanceM,
         repIntensity: "I",
-        recoverySec: VMA_SHORT_RECOVERY_SEC,
+        recoverySec,
       };
       const totalM =
-        ePace * (wu + cd + reps * VMA_SHORT_RECOVERY_SEC) +
-        reps * VMA_SHORT_REP_M;
+        ePace * (wu + cd + reps * recoverySec) + reps * repDistanceM;
       return {
         ...base,
         type: "intervals",
@@ -503,18 +423,20 @@ function roleToSessionSpec(
     }
     case "vma_long": {
       // 5–6 × 800m @ I, 1 min 30 E recovery.
-      const reps = weekKm >= 0.7 * peakKm ? 6 : 5;
+      const reps = pickReps(C.reps.vmaLong, weekKm, peakKm);
+      const repDistanceM = C.repDistancesM.vmaLong;
+      const recoverySec = C.recoveriesSec.vmaLong;
       const spec: StructureSpec = {
         kind: "intervals_distance",
         warmupSec: wu,
         cooldownSec: cd,
         reps,
-        repDistanceM: VMA_LONG_REP_M,
+        repDistanceM,
         repIntensity: "I",
-        recoverySec: VMA_LONG_RECOVERY_SEC,
+        recoverySec,
       };
       const totalM =
-        ePace * (wu + cd + reps * VMA_LONG_RECOVERY_SEC) + reps * VMA_LONG_REP_M;
+        ePace * (wu + cd + reps * recoverySec) + reps * repDistanceM;
       return {
         ...base,
         type: "intervals",
@@ -525,33 +447,37 @@ function roleToSessionSpec(
     }
     case "mixed": {
       // 3×1000m @ T / 2min E,  bridge 3min E,  4×400m @ I / 1min E.
+      const { first, second } = C.mixed;
+      const firstRecovery = C.recoveriesSec.sv2;
+      const secondRecovery = C.recoveriesSec.vmaShort;
+      const bridgeSec = C.recoveriesSec.mixedBridge;
       const spec: StructureSpec = {
         kind: "mixed",
         warmupSec: wu,
         cooldownSec: cd,
         first: {
-          reps: 3,
-          repDistanceM: 1000,
+          reps: first.reps,
+          repDistanceM: first.repDistanceM,
           repIntensity: "T",
-          recoverySec: SV2_RECOVERY_SEC,
+          recoverySec: firstRecovery,
         },
         second: {
-          reps: 4,
-          repDistanceM: 400,
+          reps: second.reps,
+          repDistanceM: second.repDistanceM,
           repIntensity: "I",
-          recoverySec: VMA_SHORT_RECOVERY_SEC,
+          recoverySec: secondRecovery,
         },
-        bridgeSec: MIXED_BRIDGE_SEC,
+        bridgeSec,
       };
       const totalM =
         ePace *
           (wu +
             cd +
-            3 * SV2_RECOVERY_SEC +
-            MIXED_BRIDGE_SEC +
-            4 * VMA_SHORT_RECOVERY_SEC) +
-        3 * 1000 +
-        4 * 400;
+            first.reps * firstRecovery +
+            bridgeSec +
+            second.reps * secondRecovery) +
+        first.reps * first.repDistanceM +
+        second.reps * second.repDistanceM;
       return {
         ...base,
         type: "intervals",
@@ -563,19 +489,20 @@ function roleToSessionSpec(
     case "race_pace_5k": {
       // 7×800m @ 5K pace, 1 min 30 E recovery.
       const racePace = vdot ? fiveKPaceMps(vdot) : 0;
-      const reps = 7;
+      const reps = C.reps.racePace;
+      const repDistanceM = C.repDistancesM.racePace;
+      const recoverySec = C.recoveriesSec.racePace;
       const spec: StructureSpec = {
         kind: "intervals_paced",
         warmupSec: wu,
         cooldownSec: cd,
         reps,
-        repDistanceM: RACE_PACE_REP_M,
+        repDistanceM,
         targetPaceMps: racePace,
-        recoverySec: RACE_PACE_RECOVERY_SEC,
+        recoverySec,
       };
       const totalM =
-        ePace * (wu + cd + reps * RACE_PACE_RECOVERY_SEC) +
-        reps * RACE_PACE_REP_M;
+        ePace * (wu + cd + reps * recoverySec) + reps * repDistanceM;
       return {
         ...base,
         type: "intervals",
@@ -588,18 +515,20 @@ function roleToSessionSpec(
       // Short tune-up: 3×400m @ 5K pace, 90s recovery. Keeps the engine
       // primed without depleting glycogen pre-race.
       const racePace = vdot ? fiveKPaceMps(vdot) : 0;
-      const reps = 3;
+      const reps = C.reps.taperTuneUp;
+      const repDistanceM = C.taperTuneUp.repDistanceM;
+      const recoverySec = C.recoveriesSec.racePace;
       const spec: StructureSpec = {
         kind: "intervals_paced",
         warmupSec: wu,
         cooldownSec: cd,
         reps,
-        repDistanceM: 400,
+        repDistanceM,
         targetPaceMps: racePace,
-        recoverySec: RACE_PACE_RECOVERY_SEC,
+        recoverySec,
       };
       const totalM =
-        ePace * (wu + cd + reps * RACE_PACE_RECOVERY_SEC) + reps * 400;
+        ePace * (wu + cd + reps * recoverySec) + reps * repDistanceM;
       return {
         ...base,
         type: "intervals",
@@ -708,7 +637,10 @@ function relocatePeakSpe(
  * ends on a Sunday).
  */
 export function taperDaysForRaceDow(raceDow: number): number {
-  return raceDow <= 2 ? raceDow + 8 : raceDow + 1;
+  const t = PB.taper.taperDays;
+  return raceDow <= t.earlyWeekCutoffDow
+    ? raceDow + t.earlyAddend
+    : raceDow + t.lateAddend;
 }
 
 /**
@@ -811,7 +743,10 @@ export function taperSessions5K(
   // An extended taper can straddle two calendar weeks; days in the earlier week
   // hold no race and keep the normal budget, so only race-week days are gated.
   const raceWeekMonday = addDaysYmd(raceYmd, -isoDayOfWeek(raceYmd));
-  const raceWeekBudget = Math.max(0, schedule.sessionsPerWeek - 1);
+  const raceWeekBudget = Math.max(
+    0,
+    schedule.sessionsPerWeek - PB.taper.raceWeekBudgetOffset,
+  );
   let raceWeekUsed = 0;
 
   const placed: { role: Role5K; dateYmd: string }[] = [];
@@ -833,7 +768,10 @@ export function taperSessions5K(
   };
 
   // Race-eve shakeout (≥4 sessions/week only — lower-volume athletes just rest).
-  if (schedule.sessionsPerWeek >= 4 && eve >= taperStartYmd) {
+  if (
+    schedule.sessionsPerWeek >= PB.taper.shakeoutMinSessionsPerWeek &&
+    eve >= taperStartYmd
+  ) {
     tryPlace({ kind: "easy", addStrides: true, shakeout: true }, eve);
   }
 
@@ -845,7 +783,8 @@ export function taperSessions5K(
   // (the earlier day) on ties so a quality touch never drifts too close to the race.
   // Note: for a Thursday race the 4-day taper only reaches J-3, so the window sits
   // in the peak week and this falls back to the latest taper day (J-3).
-  const tuneDate = pickDayNearWindow(pool, 4, 5, raceYmd);
+  const tuneWindow = PB.taper.tuneUpWindowDaysBeforeRace;
+  const tuneDate = pickDayNearWindow(pool, tuneWindow.lo, tuneWindow.hi, raceYmd);
   if (tuneDate) {
     tryPlace({ kind: "taper_tune_up" }, tuneDate);
   }
