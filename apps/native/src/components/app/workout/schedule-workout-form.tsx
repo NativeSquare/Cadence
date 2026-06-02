@@ -11,19 +11,9 @@ import {
   nowIso,
   plannedFaceSchema,
 } from "@/components/app/workout/workout-form-helpers";
-import {
-  TemplateHeaderButton,
-  TemplatePickerSheet,
-} from "@/components/app/workout/template-picker-sheet";
-import { selectionFeedback } from "@/lib/haptics";
 import { getConvexErrorMessage } from "@/utils/getConvexErrorMessage";
-import { type Workout as WorkoutStructure } from "@nativesquare/agoge";
-import type {
-  WorkoutTemplateDoc,
-  WorkoutType,
-} from "@nativesquare/agoge/schema";
+import type { WorkoutType } from "@nativesquare/agoge/schema";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { useRouter } from "expo-router";
 import React from "react";
 import { useForm, useWatch } from "react-hook-form";
@@ -41,12 +31,10 @@ export type ScheduleWorkoutFormValues = z.infer<typeof formSchema>;
 
 export function ScheduleWorkoutForm({
   initialDate,
-  templates,
   takenYmds,
   onSubmit,
 }: {
   initialDate?: string;
-  templates?: WorkoutTemplateDoc[];
   /** Calendar-day prefixes (YYYY-MM-DD) that already have a workout — blocked. */
   takenYmds?: ReadonlySet<string>;
   onSubmit: (values: ScheduleWorkoutFormValues) => Promise<void>;
@@ -70,7 +58,6 @@ export function ScheduleWorkoutForm({
   });
 
   const [submitError, setSubmitError] = React.useState<string | null>(null);
-  const templateSheetRef = React.useRef<BottomSheetModal>(null);
 
   const planned = useWatch({ control: form.control, name: "planned" });
   const name = useWatch({ control: form.control, name: "name" });
@@ -103,22 +90,6 @@ export function ScheduleWorkoutForm({
     planned.structure.blocks.length > 0 &&
     plannedError == null;
 
-  const handlePickTemplate = (template: WorkoutTemplateDoc) => {
-    selectionFeedback();
-    const pickedStructure =
-      (template.content?.structure as WorkoutStructure | undefined) ??
-      EMPTY_STRUCTURE;
-    const current = form.getValues();
-    form.reset({
-      ...current,
-      name: template.name,
-      description: template.description ?? "",
-      type: template.type,
-      planned: { ...current.planned, structure: pickedStructure },
-    });
-    templateSheetRef.current?.dismiss();
-  };
-
   const handleSave = form.handleSubmit(
     async (data) => {
       setSubmitError(null);
@@ -148,11 +119,6 @@ export function ScheduleWorkoutForm({
       isSubmitting={isSubmitting}
       submitError={submitError}
       onSubmit={() => handleSave()}
-      headerRight={
-        <TemplateHeaderButton
-          onPress={() => templateSheetRef.current?.present()}
-        />
-      }
     >
       <FormSection title={t("workout.fields.workoutSection")}>
         <WorkoutMetadataFields control={form.control} />
@@ -171,12 +137,6 @@ export function ScheduleWorkoutForm({
           dateError={dateError}
         />
       </WorkoutFaceCard>
-
-      <TemplatePickerSheet
-        sheetRef={templateSheetRef}
-        templates={templates ?? []}
-        onPick={handlePickTemplate}
-      />
     </WorkoutFormShell>
   );
 }

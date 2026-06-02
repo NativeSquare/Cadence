@@ -525,12 +525,6 @@
       "title": "Modifier la séance",
       "submit": "Enregistrer"
     },
-    "template": {
-      "section": "Modèle",
-      "structureSection": "Structure",
-      "deleteTitle": "Supprimer le modèle",
-      "tapToClear": "Appuyez à nouveau pour effacer"
-    },
     "markDone": {
       "submit": "Marquer comme terminée",
       "howDidItFeel": "Comment ça s'est passé ?",
@@ -577,7 +571,6 @@
       "workoutSection": "Séance",
       "plannedSection": "Planifiée",
       "actualSection": "Réalisée",
-      "useTemplate": "Utiliser un modèle",
       "name": "Nom",
       "namePlaceholder": "ex. Tempo du mardi",
       "descriptionOptional": "Description (optionnel)",
@@ -914,7 +907,6 @@
       "subscription": "Abonnement",
       "goal": "Mon objectif",
       "fitness": "Métriques",
-      "workoutTemplates": "Modèles de séance",
       "appsAndDevices": "Apple Santé et appareils",
       "calendars": "Calendriers",
       "coach": "Coach",
@@ -1002,18 +994,6 @@
           "description": "Synchroniser les séances avec Apple Calendar"
         }
       }
-    },
-    "workoutTemplates": {
-      "title": "Modèles de séance",
-      "noneYet": "Aucun modèle pour l'instant",
-      "helper": "Enregistrez les séances que vous voulez répéter — sorties faciles, fractionnés, votre plan de sortie longue.",
-      "createFirst": "Créer votre premier modèle",
-      "newTitle": "Nouveau modèle",
-      "createSubmit": "Créer",
-      "detailTitle": "Modèle",
-      "saveSubmit": "Enregistrer",
-      "notFound": "Modèle introuvable.",
-      "readOnlyReason": "Modèle partagé — lecture seule."
     },
     "races": {
       "detail": {

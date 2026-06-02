@@ -26,7 +26,6 @@ import type * as agoge_plans_tenK from "../agoge/plans/tenK.js";
 import type * as agoge_plans_tenKPlaybook from "../agoge/plans/tenKPlaybook.js";
 import type * as agoge_races from "../agoge/races.js";
 import type * as agoge_sync from "../agoge/sync.js";
-import type * as agoge_workoutTemplates from "../agoge/workoutTemplates.js";
 import type * as agoge_workouts from "../agoge/workouts.js";
 import type * as analytics_body from "../analytics/body.js";
 import type * as analytics_daily from "../analytics/daily.js";
@@ -111,7 +110,6 @@ declare const fullApi: ApiFromModules<{
   "agoge/plans/tenKPlaybook": typeof agoge_plans_tenKPlaybook;
   "agoge/races": typeof agoge_races;
   "agoge/sync": typeof agoge_sync;
-  "agoge/workoutTemplates": typeof agoge_workoutTemplates;
   "agoge/workouts": typeof agoge_workouts;
   "analytics/body": typeof analytics_body;
   "analytics/daily": typeof analytics_daily;

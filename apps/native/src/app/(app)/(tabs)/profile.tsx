@@ -211,11 +211,6 @@ export default function Profile() {
                   icon: "pulse-outline",
                   onPress: () => router.push("/account/metrics"),
                 },
-                {
-                  label: t("profile.items.workoutTemplates"),
-                  icon: "barbell-outline",
-                  onPress: () => router.push("/account/workout-templates"),
-                },
               ]}
             />
 

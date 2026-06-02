@@ -24,7 +24,6 @@ export default function ScheduleWorkoutScreen() {
   const initialDate = initialDateYmd ? calendarToInstant(initialDateYmd) : undefined;
 
   const createWorkout = useMutation(api.agoge.workouts.createWorkout);
-  const templates = useQuery(api.agoge.workoutTemplates.listMyWorkoutTemplates);
 
   // 12-month window around today — covers the picker's plausible range without
   // overfetching. Dates further out remain unblocked; the backend still allows
@@ -56,7 +55,6 @@ export default function ScheduleWorkoutScreen() {
   return (
     <ScheduleWorkoutForm
       initialDate={initialDate}
-      templates={templates}
       takenYmds={takenYmds}
       onSubmit={async (values) => {
         await createWorkout({

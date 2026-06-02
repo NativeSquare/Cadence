@@ -153,21 +153,6 @@ export async function loadOwnedRace(
   return { userId: auth.userId, race };
 }
 
-export async function loadOwnedWorkoutTemplate(
-  ctx: QueryCtx | MutationCtx,
-  templateId: string,
-) {
-  const [auth, template] = await Promise.all([
-    loadAthlete(ctx),
-    tryGetById(() =>
-      ctx.runQuery(components.agoge.public.getWorkoutTemplate, { templateId }),
-    ),
-  ]);
-  if (!auth || !template) return null;
-  if (template.athleteId !== auth.athlete._id) return null;
-  return { userId: auth.userId, template };
-}
-
 export async function loadOwnedPlan(
   ctx: QueryCtx | MutationCtx,
   planId: string,
@@ -618,21 +603,6 @@ export async function validateRaceOwnership(
 ): Promise<ValidationError | null> {
   const race = await ctx.runQuery(components.agoge.public.getRace, { raceId });
   if (!race || race.athleteId !== athleteId) return notFound("Race not found");
-  return null;
-}
-
-export async function validateWorkoutTemplateOwnership(
-  ctx: QueryCtx | MutationCtx,
-  templateId: string,
-  athleteId: string,
-): Promise<ValidationError | null> {
-  const template = await ctx.runQuery(
-    components.agoge.public.getWorkoutTemplate,
-    { templateId },
-  );
-  if (!template || template.athleteId !== athleteId) {
-    return notFound("Template not found");
-  }
   return null;
 }
 

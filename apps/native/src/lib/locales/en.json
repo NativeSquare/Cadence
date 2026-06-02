@@ -525,12 +525,6 @@
       "title": "Edit workout",
       "submit": "Save changes"
     },
-    "template": {
-      "section": "Template",
-      "structureSection": "Structure",
-      "deleteTitle": "Delete template",
-      "tapToClear": "Tap again to clear"
-    },
     "markDone": {
       "submit": "Mark as done",
       "howDidItFeel": "How did it feel?",
@@ -577,7 +571,6 @@
       "workoutSection": "Workout",
       "plannedSection": "Planned",
       "actualSection": "Actual",
-      "useTemplate": "Use a template",
       "name": "Name",
       "namePlaceholder": "e.g. Tuesday Tempo",
       "descriptionOptional": "Description (optional)",
@@ -914,7 +907,6 @@
       "subscription": "Subscription",
       "goal": "My Goal",
       "fitness": "Metrics",
-      "workoutTemplates": "Workout Templates",
       "appsAndDevices": "Apple Health & Devices",
       "calendars": "Calendars",
       "coach": "Coach",
@@ -1002,18 +994,6 @@
           "description": "Sync sessions with your Apple Calendar"
         }
       }
-    },
-    "workoutTemplates": {
-      "title": "Workout Templates",
-      "noneYet": "No templates yet",
-      "helper": "Save the workouts you want to repeat — easy runs, intervals, your long-run plan.",
-      "createFirst": "Create your first template",
-      "newTitle": "New Template",
-      "createSubmit": "Create",
-      "detailTitle": "Template",
-      "saveSubmit": "Save",
-      "notFound": "Template not found.",
-      "readOnlyReason": "Shared template — read-only."
     },
     "races": {
       "detail": {

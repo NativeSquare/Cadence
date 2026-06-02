@@ -24,7 +24,6 @@ import {
   validatePlannedFace,
   validateStructureSportMatchesWorkout,
   validateWorkoutStructure,
-  validateWorkoutTemplateOwnership,
   validateZonesAvailableForStructure,
   type ValidationError,
   type ValidationResult,
@@ -39,7 +38,6 @@ const createWorkoutArgs = workoutsValidator
   .omit("athleteId", "planId", "blockId", "templateId")
   .extend({
     blockId: v.optional(v.string()),
-    templateId: v.optional(v.string()),
   });
 
 async function validateCreateWorkout(
@@ -78,17 +76,6 @@ async function validateCreateWorkout(
         ),
       );
     }
-  }
-
-  if (args.templateId) {
-    push(
-      errors,
-      await validateWorkoutTemplateOwnership(
-        ctx,
-        args.templateId,
-        auth.athlete._id,
-      ),
-    );
   }
 
   return result(errors);
@@ -139,7 +126,6 @@ const updateWorkoutArgs = workoutsValidator
   .extend({
     workoutId: v.string(),
     blockId: v.optional(v.union(v.string(), v.null())),
-    templateId: v.optional(v.string()),
   });
 
 async function validateUpdateWorkout(
@@ -174,17 +160,6 @@ async function validateUpdateWorkout(
         ),
       );
     }
-  }
-
-  if (rest.templateId) {
-    push(
-      errors,
-      await validateWorkoutTemplateOwnership(
-        ctx,
-        rest.templateId,
-        existing.athleteId,
-      ),
-    );
   }
 
   const nextStatus = rest.status ?? existing.status;
