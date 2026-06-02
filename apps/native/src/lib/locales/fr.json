@@ -734,7 +734,9 @@
       "details": "Détails",
       "actions": {
         "markAsDone": "Marquer comme terminée",
-        "edit": "Modifier la séance"
+        "edit": "Modifier la séance",
+        "reschedule": "Reprogrammer",
+        "swap": "Échanger"
       },
       "metrics": {
         "distance": "Distance",
@@ -752,6 +754,28 @@
         "intensity": "Intensité",
         "structure": "Structure"
       }
+    },
+    "reschedule": {
+      "title": "Reprogrammer la séance",
+      "subtitle": "Décale cette séance d'un jour.",
+      "previousDay": "La veille",
+      "nextDay": "Le lendemain",
+      "confirm": "Confirmer",
+      "reasons": {
+        "past": "Ce jour est déjà passé.",
+        "occupied": "Ce jour a déjà une séance.",
+        "cap": "Cela déséquilibrerait ta semaine d'entraînement.",
+        "out_of_range": "Hors de portée.",
+        "invalid_state": "Cette séance ne peut pas être reprogrammée.",
+        "invalid_date": "Date invalide.",
+        "not_authorized": "Non autorisé."
+      }
+    },
+    "swap": {
+      "title": "Échanger la séance",
+      "subtitle": "Choisis une séance future du même bloc pour échanger les dates.",
+      "empty": "Aucune autre séance future dans ce bloc avec qui échanger.",
+      "confirm": "Échanger les dates"
     },
     "coachIntervention": {
       "cardTitle": "Ajustée par ton coach",

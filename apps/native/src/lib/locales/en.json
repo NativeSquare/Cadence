@@ -734,7 +734,9 @@
       "details": "Details",
       "actions": {
         "markAsDone": "Mark as done",
-        "edit": "Edit workout"
+        "edit": "Edit workout",
+        "reschedule": "Reschedule",
+        "swap": "Swap"
       },
       "metrics": {
         "distance": "Distance",
@@ -752,6 +754,28 @@
         "intensity": "Intensity",
         "structure": "Structure"
       }
+    },
+    "reschedule": {
+      "title": "Reschedule session",
+      "subtitle": "Move this session by one day.",
+      "previousDay": "Day before",
+      "nextDay": "Day after",
+      "confirm": "Confirm",
+      "reasons": {
+        "past": "That day is in the past.",
+        "occupied": "That day already has a session.",
+        "cap": "This would break your weekly training balance.",
+        "out_of_range": "Out of range.",
+        "invalid_state": "This session can't be rescheduled.",
+        "invalid_date": "Invalid date.",
+        "not_authorized": "Not authorized."
+      }
+    },
+    "swap": {
+      "title": "Swap session",
+      "subtitle": "Pick a future session from the same block to swap dates with.",
+      "empty": "No other future session in this block to swap with.",
+      "confirm": "Swap dates"
     },
     "coachIntervention": {
       "cardTitle": "Adjusted by your coach",

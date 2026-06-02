@@ -12,6 +12,8 @@ import { CoachInterventionCard } from "@/components/app/workout/coach-interventi
 import { ConfirmationSheet } from "@/components/shared/confirmation-sheet";
 import { ManualPaceSheet } from "@/components/app/workout/manual-pace-sheet";
 import { MarkDoneBottomSheet } from "@/components/app/workout/mark-done-bottom-sheet";
+import { RescheduleSheet } from "@/components/app/workout/reschedule-sheet";
+import { SwapSheet } from "@/components/app/workout/swap-sheet";
 import { Text } from "@/components/ui/text";
 import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
 import { WORKOUT_TYPES_COLORS } from "@packages/shared/colors";
@@ -150,6 +152,8 @@ export function WorkoutDetailPage({ workoutId }: WorkoutDetailPageProps) {
   const deleteSheetRef = React.useRef<BottomSheetModal>(null);
   const markDoneSheetRef = React.useRef<BottomSheetModal>(null);
   const manualPaceSheetRef = React.useRef<BottomSheetModal>(null);
+  const rescheduleSheetRef = React.useRef<BottomSheetModal>(null);
+  const swapSheetRef = React.useRef<BottomSheetModal>(null);
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
@@ -210,6 +214,13 @@ export function WorkoutDetailPage({ workoutId }: WorkoutDetailPageProps) {
 
   const isBaselineTest =
     workout.type === "test" && effectiveStatus === "planned";
+
+  // Reschedule / swap operate on a still-open planned session. Swap also needs
+  // a block to scope the candidate list to.
+  const canEditSchedule =
+    workout.planned != null && workout.status !== "completed";
+  const canReschedule = canEditSchedule;
+  const canSwap = canEditSchedule && workout.blockId != null;
 
   const handleManualPace = () => {
     selectionFeedback();
@@ -367,6 +378,50 @@ export function WorkoutDetailPage({ workoutId }: WorkoutDetailPageProps) {
             </Text>
           </Pressable>
         )}
+        {(canReschedule || canSwap) && (
+          <View className="flex-row gap-2">
+            {canReschedule && (
+              <Pressable
+                onPress={() => {
+                  selectionFeedback();
+                  rescheduleSheetRef.current?.present();
+                }}
+                className="flex-1 items-center rounded-2xl border py-3.5 active:opacity-80"
+                style={{
+                  backgroundColor: LIGHT_THEME.w1,
+                  borderColor: LIGHT_THEME.wBrd,
+                }}
+              >
+                <Text
+                  className="font-coach-semibold text-sm"
+                  style={{ color: LIGHT_THEME.wText }}
+                >
+                  {t("workout.detail.actions.reschedule")}
+                </Text>
+              </Pressable>
+            )}
+            {canSwap && (
+              <Pressable
+                onPress={() => {
+                  selectionFeedback();
+                  swapSheetRef.current?.present();
+                }}
+                className="flex-1 items-center rounded-2xl border py-3.5 active:opacity-80"
+                style={{
+                  backgroundColor: LIGHT_THEME.w1,
+                  borderColor: LIGHT_THEME.wBrd,
+                }}
+              >
+                <Text
+                  className="font-coach-semibold text-sm"
+                  style={{ color: LIGHT_THEME.wText }}
+                >
+                  {t("workout.detail.actions.swap")}
+                </Text>
+              </Pressable>
+            )}
+          </View>
+        )}
         <Pressable
           onPress={() => {
             selectionFeedback();
@@ -409,6 +464,20 @@ export function WorkoutDetailPage({ workoutId }: WorkoutDetailPageProps) {
       <ManualPaceSheet
         sheetRef={manualPaceSheetRef}
         onSuccess={() => router.replace("/(app)/(tabs)")}
+      />
+
+      {workout.planned && (
+        <RescheduleSheet
+          sheetRef={rescheduleSheetRef}
+          workoutId={workout._id}
+          plannedDate={workout.planned.date}
+        />
+      )}
+
+      <SwapSheet
+        sheetRef={swapSheetRef}
+        workoutId={workout._id}
+        blockId={workout.blockId ?? undefined}
       />
     </View>
   );

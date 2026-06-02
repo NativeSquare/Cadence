@@ -24,6 +24,8 @@ import { buildBlockLookup, dateKey } from "./helpers";
 import { MonthGrid, GRID_GAP } from "./MonthGrid";
 import { CalendarLegendSheet } from "./CalendarLegendSheet";
 import { CalendarDaySheet } from "./CalendarDaySheet";
+import { RescheduleSheet } from "@/components/app/workout/reschedule-sheet";
+import { SwapSheet } from "@/components/app/workout/swap-sheet";
 import type { WorkoutDoc } from "@nativesquare/agoge/schema";
 
 const GRID_PADDING = 10;
@@ -149,6 +151,10 @@ export function CalendarScreen() {
 
   const legendSheetRef = useRef<GorhomBottomSheetModal>(null);
   const daySheetRef = useRef<GorhomBottomSheetModal>(null);
+  const rescheduleSheetRef = useRef<GorhomBottomSheetModal>(null);
+  const swapSheetRef = useRef<GorhomBottomSheetModal>(null);
+  // The action sheets are shared across rows; hold the workout they target.
+  const [actionWorkout, setActionWorkout] = useState<WorkoutDoc | null>(null);
 
   // ─── Interaction handlers ─────────────────────────────────────────
 
@@ -165,6 +171,23 @@ export function CalendarScreen() {
     },
     [router],
   );
+
+  // Swap the day sheet out for the action sheet. The workout state mounts the
+  // target sheet with the right props; present it on the next frame so it's
+  // mounted by the time we ask for it.
+  const handleReschedule = useCallback((w: WorkoutDoc) => {
+    Haptics.selectionAsync();
+    setActionWorkout(w);
+    daySheetRef.current?.dismiss();
+    requestAnimationFrame(() => rescheduleSheetRef.current?.present());
+  }, []);
+
+  const handleSwap = useCallback((w: WorkoutDoc) => {
+    Haptics.selectionAsync();
+    setActionWorkout(w);
+    daySheetRef.current?.dismiss();
+    requestAnimationFrame(() => swapSheetRef.current?.present());
+  }, []);
 
   const handleShowLegend = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -280,7 +303,24 @@ export function CalendarScreen() {
         workouts={selectedWorkouts}
         onWorkoutPress={handleWorkoutPress}
         onAddWorkout={handleAddWorkout}
+        onReschedule={handleReschedule}
+        onSwap={handleSwap}
       />
+
+      {actionWorkout?.planned && (
+        <RescheduleSheet
+          sheetRef={rescheduleSheetRef}
+          workoutId={actionWorkout._id}
+          plannedDate={actionWorkout.planned.date}
+        />
+      )}
+      {actionWorkout && (
+        <SwapSheet
+          sheetRef={swapSheetRef}
+          workoutId={actionWorkout._id}
+          blockId={actionWorkout.blockId ?? undefined}
+        />
+      )}
     </View>
   );
 }

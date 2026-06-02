@@ -1,6 +1,11 @@
 import { workoutsValidator } from "@nativesquare/agoge/schema";
-import { ConvexError, v } from "convex/values";
+import { ConvexError, type Infer, v } from "convex/values";
 import { components } from "../_generated/api";
+import {
+  validateMoveAgainstRules,
+  validateSwapAgainstRules,
+} from "../engine/rules";
+import { daysBetweenYmd } from "./periodization";
 import {
   type MutationCtx,
   mutation,
@@ -118,6 +123,113 @@ async function validateRescheduleWorkout(
   );
 
   return result(errors);
+}
+
+// Manual ±1-day reschedule. Distinct from `rescheduleWorkout` (which the
+// Engine calls): user-facing, so it carries product constraints (one day only,
+// no past day, target day must be empty) plus the deterministic coaching caps.
+// The richer `reason` lets the UI localize why a candidate day is disabled.
+const adjacentReasonValidator = v.union(
+  v.literal("not_authorized"),
+  v.literal("invalid_state"),
+  v.literal("invalid_date"),
+  v.literal("out_of_range"),
+  v.literal("past"),
+  v.literal("occupied"),
+  v.literal("cap"),
+);
+export type AdjacentReason = Infer<typeof adjacentReasonValidator>;
+
+const adjacentResultValidator = v.union(
+  v.object({ ok: v.literal(true) }),
+  v.object({
+    ok: v.literal(false),
+    reason: adjacentReasonValidator,
+    message: v.string(),
+  }),
+);
+type AdjacentResult = Infer<typeof adjacentResultValidator>;
+
+function todayYmdUtc(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+async function validateRescheduleAdjacent(
+  ctx: QueryCtx | MutationCtx,
+  args: typeof rescheduleArgs.type,
+): Promise<AdjacentResult> {
+  const owned = await loadOwnedWorkout(ctx, args.workoutId);
+  if (!owned)
+    return { ok: false, reason: "not_authorized", message: "Not authorized" };
+  const { workout } = owned;
+  const planned = workout.planned;
+  if (!planned)
+    return {
+      ok: false,
+      reason: "invalid_state",
+      message: "Cannot reschedule a workout without a planned face",
+    };
+  if (workout.status === "completed")
+    return {
+      ok: false,
+      reason: "invalid_state",
+      message: "Cannot reschedule a completed workout",
+    };
+
+  const dateErr = validateIsoInstantDate(args.date, "date");
+  if (dateErr)
+    return { ok: false, reason: "invalid_date", message: dateErr.message };
+
+  const plannedYmd = planned.date.slice(0, 10);
+  const targetYmd = args.date.slice(0, 10);
+  if (Math.abs(daysBetweenYmd(plannedYmd, targetYmd)) !== 1)
+    return {
+      ok: false,
+      reason: "out_of_range",
+      message: "A workout can only be rescheduled by one day.",
+    };
+
+  if (targetYmd < todayYmdUtc())
+    return {
+      ok: false,
+      reason: "past",
+      message: "Cannot reschedule to a past day.",
+    };
+
+  // Target day must be empty — manual reschedule never swaps (Swap is its own
+  // explicit action).
+  const sameDay = await ctx.runQuery(
+    components.agoge.public.getPlannedWorkoutsByAthlete,
+    {
+      athleteId: workout.athleteId,
+      startDate: `${targetYmd}T00:00:00.000Z`,
+      endDate: `${targetYmd}T23:59:59.999Z`,
+    },
+  );
+  if (sameDay.some((w) => w._id !== args.workoutId))
+    return {
+      ok: false,
+      reason: "occupied",
+      message: "That day already has a workout.",
+    };
+
+  const blockErr = await validatePlannedDateInBlock(
+    ctx,
+    args.date,
+    workout.blockId,
+  );
+  if (blockErr)
+    return { ok: false, reason: "out_of_range", message: blockErr.message };
+
+  const ruleErr = await validateMoveAgainstRules(ctx, {
+    workoutId: args.workoutId,
+    workoutType: workout.type,
+    athleteId: workout.athleteId,
+    proposedDate: args.date,
+  });
+  if (ruleErr) return { ok: false, reason: "cap", message: ruleErr.message };
+
+  return { ok: true };
 }
 
 const updateWorkoutArgs = workoutsValidator
@@ -239,6 +351,26 @@ async function validateSwapWorkouts(
     ),
   );
 
+  // Deterministic coaching caps (quality-per-week, weekly volume) — same rules
+  // the Engine applies to its own moves. Only worth running once the Agoge
+  // domain checks pass.
+  if (errors.length === 0) {
+    const ruleErr = await validateSwapAgainstRules(ctx, {
+      athleteId: a.workout.athleteId,
+      a: {
+        _id: a.workout._id,
+        type: a.workout.type,
+        plannedDate: a.workout.planned.date,
+      },
+      b: {
+        _id: b.workout._id,
+        type: b.workout.type,
+        plannedDate: b.workout.planned.date,
+      },
+    });
+    if (ruleErr) push(errors, { code: "CONFLICT", message: ruleErr.message });
+  }
+
   return result(errors);
 }
 
@@ -264,6 +396,12 @@ export const dryRunSwapWorkouts = query({
   args: swapArgs.fields,
   returns: validationResultValidator,
   handler: (ctx, args) => validateSwapWorkouts(ctx, args),
+});
+
+export const dryRunRescheduleAdjacent = query({
+  args: rescheduleArgs.fields,
+  returns: adjacentResultValidator,
+  handler: (ctx, args) => validateRescheduleAdjacent(ctx, args),
 });
 
 // ---------------------------------------------------------------------------
@@ -473,6 +611,40 @@ export const rescheduleWorkout = mutation({
     //   internal.agoge.sync.syncWorkoutToProviders,
     //   { userId, workoutId, operation: "upsert" },
     // );
+  },
+});
+
+export const rescheduleWorkoutAdjacent = mutation({
+  args: rescheduleArgs.fields,
+  handler: async (ctx, args) => {
+    const validation = await validateRescheduleAdjacent(ctx, args);
+    if (!validation.ok)
+      throw new ConvexError({
+        code: "VALIDATION_FAILED",
+        reason: validation.reason,
+        message: validation.message,
+      });
+
+    const { workoutId, date } = args;
+    const owned = await loadOwnedWorkout(ctx, workoutId);
+    if (!owned)
+      throw new ConvexError({
+        code: "VALIDATION_FAILED",
+        reason: "not_authorized",
+        message: "Not authorized",
+      });
+    const planned = owned.workout.planned;
+    if (!planned)
+      throw new ConvexError({
+        code: "VALIDATION_FAILED",
+        reason: "invalid_state",
+        message: "Cannot reschedule a workout without a planned face",
+      });
+
+    await ctx.runMutation(components.agoge.public.updateWorkout, {
+      workoutId,
+      planned: { ...planned, date },
+    });
   },
 });
 

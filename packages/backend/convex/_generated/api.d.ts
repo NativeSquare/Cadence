@@ -61,6 +61,7 @@ import type * as engine_dailyEvaluation from "../engine/dailyEvaluation.js";
 import type * as engine_generatePlan from "../engine/generatePlan.js";
 import type * as engine_interventions from "../engine/interventions.js";
 import type * as engine_reschedule from "../engine/reschedule.js";
+import type * as engine_rules from "../engine/rules.js";
 import type * as http from "../http.js";
 import type * as migrations from "../migrations.js";
 import type * as notifications from "../notifications.js";
@@ -145,6 +146,7 @@ declare const fullApi: ApiFromModules<{
   "engine/generatePlan": typeof engine_generatePlan;
   "engine/interventions": typeof engine_interventions;
   "engine/reschedule": typeof engine_reschedule;
+  "engine/rules": typeof engine_rules;
   http: typeof http;
   migrations: typeof migrations;
   notifications: typeof notifications;

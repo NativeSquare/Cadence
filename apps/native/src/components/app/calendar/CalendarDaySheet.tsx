@@ -1,7 +1,8 @@
 import React from "react";
-import { View } from "react-native";
+import { Pressable, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { BottomSheetModal as GorhomBottomSheetModal } from "@gorhom/bottom-sheet";
+import { Ionicons } from "@expo/vector-icons";
 import type { WorkoutDoc } from "@nativesquare/agoge/schema";
 
 import { BottomSheetModal } from "@/components/custom/bottom-sheet";
@@ -18,6 +19,8 @@ interface CalendarDaySheetProps {
   workouts: WorkoutDoc[];
   onWorkoutPress: (workoutId: string) => void;
   onAddWorkout: () => void;
+  onReschedule: (workout: WorkoutDoc) => void;
+  onSwap: (workout: WorkoutDoc) => void;
 }
 
 export function CalendarDaySheet({
@@ -26,6 +29,8 @@ export function CalendarDaySheet({
   workouts,
   onWorkoutPress,
   onAddWorkout,
+  onReschedule,
+  onSwap,
 }: CalendarDaySheetProps) {
   const { t } = useTranslation();
   const locale = useLanguage();
@@ -55,13 +60,33 @@ export function CalendarDaySheet({
               {t("calendar.selectedDay.empty")}
             </Text>
           ) : (
-            workouts.map((w) => (
-              <WorkoutCard
-                key={w._id}
-                workout={w}
-                onPress={() => onWorkoutPress(w._id)}
-              />
-            ))
+            workouts.map((w) => {
+              const canEdit = w.planned != null && w.status !== "completed";
+              return (
+                <View key={w._id} className="gap-1.5">
+                  <WorkoutCard
+                    workout={w}
+                    onPress={() => onWorkoutPress(w._id)}
+                  />
+                  {canEdit && (
+                    <View className="flex-row gap-1.5 pl-1">
+                      <DayAction
+                        icon="calendar-outline"
+                        label={t("workout.detail.actions.reschedule")}
+                        onPress={() => onReschedule(w)}
+                      />
+                      {w.blockId != null && (
+                        <DayAction
+                          icon="swap-horizontal-outline"
+                          label={t("workout.detail.actions.swap")}
+                          onPress={() => onSwap(w)}
+                        />
+                      )}
+                    </View>
+                  )}
+                </View>
+              );
+            })
           )}
           <AddWorkoutButton
             label={t("calendar.selectedDay.addWorkout")}
@@ -70,5 +95,31 @@ export function CalendarDaySheet({
         </View>
       </View>
     </BottomSheetModal>
+  );
+}
+
+function DayAction({
+  icon,
+  label,
+  onPress,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      className="flex-row items-center gap-1.5 rounded-full border px-3 py-1.5 active:opacity-70"
+      style={{ backgroundColor: LIGHT_THEME.w1, borderColor: LIGHT_THEME.wBrd }}
+    >
+      <Ionicons name={icon} size={13} color={LIGHT_THEME.wMute} />
+      <Text
+        className="font-coach-semibold text-[12px]"
+        style={{ color: LIGHT_THEME.wText }}
+      >
+        {label}
+      </Text>
+    </Pressable>
   );
 }
