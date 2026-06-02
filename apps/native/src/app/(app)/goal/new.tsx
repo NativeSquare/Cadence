@@ -16,11 +16,15 @@ import {
 } from "@/components/app/goal";
 import {
   EMPTY_RECENT_RACE,
+  EMPTY_SCHEDULE,
   isRecentRaceValid,
+  isScheduleValid,
   recentRaceToDistanceMeters,
   recentRaceToSeconds,
   StepRecentRace,
+  StepSchedule,
   type RecentRaceValue,
+  type ScheduleValue,
 } from "@/components/app/onboarding";
 import { Text } from "@/components/ui/text";
 import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
@@ -28,9 +32,9 @@ import { selectionFeedback } from "@/lib/haptics";
 import { getConvexErrorMessage } from "@/utils/getConvexErrorMessage";
 import { Ionicons } from "@expo/vector-icons";
 import { api } from "@packages/backend/convex/_generated/api";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { useRouter } from "expo-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
@@ -42,7 +46,7 @@ import {
   View,
 } from "react-native";
 
-type Step = 1 | 2 | 3 | 4 | 5;
+type Step = 1 | 2 | 3 | 4 | 5 | 6;
 
 function todayIso(): string {
   const d = new Date();
@@ -92,8 +96,10 @@ export default function NewGoalScreen() {
   const { t } = useTranslation();
   const router = useRouter();
 
+  const athlete = useQuery(api.agoge.athletes.getAthlete);
   const createRace = useMutation(api.agoge.races.createMyRaceWithGoal);
   const createFitnessGoal = useMutation(api.agoge.goals.createMyFitnessGoal);
+  const upsertAthlete = useMutation(api.agoge.athletes.upsertAthlete);
   const setVdotFromRaceResult = useMutation(
     api.engine.baselineTest.setVdotFromRaceResult,
   );
@@ -107,14 +113,33 @@ export default function NewGoalScreen() {
   const [fitnessGoal, setFitnessGoalState] = useState<FitnessGoal | null>(null);
   const [recentRace, setRecentRace] =
     useState<RecentRaceValue>(EMPTY_RECENT_RACE);
+  const [schedule, setSchedule] = useState<ScheduleValue>(EMPTY_SCHEDULE);
+  const [scheduleSeeded, setScheduleSeeded] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  // Race branch: 1 type → 2 details → 3 goal → 4 plan → 5 recent race
-  // Fitness branch: 1 type → 2 intent → 3 plan → 4 recent race
-  const totalSteps = branch === "fitness" ? 4 : 5;
-  const isRecentRaceStep =
+  // Prefill the schedule step from the athlete's saved availability (set during
+  // onboarding) so we surface their current days/sessions rather than defaults.
+  // Seed once — after that the user's in-wizard edits own the state.
+  useEffect(() => {
+    if (scheduleSeeded || athlete === undefined) return;
+    const days = athlete?.availableDays;
+    const sessions = athlete?.sessionsPerWeek;
+    if (days && days.length > 0 && typeof sessions === "number") {
+      setSchedule({ availableDays: days, sessionsPerWeek: sessions });
+    }
+    setScheduleSeeded(true);
+  }, [athlete, scheduleSeeded]);
+
+  // Race branch: 1 type → 2 details → 3 goal → 4 plan → 5 schedule → 6 recent race
+  // Fitness branch: 1 type → 2 intent → 3 plan → 4 schedule → 5 recent race
+  const totalSteps = branch === "fitness" ? 5 : 6;
+  const isPlanStep =
+    (branch === "race" && step === 4) || (branch === "fitness" && step === 3);
+  const isScheduleStep =
     (branch === "race" && step === 5) || (branch === "fitness" && step === 4);
+  const isRecentRaceStep =
+    (branch === "race" && step === 6) || (branch === "fitness" && step === 5);
 
   const canProceed = useMemo(() => {
     if (step === 1) return branch != null;
@@ -142,12 +167,23 @@ export default function NewGoalScreen() {
       if (raceGoal.type === "performance") return hasNonZeroTime(raceGoal);
       return false;
     }
-    if (step === 3 && branch === "fitness") return plan.startDate !== "";
-    if (step === 4 && branch === "race") return plan.startDate !== "";
+    if (isPlanStep) return plan.startDate !== "";
+    if (isScheduleStep) return isScheduleValid(schedule);
     // Recent race is optional — caller can submit with a valid time or skip.
     if (isRecentRaceStep) return true;
     return false;
-  }, [step, branch, raceDetails, raceGoal, plan, fitnessGoal, isRecentRaceStep]);
+  }, [
+    step,
+    branch,
+    raceDetails,
+    raceGoal,
+    plan,
+    fitnessGoal,
+    schedule,
+    isPlanStep,
+    isScheduleStep,
+    isRecentRaceStep,
+  ]);
 
   const isFinalStep = isRecentRaceStep;
 
@@ -185,6 +221,14 @@ export default function NewGoalScreen() {
   const submit = async ({ withRaceResult }: { withRaceResult: boolean }) => {
     setSubmitting(true);
     try {
+      // Persist the chosen availability onto the athlete profile — the plan
+      // engine reads `availableDays`/`sessionsPerWeek` from there when laying
+      // out microcycles.
+      await upsertAthlete({
+        availableDays: schedule.availableDays,
+        sessionsPerWeek: schedule.sessionsPerWeek,
+      });
+
       if (branch === "fitness" && fitnessGoal) {
         await createFitnessGoal({ fitnessIntent: fitnessGoal });
       } else if (branch === "race") {
@@ -291,7 +335,7 @@ export default function NewGoalScreen() {
           {step === 3 && branch === "race" && (
             <StepRaceGoal value={raceGoal} onChange={setRaceGoal} />
           )}
-          {step === 3 && branch === "fitness" && (
+          {isPlanStep && branch === "fitness" && (
             <StepPlan
               value={plan}
               onChange={setPlan}
@@ -299,7 +343,7 @@ export default function NewGoalScreen() {
               minDate={todayIso()}
             />
           )}
-          {step === 4 && branch === "race" && (
+          {isPlanStep && branch === "race" && (
             <StepPlan
               value={plan}
               onChange={setPlan}
@@ -307,6 +351,9 @@ export default function NewGoalScreen() {
               minDate={todayIso()}
               maxDate={raceDetails.date || undefined}
             />
+          )}
+          {isScheduleStep && (
+            <StepSchedule value={schedule} onChange={setSchedule} />
           )}
           {isRecentRaceStep && (
             <StepRecentRace value={recentRace} onChange={setRecentRace} />

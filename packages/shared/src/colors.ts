@@ -44,8 +44,8 @@ export const WORKOUT_TYPES_COLORS: Record<WorkoutType, string> = {
   threshold: "#FF6D00",
   intervals: "#FFC400",
   long: "#00B0FF",
-  race: "#FF0040",
-  race_pace: WORKOUT_GRAY,
+  race: "#AA00FF",
+  race_pace: "#FF0040",
   recovery: WORKOUT_GRAY,
   test: WORKOUT_GRAY,
 } as const;
@@ -55,8 +55,8 @@ export const WORKOUT_TYPES_COLORS_DIM: Record<WorkoutType, string> = {
   threshold: "rgba(255, 109, 0, 0.15)",
   intervals: "rgba(255, 196, 0, 0.15)",
   long: "rgba(0, 176, 255, 0.15)",
-  race: "rgba(255, 0, 64, 0.15)",
-  race_pace: WORKOUT_GRAY_DIM,
+  race: "rgba(170, 0, 255, 0.15)",
+  race_pace: "rgba(255, 0, 64, 0.15)",
   recovery: WORKOUT_GRAY_DIM,
   test: WORKOUT_GRAY_DIM,
 } as const;

@@ -1082,7 +1082,7 @@ const TYPE_LABEL: Record<WorkoutType, { en: string; fr: string }> = {
   long: { en: "Long", fr: "Long" },
   threshold: { en: "Threshold", fr: "Seuil" },
   intervals: { en: "Intervals", fr: "Intervalles" },
-  race_pace: { en: "Race pace", fr: "Allure de course" },
+  race_pace: { en: "Race pace", fr: "Allure spé" },
   recovery: { en: "Recovery", fr: "Récup" },
   race: { en: "Race", fr: "Course" },
   test: { en: "Fitness test", fr: "Test" },

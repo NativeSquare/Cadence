@@ -644,7 +644,7 @@ function roleToSessionSpec(
       );
       return {
         ...base,
-        type: "intervals",
+        type: "threshold",
         intensity: "T",
         distanceKm,
         structureSpec,
@@ -722,7 +722,7 @@ function roleToSessionSpec(
       );
       return {
         ...base,
-        type: "intervals",
+        type: "race_pace",
         intensity: "I",
         distanceKm,
         structureSpec,
@@ -743,7 +743,7 @@ function roleToSessionSpec(
       );
       return {
         ...base,
-        type: "intervals",
+        type: "race_pace",
         intensity: "I",
         distanceKm,
         structureSpec,

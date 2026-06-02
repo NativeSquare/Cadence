@@ -44,7 +44,7 @@ const baseArgs = {
 const isSv1Long = (s: SessionSpec) =>
   s.type === "long" && s.structureSpec?.kind === "long_with_blocks";
 const isSv2 = (s: SessionSpec) =>
-  s.type === "intervals" &&
+  s.type === "threshold" &&
   s.structureSpec?.kind === "long_with_blocks" &&
   s.structureSpec.workIntensity === "T";
 const isVma = (s: SessionSpec) =>
