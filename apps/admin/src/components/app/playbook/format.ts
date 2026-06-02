@@ -1,6 +1,7 @@
 /** Display helpers for the read-only 5K Playbook view. Pure, no deps. */
 
 import type {
+  BankEntry,
   Composition,
   RoleTemplate,
   StridesRule,
@@ -84,4 +85,20 @@ export function recovery(sec: number): string {
   const m = Math.floor(sec / 60);
   const s = sec % 60;
   return `${m} min ${String(s).padStart(2, "0")}`;
+}
+
+/** One-line label for a session-bank entry (reps × work · recovery). */
+export function bankEntryLabel(e: BankEntry): string {
+  switch (e.kind) {
+    case "time":
+      return `${e.reps} × ${minutes(e.workSec)} · récup ${recovery(e.recoverySec)}`;
+    case "dist":
+    case "paced":
+      return `${e.reps} × ${e.repDistanceM} m · récup ${recovery(e.recoverySec)}`;
+    case "mixte": {
+      const first = `${e.first.reps} × ${minutes(e.first.workSec)} SV2`;
+      const second = `${e.second.reps} × ${e.second.repDistanceM} m`;
+      return `${first} + ${second} (transition ${recovery(e.bridgeSec)})`;
+    }
+  }
 }

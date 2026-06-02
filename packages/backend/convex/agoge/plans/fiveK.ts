@@ -47,9 +47,9 @@ import {
   type StructureSpec,
 } from "../periodization";
 import {
+  type BankEntry,
   type Composition,
   FIVE_K_PLAYBOOK as PB,
-  type RepCount,
   type RoleTemplate,
   type StridesRule,
 } from "./fiveKPlaybook";
@@ -79,6 +79,13 @@ export type Microcycle5KArgs = {
    * When omitted, the peak spé keeps its natural latest-day placement.
    */
   raceDow?: number;
+  /**
+   * Global plan progress in [0,1] (0 = first pre-taper week, 1 = the peak week /
+   * taper). Drives which entry the quality-session banks draw — together with
+   * the athlete's level (VDOT), workouts get harder as the race approaches.
+   * Defaults to 0 when omitted.
+   */
+  planProgress?: number;
 };
 
 type Role5K =
@@ -303,9 +310,159 @@ function easyDurationSec(weekKm: number, peakKm: number): number {
   return Math.round(lerp(d.easyMin, d.easyMax, t));
 }
 
-/** Volume-conditional rep count: `weekKm >= hiThreshold·peakKm ? hi : lo`. */
-function pickReps(r: RepCount, weekKm: number, peakKm: number): number {
-  return weekKm >= r.hiThreshold * peakKm ? r.hi : r.lo;
+function clamp01(n: number): number {
+  return Math.max(0, Math.min(1, n));
+}
+
+/**
+ * Map an athlete's VDOT to a difficulty level in [0,1] (35 → 0, 60 → 1). Used to
+ * slide the bank-selection window: fitter athletes start higher in each bank.
+ * Falls back to the middle when VDOT is unknown.
+ */
+function levelFromVdot(vdot?: number): number {
+  return vdot === undefined ? 0.5 : clamp01((vdot - 35) / 25);
+}
+
+/**
+ * Pick an entry from a difficulty-ordered session bank. The athlete's `level`
+ * slides a window (half the bank, rounded up) along the bank; plan `progress`
+ * walks upward within that window. Result: fitter athletes draw harder
+ * workouts, and within a window every athlete ramps as the race nears.
+ */
+export function selectBankIndex(
+  len: number,
+  level: number,
+  progress: number,
+): number {
+  if (len <= 1) return 0;
+  const windowSize = Math.max(1, Math.ceil(len / 2));
+  const start = Math.round(clamp01(level) * (len - windowSize));
+  const within = Math.round(clamp01(progress) * (windowSize - 1));
+  return Math.min(len - 1, start + within);
+}
+
+/** Draw the week's entry from a bank, keyed on the athlete's level + progress. */
+function pickEntry(bank: BankEntry[], args: Microcycle5KArgs): BankEntry {
+  const idx = selectBankIndex(
+    bank.length,
+    levelFromVdot(args.vdot),
+    clamp01(args.planProgress ?? 0),
+  );
+  return bank[idx]!;
+}
+
+type TimeEntry = Extract<BankEntry, { kind: "time" }>;
+type DistEntry = Extract<BankEntry, { kind: "dist" }>;
+type PacedEntry = Extract<BankEntry, { kind: "paced" }>;
+type MixteEntry = Extract<BankEntry, { kind: "mixte" }>;
+
+/** km estimate for a session label/guard. Structure stays the source of truth. */
+type Built = { spec: StructureSpec; distanceKm: number };
+
+/** Time-based interval blocks (SV1 long @ SV1, SV2 @ T) → `long_with_blocks`. */
+function buildTime(
+  e: TimeEntry,
+  wu: number,
+  cd: number,
+  ePace: number,
+  workIntensity: IntensityAnchor,
+): Built {
+  const spec: StructureSpec = {
+    kind: "long_with_blocks",
+    warmupSec: wu,
+    cooldownSec: cd,
+    reps: e.reps,
+    workDurationSec: e.workSec,
+    recoveryDurationSec: e.recoverySec,
+    workIntensity,
+  };
+  const totalSec = wu + cd + e.reps * (e.workSec + e.recoverySec);
+  return { spec, distanceKm: round1(ePace > 0 ? (ePace * totalSec) / 1000 : 12) };
+}
+
+/** Distance intervals @ a training anchor (VMA courte/longue @ I). */
+function buildDist(
+  e: DistEntry,
+  wu: number,
+  cd: number,
+  ePace: number,
+  repIntensity: IntensityAnchor,
+): Built {
+  const spec: StructureSpec = {
+    kind: "intervals_distance",
+    warmupSec: wu,
+    cooldownSec: cd,
+    reps: e.reps,
+    repDistanceM: e.repDistanceM,
+    repIntensity,
+    recoverySec: e.recoverySec,
+  };
+  const totalM =
+    ePace * (wu + cd + e.reps * e.recoverySec) + e.reps * e.repDistanceM;
+  return { spec, distanceKm: round1(totalM / 1000) };
+}
+
+/** Distance intervals at an explicit pace (allure spé, taper rappel @ 5K pace). */
+function buildPaced(
+  e: PacedEntry,
+  wu: number,
+  cd: number,
+  ePace: number,
+  targetPaceMps: number,
+): Built {
+  const spec: StructureSpec = {
+    kind: "intervals_paced",
+    warmupSec: wu,
+    cooldownSec: cd,
+    reps: e.reps,
+    repDistanceM: e.repDistanceM,
+    targetPaceMps,
+    recoverySec: e.recoverySec,
+  };
+  const totalM =
+    ePace * (wu + cd + e.reps * e.recoverySec) + e.reps * e.repDistanceM;
+  return { spec, distanceKm: round1(totalM / 1000) };
+}
+
+/** Mixte: a time block @ T (SV2) → bridge → a distance block @ I (VMA courte). */
+function buildMixte(
+  e: MixteEntry,
+  wu: number,
+  cd: number,
+  ePace: number,
+  tPace: number,
+): Built {
+  const { first, second, bridgeSec } = e;
+  const spec: StructureSpec = {
+    kind: "mixed",
+    warmupSec: wu,
+    cooldownSec: cd,
+    first: {
+      reps: first.reps,
+      workDurationSec: first.workSec,
+      repIntensity: "T",
+      recoverySec: first.recoverySec,
+    },
+    second: {
+      reps: second.reps,
+      repDistanceM: second.repDistanceM,
+      repIntensity: "I",
+      recoverySec: second.recoverySec,
+    },
+    bridgeSec,
+  };
+  // First block runs at T pace; everything else (recoveries, bridge) at E.
+  const firstWorkM = (tPace > 0 ? tPace : ePace) * first.reps * first.workSec;
+  const totalM =
+    ePace *
+      (wu +
+        cd +
+        first.reps * first.recoverySec +
+        bridgeSec +
+        second.reps * second.recoverySec) +
+    firstWorkM +
+    second.reps * second.repDistanceM;
+  return { spec, distanceKm: round1(totalM / 1000) };
 }
 
 function roleToSessionSpec(
@@ -351,191 +508,57 @@ function roleToSessionSpec(
       };
     }
     case "sv1_long": {
-      // Long with 3×8min @ SV1 / 3min E. Total ≈ 33 min of structured work +
-      // warmup + cooldown ≈ 60–70 min depending on volume.
-      const sv1 = C.sv1Block;
-      const spec: StructureSpec = {
-        kind: "long_with_blocks",
-        warmupSec: wu,
-        cooldownSec: cd,
-        reps: sv1.reps,
-        workDurationSec: sv1.workSec,
-        recoveryDurationSec: sv1.recoverySec,
-        workIntensity: "SV1",
-      };
-      const totalSec =
-        wu + cd + sv1.reps * (sv1.workSec + sv1.recoverySec);
-      return {
-        ...base,
-        type: "long",
-        intensity: "SV1",
-        distanceKm: round1(ePace > 0 ? (ePace * totalSec) / 1000 : 12),
-        structureSpec: spec,
-      };
+      // Long run with SV1-pace time blocks. Drawn from the SV1 bank by level +
+      // plan progress (e.g. 3×6min easiest → 2×20min hardest).
+      const e = pickEntry(PB.banks.sv1Long, args);
+      if (e.kind !== "time") return null;
+      const { spec, distanceKm } = buildTime(e, wu, cd, ePace, "SV1");
+      return { ...base, type: "long", intensity: "SV1", distanceKm, structureSpec: spec };
     }
     case "sv2": {
-      // 4–5 × 1200m @ T, 2 min E recovery. Scale reps by volume.
-      const reps = pickReps(C.reps.sv2, weekKm, peakKm);
-      const repDistanceM = C.repDistancesM.sv2;
-      const recoverySec = C.recoveriesSec.sv2;
-      const spec: StructureSpec = {
-        kind: "intervals_distance",
-        warmupSec: wu,
-        cooldownSec: cd,
-        reps,
-        repDistanceM,
-        repIntensity: "T",
-        recoverySec,
-      };
-      const totalM =
-        ePace * (wu + cd + reps * recoverySec) + reps * repDistanceM;
-      return {
-        ...base,
-        type: "intervals",
-        intensity: "T",
-        distanceKm: round1(totalM / 1000),
-        structureSpec: spec,
-      };
+      // Threshold time blocks @ T (e.g. 5×3min → 3×12min), drawn from the bank.
+      const e = pickEntry(PB.banks.sv2, args);
+      if (e.kind !== "time") return null;
+      const { spec, distanceKm } = buildTime(e, wu, cd, ePace, "T");
+      return { ...base, type: "intervals", intensity: "T", distanceKm, structureSpec: spec };
     }
     case "vma_short": {
-      // 8–12 × 300m @ I, 1 min E recovery.
-      const reps = pickReps(C.reps.vmaShort, weekKm, peakKm);
-      const repDistanceM = C.repDistancesM.vmaShort;
-      const recoverySec = C.recoveriesSec.vmaShort;
-      const spec: StructureSpec = {
-        kind: "intervals_distance",
-        warmupSec: wu,
-        cooldownSec: cd,
-        reps,
-        repDistanceM,
-        repIntensity: "I",
-        recoverySec,
-      };
-      const totalM =
-        ePace * (wu + cd + reps * recoverySec) + reps * repDistanceM;
-      return {
-        ...base,
-        type: "intervals",
-        intensity: "I",
-        distanceKm: round1(totalM / 1000),
-        structureSpec: spec,
-      };
+      // Short VO₂max distance reps @ I (200–400m), drawn from the bank.
+      const e = pickEntry(PB.banks.vmaShort, args);
+      if (e.kind !== "dist") return null;
+      const { spec, distanceKm } = buildDist(e, wu, cd, ePace, "I");
+      return { ...base, type: "intervals", intensity: "I", distanceKm, structureSpec: spec };
     }
     case "vma_long": {
-      // 5–6 × 800m @ I, 1 min 30 E recovery.
-      const reps = pickReps(C.reps.vmaLong, weekKm, peakKm);
-      const repDistanceM = C.repDistancesM.vmaLong;
-      const recoverySec = C.recoveriesSec.vmaLong;
-      const spec: StructureSpec = {
-        kind: "intervals_distance",
-        warmupSec: wu,
-        cooldownSec: cd,
-        reps,
-        repDistanceM,
-        repIntensity: "I",
-        recoverySec,
-      };
-      const totalM =
-        ePace * (wu + cd + reps * recoverySec) + reps * repDistanceM;
-      return {
-        ...base,
-        type: "intervals",
-        intensity: "I",
-        distanceKm: round1(totalM / 1000),
-        structureSpec: spec,
-      };
+      // Long VO₂max distance reps @ I (600–800m), drawn from the bank.
+      const e = pickEntry(PB.banks.vmaLong, args);
+      if (e.kind !== "dist") return null;
+      const { spec, distanceKm } = buildDist(e, wu, cd, ePace, "I");
+      return { ...base, type: "intervals", intensity: "I", distanceKm, structureSpec: spec };
     }
     case "mixed": {
-      // 3×1000m @ T / 2min E,  bridge 3min E,  4×400m @ I / 1min E.
-      const { first, second } = C.mixed;
-      const firstRecovery = C.recoveriesSec.sv2;
-      const secondRecovery = C.recoveriesSec.vmaShort;
-      const bridgeSec = C.recoveriesSec.mixedBridge;
-      const spec: StructureSpec = {
-        kind: "mixed",
-        warmupSec: wu,
-        cooldownSec: cd,
-        first: {
-          reps: first.reps,
-          repDistanceM: first.repDistanceM,
-          repIntensity: "T",
-          recoverySec: firstRecovery,
-        },
-        second: {
-          reps: second.reps,
-          repDistanceM: second.repDistanceM,
-          repIntensity: "I",
-          recoverySec: secondRecovery,
-        },
-        bridgeSec,
-      };
-      const totalM =
-        ePace *
-          (wu +
-            cd +
-            first.reps * firstRecovery +
-            bridgeSec +
-            second.reps * secondRecovery) +
-        first.reps * first.repDistanceM +
-        second.reps * second.repDistanceM;
-      return {
-        ...base,
-        type: "intervals",
-        intensity: "I",
-        distanceKm: round1(totalM / 1000),
-        structureSpec: spec,
-      };
+      // SV2 time block @ T → bridge → VMA-courte distance block @ I.
+      const e = pickEntry(PB.banks.mixed, args);
+      if (e.kind !== "mixte") return null;
+      const { spec, distanceKm } = buildMixte(e, wu, cd, ePace, paces?.T ?? 0);
+      return { ...base, type: "intervals", intensity: "I", distanceKm, structureSpec: spec };
     }
     case "race_pace_5k": {
-      // 7×800m @ 5K pace, 1 min 30 E recovery.
+      // Allure spé: distance reps at the 5K race pace, drawn from the bank.
+      const e = pickEntry(PB.banks.racePace, args);
+      if (e.kind !== "paced") return null;
       const racePace = vdot ? fiveKPaceMps(vdot) : 0;
-      const reps = C.reps.racePace;
-      const repDistanceM = C.repDistancesM.racePace;
-      const recoverySec = C.recoveriesSec.racePace;
-      const spec: StructureSpec = {
-        kind: "intervals_paced",
-        warmupSec: wu,
-        cooldownSec: cd,
-        reps,
-        repDistanceM,
-        targetPaceMps: racePace,
-        recoverySec,
-      };
-      const totalM =
-        ePace * (wu + cd + reps * recoverySec) + reps * repDistanceM;
-      return {
-        ...base,
-        type: "intervals",
-        intensity: "I",
-        distanceKm: round1(totalM / 1000),
-        structureSpec: spec,
-      };
+      const { spec, distanceKm } = buildPaced(e, wu, cd, ePace, racePace);
+      return { ...base, type: "intervals", intensity: "I", distanceKm, structureSpec: spec };
     }
     case "taper_tune_up": {
-      // Short tune-up: 3×400m @ 5K pace, 90s recovery. Keeps the engine
-      // primed without depleting glycogen pre-race.
+      // Rappel d'allure: a single tune-up at 5K pace. Drawn from the rappel bank
+      // by level (progress is pinned to 1 by the taper — it's the plan's end).
+      const e = pickEntry(PB.banks.rappel, args);
+      if (e.kind !== "paced") return null;
       const racePace = vdot ? fiveKPaceMps(vdot) : 0;
-      const reps = C.reps.taperTuneUp;
-      const repDistanceM = C.taperTuneUp.repDistanceM;
-      const recoverySec = C.recoveriesSec.racePace;
-      const spec: StructureSpec = {
-        kind: "intervals_paced",
-        warmupSec: wu,
-        cooldownSec: cd,
-        reps,
-        repDistanceM,
-        targetPaceMps: racePace,
-        recoverySec,
-      };
-      const totalM =
-        ePace * (wu + cd + reps * recoverySec) + reps * repDistanceM;
-      return {
-        ...base,
-        type: "intervals",
-        intensity: "I",
-        distanceKm: round1(totalM / 1000),
-        structureSpec: spec,
-      };
+      const { spec, distanceKm } = buildPaced(e, wu, cd, ePace, racePace);
+      return { ...base, type: "intervals", intensity: "I", distanceKm, structureSpec: spec };
     }
   }
 }
@@ -808,6 +831,9 @@ export function taperSessions5K(
           schedule,
           paces: args.paces,
           vdot: args.vdot,
+          // The taper is the plan's end: draw the tune-up from the top of the
+          // level-windowed rappel bank.
+          planProgress: 1,
         },
         isoDayOfWeek(dateYmd),
       );

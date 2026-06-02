@@ -714,7 +714,10 @@ export type StructureSpec =
       cooldownSec: number;
       first: {
         reps: number;
-        repDistanceM: number;
+        /** Distance-based first block. Mutually exclusive with `workDurationSec`. */
+        repDistanceM?: number;
+        /** Time-based first block (e.g. an SV2 block measured in minutes). */
+        workDurationSec?: number;
         repIntensity: IntensityAnchor;
         recoverySec: number;
       };
@@ -809,13 +812,26 @@ export function buildFromSpec(
             kind: "repeat",
             count: spec.first.reps,
             children: [
-              distanceStep(
-                "work",
-                spec.first.repDistanceM,
-                spec.first.repIntensity,
-                paces,
-              ),
-              timeStep("recovery", spec.first.recoverySec, "E", paces),
+              // First block is either time-based (e.g. an SV2 block in minutes)
+              // or distance-based, depending on which field the spec carries.
+              spec.first.workDurationSec !== undefined
+                ? timeStep(
+                    "work",
+                    spec.first.workDurationSec,
+                    spec.first.repIntensity,
+                    paces,
+                  )
+                : distanceStep(
+                    "work",
+                    spec.first.repDistanceM ?? 0,
+                    spec.first.repIntensity,
+                    paces,
+                  ),
+              // A single-rep block (reps=1, recovery 0) needs no inter-rep rest;
+              // the bridge below carries the transition to the second block.
+              ...(spec.first.recoverySec > 0
+                ? [timeStep("recovery", spec.first.recoverySec, "E", paces)]
+                : []),
             ],
           },
           timeStep("recovery", spec.bridgeSec, "E", paces),

@@ -308,6 +308,9 @@ export function buildFiveKPlan(inputs: BuildFiveKPlanInputs): FiveKPlanTrace {
       vdot,
       // Peak only: anchors the last race-pace spé to J-8→J-10 before the race.
       raceDow: isoDayOfWeek(raceYmd),
+      // Global plan position (0 = first pre-taper week → 1 = peak week). Drives
+      // how hard a workout each quality-session bank draws this week.
+      planProgress: preTaperWeeks <= 1 ? 1 : w / (preTaperWeeks - 1),
     });
 
     const traced: TracedSession[] = sessions.map((session) => {

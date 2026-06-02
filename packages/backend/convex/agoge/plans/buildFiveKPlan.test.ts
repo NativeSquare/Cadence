@@ -169,6 +169,7 @@ function oracle(inputs: BuildFiveKPlanInputs): EmittedWorkout[] {
       paces,
       vdot,
       raceDow: isoDayOfWeek(raceYmd),
+      planProgress: preTaperWeeks <= 1 ? 1 : w / (preTaperWeeks - 1),
     });
     for (const session of sessions) {
       emit(out, common, addDaysYmd(weekStart, session.dayOfWeek), session);

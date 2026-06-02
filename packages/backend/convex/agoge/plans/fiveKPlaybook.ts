@@ -78,11 +78,42 @@ export type FiveKCompositions = {
 };
 
 // ---------------------------------------------------------------------------
-// Numeric session constants (former top-of-file consts + inline rep counts).
+// Session banks — one difficulty-ordered bag of workouts per quality session
+// type. The engine (`fiveK.ts`) draws ONE entry per week via `selectBankIndex`
+// (athlete level slides a window into the bank; plan progress walks upward
+// within it), replacing the former single fixed spec + volume-conditional rep
+// bump. Each bank is ordered easiest → hardest (the coach's given order, with
+// non-uniform pyramids/ladders/mixed-distance sets removed and count-ranges
+// baked to a single value). Per-entry recoveries are time-based @ E pace.
 // ---------------------------------------------------------------------------
 
-/** Volume-conditional rep count: `weekKm >= hiThreshold * peakKm ? hi : lo`. */
-export type RepCount = { hi: number; lo: number; hiThreshold: number };
+/** One workout in a session bank. Uniform-rep shapes only (for now). */
+export type BankEntry =
+  // Time-based interval blocks. SV1 long (@ SV1) and SV2 (@ T).
+  | { kind: "time"; reps: number; workSec: number; recoverySec: number }
+  // Distance-based intervals @ I (VMA courte / longue).
+  | { kind: "dist"; reps: number; repDistanceM: number; recoverySec: number }
+  // Distance intervals run at the explicit 5K race pace (allure spé, rappel).
+  | { kind: "paced"; reps: number; repDistanceM: number; recoverySec: number }
+  // Mixte: a time block @ T (SV2) → bridge → a distance block @ I (VMA courte).
+  | {
+      kind: "mixte";
+      first: { reps: number; workSec: number; recoverySec: number };
+      bridgeSec: number;
+      second: { reps: number; repDistanceM: number; recoverySec: number };
+    };
+
+/** Difficulty-ordered banks, one per quality session type. */
+export type FiveKBanks = {
+  sv1Long: BankEntry[];
+  sv2: BankEntry[];
+  vmaShort: BankEntry[];
+  vmaLong: BankEntry[];
+  mixed: BankEntry[];
+  racePace: BankEntry[];
+  /** Taper "rappel d'allure" tune-up. */
+  rappel: BankEntry[];
+};
 
 export type FiveKConstants = {
   durationsSec: {
@@ -95,39 +126,6 @@ export type FiveKConstants = {
     cooldownMin: number;
     cooldownMax: number;
   };
-  /** Time-based recoveries between reps within a block (@ E pace). */
-  recoveriesSec: {
-    sv2: number;
-    vmaLong: number;
-    vmaShort: number;
-    racePace: number;
-    /** Between the SV2 block and the VMA-short block in a Mixte session. */
-    mixedBridge: number;
-  };
-  /** Long run with SV1-pace blocks: `reps × (workSec @ SV1 + recoverySec @ E)`. */
-  sv1Block: { workSec: number; recoverySec: number; reps: number };
-  repDistancesM: {
-    vmaShort: number;
-    vmaLong: number;
-    racePace: number;
-    sv2: number;
-  };
-  reps: {
-    sv2: RepCount;
-    vmaShort: RepCount;
-    vmaLong: RepCount;
-    /** Fixed. */
-    racePace: number;
-    /** Fixed (taper tune-up). */
-    taperTuneUp: number;
-  };
-  /** Mixte: `first` block (@ T) → bridge → `second` block (@ I). */
-  mixed: {
-    first: { reps: number; repDistanceM: number };
-    second: { reps: number; repDistanceM: number };
-  };
-  /** Taper tune-up "rappel d'allure": reps @ 5K pace (count lives in `reps`). */
-  taperTuneUp: { repDistanceM: number };
 };
 
 // ---------------------------------------------------------------------------
@@ -155,6 +153,8 @@ export type FiveKTaperRules = {
 export type FiveKPlaybook = {
   compositions: FiveKCompositions;
   constants: FiveKConstants;
+  /** Difficulty-ordered workout banks, drawn from per week by the engine. */
+  banks: FiveKBanks;
   taper: FiveKTaperRules;
 };
 
@@ -166,6 +166,30 @@ export type FiveKPlaybook = {
 const min = (m: number): number => m * 60;
 
 const easy = (strides: StridesRule): RoleTemplate => ({ kind: "easy", strides });
+
+// Bank-entry builders — keep the difficulty lists below readable (reps × work,
+// recovery in seconds @ E). They erase to plain object literals at build.
+const time = (reps: number, workSec: number, recoverySec: number): BankEntry => ({
+  kind: "time",
+  reps,
+  workSec,
+  recoverySec,
+});
+const dist = (
+  reps: number,
+  repDistanceM: number,
+  recoverySec: number,
+): BankEntry => ({ kind: "dist", reps, repDistanceM, recoverySec });
+const paced = (
+  reps: number,
+  repDistanceM: number,
+  recoverySec: number,
+): BankEntry => ({ kind: "paced", reps, repDistanceM, recoverySec });
+const mixte = (
+  first: { reps: number; workSec: number; recoverySec: number },
+  bridgeSec: number,
+  second: { reps: number; repDistanceM: number; recoverySec: number },
+): BankEntry => ({ kind: "mixte", first, bridgeSec, second });
 
 export const FIVE_K_PLAYBOOK: FiveKPlaybook = {
   compositions: {
@@ -265,27 +289,91 @@ export const FIVE_K_PLAYBOOK: FiveKPlaybook = {
       cooldownMin: min(5),
       cooldownMax: min(10),
     },
-    recoveriesSec: {
-      sv2: 120, // 2 min @ E
-      vmaLong: 90, // 1 min 30 @ E
-      vmaShort: 60, // 1 min @ E
-      racePace: 90, // 1 min 30 @ E
-      mixedBridge: 180, // 3 min between SV2 block and VMA short block
-    },
-    sv1Block: { workSec: min(8), recoverySec: min(3), reps: 3 },
-    repDistancesM: { vmaShort: 300, vmaLong: 800, racePace: 800, sv2: 1200 },
-    reps: {
-      sv2: { hi: 5, lo: 4, hiThreshold: 0.7 },
-      vmaShort: { hi: 12, lo: 8, hiThreshold: 0.7 },
-      vmaLong: { hi: 6, lo: 5, hiThreshold: 0.7 },
-      racePace: 7,
-      taperTuneUp: 3,
-    },
-    mixed: {
-      first: { reps: 3, repDistanceM: 1000 },
-      second: { reps: 4, repDistanceM: 400 },
-    },
-    taperTuneUp: { repDistanceM: 400 },
+  },
+
+  // Difficulty-ordered workout banks (easiest → hardest), transcribed from the
+  // coach's templates. Non-uniform entries (pyramids, ladders, mixed-distance
+  // sets) are dropped for now; count-ranges are baked to a single value. The
+  // engine draws one entry per week (see `selectBankIndex` in fiveK.ts).
+  banks: {
+    // SV1 long run — time blocks @ SV1 (aerobic threshold). Dropped: 12/10/8/6.
+    sv1Long: [
+      time(3, min(6), 90),
+      time(3, min(7), 120),
+      time(4, min(6), 90),
+      time(5, min(5), 90),
+      time(4, min(7), 120),
+      time(6, min(5), 90),
+      time(3, min(10), 150),
+      time(4, min(8), 120),
+      time(2, min(15), 150),
+      time(5, min(7), 120),
+      time(2, min(20), 150),
+    ],
+    // SV2 threshold — time blocks @ T. Dropped: 3/5/8/5/3, 10/8/6, 12/10/8.
+    sv2: [
+      time(5, min(3), 90),
+      time(4, min(4), 120),
+      time(3, min(5), 120),
+      time(5, min(4), 120),
+      time(4, min(5), 120),
+      time(3, min(6), 150),
+      time(3, min(7), 150),
+      time(4, min(6), 150),
+      time(3, min(8), 180),
+      time(2, min(12), 180),
+      time(5, min(6), 150),
+      time(4, min(8), 180),
+      time(3, min(10), 180),
+      time(6, min(6), 150),
+      time(3, min(12), 180),
+    ],
+    // VMA courte — short distance reps @ I. Ranges baked (coach examples).
+    // Dropped: mixed-distance sets and the 4×1min + 6×30s entry.
+    vmaShort: [
+      dist(12, 200, 60),
+      dist(11, 300, 60),
+      dist(9, 400, 75),
+    ],
+    // VMA longue — long distance reps @ I. Dropped: all pyramids, 3×600+3×800.
+    vmaLong: [
+      dist(5, 600, 105),
+      dist(5, 800, 135),
+      dist(6, 600, 105),
+      dist(6, 800, 135),
+      dist(7, 600, 105),
+      dist(7, 800, 150),
+      dist(8, 600, 105),
+      dist(8, 800, 150),
+    ],
+    // Mixte — SV2 time block @ T → bridge → VMA-courte distance block @ I.
+    // Second-block counts baked. Dropped: 2×6min + (3–4×400 + 3–4×300).
+    mixed: [
+      mixte({ reps: 1, workSec: min(10), recoverySec: 0 }, 180, { reps: 6, repDistanceM: 300, recoverySec: 60 }),
+      mixte({ reps: 1, workSec: min(8), recoverySec: 0 }, 180, { reps: 5, repDistanceM: 400, recoverySec: 75 }),
+      mixte({ reps: 1, workSec: min(12), recoverySec: 0 }, 180, { reps: 8, repDistanceM: 300, recoverySec: 60 }),
+      mixte({ reps: 2, workSec: min(6), recoverySec: 120 }, 180, { reps: 5, repDistanceM: 400, recoverySec: 75 }),
+      mixte({ reps: 3, workSec: min(5), recoverySec: 120 }, 240, { reps: 8, repDistanceM: 300, recoverySec: 60 }),
+      mixte({ reps: 2, workSec: min(5), recoverySec: 120 }, 180, { reps: 6, repDistanceM: 400, recoverySec: 75 }),
+      mixte({ reps: 2, workSec: min(8), recoverySec: 150 }, 180, { reps: 6, repDistanceM: 300, recoverySec: 60 }),
+      mixte({ reps: 2, workSec: min(10), recoverySec: 240 }, 240, { reps: 6, repDistanceM: 400, recoverySec: 75 }),
+      mixte({ reps: 1, workSec: min(15), recoverySec: 0 }, 180, { reps: 8, repDistanceM: 300, recoverySec: 60 }),
+    ],
+    // Allure spé — distance reps @ 5K race pace. Range baked (6–8×800 → 7).
+    // Dropped: 1500/1200/1000/800, 3×(1000+500), 4×800+4×400.
+    racePace: [
+      paced(7, 800, 105),
+      paced(5, 1000, 120),
+      paced(8, 600, 75),
+    ],
+    // Rappel d'allure (taper tune-up) — distance reps @ 5K race pace.
+    // Dropped: 4×500+2×400, 1000+800+600, 2×800+2×400, 3×600+2×400.
+    rappel: [
+      paced(4, 600, 105),
+      paced(3, 800, 120),
+      paced(5, 500, 90),
+      paced(4, 700, 105),
+    ],
   },
 
   taper: {

@@ -22,9 +22,9 @@ export default function PlaybookPage() {
         <h1 className="text-2xl font-bold">5K Playbook</h1>
         <p className="text-muted-foreground text-sm">
           The coaching logic behind 5K plan generation, as readable tables — what
-          each training week contains at every weekly frequency, the structure of
-          each session, and the taper rules. This is the exact data the generator
-          runs; changing it changes the plans.
+          each training week contains at every weekly frequency, the difficulty-
+          ordered bank each session is drawn from, and the taper rules. This is the
+          exact data the generator runs; changing it changes the plans.
         </p>
       </div>
 
@@ -50,13 +50,13 @@ export default function PlaybookPage() {
         <CompositionTable
           title="Peak (spécifique)"
           phaseColor="peak"
-          intent="Race-pace 5K sessions (7×800 @ goal pace) + easy runs only. No SV2, no SV1 long."
+          intent="Race-pace 5K sessions (allure spé bank) + easy runs only. No SV2, no SV1 long."
           composition={PB.compositions.peak}
         />
       </div>
 
       <div className="grid grid-cols-1 gap-4 px-4 lg:px-6 xl:grid-cols-2">
-        <SessionSpecsPanel c={PB.constants} />
+        <SessionSpecsPanel banks={PB.banks} />
         <div className="flex flex-col gap-4">
           <DurationsPanel c={PB.constants} />
           <TaperPanel taper={PB.taper} />

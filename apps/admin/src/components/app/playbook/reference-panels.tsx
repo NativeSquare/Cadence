@@ -1,9 +1,9 @@
 "use client";
 
 import type {
+  FiveKBanks,
   FiveKConstants,
   FiveKTaperRules,
-  RepCount,
 } from "@packages/backend/convex/agoge/plans/fiveKPlaybook";
 
 import {
@@ -23,102 +23,50 @@ import {
 } from "@/components/ui/table";
 
 import { DAY_LABELS } from "../playground/format";
-import { minutes, recovery } from "./format";
+import { bankEntryLabel, minutes } from "./format";
 
-/** "8–12 (12 when weekly km ≥ 70% of peak)" from a volume-conditional RepCount. */
-function repCountLabel(r: RepCount): string {
-  return `${r.lo}–${r.hi} (${r.hi} when weekly km ≥ ${Math.round(
-    r.hiThreshold * 100,
-  )}% of peak)`;
-}
-
-/** Per-session structure (reps × distance/duration, intensity, recovery). */
-export function SessionSpecsPanel({ c }: { c: FiveKConstants }) {
-  const rows: Array<{
+/** Each session type's difficulty-ordered bank — the generator draws one entry
+ * per week, sliding by athlete level + walking up with plan progress. */
+export function SessionSpecsPanel({ banks }: { banks: FiveKBanks }) {
+  const groups: Array<{
     name: string;
-    work: string;
     intensity: string;
-    rec: string;
+    bank: FiveKBanks[keyof FiveKBanks];
   }> = [
-    {
-      name: "SV1 long run",
-      work: `${c.sv1Block.reps} × ${minutes(c.sv1Block.workSec)} blocks`,
-      intensity: "SV1 (aerobic threshold)",
-      rec: `${recovery(c.sv1Block.recoverySec)} @ easy`,
-    },
-    {
-      name: "SV2 threshold",
-      work: `${repCountLabel(c.reps.sv2)} × ${c.repDistancesM.sv2}m`,
-      intensity: "T (threshold)",
-      rec: `${recovery(c.recoveriesSec.sv2)} @ easy`,
-    },
-    {
-      name: "VMA courte",
-      work: `${repCountLabel(c.reps.vmaShort)} × ${c.repDistancesM.vmaShort}m`,
-      intensity: "I (VO₂max)",
-      rec: `${recovery(c.recoveriesSec.vmaShort)} @ easy`,
-    },
-    {
-      name: "VMA longue",
-      work: `${repCountLabel(c.reps.vmaLong)} × ${c.repDistancesM.vmaLong}m`,
-      intensity: "I (VO₂max)",
-      rec: `${recovery(c.recoveriesSec.vmaLong)} @ easy`,
-    },
-    {
-      name: "Mixte",
-      work: `${c.mixed.first.reps} × ${c.mixed.first.repDistanceM}m + ${c.mixed.second.reps} × ${c.mixed.second.repDistanceM}m`,
-      intensity: "T then I",
-      rec: `${recovery(c.recoveriesSec.sv2)} / ${recovery(
-        c.recoveriesSec.vmaShort,
-      )}, bridge ${recovery(c.recoveriesSec.mixedBridge)}`,
-    },
-    {
-      name: "Race-pace 5K",
-      work: `${c.reps.racePace} × ${c.repDistancesM.racePace}m`,
-      intensity: "5K goal pace",
-      rec: `${recovery(c.recoveriesSec.racePace)} @ easy`,
-    },
-    {
-      name: "Taper tune-up",
-      work: `${c.reps.taperTuneUp} × ${c.taperTuneUp.repDistanceM}m`,
-      intensity: "5K goal pace",
-      rec: `${recovery(c.recoveriesSec.racePace)} @ easy`,
-    },
+    { name: "SV1 long run", intensity: "SV1 (aerobic threshold)", bank: banks.sv1Long },
+    { name: "SV2 threshold", intensity: "T (threshold)", bank: banks.sv2 },
+    { name: "VMA courte", intensity: "I (VO₂max)", bank: banks.vmaShort },
+    { name: "VMA longue", intensity: "I (VO₂max)", bank: banks.vmaLong },
+    { name: "Mixte", intensity: "T then I", bank: banks.mixed },
+    { name: "Allure spé (5K)", intensity: "5K goal pace", bank: banks.racePace },
+    { name: "Rappel d’allure (taper)", intensity: "5K goal pace", bank: banks.rappel },
   ];
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Session structures</CardTitle>
+        <CardTitle className="text-base">Session banks</CardTitle>
         <CardDescription>
-          What each session type prescribes. Rep counts that scale with volume
-          show the low–high range and the threshold at which the higher count
-          kicks in.
+          Each session type is a difficulty-ordered bank (easiest → hardest). The
+          generator draws one entry per week: the athlete’s level (VDOT) slides a
+          window into the bank, and plan progress walks upward within it, so
+          workouts get harder as the race approaches.
         </CardDescription>
       </CardHeader>
-      <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Session</TableHead>
-              <TableHead>Work</TableHead>
-              <TableHead>Intensity</TableHead>
-              <TableHead>Recovery</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {rows.map((r) => (
-              <TableRow key={r.name}>
-                <TableCell className="font-medium">{r.name}</TableCell>
-                <TableCell>{r.work}</TableCell>
-                <TableCell className="text-muted-foreground">
-                  {r.intensity}
-                </TableCell>
-                <TableCell className="text-muted-foreground">{r.rec}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+      <CardContent className="space-y-5">
+        {groups.map((g) => (
+          <div key={g.name}>
+            <div className="mb-1 flex items-baseline justify-between">
+              <span className="font-medium">{g.name}</span>
+              <span className="text-muted-foreground text-xs">{g.intensity}</span>
+            </div>
+            <ol className="text-muted-foreground list-decimal space-y-0.5 pl-5 text-sm">
+              {g.bank.map((e, i) => (
+                <li key={i}>{bankEntryLabel(e)}</li>
+              ))}
+            </ol>
+          </div>
+        ))}
       </CardContent>
     </Card>
   );

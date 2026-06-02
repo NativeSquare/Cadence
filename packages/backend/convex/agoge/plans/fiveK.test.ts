@@ -18,6 +18,7 @@ import {
 import {
   fiveKGrid,
   microcycle5K,
+  selectBankIndex,
   taperDaysForRaceDow,
   taperSessions5K,
 } from "./fiveK";
@@ -36,14 +37,20 @@ const baseArgs = {
   vdot: VDOT_50,
 };
 
-const isVma = (s: { structureSpec?: { kind: string; repIntensity?: string } }) =>
+// Discriminators. SV2 and SV1 long are both time-based `long_with_blocks` now —
+// they differ by the work intensity (T vs SV1). VMA stays distance-based @ I.
+type SpecPeek = {
+  structureSpec?: { kind: string; repIntensity?: string; workIntensity?: string };
+};
+const isVma = (s: SpecPeek) =>
   s.structureSpec?.kind === "intervals_distance" &&
   s.structureSpec.repIntensity === "I";
-const isSv2 = (s: { structureSpec?: { kind: string; repIntensity?: string } }) =>
-  s.structureSpec?.kind === "intervals_distance" &&
-  s.structureSpec.repIntensity === "T";
-const isSv1Long = (s: { structureSpec?: { kind: string } }) =>
-  s.structureSpec?.kind === "long_with_blocks";
+const isSv2 = (s: SpecPeek) =>
+  s.structureSpec?.kind === "long_with_blocks" &&
+  s.structureSpec.workIntensity === "T";
+const isSv1Long = (s: SpecPeek) =>
+  s.structureSpec?.kind === "long_with_blocks" &&
+  s.structureSpec.workIntensity === "SV1";
 
 describe("splitPhases(5k)", () => {
   it("12-week 5K → peak=1, taper=1, build=4, base=6", () => {
@@ -175,11 +182,13 @@ describe("microcycle5K — build late (alternation)", () => {
       weekKm: 55,
       schedule: SCHEDULE_5,
     });
+    // The alt slot resolves to VMA longue — a distance @ I session drawn from the
+    // VMA-longue bank (600–800m reps; exact entry depends on level/progress).
     const vmaLong = sessions.find(
       (s) =>
         s.structureSpec?.kind === "intervals_distance" &&
         s.structureSpec.repIntensity === "I" &&
-        s.structureSpec.repDistanceM === 800,
+        s.structureSpec.repDistanceM >= 500,
     );
     expect(vmaLong).toBeDefined();
     expect(sessions.some(isSv2)).toBe(true);
@@ -202,7 +211,7 @@ describe("microcycle5K — build late (alternation)", () => {
 });
 
 describe("microcycle5K — peak phase", () => {
-  it("includes exactly one race-pace 5K session at 7×800", () => {
+  it("includes exactly one race-pace 5K session, drawn from the allure-spé bank", () => {
     const sessions = microcycle5K({
       ...baseArgs,
       phase: "peak",
@@ -216,8 +225,9 @@ describe("microcycle5K — peak phase", () => {
     expect(racePaceSessions).toHaveLength(1);
     const rp = racePaceSessions[0]!.structureSpec;
     if (rp?.kind === "intervals_paced") {
-      expect(rp.reps).toBe(7);
-      expect(rp.repDistanceM).toBe(800);
+      // Entry comes from the bank (600/800/1000m); pace is the 5K race pace.
+      expect(rp.reps).toBeGreaterThanOrEqual(5);
+      expect(rp.repDistanceM).toBeGreaterThanOrEqual(600);
       expect(rp.targetPaceMps).toBeGreaterThan(3.9);
     }
   });
@@ -231,11 +241,7 @@ describe("microcycle5K — peak phase", () => {
       schedule: SCHEDULE_5,
     });
     expect(
-      w1.some(
-        (s) =>
-          s.structureSpec?.kind === "intervals_paced" &&
-          s.structureSpec.repDistanceM === 800,
-      ),
+      w1.some((s) => s.structureSpec?.kind === "intervals_paced"),
     ).toBe(true);
     expect(w1.some((s) => s.structureSpec?.kind === "mixed")).toBe(false);
   });
@@ -253,11 +259,7 @@ describe("microcycle5K — peak phase", () => {
       raceDow: 6,
     });
     const racePaceDays = sessions
-      .filter(
-        (s) =>
-          s.structureSpec?.kind === "intervals_paced" &&
-          s.structureSpec.repDistanceM === 800,
-      )
+      .filter((s) => s.structureSpec?.kind === "intervals_paced")
       .map((s) => s.dayOfWeek);
     expect(Math.max(...racePaceDays)).toBe(5);
   });
@@ -274,11 +276,7 @@ describe("microcycle5K — peak phase", () => {
       raceDow: 2,
     });
     const racePaceDays = sessions
-      .filter(
-        (s) =>
-          s.structureSpec?.kind === "intervals_paced" &&
-          s.structureSpec.repDistanceM === 800,
-      )
+      .filter((s) => s.structureSpec?.kind === "intervals_paced")
       .map((s) => s.dayOfWeek);
     expect(Math.max(...racePaceDays)).toBe(6);
   });
@@ -292,11 +290,7 @@ describe("microcycle5K — peak phase", () => {
       schedule: { availableDays: [0, 1, 2, 3, 4, 5, 6], sessionsPerWeek: 5 },
     });
     const racePaceDays = sessions
-      .filter(
-        (s) =>
-          s.structureSpec?.kind === "intervals_paced" &&
-          s.structureSpec.repDistanceM === 800,
-      )
+      .filter((s) => s.structureSpec?.kind === "intervals_paced")
       .map((s) => s.dayOfWeek);
     expect(Math.max(...racePaceDays)).toBe(6);
   });
@@ -406,12 +400,10 @@ describe("taperSessions5K", () => {
     schedule: { availableDays: [0, 1, 2, 3, 4, 5, 6], sessionsPerWeek: 5 },
   };
 
+  // The rappel d'allure tune-up is the only paced session in the taper; its exact
+  // reps/distance are drawn from the rappel bank by the athlete's level.
   const findTune = (out: { spec: SessionSpec; dateYmd: string }[]) =>
-    out.find(
-      (s) =>
-        s.spec.structureSpec?.kind === "intervals_paced" &&
-        s.spec.structureSpec.repDistanceM === 400,
-    );
+    out.find((s) => s.spec.structureSpec?.kind === "intervals_paced");
 
   it("places the rappel d'allure in the J-5→J-4 window (Sunday race → J-5)", () => {
     const out = taperSessions5K({
@@ -612,11 +604,89 @@ describe("microcycle5K — warmup/cooldown scaling", () => {
       schedule: SCHEDULE_4,
     });
     const sv2 = sessions.find(isSv2);
-    if (sv2?.structureSpec?.kind === "intervals_distance") {
+    if (sv2?.structureSpec?.kind === "long_with_blocks") {
       expect(sv2.structureSpec.warmupSec).toBeGreaterThanOrEqual(15 * 60);
       expect(sv2.structureSpec.warmupSec).toBeLessThanOrEqual(20 * 60);
       expect(sv2.structureSpec.cooldownSec).toBeGreaterThanOrEqual(5 * 60);
       expect(sv2.structureSpec.cooldownSec).toBeLessThanOrEqual(10 * 60);
+    }
+  });
+});
+
+describe("selectBankIndex", () => {
+  it("single-entry (or empty) bank always returns 0", () => {
+    expect(selectBankIndex(1, 0, 0)).toBe(0);
+    expect(selectBankIndex(1, 1, 1)).toBe(0);
+    expect(selectBankIndex(0, 0.5, 0.5)).toBe(0);
+  });
+
+  it("level 0 + progress 0 → easiest (0); level 1 + progress 1 → hardest (len−1)", () => {
+    for (const len of [2, 3, 8, 11, 15]) {
+      expect(selectBankIndex(len, 0, 0)).toBe(0);
+      expect(selectBankIndex(len, 1, 1)).toBe(len - 1);
+    }
+  });
+
+  it("stays in bounds for any level/progress", () => {
+    for (const len of [2, 5, 8, 15]) {
+      for (const level of [-1, 0, 0.3, 0.7, 1, 2]) {
+        for (const progress of [-1, 0, 0.4, 0.9, 1, 2]) {
+          const idx = selectBankIndex(len, level, progress);
+          expect(idx).toBeGreaterThanOrEqual(0);
+          expect(idx).toBeLessThanOrEqual(len - 1);
+        }
+      }
+    }
+  });
+
+  it("is non-decreasing in progress (level fixed)", () => {
+    const len = 11;
+    let prev = -1;
+    for (const p of [0, 0.25, 0.5, 0.75, 1]) {
+      const idx = selectBankIndex(len, 0.5, p);
+      expect(idx).toBeGreaterThanOrEqual(prev);
+      prev = idx;
+    }
+  });
+
+  it("is non-decreasing in level (progress fixed) — fitter athletes start higher", () => {
+    const len = 11;
+    let prev = -1;
+    for (const lvl of [0, 0.25, 0.5, 0.75, 1]) {
+      const idx = selectBankIndex(len, lvl, 0.5);
+      expect(idx).toBeGreaterThanOrEqual(prev);
+      prev = idx;
+    }
+  });
+});
+
+describe("microcycle5K — bank progression", () => {
+  it("draws a harder SV1 long late in the plan than early (same athlete)", () => {
+    const early = microcycle5K({
+      ...baseArgs,
+      phase: "base",
+      weekIndexInPhase: 0,
+      schedule: SCHEDULE_4,
+      planProgress: 0,
+    }).find(isSv1Long);
+    const late = microcycle5K({
+      ...baseArgs,
+      phase: "base",
+      weekIndexInPhase: 0,
+      schedule: SCHEDULE_4,
+      planProgress: 1,
+    }).find(isSv1Long);
+
+    expect(early?.structureSpec?.kind).toBe("long_with_blocks");
+    expect(late?.structureSpec?.kind).toBe("long_with_blocks");
+    if (
+      early?.structureSpec?.kind === "long_with_blocks" &&
+      late?.structureSpec?.kind === "long_with_blocks"
+    ) {
+      // Progress walks up the bank → a different (later, harder) entry is drawn.
+      const earlyWork = early.structureSpec.reps * early.structureSpec.workDurationSec;
+      const lateWork = late.structureSpec.reps * late.structureSpec.workDurationSec;
+      expect(lateWork).toBeGreaterThan(earlyWork);
     }
   });
 });
