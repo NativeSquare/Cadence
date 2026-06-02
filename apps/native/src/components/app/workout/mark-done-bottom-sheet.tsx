@@ -3,6 +3,9 @@ import { Text } from "@/components/ui/text";
 import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
 import { selectionFeedback } from "@/lib/haptics";
 import { nowIso } from "@/components/app/workout/workout-form-helpers";
+import { useMicrophonePermission } from "@/hooks/use-microphone-permission";
+import { useUploadImage } from "@/hooks/use-upload-image";
+import { useVoiceRecording } from "@/hooks/use-voice-recording";
 import { getConvexErrorMessage } from "@/utils/getConvexErrorMessage";
 import { api } from "@packages/backend/convex/_generated/api";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -11,20 +14,23 @@ import {
   BottomSheetTextInput,
 } from "@gorhom/bottom-sheet";
 import { useMutation } from "convex/react";
+import { Check, Mic, Square } from "lucide-react-native";
 import React from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
+  Alert,
   Keyboard,
+  Linking,
   Pressable,
   View,
 } from "react-native";
 import { z } from "zod";
 
+const MAX_RECORDING_MS = 120_000;
+
 const formSchema = z.object({
-  rpe: z.number().int().min(1).max(10).optional(),
-  notes: z.string().optional(),
   testDistanceKm: z.number().positive().optional(),
   testDurationMinutes: z.number().int().min(0).optional(),
   testDurationSeconds: z.number().int().min(0).max(59).optional(),
@@ -32,18 +38,11 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-type TierKey = "easy" | "moderate" | "hard" | "max";
-
-const RPE_TIERS: { key: TierKey; min: number; max: number; color: string }[] = [
-  { key: "easy", min: 1, max: 3, color: COLORS.grn },
-  { key: "moderate", min: 4, max: 6, color: COLORS.ylw },
-  { key: "hard", min: 7, max: 8, color: COLORS.red },
-  { key: "max", min: 9, max: 10, color: COLORS.red },
-];
-
-function tierFor(value: number | undefined): (typeof RPE_TIERS)[number] | null {
-  if (value == null) return null;
-  return RPE_TIERS.find((t) => value >= t.min && value <= t.max) ?? null;
+function formatDuration(ms: number): string {
+  const totalSeconds = Math.floor(ms / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${seconds.toString().padStart(2, "0")}`;
 }
 
 export interface MarkDoneBottomSheetProps {
@@ -61,8 +60,6 @@ export interface MarkDoneBottomSheetProps {
 }
 
 const DEFAULTS: FormValues = {
-  rpe: undefined,
-  notes: "",
   testDistanceKm: undefined,
   testDurationMinutes: undefined,
   testDurationSeconds: undefined,
@@ -77,6 +74,12 @@ export function MarkDoneBottomSheet({
 }: MarkDoneBottomSheetProps) {
   const { t } = useTranslation();
   const updateWorkout = useMutation(api.agoge.workouts.updateWorkout);
+  const recordForWorkout = useMutation(
+    api.table.sessionFeedback.recordForWorkout,
+  );
+  const { uploadFileToStorage } = useUploadImage();
+  const micPermission = useMicrophonePermission();
+  const voiceRecording = useVoiceRecording();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -85,63 +88,127 @@ export function MarkDoneBottomSheet({
   });
 
   const [submitError, setSubmitError] = React.useState<string | null>(null);
+  const [recordedUri, setRecordedUri] = React.useState<string | null>(null);
+  const [recordedDurationMs, setRecordedDurationMs] = React.useState(0);
   const isSubmitting = form.formState.isSubmitting;
+  const isRecording = voiceRecording.isRecording;
+
+  const stopRecording = React.useCallback(async () => {
+    const ms = voiceRecording.durationMs;
+    try {
+      const uri = await voiceRecording.stop();
+      if (uri) {
+        setRecordedUri(uri);
+        setRecordedDurationMs(ms);
+      }
+    } catch (err) {
+      console.error("[MarkDoneBottomSheet] Stop recording failed", err);
+    }
+  }, [voiceRecording]);
+
+  const startRecording = React.useCallback(async () => {
+    setSubmitError(null);
+    let granted = micPermission.status === "granted";
+    if (!granted) granted = await micPermission.request();
+    if (!granted) {
+      Alert.alert(
+        t("coach.voice.permissionDeniedTitle"),
+        t("coach.voice.permissionDeniedMessage"),
+        [
+          { text: t("common.cancel"), style: "cancel" },
+          {
+            text: t("coach.voice.openSettings"),
+            onPress: () => void Linking.openSettings(),
+          },
+        ],
+      );
+      return;
+    }
+    setRecordedUri(null);
+    setRecordedDurationMs(0);
+    selectionFeedback();
+    try {
+      await voiceRecording.start();
+    } catch (err) {
+      console.error("[MarkDoneBottomSheet] Start recording failed", err);
+    }
+  }, [micPermission, voiceRecording, t]);
+
+  // Hard-cap recordings — auto-stop when the limit is reached.
+  React.useEffect(() => {
+    if (isRecording && voiceRecording.durationMs >= MAX_RECORDING_MS) {
+      void stopRecording();
+    }
+  }, [isRecording, voiceRecording.durationMs, stopRecording]);
 
   const handleSubmit = form.handleSubmit(async (data) => {
     setSubmitError(null);
     Keyboard.dismiss();
 
+    if (isRecording) {
+      await stopRecording();
+    }
+    if (!recordedUri) {
+      setSubmitError(t("workout.markDone.errorAudioRequired"));
+      return;
+    }
+
+    let testFields: { distanceMeters: number; durationSeconds: number } | null =
+      null;
     if (isTest) {
       const km = data.testDistanceKm;
       if (km == null || !(km > 0)) {
         setSubmitError(t("workout.markDone.errorDistanceRequired"));
         return;
       }
-      const minutes = data.testDurationMinutes ?? 0;
-      const seconds = data.testDurationSeconds ?? 0;
-      const totalSeconds = minutes * 60 + seconds;
+      const totalSeconds =
+        (data.testDurationMinutes ?? 0) * 60 + (data.testDurationSeconds ?? 0);
       if (totalSeconds <= 0) {
         setSubmitError(t("workout.markDone.errorTimeRequired"));
         return;
       }
-
-      try {
-        const trimmedNotes = data.notes?.trim();
-        const actual = {
-          date: plannedDate ?? nowIso(),
-          distanceMeters: Math.round(km * 1000),
-          durationSeconds: totalSeconds,
-          ...(data.rpe != null ? { rpe: data.rpe } : {}),
-          ...(trimmedNotes ? { notes: trimmedNotes } : {}),
-        };
-        await updateWorkout({ workoutId, status: "completed", actual });
-        sheetRef.current?.dismiss();
-        form.reset(DEFAULTS);
-      } catch (err) {
-        setSubmitError(getConvexErrorMessage(err));
-      }
-      return;
+      testFields = {
+        distanceMeters: Math.round(km * 1000),
+        durationSeconds: totalSeconds,
+      };
     }
 
     try {
-      const trimmedNotes = data.notes?.trim();
+      const audioStorageId = await uploadFileToStorage(
+        recordedUri,
+        "audio/m4a",
+      );
+
       const actual = {
         date: plannedDate ?? nowIso(),
-        ...(data.rpe != null ? { rpe: data.rpe } : {}),
-        ...(trimmedNotes ? { notes: trimmedNotes } : {}),
+        ...(testFields ?? {}),
       };
       await updateWorkout({ workoutId, status: "completed", actual });
+
+      await recordForWorkout({
+        workoutId,
+        audioStorageId,
+        durationMs: recordedDurationMs,
+      });
+
       sheetRef.current?.dismiss();
       form.reset(DEFAULTS);
+      setRecordedUri(null);
+      setRecordedDurationMs(0);
     } catch (err) {
       setSubmitError(getConvexErrorMessage(err));
     }
   });
 
   const handleDismiss = React.useCallback(() => {
+    if (voiceRecording.isRecording) void voiceRecording.stop();
     form.reset(DEFAULTS);
     setSubmitError(null);
-  }, [form]);
+    setRecordedUri(null);
+    setRecordedDurationMs(0);
+  }, [form, voiceRecording]);
+
+  const canSubmit = !isSubmitting && !!recordedUri && !isRecording;
 
   return (
     <BottomSheetModal ref={sheetRef} onDismiss={handleDismiss}>
@@ -206,20 +273,13 @@ export function MarkDoneBottomSheet({
           </View>
         )}
 
-        <Controller
-          control={form.control}
-          name="rpe"
-          render={({ field }) => (
-            <RpeField value={field.value} onChange={field.onChange} />
-          )}
-        />
-
-        <Controller
-          control={form.control}
-          name="notes"
-          render={({ field }) => (
-            <NotesField value={field.value ?? ""} onChange={field.onChange} />
-          )}
+        <RecorderField
+          isRecording={isRecording}
+          hasRecording={!!recordedUri}
+          liveDurationMs={voiceRecording.durationMs}
+          recordedDurationMs={recordedDurationMs}
+          onStart={startRecording}
+          onStop={stopRecording}
         />
 
         {submitError && (
@@ -233,10 +293,10 @@ export function MarkDoneBottomSheet({
 
         <Pressable
           onPress={() => handleSubmit()}
-          disabled={isSubmitting}
+          disabled={!canSubmit}
           className="items-center rounded-2xl py-3.5 active:opacity-90"
           style={{
-            backgroundColor: isSubmitting ? LIGHT_THEME.w3 : LIGHT_THEME.wText,
+            backgroundColor: canSubmit ? LIGHT_THEME.wText : LIGHT_THEME.w3,
           }}
         >
           {isSubmitting ? (
@@ -255,15 +315,28 @@ export function MarkDoneBottomSheet({
   );
 }
 
-function RpeField({
-  value,
-  onChange,
+function RecorderField({
+  isRecording,
+  hasRecording,
+  liveDurationMs,
+  recordedDurationMs,
+  onStart,
+  onStop,
 }: {
-  value: number | undefined;
-  onChange: (v: number | undefined) => void;
+  isRecording: boolean;
+  hasRecording: boolean;
+  liveDurationMs: number;
+  recordedDurationMs: number;
+  onStart: () => void;
+  onStop: () => void;
 }) {
   const { t } = useTranslation();
-  const tier = tierFor(value);
+
+  const tint = isRecording
+    ? COLORS.red
+    : hasRecording
+      ? COLORS.grn
+      : LIGHT_THEME.wText;
 
   return (
     <View className="gap-3">
@@ -271,65 +344,52 @@ function RpeField({
         className="font-coach-bold text-base"
         style={{ color: LIGHT_THEME.wText }}
       >
-        {t("workout.markDone.howDidItFeel")}
+        {t("workout.markDone.recordPrompt")}
       </Text>
 
-      <View className="flex-row gap-1.5">
-        {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => {
-          const selected = value === n;
-          return (
-            <Pressable
-              key={n}
-              onPress={() => {
-                selectionFeedback();
-                onChange(selected ? undefined : n);
-              }}
-              className="flex-1 items-center justify-center rounded-xl active:opacity-80"
-              style={{
-                paddingVertical: 12,
-                backgroundColor: selected ? LIGHT_THEME.wText : LIGHT_THEME.w2,
-                borderWidth: 1,
-                borderColor: selected ? LIGHT_THEME.wText : LIGHT_THEME.wBrd,
-              }}
-              accessibilityLabel={t("workout.markDone.rpeValueLabel", {
-                value: n,
-              })}
-              accessibilityState={{ selected }}
-            >
-              <Text
-                className="font-coach-bold text-[15px]"
-                style={{ color: selected ? "#FFFFFF" : LIGHT_THEME.wText }}
-              >
-                {n}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
-
-      <View className="min-h-[20px] items-center">
-        {tier ? (
-          <View className="flex-row items-center gap-2">
-            <View
-              className="size-2 rounded-full"
-              style={{ backgroundColor: tier.color }}
-            />
-            <Text
-              className="font-coach-bold text-[12px] uppercase tracking-widest"
-              style={{ color: tier.color }}
-            >
-              {t(`workout.markDone.tiers.${tier.key}`)}
-            </Text>
-          </View>
+      <Pressable
+        onPress={isRecording ? onStop : onStart}
+        className="flex-row items-center justify-center gap-2.5 rounded-2xl py-3.5 active:opacity-80"
+        style={{
+          borderWidth: 1.5,
+          borderColor: tint,
+          backgroundColor: isRecording ? "rgba(255,59,48,0.08)" : LIGHT_THEME.w2,
+        }}
+        accessibilityRole="button"
+        accessibilityLabel={
+          isRecording
+            ? t("workout.markDone.stopRecording")
+            : hasRecording
+              ? t("workout.markDone.reRecord")
+              : t("workout.markDone.startRecording")
+        }
+      >
+        {isRecording ? (
+          <Square size={18} color={tint} fill={tint} strokeWidth={0} />
+        ) : hasRecording ? (
+          <Check size={20} color={tint} strokeWidth={2.5} />
         ) : (
-          <Text
-            className="font-coach text-[12px]"
-            style={{ color: LIGHT_THEME.wMute }}
-          >
-            {t("workout.markDone.tapToRate")}
-          </Text>
+          <Mic size={20} color={tint} strokeWidth={2} />
         )}
-      </View>
+        <Text className="font-coach-bold text-sm" style={{ color: tint }}>
+          {isRecording
+            ? `${t("workout.markDone.recording")} · ${formatDuration(liveDurationMs)}`
+            : hasRecording
+              ? `${t("workout.markDone.recorded")} · ${formatDuration(recordedDurationMs)}`
+              : t("workout.markDone.startRecording")}
+        </Text>
+      </Pressable>
+
+      <Text
+        className="text-center font-coach text-[12px]"
+        style={{ color: LIGHT_THEME.wMute }}
+      >
+        {isRecording
+          ? t("workout.markDone.recordingHint")
+          : hasRecording
+            ? t("workout.markDone.reRecordHint")
+            : t("workout.markDone.recordHint")}
+      </Text>
     </View>
   );
 }
@@ -454,44 +514,6 @@ function TimePartField({
           {suffix}
         </Text>
       </View>
-    </View>
-  );
-}
-
-function NotesField({
-  value,
-  onChange,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-}) {
-  const { t } = useTranslation();
-  return (
-    <View className="gap-3">
-      <Text
-        className="font-coach-bold text-base"
-        style={{ color: LIGHT_THEME.wText }}
-      >
-        {t("workout.markDone.notesQuestion")}
-      </Text>
-      <BottomSheetTextInput
-        value={value}
-        onChangeText={onChange}
-        placeholder={t("workout.markDone.notesPlaceholder")}
-        placeholderTextColor={LIGHT_THEME.wMute}
-        multiline
-        textAlignVertical="top"
-        className="font-coach text-[14px]"
-        style={{
-          minHeight: 96,
-          padding: 14,
-          borderRadius: 16,
-          borderWidth: 1,
-          borderColor: LIGHT_THEME.wBrd,
-          backgroundColor: LIGHT_THEME.w2,
-          color: LIGHT_THEME.wText,
-        }}
-      />
     </View>
   );
 }

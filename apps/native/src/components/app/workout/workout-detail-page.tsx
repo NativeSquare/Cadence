@@ -1,12 +1,11 @@
 /**
  * Workout detail page.
  *
- * Surfaces the full agoge workout doc: hero with status/name/date/sport/type
- * and (when available) plan-block context, optional description, stacked
- * Planned and Actual cards each with their own metrics + structure.
- *
- * The richer AI-coach analysis layout is being designed separately and will
- * compose on top of this readout.
+ * Hero with status/name/date/type, followed by a flat stack of
+ * single-purpose cards: the AI coach analysis
+ * first, then one card per recorded health metric, the planned structure in
+ * its own card, and finally the post-session voice note. No planned-vs-actual
+ * deltas — each card shows one thing.
  */
 
 import { CoachInterventionCard } from "@/components/app/workout/coach-intervention-card";
@@ -20,19 +19,24 @@ import { useLanguage, type Language } from "@/lib/i18n";
 import { selectionFeedback } from "@/lib/haptics";
 import { getConvexErrorMessage } from "@/utils/getConvexErrorMessage";
 import {
-  blockTypeLabel,
   deriveWorkoutStatus,
   localTodayYmd,
   mpsToPaceString,
+  workoutTitle,
   workoutTypeLabel,
 } from "@/components/app/workout/workout-helpers";
+import { WorkoutAudioNote } from "@/components/app/workout/workout-audio-note";
 import { WorkoutStatusBadge } from "@/components/app/workout/workout-status-badge";
 import { WorkoutStructureView } from "@/components/app/workout/workout-structure-view";
 import { Ionicons } from "@expo/vector-icons";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import type { TFunction } from "i18next";
 import type { Workout as WorkoutStructure } from "@nativesquare/agoge";
-import type { WorkoutType } from "@nativesquare/agoge/schema";
+import type {
+  ActualFace,
+  PlannedFace,
+  WorkoutType,
+} from "@nativesquare/agoge/schema";
 import { api } from "@packages/backend/convex/_generated/api";
 import { summarizeStructure } from "@packages/shared/workout-summary";
 import { useMutation, useQuery } from "convex/react";
@@ -119,11 +123,6 @@ function formatElevation(m?: number): string | null {
   return `${Math.round(m)} m`;
 }
 
-function formatRpe(rpe?: number): string | null {
-  if (rpe == null || rpe <= 0) return null;
-  return `RPE ${rpe}`;
-}
-
 function getTypeColor(type: WorkoutType): string {
   return WORKOUT_TYPES_COLORS[type];
 }
@@ -135,85 +134,6 @@ function paceFromDistanceDuration(
   if (!distanceMeters || !durationSeconds) return undefined;
   if (distanceMeters <= 0 || durationSeconds <= 0) return undefined;
   return distanceMeters / durationSeconds;
-}
-
-// Compliance color thresholds per UX direction (2026-03-26): how far the
-// recorded value drifted from the prescribed target. Used for inline metric
-// deltas between planned and actual.
-function complianceColor(deviation: number): string {
-  const abs = Math.abs(deviation);
-  if (abs < 0.05) return "#15803D"; // green
-  if (abs < 0.15) return "#B45309"; // amber
-  if (abs < 0.25) return "#C2410C"; // orange
-  return "#B91C1C"; // red
-}
-
-interface Delta {
-  label: string;
-  color: string;
-}
-
-function metersDelta(planned?: number, actual?: number): Delta | null {
-  if (!planned || !actual || planned <= 0) return null;
-  const diff = actual - planned;
-  const sign = diff >= 0 ? "+" : "−";
-  const abs = Math.abs(diff);
-  const label =
-    abs >= 100
-      ? `${sign}${(abs / 1000).toFixed(abs >= 1000 ? 1 : 2)} km`
-      : `${sign}${Math.round(abs)} m`;
-  return { label, color: complianceColor(diff / planned) };
-}
-
-function secondsDelta(planned?: number, actual?: number): Delta | null {
-  if (!planned || !actual || planned <= 0) return null;
-  const diff = actual - planned;
-  const sign = diff >= 0 ? "+" : "−";
-  const abs = Math.abs(diff);
-  const h = Math.floor(abs / 3600);
-  const m = Math.floor((abs % 3600) / 60);
-  const s = abs % 60;
-  let core: string;
-  if (h > 0) core = `${h}h${String(m).padStart(2, "0")}`;
-  else if (m > 0) core = s > 0 ? `${m}m${String(s).padStart(2, "0")}` : `${m}m`;
-  else core = `${s}s`;
-  return { label: `${sign}${core}`, color: complianceColor(diff / planned) };
-}
-
-function paceDelta(plannedMps?: number, actualMps?: number): Delta | null {
-  if (!plannedMps || !actualMps || plannedMps <= 0 || actualMps <= 0) return null;
-  const plannedSecPerKm = 1000 / plannedMps;
-  const actualSecPerKm = 1000 / actualMps;
-  const diff = actualSecPerKm - plannedSecPerKm;
-  const sign = diff >= 0 ? "+" : "−";
-  const abs = Math.round(Math.abs(diff));
-  let core: string;
-  if (abs >= 60) {
-    const m = Math.floor(abs / 60);
-    const s = abs % 60;
-    core = s > 0 ? `${m}m${String(s).padStart(2, "0")}` : `${m}m`;
-  } else {
-    core = `${abs}s`;
-  }
-  return {
-    label: `${sign}${core}/km`,
-    color: complianceColor(diff / plannedSecPerKm),
-  };
-}
-
-function computeBlockProgress(
-  block: { startDate: string; endDate: string },
-  date: string,
-): { week: number; total: number } | null {
-  const start = parseIsoDate(block.startDate).getTime();
-  const end = parseIsoDate(block.endDate).getTime();
-  const target = parseIsoDate(date).getTime();
-  if (!Number.isFinite(start) || !Number.isFinite(end)) return null;
-  const dayMs = 1000 * 60 * 60 * 24;
-  const week = Math.floor((target - start) / (7 * dayMs)) + 1;
-  const total = Math.max(1, Math.ceil((end - start + dayMs) / (7 * dayMs)));
-  if (week < 1 || week > total) return null;
-  return { week, total };
 }
 
 export function WorkoutDetailPage({ workoutId }: WorkoutDetailPageProps) {
@@ -272,10 +192,8 @@ export function WorkoutDetailPage({ workoutId }: WorkoutDetailPageProps) {
     );
   }
 
-  const { workout, block } = result;
+  const { workout } = result;
   const heroDate = workout.planned?.date ?? workout.actual?.date;
-  const blockProgress =
-    block && heroDate ? computeBlockProgress(block, heroDate) : null;
   const effectiveStatus = deriveWorkoutStatus(workout, localTodayYmd());
 
   const handleMarkAsDone = () => {
@@ -311,11 +229,6 @@ export function WorkoutDetailPage({ workoutId }: WorkoutDetailPageProps) {
     }
   };
 
-  const showActualDate =
-    workout.planned?.date &&
-    workout.actual?.date &&
-    workout.planned.date !== workout.actual.date;
-
   return (
     <View
       className="pt-safe flex-1"
@@ -349,10 +262,10 @@ export function WorkoutDetailPage({ workoutId }: WorkoutDetailPageProps) {
           <View>
             <View className="mb-2 flex-row items-start justify-between gap-3">
               <Text
-                className="flex-1 font-coach-semibold text-[11px] uppercase"
+                className="flex-1 font-coach-bold text-[15px] uppercase"
                 style={{
                   color: getTypeColor(workout.type),
-                  letterSpacing: 0.08 * 11,
+                  letterSpacing: 0.08 * 15,
                 }}
                 numberOfLines={1}
               >
@@ -368,7 +281,7 @@ export function WorkoutDetailPage({ workoutId }: WorkoutDetailPageProps) {
                 lineHeight: 30,
               }}
             >
-              {workout.name}
+              {workoutTitle(workout)}
             </Text>
             {heroDate && (
               <View className="mt-2 flex-row flex-wrap items-center gap-1.5">
@@ -399,53 +312,21 @@ export function WorkoutDetailPage({ workoutId }: WorkoutDetailPageProps) {
                 })()}
               </View>
             )}
-            {block && blockProgress && (
-              <View className="mt-3 flex-row flex-wrap gap-2">
-                <Chip>
-                  {t("workout.detail.weekOfBlock", {
-                    type: blockTypeLabel(t, block.type),
-                    week: blockProgress.week,
-                    total: blockProgress.total,
-                  })}
-                </Chip>
-              </View>
-            )}
           </View>
 
-          {workout.description && workout.description.trim().length > 0 && (
-            <Card>
-              <SectionLabel>{t("workout.detail.description")}</SectionLabel>
-              <Text
-                className="font-coach text-[14px] leading-6"
-                style={{ color: LIGHT_THEME.wText }}
-              >
-                {workout.description}
-              </Text>
-            </Card>
-          )}
-
+          {/* AI coach analysis leads the readout. */}
           {intervention && (
             <CoachInterventionCard intervention={intervention} />
           )}
 
-          {workout.actual && (
-            <ResultCard
-              actual={workout.actual}
-              planned={workout.planned}
-              actualDateLabel={
-                showActualDate
-                  ? formatDate(locale, workout.actual.date)
-                  : undefined
-              }
-            />
-          )}
+          {/* Recorded health data — one card per metric. */}
+          {workout.actual && <HealthMetrics actual={workout.actual} />}
 
-          {workout.planned && (
-            <PlanCard
-              planned={workout.planned}
-              collapsedByDefault={Boolean(workout.actual)}
-            />
-          )}
+          {/* Planned structure in its own card. */}
+          {workout.planned && <StructureCard planned={workout.planned} />}
+
+          {/* Post-session voice note (self-hides when absent). */}
+          {workout.actual && <WorkoutAudioNote workoutId={workoutId} />}
 
           {error && (
             <Text
@@ -533,275 +414,87 @@ export function WorkoutDetailPage({ workoutId }: WorkoutDetailPageProps) {
   );
 }
 
-type PlannedFace = {
-  date: string;
-  structure?: unknown;
-};
+// ── Health metrics: one card per recorded metric ──
+//
+// Each recorded value (distance, duration, pace, avg/max HR, elevation) gets
+// its own dedicated card — roomy, single-purpose, and ready to host a
+// per-metric chart later (e.g. HR over time once we store samples). No
+// planned-vs-actual deltas: each card shows exactly one number.
+function HealthMetrics({ actual }: { actual: ActualFace }) {
+  const { t } = useTranslation();
 
-type ActualFace = {
-  date: string;
-  durationSeconds?: number;
-  distanceMeters?: number;
-  avgHr?: number;
-  maxHr?: number;
-  elevationGainMeters?: number;
-  rpe?: number;
-  notes?: string;
-};
+  const pace = formatPace(
+    paceFromDistanceDuration(actual.distanceMeters, actual.durationSeconds),
+  );
 
-// ── Primary stat: big value + (optional) compliance-colored delta ──
-function PrimaryStat({
-  label,
-  value,
-  delta,
-}: {
-  label: string;
-  value: string;
-  delta?: Delta | null;
-}) {
+  const metrics: { label: string; value: string }[] = [];
+  const distance = formatDistance(actual.distanceMeters);
+  if (distance)
+    metrics.push({ label: t("workout.detail.metrics.distance"), value: distance });
+  const duration = formatDurationSec(actual.durationSeconds);
+  if (duration)
+    metrics.push({ label: t("workout.detail.metrics.duration"), value: duration });
+  if (pace)
+    metrics.push({ label: t("workout.detail.metrics.avgPace"), value: pace });
+  const avgHr = formatHr(actual.avgHr);
+  if (avgHr)
+    metrics.push({ label: t("workout.detail.metrics.avgHr"), value: avgHr });
+  const maxHr = formatHr(actual.maxHr);
+  if (maxHr)
+    metrics.push({ label: t("workout.detail.metrics.maxHr"), value: maxHr });
+  const elev = formatElevation(actual.elevationGainMeters);
+  if (elev)
+    metrics.push({
+      label: t("workout.detail.metrics.elevationGain"),
+      value: elev,
+    });
+
   return (
-    <View className="flex-1 gap-1">
+    <>
+      {metrics.map((m) => (
+        <MetricCard key={m.label} label={m.label} value={m.value} />
+      ))}
+    </>
+  );
+}
+
+function MetricCard({ label, value }: { label: string; value: string }) {
+  return (
+    <Card>
+      <SectionLabel>{label}</SectionLabel>
       <Text
-        className="font-coach-semibold text-[10px] uppercase tracking-wider"
-        style={{ color: LIGHT_THEME.wMute }}
-        numberOfLines={1}
-      >
-        {label}
-      </Text>
-      <Text
-        className="font-coach-bold text-[22px]"
-        style={{ color: LIGHT_THEME.wText, letterSpacing: -0.4, lineHeight: 26 }}
+        className="font-coach-bold text-[26px]"
+        style={{ color: LIGHT_THEME.wText, letterSpacing: -0.4, lineHeight: 30 }}
         numberOfLines={1}
         adjustsFontSizeToFit
       >
         {value}
       </Text>
-      {delta && (
-        <Text
-          className="font-coach-semibold text-[11px]"
-          style={{ color: delta.color }}
-          numberOfLines={1}
-        >
-          {delta.label}
-        </Text>
-      )}
-    </View>
-  );
-}
-
-// ── Secondary stat: compact label-value pair for less-prominent metrics ──
-function SecondaryStat({ label, value }: { label: string; value: string }) {
-  return (
-    <View className="min-w-0 flex-row items-baseline gap-1.5">
-      <Text
-        className="font-coach text-[12px]"
-        style={{ color: LIGHT_THEME.wMute }}
-        numberOfLines={1}
-      >
-        {label}
-      </Text>
-      <Text
-        className="font-coach-semibold text-[13px]"
-        style={{ color: LIGHT_THEME.wText }}
-        numberOfLines={1}
-      >
-        {value}
-      </Text>
-    </View>
-  );
-}
-
-// ── Result hero: actual metrics with planned-vs comparison deltas ──
-//
-// Primary stats (distance/duration/pace/HR) sit in a 2×2 grid with
-// compliance-colored deltas vs the prescribed plan; secondary metrics
-// (max HR / elevation / RPE) chip below.
-function ResultCard({
-  actual,
-  planned,
-  actualDateLabel,
-}: {
-  actual: ActualFace;
-  planned?: PlannedFace;
-  actualDateLabel?: string;
-}) {
-  const { t } = useTranslation();
-
-  const plannedSummary = React.useMemo(() => {
-    if (!planned?.structure) return undefined;
-    return summarizeStructure(planned.structure as WorkoutStructure);
-  }, [planned?.structure]);
-
-  const actualPaceMps = paceFromDistanceDuration(
-    actual.distanceMeters,
-    actual.durationSeconds,
-  );
-
-  const distance = formatDistance(actual.distanceMeters);
-  const duration = formatDurationSec(actual.durationSeconds);
-  const pace = formatPace(actualPaceMps);
-  const avgHr = formatHr(actual.avgHr);
-
-  const primary: { label: string; value: string; delta?: Delta | null }[] = [];
-  if (distance)
-    primary.push({
-      label: t("workout.detail.metrics.distance"),
-      value: distance,
-      delta: metersDelta(plannedSummary?.distanceMeters, actual.distanceMeters),
-    });
-  if (duration)
-    primary.push({
-      label: t("workout.detail.metrics.duration"),
-      value: duration,
-      delta: secondsDelta(
-        plannedSummary?.durationSeconds,
-        actual.durationSeconds,
-      ),
-    });
-  const plannedPaceMps = paceFromDistanceDuration(
-    plannedSummary?.distanceMeters,
-    plannedSummary?.durationSeconds,
-  );
-  if (pace)
-    primary.push({
-      label: t("workout.detail.metrics.avgPace"),
-      value: pace,
-      delta: paceDelta(plannedPaceMps, actualPaceMps),
-    });
-  if (avgHr)
-    primary.push({ label: t("workout.detail.metrics.avgHr"), value: avgHr });
-
-  const secondary: { label: string; value: string }[] = [];
-  const maxHr = formatHr(actual.maxHr);
-  if (maxHr)
-    secondary.push({ label: t("workout.detail.metrics.maxHr"), value: maxHr });
-  const elev = formatElevation(actual.elevationGainMeters);
-  if (elev)
-    secondary.push({
-      label: t("workout.detail.metrics.elevationGain"),
-      value: elev,
-    });
-  const rpe = formatRpe(actual.rpe);
-  if (rpe) secondary.push({ label: t("workout.detail.metrics.rpe"), value: rpe });
-
-  const primaryRows: typeof primary[] = [];
-  for (let i = 0; i < primary.length; i += 2) {
-    primaryRows.push(primary.slice(i, i + 2));
-  }
-
-  const notes = actual.notes?.trim();
-
-  return (
-    <Card>
-      <View className="flex-row items-center justify-between">
-        <SectionLabel>{t("workout.detail.result")}</SectionLabel>
-        {actualDateLabel && (
-          <Text
-            className="font-coach text-[12px]"
-            style={{ color: LIGHT_THEME.wMute }}
-          >
-            {actualDateLabel}
-          </Text>
-        )}
-      </View>
-
-      {primaryRows.length > 0 && (
-        <View className="gap-4">
-          {primaryRows.map((row, idx) => (
-            <View key={idx} className="flex-row gap-4">
-              {row.map((stat) => (
-                <PrimaryStat
-                  key={stat.label}
-                  label={stat.label}
-                  value={stat.value}
-                  delta={stat.delta}
-                />
-              ))}
-              {row.length === 1 && <View className="flex-1" />}
-            </View>
-          ))}
-        </View>
-      )}
-
-      {secondary.length > 0 && (
-        <View
-          className="flex-row flex-wrap"
-          style={{ rowGap: 8, columnGap: 14 }}
-        >
-          {secondary.map((s) => (
-            <SecondaryStat key={s.label} label={s.label} value={s.value} />
-          ))}
-        </View>
-      )}
-
-      {notes && (
-        <View
-          className="gap-1.5 pt-1"
-          style={{ borderTopWidth: 1, borderTopColor: LIGHT_THEME.wBrd }}
-        >
-          <Text
-            className="pt-3 font-coach-semibold text-[11px] uppercase tracking-wider"
-            style={{ color: LIGHT_THEME.wMute }}
-          >
-            {t("workout.detail.notes")}
-          </Text>
-          <Text
-            className="font-coach text-[14px] leading-6"
-            style={{ color: LIGHT_THEME.wText }}
-          >
-            {notes}
-          </Text>
-        </View>
-      )}
     </Card>
   );
 }
 
-// ── Plan card: prescription view ──
-//
-// When no actual exists, the plan IS the page — render expanded. When an
-// actual exists, the plan becomes secondary reference material — render
-// collapsed with the volume teaser visible; tap to expand the full
-// structure + notes.
-function PlanCard({
-  planned,
-  collapsedByDefault,
-}: {
-  planned: PlannedFace;
-  collapsedByDefault: boolean;
-}) {
+// ── Structure card: the planned prescription, always its own card ──
+function StructureCard({ planned }: { planned: PlannedFace }) {
   const { t } = useTranslation();
-  const [expanded, setExpanded] = React.useState(!collapsedByDefault);
 
   const structure = planned.structure as WorkoutStructure | undefined;
   const hasStructure =
     structure != null &&
     Array.isArray(structure.blocks) &&
     structure.blocks.length > 0;
-  const summary = hasStructure && structure
-    ? summarizeStructure(structure)
-    : undefined;
+  if (!hasStructure || !structure) return null;
 
+  const summary = summarizeStructure(structure);
   const distance = formatDistance(summary?.distanceMeters);
   const duration = formatDurationSec(summary?.durationSeconds);
   const totalParts = [distance, duration].filter(Boolean) as string[];
   const total = totalParts.length > 0 ? totalParts.join(" · ") : null;
 
-  const hasDetails = hasStructure;
-
-  const title = collapsedByDefault
-    ? t("workout.detail.whatWasPlanned")
-    : t("workout.detail.plan");
-
-  const header = (
-    <View className="flex-row items-center justify-between">
-      <View className="flex-1 flex-row items-baseline gap-2">
-        <Text
-          className="font-coach-semibold text-[11px] uppercase tracking-wider"
-          style={{ color: LIGHT_THEME.wMute }}
-        >
-          {title}
-        </Text>
+  return (
+    <Card>
+      <View className="flex-row items-baseline justify-between gap-2">
+        <SectionLabel>{t("workout.detail.structure")}</SectionLabel>
         {total && (
           <Text
             className="font-coach-semibold text-[13px]"
@@ -811,57 +504,7 @@ function PlanCard({
           </Text>
         )}
       </View>
-      {hasDetails && collapsedByDefault && (
-        <Ionicons
-          name={expanded ? "chevron-up" : "chevron-down"}
-          size={16}
-          color={LIGHT_THEME.wMute}
-        />
-      )}
-    </View>
-  );
-
-  const body = (
-    <>
-      {hasStructure && structure && (
-        <View className="gap-2">
-          <Text
-            className="font-coach-semibold text-[11px] uppercase tracking-wider"
-            style={{ color: LIGHT_THEME.wMute }}
-          >
-            {t("workout.detail.structure")}
-          </Text>
-          <WorkoutStructureView structure={structure} />
-        </View>
-      )}
-    </>
-  );
-
-  if (!collapsedByDefault) {
-    return (
-      <Card>
-        {header}
-        {body}
-      </Card>
-    );
-  }
-
-  return (
-    <Card>
-      {hasDetails ? (
-        <Pressable
-          onPress={() => {
-            selectionFeedback();
-            setExpanded((v) => !v);
-          }}
-          className="active:opacity-80"
-        >
-          {header}
-        </Pressable>
-      ) : (
-        header
-      )}
-      {expanded && body}
+      <WorkoutStructureView structure={structure} />
     </Card>
   );
 }
@@ -876,25 +519,6 @@ function Card({ children }: { children: React.ReactNode }) {
       }}
     >
       {children}
-    </View>
-  );
-}
-
-function Chip({ children }: { children: React.ReactNode }) {
-  return (
-    <View
-      className="self-start rounded-full border px-3 py-1"
-      style={{
-        backgroundColor: LIGHT_THEME.w1,
-        borderColor: LIGHT_THEME.wBrd,
-      }}
-    >
-      <Text
-        className="font-coach-semibold text-[12px]"
-        style={{ color: LIGHT_THEME.wSub }}
-      >
-        {children}
-      </Text>
     </View>
   );
 }

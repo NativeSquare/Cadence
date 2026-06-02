@@ -9,19 +9,18 @@ import {
   deriveWorkoutStatus,
   localTodayYmd,
   workoutStatusLabel,
+  workoutTitle,
   workoutTypeLabel,
 } from "@/components/app/workout/workout-helpers";
 import { Text } from "@/components/ui/text";
 import { LIGHT_THEME } from "@/lib/design-tokens";
 import { useLanguage, type Language } from "@/lib/i18n";
 import { Ionicons } from "@expo/vector-icons";
-import type { Workout as WorkoutStructure } from "@nativesquare/agoge";
 import type { WorkoutDoc } from "@nativesquare/agoge/schema";
 import {
   WORKOUT_TYPES_COLORS,
   WORKOUT_TYPES_COLORS_DIM,
 } from "@packages/shared/colors";
-import { summarizeStructure } from "@packages/shared/workout-summary";
 import { useTranslation } from "react-i18next";
 import { Pressable, View } from "react-native";
 
@@ -45,32 +44,12 @@ function formatWorkoutDay(
   return { weekday, day: String(d.getDate()) };
 }
 
-function formatDuration(seconds?: number): string | null {
-  if (seconds == null || seconds <= 0) return null;
-  const m = Math.round(seconds / 60);
-  if (m < 60) return `${m} min`;
-  const h = Math.floor(m / 60);
-  const rem = m - h * 60;
-  return rem === 0 ? `${h}h` : `${h}h${String(rem).padStart(2, "0")}`;
-}
-
-function formatDistance(meters?: number): string | null {
-  if (meters == null || meters <= 0) return null;
-  const km = meters / 1000;
-  return `${km % 1 === 0 ? km.toFixed(0) : km.toFixed(1)} km`;
-}
-
 export function WorkoutCard({ workout, onPress }: WorkoutCardProps) {
   const { t } = useTranslation();
   const locale = useLanguage();
 
   const date = workoutDate(workout);
   const day = date ? formatWorkoutDay(locale, date) : null;
-  const plannedSummary = workout.planned?.structure
-    ? summarizeStructure(workout.planned.structure as WorkoutStructure)
-    : undefined;
-  const duration = formatDuration(plannedSummary?.durationSeconds);
-  const distance = formatDistance(plannedSummary?.distanceMeters);
   const typeColor = WORKOUT_TYPES_COLORS[workout.type];
   const typeColorDim = WORKOUT_TYPES_COLORS_DIM[workout.type];
   const effectiveStatus = deriveWorkoutStatus(workout, localTodayYmd());
@@ -78,9 +57,8 @@ export function WorkoutCard({ workout, onPress }: WorkoutCardProps) {
   // need attention, not finality — render at full opacity with a label.
   const dimmed = effectiveStatus === "missed";
 
+  // Title carries the volume; the subtitle keeps type + (non-planned) status.
   const subtitleParts = [workoutTypeLabel(t, workout.type)];
-  const meta = [duration, distance].filter(Boolean).join(" · ");
-  if (meta) subtitleParts.push(meta);
   if (effectiveStatus !== "planned") {
     subtitleParts.push(workoutStatusLabel(t, effectiveStatus));
   }
@@ -136,7 +114,7 @@ export function WorkoutCard({ workout, onPress }: WorkoutCardProps) {
             textDecorationLine: dimmed ? "line-through" : undefined,
           }}
         >
-          {workout.name}
+          {workoutTitle(workout)}
         </Text>
         <Text
           numberOfLines={1}

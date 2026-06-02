@@ -25,6 +25,13 @@ export function useVoiceRecording() {
   const stop = useCallback(async (): Promise<string | null> => {
     if (!state.isRecording && !state.canRecord) return null;
     await recorder.stop();
+    // Leave the session in a playback-friendly mode. Without this the iOS
+    // audio session stays in PlayAndRecord (allowsRecording: true), which
+    // routes later playback to the earpiece and makes it inaudible.
+    await setAudioModeAsync({
+      allowsRecording: false,
+      playsInSilentMode: true,
+    }).catch(() => undefined);
     return recorder.uri;
   }, [recorder, state.isRecording, state.canRecord]);
 

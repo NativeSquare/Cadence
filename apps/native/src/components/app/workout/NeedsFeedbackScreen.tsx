@@ -24,9 +24,7 @@ import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { Ionicons } from "@expo/vector-icons";
 import { Text } from "@/components/ui/text";
 import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
-import type { Workout as WorkoutStructure } from "@nativesquare/agoge";
 import { WORKOUT_TYPES_COLORS } from "@packages/shared/colors";
-import { summarizeStructure } from "@packages/shared/workout-summary";
 import { useLanguage, type Language } from "@/lib/i18n";
 import { selectionFeedback } from "@/lib/haptics";
 import { getConvexErrorMessage } from "@/utils/getConvexErrorMessage";
@@ -34,6 +32,7 @@ import { MarkDoneBottomSheet } from "@/components/app/workout/mark-done-bottom-s
 import {
   deriveWorkoutStatus,
   localTodayYmd,
+  workoutTitle,
   workoutTypeLabel,
 } from "@/components/app/workout/workout-helpers";
 import { api } from "@packages/backend/convex/_generated/api";
@@ -46,20 +45,6 @@ function toIsoDate(d: Date): string {
   const m = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
-}
-
-function formatDistance(m?: number): string | null {
-  if (m == null || m <= 0) return null;
-  const km = m / 1000;
-  return `${km % 1 === 0 ? km.toFixed(0) : km.toFixed(1)} km`;
-}
-
-function formatDurationSec(sec?: number): string | null {
-  if (sec == null || sec <= 0) return null;
-  const h = Math.floor(sec / 3600);
-  const min = Math.floor((sec % 3600) / 60);
-  if (h > 0) return `${h}h${String(min).padStart(2, "0")}`;
-  return `${min} min`;
 }
 
 function daysAgo(iso: string, today: Date): number {
@@ -277,12 +262,6 @@ function TriageRow({
   const { t } = useTranslation();
   const plannedIso = workout.planned?.date ?? "";
   const days = plannedIso ? daysAgo(plannedIso, today) : 0;
-  const summary = workout.planned?.structure
-    ? summarizeStructure(workout.planned.structure as WorkoutStructure)
-    : undefined;
-  const distance = formatDistance(summary?.distanceMeters);
-  const duration = formatDurationSec(summary?.durationSeconds);
-  const meta = [distance, duration].filter(Boolean).join(" · ");
   const typeColor = WORKOUT_TYPES_COLORS[workout.type];
 
   return (
@@ -314,7 +293,7 @@ function TriageRow({
             className="flex-1 font-coach-bold text-base"
             style={{ color: LIGHT_THEME.wText }}
           >
-            {workout.name}
+            {workoutTitle(workout)}
           </Text>
           <View
             className="rounded-full px-2.5 py-1"
@@ -328,14 +307,6 @@ function TriageRow({
             </Text>
           </View>
         </View>
-        {meta && (
-          <Text
-            className="mt-1 font-coach text-[12px]"
-            style={{ color: LIGHT_THEME.wSub }}
-          >
-            {meta}
-          </Text>
-        )}
       </Pressable>
 
       <View

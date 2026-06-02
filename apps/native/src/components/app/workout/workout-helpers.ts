@@ -1,6 +1,10 @@
 import type { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
 import { WORKOUT_TYPES } from "@packages/shared/types";
+import {
+  parseStructure,
+  summarizeStructure,
+} from "@packages/shared/workout-summary";
 import type { WorkoutStatus, WorkoutType } from "@nativesquare/agoge/schema";
 import type {
   Duration,
@@ -57,6 +61,50 @@ export function blockLabel(
 ): string {
   const type = blockTypeLabel(t, block.type);
   return block.focus ? `${type} — ${block.focus}` : type;
+}
+
+/**
+ * Display title for a workout, matching the Today Card naming strategy: the
+ * recorded-or-planned volume ("10.2 km · 52min", or whichever half is known),
+ * falling back to the stored name when there's no volume to show. Workouts are
+ * identified by what they are, not a hand-typed label — same spirit as
+ * `blockLabel` for blocks. Use this anywhere a workout is titled (detail hero,
+ * calendar rows, triage rows) so every surface reads the same.
+ */
+export function workoutTitle(workout: {
+  name: string;
+  planned?: { structure?: unknown } | undefined;
+  actual?:
+    | { distanceMeters?: number; durationSeconds?: number }
+    | undefined;
+}): string {
+  const parsed = parseStructure(workout.planned?.structure);
+  const plannedSummary = parsed ? summarizeStructure(parsed) : undefined;
+  const distanceMeters =
+    workout.actual?.distanceMeters ?? plannedSummary?.distanceMeters;
+  const durationSeconds =
+    workout.actual?.durationSeconds ?? plannedSummary?.durationSeconds;
+
+  const km =
+    distanceMeters != null && distanceMeters > 0
+      ? `${(distanceMeters / 1000).toFixed(1)} km`
+      : null;
+  const dur =
+    durationSeconds != null && durationSeconds > 0
+      ? formatVolumeDuration(durationSeconds)
+      : null;
+
+  if (km && dur) return `${km} · ${dur}`;
+  return km ?? dur ?? workout.name;
+}
+
+/** Compact volume duration ("52min", "1h", "1h05") — matches the Today Card. */
+function formatVolumeDuration(seconds: number): string {
+  const m = Math.round(seconds / 60);
+  if (m < 60) return `${m}min`;
+  const h = Math.floor(m / 60);
+  const rem = m % 60;
+  return rem === 0 ? `${h}h` : `${h}h${rem.toString().padStart(2, "0")}`;
 }
 
 /**

@@ -9,6 +9,7 @@ import { coachInterventions } from "./table/coachInterventions";
 import { coachMemories } from "./table/coachMemories";
 import { contacts } from "./table/contacts";
 import { feedback } from "./table/feedback";
+import { sessionFeedback } from "./table/sessionFeedback";
 import { users } from "./table/users";
 
 // NOTE: Training-domain tables (athletes, zones, events, races, goals, plans,
@@ -31,5 +32,6 @@ export default defineSchema({
   coachMemories,
   contacts,
   feedback,
+  sessionFeedback,
   users,
 });

@@ -281,11 +281,15 @@ function WorkoutBody({
     <>
       <CardHeader workout={workout} />
       <StructurePreview workout={workout} />
-      {(showMarkDone || showExport) && (
+      {showMarkDone || showExport ? (
         <View className="px-4 pb-4 pt-2 gap-2">
           {showMarkDone && <MarkAsDoneCTA onPress={onMarkDonePress} />}
           {showExport && <ExportToWatchCTA onPress={onExportPress} />}
         </View>
+      ) : (
+        // No action button: pad the bottom (8px) so it adds up to the header's
+        // 20px top inset and the card stays vertically symmetric.
+        <View className="pb-2" />
       )}
     </>
   );

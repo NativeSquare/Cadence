@@ -2,8 +2,7 @@ import { getAuthUserId } from "@convex-dev/auth/server";
 import { ConvexError, v } from "convex/values";
 import { internal } from "../_generated/api";
 import { action } from "../_generated/server";
-
-const WHISPER_ENDPOINT = "https://api.openai.com/v1/audio/transcriptions";
+import { callWhisper } from "./whisper";
 
 export const transcribe = action({
   args: {
@@ -43,36 +42,11 @@ export const transcribe = action({
       });
     }
 
-    const form = new FormData();
-    form.append("file", blob, "audio.m4a");
-    form.append("model", "whisper-1");
-    form.append("language", locale);
-    form.append("response_format", "json");
-
-    const res = await fetch(WHISPER_ENDPOINT, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${apiKey}` },
-      body: form,
-    });
-
-    if (!res.ok) {
-      const errText = await res.text();
-      console.error(
-        "[coach.voice.transcribe] Whisper failed",
-        res.status,
-        errText,
-      );
-      throw new ConvexError({
-        code: "TRANSCRIPTION_FAILED",
-        message: `Whisper API error (${res.status})`,
-      });
-    }
-
-    const data = (await res.json()) as { text: string };
+    const text = await callWhisper(apiKey, blob, locale);
 
     // Voice recordings aren't retained server-side past transcription.
     await ctx.storage.delete(storageId).catch(() => undefined);
 
-    return { text: data.text };
+    return { text };
   },
 });
