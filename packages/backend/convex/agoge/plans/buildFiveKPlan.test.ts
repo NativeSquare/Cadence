@@ -150,6 +150,7 @@ function oracle(inputs: BuildFiveKPlanInputs): EmittedWorkout[] {
   const out: EmittedWorkout[] = [];
   let weekIndexInPhase = 0;
   let prevPhase: BlockType | undefined;
+  let prevLastHardDow: number | undefined;
   for (let w = 0; w < preTaperWeeks; w++) {
     const phase = phaseByWeek[w];
     if (!phase) continue;
@@ -170,7 +171,16 @@ function oracle(inputs: BuildFiveKPlanInputs): EmittedWorkout[] {
       vdot,
       raceDow: isoDayOfWeek(raceYmd),
       planProgress: preTaperWeeks <= 1 ? 1 : w / (preTaperWeeks - 1),
+      prevLastHardDow,
     });
+    // Independent copy of `lastHardDow`: latest non-easy session's day-of-week.
+    prevLastHardDow = sessions.reduce<number | undefined>(
+      (latest, s) =>
+        s.type !== "easy" && (latest === undefined || s.dayOfWeek > latest)
+          ? s.dayOfWeek
+          : latest,
+      undefined,
+    );
     for (const session of sessions) {
       emit(out, common, addDaysYmd(weekStart, session.dayOfWeek), session);
     }
@@ -283,6 +293,30 @@ describe("buildFiveKPlan — trace integrity", () => {
       .filter((s) => s.dropReason === "before-plan-start");
     expect(dropped.length).toBeGreaterThan(0);
     expect(dropped.every((s) => s.dateYmd < "2026-06-04")).toBe(true);
+  });
+
+  it("never schedules two hard sessions on adjacent calendar days, across week seams", () => {
+    // Regression: weeks used to be laid out in isolation, so a Sunday long run
+    // could be followed by a Monday quality (back-to-back hard days across the
+    // Mon→Sun boundary). SCHEDULE_5 trains on Monday, the prone case.
+    for (const inputs of SCENARIOS.map((s) => s.inputs)) {
+      const trace = buildFiveKPlan(inputs);
+      const hardDates = [
+        ...trace.weeks.flatMap((wk) => wk.sessions),
+        ...trace.taper.sessions,
+      ]
+        .filter((s) => !s.dropped && s.spec.type !== "easy")
+        .map((s) => s.dateYmd)
+        .sort();
+      for (let i = 1; i < hardDates.length; i++) {
+        const gapDays = Math.round(
+          (Date.parse(`${hardDates[i]}T00:00:00Z`) -
+            Date.parse(`${hardDates[i - 1]}T00:00:00Z`)) /
+            86_400_000,
+        );
+        expect(gapDays).toBeGreaterThanOrEqual(2);
+      }
+    }
   });
 
   it("block layout matches createBlocks5K's date math (clamped to plan start)", () => {

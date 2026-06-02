@@ -1,6 +1,7 @@
 "use client";
 
 import type {
+  BankEntry,
   FiveKBanks,
   FiveKConstants,
   FiveKTaperRules,
@@ -31,26 +32,40 @@ export function SessionSpecsPanel({ banks }: { banks: FiveKBanks }) {
   const groups: Array<{
     name: string;
     intensity: string;
-    bank: FiveKBanks[keyof FiveKBanks];
+    bank: BankEntry[];
   }> = [
-    { name: "SV1 long run", intensity: "SV1 (aerobic threshold)", bank: banks.sv1Long },
+    {
+      name: "SV1 long run",
+      intensity: "SV1 (aerobic threshold)",
+      bank: banks.sv1Long,
+    },
     { name: "SV2 threshold", intensity: "T (threshold)", bank: banks.sv2 },
     { name: "VMA courte", intensity: "I (VO₂max)", bank: banks.vmaShort },
     { name: "VMA longue", intensity: "I (VO₂max)", bank: banks.vmaLong },
     { name: "Mixte", intensity: "T then I", bank: banks.mixed },
-    { name: "Allure spé (5K)", intensity: "5K goal pace", bank: banks.racePace },
-    { name: "Rappel d’allure (taper)", intensity: "5K goal pace", bank: banks.rappel },
-  ];
+    {
+      name: "Allure spé (modérée)",
+      intensity: "goal pace",
+      bank: banks.racePace.moderate,
+    },
+    { name: "Allure spé", intensity: "goal pace", bank: banks.racePace.big },
+    {
+      name: "Rappel d’allure (taper)",
+      intensity: "goal pace",
+      bank: banks.rappel,
+    },
+    // Empty banks (e.g. 5K never uses the moderate race-pace bank) are skipped.
+  ].filter((g) => g.bank.length > 0);
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="text-base">Session banks</CardTitle>
         <CardDescription>
-          Each session type is a difficulty-ordered bank (easiest → hardest). The
-          generator draws one entry per week: the athlete’s level (VDOT) slides a
-          window into the bank, and plan progress walks upward within it, so
-          workouts get harder as the race approaches.
+          Each session type is a difficulty-ordered bank (easiest → hardest).
+          The generator draws one entry per week: the athlete’s level (VDOT)
+          slides a window into the bank, and plan progress walks upward within
+          it, so workouts get harder as the race approaches.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">
@@ -58,7 +73,9 @@ export function SessionSpecsPanel({ banks }: { banks: FiveKBanks }) {
           <div key={g.name}>
             <div className="mb-1 flex items-baseline justify-between">
               <span className="font-medium">{g.name}</span>
-              <span className="text-muted-foreground text-xs">{g.intensity}</span>
+              <span className="text-muted-foreground text-xs">
+                {g.intensity}
+              </span>
             </div>
             <ol className="text-muted-foreground list-decimal space-y-0.5 pl-5 text-sm">
               {g.bank.map((e, i) => (
@@ -76,8 +93,14 @@ export function SessionSpecsPanel({ banks }: { banks: FiveKBanks }) {
 export function DurationsPanel({ c }: { c: FiveKConstants }) {
   const d = c.durationsSec;
   const rows = [
-    { name: "Easy run", value: `${minutes(d.easyMin)} – ${minutes(d.easyMax)}` },
-    { name: "Warmup", value: `${minutes(d.warmupMin)} – ${minutes(d.warmupMax)}` },
+    {
+      name: "Easy run",
+      value: `${minutes(d.easyMin)} – ${minutes(d.easyMax)}`,
+    },
+    {
+      name: "Warmup",
+      value: `${minutes(d.warmupMin)} – ${minutes(d.warmupMax)}`,
+    },
     {
       name: "Cooldown",
       value: `${minutes(d.cooldownMin)} – ${minutes(d.cooldownMax)}`,
@@ -132,8 +155,8 @@ export function TaperPanel({ taper }: { taper: FiveKTaperRules }) {
             <TableRow>
               <TableCell className="font-medium">Race-eve shakeout</TableCell>
               <TableCell className="text-muted-foreground">
-                Only for athletes training ≥{" "}
-                {taper.shakeoutMinSessionsPerWeek} days/week
+                Only for athletes training ≥ {taper.shakeoutMinSessionsPerWeek}{" "}
+                days/week
               </TableCell>
             </TableRow>
             <TableRow>
@@ -146,8 +169,8 @@ export function TaperPanel({ taper }: { taper: FiveKTaperRules }) {
             <TableRow>
               <TableCell className="font-medium">Race-week budget</TableCell>
               <TableCell className="text-muted-foreground">
-                Sessions per week − {taper.raceWeekBudgetOffset} (the race itself
-                is the last session)
+                Sessions per week − {taper.raceWeekBudgetOffset} (the race
+                itself is the last session)
               </TableCell>
             </TableRow>
           </TableBody>

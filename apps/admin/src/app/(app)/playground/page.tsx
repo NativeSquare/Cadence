@@ -7,6 +7,7 @@ import {
   buildFiveKPlan,
   type FiveKPlanTrace,
 } from "@packages/backend/convex/agoge/plans/buildFiveKPlan";
+import { buildTenKPlan } from "@packages/backend/convex/agoge/plans/buildTenKPlan";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,7 @@ function ymdFromNow(days: number): string {
 }
 
 const DEFAULT_SCENARIO: ScenarioState = {
+  format: "5k",
   planStartDate: ymdFromNow(0),
   raceDate: ymdFromNow(84), // ~12 weeks out
   sessionsPerWeek: 5,
@@ -47,7 +49,7 @@ function toInputs(s: ScenarioState): BuildFiveKPlanInputs {
       sessionsPerWeek: s.sessionsPerWeek,
     },
     locale: s.locale,
-    raceDistanceMeters: 5000,
+    raceDistanceMeters: s.format === "10k" ? 10000 : 5000,
     ...(s.pacingMode === "vdot"
       ? { vdot: s.vdot }
       : { targetTimeSeconds: s.targetMinutes * 60 + s.targetSeconds }),
@@ -55,8 +57,10 @@ function toInputs(s: ScenarioState): BuildFiveKPlanInputs {
 }
 
 function validate(s: ScenarioState): string | null {
-  if (!s.planStartDate || !s.raceDate) return "Set a plan start and a race date.";
-  if (s.raceDate <= s.planStartDate) return "Race date must be after plan start.";
+  if (!s.planStartDate || !s.raceDate)
+    return "Set a plan start and a race date.";
+  if (s.raceDate <= s.planStartDate)
+    return "Race date must be after plan start.";
   if (s.availableDays.length === 0) return "Pick at least one available day.";
   return null;
 }
@@ -74,7 +78,8 @@ export default function PlaygroundPage() {
       return;
     }
     try {
-      setResult({ trace: buildFiveKPlan(toInputs(scenario)), error: null });
+      const build = scenario.format === "10k" ? buildTenKPlan : buildFiveKPlan;
+      setResult({ trace: build(toInputs(scenario)), error: null });
     } catch (e) {
       setResult({
         trace: null,
@@ -86,12 +91,14 @@ export default function PlaygroundPage() {
   return (
     <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
       <div className="px-4 lg:px-6">
-        <h1 className="text-2xl font-bold">5K Plan Playground</h1>
+        <h1 className="text-2xl font-bold">Plan Playground</h1>
         <p className="text-muted-foreground text-sm">
-          Set a scenario, hit <strong>Generate Plan</strong>, and watch the real
-          5K generation logic run step by step — same{" "}
-          <code className="text-xs">buildFiveKPlan</code> production uses, but
-          nothing is written to the database.
+          Pick a distance, set a scenario, hit <strong>Generate Plan</strong>,
+          and watch the real generation logic run step by step — the same{" "}
+          <code className="text-xs">
+            {scenario.format === "10k" ? "buildTenKPlan" : "buildFiveKPlan"}
+          </code>{" "}
+          production uses, but nothing is written to the database.
         </p>
       </div>
 

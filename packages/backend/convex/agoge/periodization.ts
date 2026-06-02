@@ -112,14 +112,25 @@ export function trainingPaces(vdot: number): Paces {
 }
 
 /**
- * 5K-specific race pace in m/s, derived from VDOT via inverse race-time prediction.
- * Slightly faster than I (vVO2max) for elites, slower for beginners — this is
- * "what the runner will actually race at 5K", not a fixed % of VO2max.
+ * Race pace in m/s for any distance, derived from VDOT via inverse race-time
+ * prediction. Race effort means this is "what the runner will actually race at
+ * that distance" — slightly faster than I (vVO2max) for elites, slower for
+ * beginners — not a fixed % of VO2max. The per-distance helpers below specialise it.
  */
+export function racePaceMps(distanceMeters: number, vdot: number): number {
+  if (!(vdot > 0) || !(distanceMeters > 0)) return 0;
+  const t = predictRaceTime(vdot, distanceMeters);
+  return t > 0 ? distanceMeters / t : 0;
+}
+
+/** 5K-specific race pace in m/s. */
 export function fiveKPaceMps(vdot: number): number {
-  if (!(vdot > 0)) return 0;
-  const t = predictRaceTime(vdot, 5000);
-  return t > 0 ? 5000 / t : 0;
+  return racePaceMps(5000, vdot);
+}
+
+/** 10K-specific race pace in m/s. */
+export function tenKPaceMps(vdot: number): number {
+  return racePaceMps(10000, vdot);
 }
 
 /**
@@ -504,9 +515,9 @@ export function microcycle(
   if (days.length === 0) return [];
   const roles = rolesForPhase(phase, days.length);
 
-  const longFracBase = phase === "peak" ? 0.35 : 0.30;
-  const qualityFrac = roles.includes("threshold") ? 0.20 : 0;
-  const intervalsFrac = roles.includes("intervals") ? 0.20 : 0;
+  const longFracBase = phase === "peak" ? 0.35 : 0.3;
+  const qualityFrac = roles.includes("threshold") ? 0.2 : 0;
+  const intervalsFrac = roles.includes("intervals") ? 0.2 : 0;
   const easyCount = roles.filter((r) => r === "easy").length;
   const remainder = Math.max(0, 1 - longFracBase - qualityFrac - intervalsFrac);
   const easyFrac = easyCount > 0 ? remainder / easyCount : 0;
@@ -1152,7 +1163,9 @@ export function workoutName(args: {
         ? `${totalKm} - ${label} ${WITH[locale]} ${workKm} @ ${formatPaceMinPerKm(pace)}`
         : `${totalKm} - ${label}`;
     }
-    return pace ? `${workKm} @ ${formatPaceMinPerKm(pace)}` : `${workKm} - ${label}`;
+    return pace
+      ? `${workKm} @ ${formatPaceMinPerKm(pace)}`
+      : `${workKm} - ${label}`;
   }
 
   // No structure (or no work block) → "{km} - {Label}".

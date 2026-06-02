@@ -558,6 +558,53 @@ describe("microcycle5K — day spacing", () => {
       expect(hardDays[i]! - hardDays[i - 1]!).toBeGreaterThanOrEqual(2);
     }
   });
+
+  it("keeps the first quality off Monday when the previous week ended hard on Sunday", () => {
+    // prevLastHardDow = 6 (Sunday). Monday (dow 0) would sit 1 day after it; the
+    // first quality must shift to a later day, leaving Monday as an easy run. The
+    // SV1 long stays on the latest day (Sunday).
+    const sessions = microcycle5K({
+      ...baseArgs,
+      phase: "build",
+      weekIndexInPhase: 2,
+      weekKm: 55,
+      schedule: SCHEDULE_5, // [0,1,3,5,6], includes Monday
+      prevLastHardDow: 6,
+    });
+    const hardDays = sessions
+      .filter((s) => s.structureSpec?.kind !== "easy_continuous")
+      .map((s) => s.dayOfWeek)
+      .sort((a, b) => a - b);
+    expect(hardDays).not.toContain(0); // Monday is now an easy day
+    expect(Math.max(...hardDays)).toBe(6); // long still latest
+    // Every hard day is ≥2 days after the previous week's Sunday hard.
+    expect(Math.min(...hardDays) - 6 + 7).toBeGreaterThanOrEqual(2);
+  });
+
+  it("leaves placement unchanged when the boundary gap is already satisfied", () => {
+    // prevLastHardDow undefined (first week) and a Saturday predecessor both leave
+    // Monday legal — placement must match the no-anchor spread.
+    const noAnchor = microcycle5K({
+      ...baseArgs,
+      phase: "build",
+      weekIndexInPhase: 2,
+      weekKm: 55,
+      schedule: SCHEDULE_5,
+    })
+      .map((s) => s.dayOfWeek)
+      .sort((a, b) => a - b);
+    const satAnchor = microcycle5K({
+      ...baseArgs,
+      phase: "build",
+      weekIndexInPhase: 2,
+      weekKm: 55,
+      schedule: SCHEDULE_5,
+      prevLastHardDow: 5, // Saturday → Monday sits 2 days later, already fine
+    })
+      .map((s) => s.dayOfWeek)
+      .sort((a, b) => a - b);
+    expect(satAnchor).toEqual(noAnchor);
+  });
 });
 
 describe("microcycle5K — EF duration constraint", () => {

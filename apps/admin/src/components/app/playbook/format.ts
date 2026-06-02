@@ -25,8 +25,8 @@ export function roleTemplateLabel(t: RoleTemplate): string {
       return "VMA longue (800m)";
     case "mixed":
       return "Mixte (SV2 + VMA)";
-    case "race_pace_5k":
-      return "Race-pace 5K";
+    case "race_pace":
+      return t.bank === "moderate" ? "Allure spé (modérée)" : "Allure spé";
     case "build_late_alt":
       return "VMA longue ↔ Mixte (by week)";
   }

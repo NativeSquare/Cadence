@@ -53,6 +53,7 @@ import {
   expandPhases,
   type TracedSession,
 } from "../agoge/plans/buildFiveKPlan";
+import { buildTenKPlan } from "../agoge/plans/buildTenKPlan";
 
 const GENERATOR_VERSION = "v1";
 const BASELINE_LOOKBACK_DAYS = 56;
@@ -130,7 +131,9 @@ async function emitTrainingWorkout(
 export const generate = internalAction({
   args: { planId: v.string() },
   handler: async (ctx, { planId }): Promise<void> => {
-    const plan = await ctx.runQuery(components.agoge.public.getPlan, { planId });
+    const plan = await ctx.runQuery(components.agoge.public.getPlan, {
+      planId,
+    });
     if (!plan) return;
 
     // Idempotency: another invocation already populated this plan.
@@ -195,12 +198,13 @@ export const generate = internalAction({
 
     let blockIds: Partial<Record<BlockType, ComponentId>>;
 
-    if (race.format === "5k") {
-      // 5K: every base/build/peak block is a full Mon→Sun week and the taper is
-      // a variable 4–10 day tail anchored to race day. The whole plan is computed
-      // by the pure `buildFiveKPlan` (shared verbatim with the admin simulator);
-      // here we create the blocks and persist the traced sessions.
-      const trace = buildFiveKPlan({
+    if (race.format === "5k" || race.format === "10k") {
+      // 5K/10K: every base/build/peak block is a full Mon→Sun week and the taper
+      // is a variable 4–10 day tail anchored to race day. The whole plan is
+      // computed by the pure `buildFiveKPlan` / `buildTenKPlan` (shared verbatim
+      // with the admin simulator); here we create the blocks and persist the
+      // traced sessions. Both builders return the same `PlanTrace` shape.
+      const planInputs = {
         planStartYmd: planStart,
         raceYmd,
         currentKm,
@@ -210,7 +214,11 @@ export const generate = internalAction({
         peakKm,
         vdot,
         paces,
-      });
+      };
+      const trace =
+        race.format === "10k"
+          ? buildTenKPlan(planInputs)
+          : buildFiveKPlan(planInputs);
 
       blockIds = await createBlocks5K(
         ctx,
@@ -328,7 +336,9 @@ export const generate = internalAction({
 export const generateFitness = internalAction({
   args: { planId: v.string() },
   handler: async (ctx, { planId }): Promise<void> => {
-    const plan = await ctx.runQuery(components.agoge.public.getPlan, { planId });
+    const plan = await ctx.runQuery(components.agoge.public.getPlan, {
+      planId,
+    });
     if (!plan) return;
 
     const existingBlocks = await ctx.runQuery(
@@ -471,15 +481,12 @@ async function createBlocks(
       endIdx === lastWeekIdx
         ? raceYmd
         : addDaysYmd(gridStart, (endIdx + 1) * 7 - 1);
-    const blockId = await ctx.runMutation(
-      components.agoge.public.createBlock,
-      {
-        planId,
-        type: phase,
-        startDate,
-        endDate,
-      },
-    );
+    const blockId = await ctx.runMutation(components.agoge.public.createBlock, {
+      planId,
+      type: phase,
+      startDate,
+      endDate,
+    });
     blockIds[phase] = blockId;
   }
 
@@ -551,4 +558,3 @@ async function markGenerated(
     notes,
   });
 }
-

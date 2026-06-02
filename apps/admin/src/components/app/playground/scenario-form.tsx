@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { DAY_LABELS, isoDow } from "./format";
 
 export type ScenarioState = {
+  format: "5k" | "10k";
   planStartDate: string; // yyyy-mm-dd
   raceDate: string; // yyyy-mm-dd
   sessionsPerWeek: number;
@@ -46,6 +47,21 @@ export function ScenarioForm({
         <CardTitle>Scenario</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
+        <div className="flex flex-col gap-1.5">
+          <Label>Distance</Label>
+          <ToggleGroup
+            type="single"
+            variant="outline"
+            value={value.format}
+            onValueChange={(v) =>
+              v && set("format", v as ScenarioState["format"])
+            }
+          >
+            <ToggleGroupItem value="5k">5K</ToggleGroupItem>
+            <ToggleGroupItem value="10k">10K</ToggleGroupItem>
+          </ToggleGroup>
+        </div>
+
         <div className="grid grid-cols-2 gap-3">
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="planStart">Plan start</Label>
@@ -169,7 +185,7 @@ export function ScenarioForm({
                 />
               </div>
               <Badge variant="secondary" className="mb-1.5">
-                5K target
+                {value.format === "10k" ? "10K target" : "5K target"}
               </Badge>
             </div>
           ) : (
