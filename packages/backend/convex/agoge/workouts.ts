@@ -175,6 +175,12 @@ async function validateRescheduleAdjacent(
       reason: "invalid_state",
       message: "Cannot reschedule a completed workout",
     };
+  if (workout.type === "race")
+    return {
+      ok: false,
+      reason: "invalid_state",
+      message: "Race day is fixed and cannot be rescheduled.",
+    };
 
   const dateErr = validateIsoInstantDate(args.date, "date");
   if (dateErr)
@@ -316,6 +322,13 @@ async function validateSwapWorkouts(
     push(errors, {
       code: "INVALID_STATE",
       message: "Both workouts must have a planned face to be swapped",
+    });
+    return result(errors);
+  }
+  if (a.workout.type === "race" || b.workout.type === "race") {
+    push(errors, {
+      code: "INVALID_STATE",
+      message: "Race day is fixed and cannot be swapped.",
     });
     return result(errors);
   }

@@ -213,6 +213,11 @@
     "selectedDay": {
       "empty": "Aucune séance prévue",
       "addWorkout": "Ajouter une séance"
+    },
+    "swap": {
+      "title": "Échanger la séance",
+      "hint": "Touche un jour en surbrillance pour échanger les dates.",
+      "cancel": "Annuler"
     }
   },
   "coach": {
@@ -775,7 +780,9 @@
       "title": "Échanger la séance",
       "subtitle": "Choisis une séance future du même bloc pour échanger les dates.",
       "empty": "Aucune autre séance future dans ce bloc avec qui échanger.",
-      "confirm": "Échanger les dates"
+      "confirm": "Échanger les dates",
+      "confirmTitle": "Échanger ces deux séances ?",
+      "confirmSubtitle": "Leurs dates seront échangées."
     },
     "coachIntervention": {
       "cardTitle": "Ajustée par ton coach",

@@ -213,6 +213,11 @@
     "selectedDay": {
       "empty": "No workouts scheduled",
       "addWorkout": "Add workout"
+    },
+    "swap": {
+      "title": "Swap session",
+      "hint": "Tap a highlighted day to swap dates.",
+      "cancel": "Cancel"
     }
   },
   "coach": {
@@ -775,7 +780,9 @@
       "title": "Swap session",
       "subtitle": "Pick a future session from the same block to swap dates with.",
       "empty": "No other future session in this block to swap with.",
-      "confirm": "Swap dates"
+      "confirm": "Swap dates",
+      "confirmTitle": "Swap these two sessions?",
+      "confirmSubtitle": "Their dates will be exchanged."
     },
     "coachIntervention": {
       "cardTitle": "Adjusted by your coach",

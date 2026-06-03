@@ -63,7 +63,11 @@ export function CalendarDaySheet({
             </Text>
           ) : (
             workouts.map((w) => {
-              const canEdit = w.planned != null && w.status !== "completed";
+              // Race day is fixed in the calendar — never reschedulable or swappable.
+              const canEdit =
+                w.planned != null &&
+                w.status !== "completed" &&
+                w.type !== "race";
               return (
                 <View key={w._id} className="gap-1.5">
                   <WorkoutCard

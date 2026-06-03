@@ -25,7 +25,7 @@ import { MonthGrid, GRID_GAP } from "./MonthGrid";
 import { CalendarLegendSheet } from "./CalendarLegendSheet";
 import { CalendarDaySheet } from "./CalendarDaySheet";
 import { RescheduleSheet } from "@/components/app/workout/reschedule-sheet";
-import { SwapSheet } from "@/components/app/workout/swap-sheet";
+import { SwapConfirmSheet } from "@/components/app/workout/swap-confirm-sheet";
 import type { WorkoutDoc } from "@nativesquare/agoge/schema";
 
 const GRID_PADDING = 10;
@@ -152,9 +152,40 @@ export function CalendarScreen() {
   const legendSheetRef = useRef<GorhomBottomSheetModal>(null);
   const daySheetRef = useRef<GorhomBottomSheetModal>(null);
   const rescheduleSheetRef = useRef<GorhomBottomSheetModal>(null);
-  const swapSheetRef = useRef<GorhomBottomSheetModal>(null);
-  // The action sheets are shared across rows; hold the workout they target.
+  const swapConfirmSheetRef = useRef<GorhomBottomSheetModal>(null);
+  // The reschedule sheet is shared across rows; hold the workout it targets.
   const [actionWorkout, setActionWorkout] = useState<WorkoutDoc | null>(null);
+
+  // ─── Swap mode ────────────────────────────────────────────────────
+  // `swapSource` is the workout the user is moving; while set, the calendar is
+  // in swap-selection mode. `swapTarget` is the counterpart they tapped, which
+  // mounts the confirmation sheet.
+  const [swapSource, setSwapSource] = useState<WorkoutDoc | null>(null);
+  const [swapTarget, setSwapTarget] = useState<WorkoutDoc | null>(null);
+
+  // Counterparts live in the same training block: another planned,
+  // strictly-future session that isn't race day.
+  const swapBlockWorkouts = useQuery(
+    api.agoge.workouts.listWorkoutsByBlock,
+    swapSource?.blockId ? { blockId: swapSource.blockId } : "skip",
+  );
+
+  const swapSourceKey = swapSource?.planned?.date.slice(0, 10) ?? null;
+
+  const swapEligibleByDate = useMemo(() => {
+    const map = new Map<string, WorkoutDoc>();
+    if (!swapSource || !swapBlockWorkouts) return map;
+    for (const w of swapBlockWorkouts as WorkoutDoc[]) {
+      if (w._id === swapSource._id) continue;
+      if (w.status !== "planned" || !w.planned) continue;
+      // Race day is fixed — it can never be a swap counterpart.
+      if (w.type === "race") continue;
+      const key = w.planned.date.slice(0, 10);
+      if (key <= todayKey) continue;
+      if (!map.has(key)) map.set(key, w);
+    }
+    return map;
+  }, [swapSource, swapBlockWorkouts, todayKey]);
 
   // ─── Interaction handlers ─────────────────────────────────────────
 
@@ -182,12 +213,48 @@ export function CalendarScreen() {
     requestAnimationFrame(() => rescheduleSheetRef.current?.present());
   }, []);
 
+  // Swap doesn't open a sheet — it hands the calendar over to swap mode so the
+  // user picks the counterpart day directly on the grid.
   const handleSwap = useCallback((w: WorkoutDoc) => {
     Haptics.selectionAsync();
-    setActionWorkout(w);
     daySheetRef.current?.dismiss();
-    requestAnimationFrame(() => swapSheetRef.current?.present());
+    setSwapTarget(null);
+    setSwapSource(w);
   }, []);
+
+  const handleSwapTargetPress = useCallback(
+    (dateKey: string) => {
+      const target = swapEligibleByDate.get(dateKey);
+      if (!target) return;
+      Haptics.selectionAsync();
+      setSwapTarget(target);
+      requestAnimationFrame(() => swapConfirmSheetRef.current?.present());
+    },
+    [swapEligibleByDate],
+  );
+
+  const handleCancelSwap = useCallback(() => {
+    Haptics.selectionAsync();
+    setSwapSource(null);
+    setSwapTarget(null);
+  }, []);
+
+  const handleSwapConfirmed = useCallback(() => {
+    setSwapSource(null);
+    setSwapTarget(null);
+  }, []);
+
+  const swapMode = useMemo(
+    () =>
+      swapSource && swapSourceKey
+        ? {
+            sourceKey: swapSourceKey,
+            eligibleKeys: new Set(swapEligibleByDate.keys()),
+            onTargetPress: handleSwapTargetPress,
+          }
+        : null,
+    [swapSource, swapSourceKey, swapEligibleByDate, handleSwapTargetPress],
+  );
 
   const handleShowLegend = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -213,6 +280,10 @@ export function CalendarScreen() {
   }
 
   const selectedWorkouts = workoutsByDate[selectedDate] ?? [];
+  const swapNoCandidates =
+    swapSource != null &&
+    swapBlockWorkouts !== undefined &&
+    swapEligibleByDate.size === 0;
 
   return (
     <View className="flex-1 bg-black">
@@ -221,25 +292,53 @@ export function CalendarScreen() {
         className="bg-black px-6 pb-4"
         style={{ paddingTop: insets.top + 8 }}
       >
-        <View className="flex-row items-center justify-between">
-          <View className="flex-1">
-            <Text
-              className="text-[28px] font-coach-bold text-g1"
-              style={{ letterSpacing: -0.03 * 28 }}
+        {swapMode ? (
+          <View className="flex-row items-center justify-between gap-3">
+            <View className="flex-1">
+              <Text className="text-[17px] font-coach-bold text-g1">
+                {t("calendar.swap.title")}
+              </Text>
+              <Text
+                className="text-[13px] font-coach mt-0.5"
+                style={{ color: GRAYS.g3 }}
+              >
+                {swapNoCandidates
+                  ? t("workout.swap.empty")
+                  : t("calendar.swap.hint")}
+              </Text>
+            </View>
+            <Pressable
+              onPress={handleCancelSwap}
+              accessibilityRole="button"
+              hitSlop={10}
+              className="rounded-full border bg-[rgba(255,255,255,0.06)] border-[rgba(255,255,255,0.12)] px-4 py-2 active:opacity-70"
             >
-              {t("calendar.title")}
-            </Text>
+              <Text className="text-[13px] font-coach-semibold text-g1">
+                {t("calendar.swap.cancel")}
+              </Text>
+            </Pressable>
           </View>
-          <Pressable
-            onPress={handleShowLegend}
-            accessibilityRole="button"
-            accessibilityLabel={t("calendar.legend.open")}
-            hitSlop={10}
-            className="h-9 w-9 items-center justify-center rounded-full border bg-[rgba(255,255,255,0.06)] border-[rgba(255,255,255,0.08)] active:opacity-70"
-          >
-            <Info size={16} color={GRAYS.g2} strokeWidth={1.75} />
-          </Pressable>
-        </View>
+        ) : (
+          <View className="flex-row items-center justify-between">
+            <View className="flex-1">
+              <Text
+                className="text-[28px] font-coach-bold text-g1"
+                style={{ letterSpacing: -0.03 * 28 }}
+              >
+                {t("calendar.title")}
+              </Text>
+            </View>
+            <Pressable
+              onPress={handleShowLegend}
+              accessibilityRole="button"
+              accessibilityLabel={t("calendar.legend.open")}
+              hitSlop={10}
+              className="h-9 w-9 items-center justify-center rounded-full border bg-[rgba(255,255,255,0.06)] border-[rgba(255,255,255,0.08)] active:opacity-70"
+            >
+              <Info size={16} color={GRAYS.g2} strokeWidth={1.75} />
+            </Pressable>
+          </View>
+        )}
       </View>
 
       {/* Rounded transition from dark header to light content */}
@@ -290,6 +389,7 @@ export function CalendarScreen() {
                 blockLookup={blockLookup}
                 todayKey={todayKey}
                 onDayPress={handleDayPress}
+                swapMode={swapMode}
               />
             </View>
           ))}
@@ -314,11 +414,13 @@ export function CalendarScreen() {
           plannedDate={actionWorkout.planned.date}
         />
       )}
-      {actionWorkout && (
-        <SwapSheet
-          sheetRef={swapSheetRef}
-          workoutId={actionWorkout._id}
-          blockId={actionWorkout.blockId ?? undefined}
+      {swapSource && swapTarget && (
+        <SwapConfirmSheet
+          sheetRef={swapConfirmSheetRef}
+          source={swapSource}
+          target={swapTarget}
+          onConfirmed={handleSwapConfirmed}
+          onDismiss={() => setSwapTarget(null)}
         />
       )}
     </View>

@@ -13,6 +13,17 @@ import { buildWeeks, blendWithBg } from "./helpers";
  */
 export const GRID_GAP = 6;
 
+/**
+ * When set, the grid is in swap-selection mode: the source workout's day is
+ * filled solid, eligible counterpart days keep a ring + stay tappable, and
+ * every other day dims and stops responding to taps.
+ */
+export interface SwapMode {
+  sourceKey: string;
+  eligibleKeys: Set<string>;
+  onTargetPress: (dateKey: string) => void;
+}
+
 interface MonthGridProps {
   year: number;
   month: number;
@@ -21,6 +32,7 @@ interface MonthGridProps {
   blockLookup: Map<string, BlockDoc>;
   todayKey: string;
   onDayPress: (dateKey: string) => void;
+  swapMode?: SwapMode | null;
 }
 
 export const MonthGrid = React.memo(function MonthGrid({
@@ -31,6 +43,7 @@ export const MonthGrid = React.memo(function MonthGrid({
   blockLookup,
   todayKey,
   onDayPress,
+  swapMode,
 }: MonthGridProps) {
   const weeks = useMemo(() => buildWeeks(year, month), [year, month]);
 
@@ -83,17 +96,54 @@ export const MonthGrid = React.memo(function MonthGrid({
               };
             // Today always wears the black ring, overlaid on top of any
             // block tint background so it remains visible regardless of mode.
-            const todayStyle = isToday
+            // Swap mode owns the visuals while active, so the today ring steps
+            // aside to keep source/eligible/dimmed treatments unambiguous.
+            const todayStyle =
+              isToday && !swapMode
+                ? { borderWidth: 2, borderColor: LIGHT_THEME.wText }
+                : undefined;
+            const isActive = !isToday && hasWorkout;
+
+            // ─── Swap-mode classification for this day ──────────────────
+            const isSwapSource = swapMode?.sourceKey === day.key;
+            const isSwapEligible = swapMode?.eligibleKeys.has(day.key) ?? false;
+            const isSwapDimmed = !!swapMode && !isSwapSource && !isSwapEligible;
+            const swapSourceStyle = isSwapSource
+              ? {
+                  backgroundColor: LIGHT_THEME.wText,
+                  borderWidth: 2,
+                  borderColor: LIGHT_THEME.wText,
+                }
+              : undefined;
+            const swapEligibleStyle = isSwapEligible
               ? { borderWidth: 2, borderColor: LIGHT_THEME.wText }
               : undefined;
-            const isActive = !isToday && hasWorkout;
+            const swapDimStyle = isSwapDimmed ? { opacity: 0.3 } : undefined;
+
+            const pressDisabled = swapMode
+              ? !isSwapEligible
+              : false;
+            const handlePress = () => {
+              if (swapMode) {
+                if (isSwapEligible) swapMode.onTargetPress(day.key);
+                return;
+              }
+              onDayPress(day.key);
+            };
 
             return (
               <View key={day.key} className="items-center">
-                <Pressable onPress={() => onDayPress(day.key)}>
+                <Pressable onPress={handlePress} disabled={pressDisabled}>
                   <View
                     className="rounded-[14px] items-center justify-center overflow-hidden"
-                    style={[tileSizeStyle, baseTileStyle, todayStyle]}
+                    style={[
+                      tileSizeStyle,
+                      baseTileStyle,
+                      todayStyle,
+                      swapEligibleStyle,
+                      swapSourceStyle,
+                      swapDimStyle,
+                    ]}
                   >
                     <Text
                       className={cn(
@@ -101,6 +151,7 @@ export const MonthGrid = React.memo(function MonthGrid({
                         isToday && "font-coach-bold text-wText",
                         isActive && "font-coach-semibold text-wText",
                       )}
+                      style={isSwapSource ? { color: "#FFFFFF" } : undefined}
                     >
                       {day.day}
                     </Text>
