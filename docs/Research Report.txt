@@ -1,0 +1,511 @@
+Cadence sur le marché du running FR : qui servir, quel besoin, et
+quel wedge différenciant
+
+TL;DR
+
+      Le wedge de Cadence n'est pas "un meilleur plan" -- c'est la mémoire décisionnelle du
+      coureur. Toutes les apps concurrentes (Runna, Campus Coach, Kiprun Pacer, RunMotion,
+      Garmin, Nike, Strava, Vert, Athletica, Humango) prescrivent un plan à partir de données
+      quantitatives et l'ajustent à la marge ; aucune ne capture, ne structure et ne restitue le
+      contexte qualitatif et les décisions du coureur (pourquoi j'ai sauté cette séance, ce que j'ai
+      ressenti dans le mollet, la fatigue du boulot, la décision de ralentir). Le marché a saturé la
+      couche "quoi faire" ; il a laissé vide la couche "pourquoi j'ai fait ça, et qu'est-ce que ça
+      m'apprend".
+      La cible idéale est le primo-marathonien français équipé d'une montre GPS : un segment
+      large (selon les données A.S.O. reprises par The Running Channel/runblogrun, 51 % des 55
+      499 finishers du Marathon de Paris 2025 couraient leur premier marathon ; 146 000
+      finishers de marathon en France en 2024) et techniquement appareillé (85 % des coureurs
+      possèdent une montre GPS selon l'Observatoire du Running 2025 de l'Union Sport & Cycle
+      ; jusqu'à 93 % chez les coureurs réguliers). Ce coureur est inondé de données quantitatives
+      mais reste seul face à la question décisive : "j'ai mal/je suis fatigué/j'ai raté ma séance --
+      qu'est-ce que je fais ?" Dans la Tête d'un Coureur
+      "Pourquoi maintenant" : trois courants convergent en 2025-2026. (1) Le boom du
+      running et du premier marathon (record mondial de participation à Paris, dossards qui
+      partent en heures) ; (2) la vague d'inquiétude documentée sur les blessures induites par les
+      plans algorithmiques : le Wall Street Journal (fév. 2026, cité par the5krunner) rapporte que
+      des kinés voyaient "plusieurs cas de blessures liées à Runna par semaine" et que
+      l'entreprise ajoutait des fonctions pour permettre de réduire l'intensité des plans ; (3) la
+      banalisation des montres GPS et des coachs IA, qui rend la donnée quantitative abondante
+      mais souligne par contraste l'absence d'une couche qualitative. Cadence doit entrer par une
+      promesse irréprochable : "Tu décides, Cadence se souvient et t'explique" -- le journal de
+      bord intelligent qui transforme tes ressentis et tes décisions en apprentissage
+      personnel. The5KRunner
+
+Note de méthode : ce rapport s'appuie sur ~18 recherches web, les pages produits et avis App
+Store/Google Play des principales apps, des verbatims de forums FR (courseapied.net,
+kikourou.net, Running Addict, Jogging International), l'Observatoire du Running 2024 et 2025
+(Union Sport & Cycle), le Baromètre FinisherAthlé 2024 (FFA) et des données de finishers
+consolidées. Les chiffres marketing (nombre d'utilisateurs revendiqué, taux de réussite) sont
+signalés comme tels. Cadence (NativeSquare) est un produit décrit par le commanditaire ; ce
+rapport ne l'a pas testé et ne présume pas de son exécution.
+
+1. Le marché FR : grand, mature, en croissance -- et déjà équipé
+
+Le marché français du running est large, mature et en croissance -- un terrain favorable mais
+déjà disputé.
+
+Taille et dynamique. L'Observatoire du Running 2024 (Union Sport & Cycle, présenté le
+05/04/2024, étude fin janvier 2024 sur 3 000 personnes dont 1 900 coureurs) recense 12,4
+millions de pratiquants du running en France, soit 25 % de la population, dont près de 8
+millions de coureurs réguliers (au moins une sortie par semaine, 66 % des coureurs). Le
+chiffre est en hausse de 3,3 % sur 2023, mais reste sous le pic de 13,4 millions de 2021. Fait notable
+pour le positionnement : 49 % des coureurs sont des femmes (6,1 millions), et les femmes
+représentent 70 % des coureurs ayant commencé depuis moins de 5 ans -- le flux de nouveaux
+entrants est féminin. La pratique est d'abord motivée par le bien-être (santé 59 %, bien dans son
+corps 58 %, évacuer le stress 50 %) ; le challenge/dépassement ne concerne que 28 % des
+coureurs. L'âge moyen du coureur occasionnel est de 40 ans, du compétiteur 42 ans. Le panier
+annuel moyen d'un coureur-compétiteur atteint 528  (homme) / 415  (femme). Marché des
+chaussures : 9 millions de paires vendues en 2024, prix moyen 131  (Observatoire 2025).
+
+ unionsportcycle.com + 7
+
+Le marché du marathon, coeur de cible. Le Baromètre FinisherAthlé 2024 (FFA, réalisé par
+l'Union Sport & Cycle) confirme une "explosion de la demande" : dossards complets en quelques
+heures, rajeunissement (40 % des finishers ont moins de 35 ans, +10 pts vs avant-Covid),
+féminisation (35 % des pelotons, +6 pts vs 2019). La suppression du certificat médical (remplacé
+par le Parcours de Prévention Santé, 2,7 millions d'attestations en moins d'un an) a accéléré
+l'engouement. Running Attitude Running Attitude
+
+Volumes de finishers marathon (donnée clé pour dimensionner la cible) :
+
+      Marathon de Paris : le plus grand du monde. 55 499 finishers en 2025 (sur ~56 950­57 000
+      partants, taux d'abandon ~2,6 %), 57 464 en 2026 -- record européen. Point capital : 51 %
+      des coureurs de Paris 2025 disputaient leur tout premier marathon (données A.S.O.), 31
+      % étaient des femmes, 33 % des étrangers. Temps médian 4h06'54. Running Attitude + 5
+      Hors Paris (finishers marathon 2024) : Nice-Cannes (Alpes-Maritimes) 8 511 finishers
+      (n°2 français) ; Toulouse 5 720 ; Run In Lyon 3 742 (attention : les ~30 000 "participants"
+      annoncés couvrent toutes les distances, marathon + semi + 10 km). Bordeaux n'a pas eu de
+      marathon en 2024/2025 (le semi de décembre 2024 a réuni ~11 736 finishers ; un marathon
+      complet revient le 8 novembre 2026). Marseille n'a plus de marathon depuis 2019
+      (l'événement phare local, Marseille-Cassis, est un 20 km, ~20 000 participants).
+      Total France : 146 000 finishers de marathon en 2024 (estimation consolidée à partir du
+      classement d'affluence des ~74 marathons français), dont Paris représente ~37 %. Le
+      marathon reste un marché de niche au sein du running, mais c'est précisément le moment
+      de bascule émotionnel et technique où le coureur cherche de l'accompagnement.
+
+Équipement : un public massivement appareillé. 85 % des coureurs possèdent une montre
+GPS selon l'Observatoire du Running 2025 (Union Sport & Cycle, via Dans la Tête d'un Coureur) ;
+le Baromètre RunMotion 2022 monte jusqu'à 93 % chez les coureurs réguliers (échantillon plus
+engagé). Garmin domine, COROS monte fort avec la Pace 3/Pace 4 à 229­279 , Apple Watch et
+Suunto/Polar suivent. Seuls ~6 % trackent exclusivement via une app mobile. Conséquence
+stratégique directe : la cible de Cadence a déjà un appareil qui produit des données
+biométriques -- Cadence n'a pas à les générer, mais à les enrichir et les interpréter.
+L'intégration Garmin/COROS/HealthKit/Strava n'est donc pas un "plus", c'est un prérequis
+d'entrée. Vo2 + 3
+
+Pénétration du coaching digital. L'Observatoire du Running 2025 (USC, via Dans la Tête d'un
+Coureur) avance que ~50 % des coureurs planifient désormais leurs séances via une app ou un
+coach en ligne -- un comportement déjà installé, ce qui réduit le coût d'éducation du marché
+mais signifie aussi que Cadence n'arrive pas sur une page blanche : elle doit déplacer un usage,
+pas le créer. Dans la Tête d'un Coureur
+
+2. Analyse concurrentielle : tout le monde prescrit, personne ne se souvient
+
+Le marché se scinde en deux familles : les internationaux à gros budget marketing (Runna,
+Nike, Garmin, Strava, Athletica, Humango, Vert) et les acteurs francophones (Campus Coach,
+RunMotion, Kiprun Pacer/Decathlon) -- ces derniers détiennent l'avantage de la langue, de la
+communauté et de l'ancrage culturel FR. Analyse par acteur, avec ce qu'ils font, ce qu'ils ne font
+PAS, leur tarif, leur pénétration FR et leurs reproches utilisateurs.
+
+Runna (racheté par Strava, avril 2025) -- le leader premium anglophone
+
+      Ce qu'il fait : plans personnalisés instantanés (à partir d'un temps récent + objectif),
+      renforcement/mobilité intégrés, sync montre (Garmin, Apple, COROS, Suunto, Fitbit),
+      guidage d'allure en temps réel, fonction "Not Feeling 100 %" (allège la semaine si
+      fatigue/maladie, sur 3-14 jours), mode vacances, analyse IA post-course (bêta), accès à de
+      vrais coachs par message. Finaliste Apple App of the Year 2024, 2 millions d'utilisateurs
+      mensuels, croissance +74 %/an (Sensor Tower). Runna RunwithRachel
+      Ce qu'il ne fait PAS / angles morts : pas de gestion fine de la blessure (un avis App Store
+      note qu'il gère les vacances mais "there isn't a similar option to easily adapt the plan for
+      injury") ; pas de vrai feedback humain individualisé sur la séance ("you can't really get
+      feedback, so that's a con") ; plans réputés agressifs en volume. Le Wall Street Journal (fév.
+      2026, cité par the5krunner) rapporte que des kinés voyaient "multiple Runna-related
+      injury cases each week" et que l'entreprise ajoutait des fonctions pour réduire l'intensité
+      des plans. the5krunner précise : "The injuries being reported -- stress fractures, shin splints,
+      Achilles tendinopathy -- are the classic markers of training load applied too quickly to
+      bodies not yet prepared to absorb it." L'analyse note aussi le paradoxe : "A platform with 2.1
+      million monthly active users and access to wearable data has, in principle, the capacity to
+      detect patterns of overtraining load... Whether those capabilities will be used remains an
+      unanswered question." Le problème de fond identifié est clé pour Cadence : "Runna est
+      utilisé par des coureurs en début de pratique qui peinent à s'auto-évaluer, ont des
+      antécédents qu'ils ne comprennent pas, et traitent la sortie de l'app comme une autorité
+      plutôt qu'un conseil." App Store + 5
+
+      Tarif : ~17,99 $/mois ou ~119,99 $/an (20 /mois en zone euro) ; bundle Strava+Runna
+      119,99 £/an. Essai 7 jours (14 avec code). Tom's Guide RunwithRachel
+
+      Pénétration FR : présent, médiatisé, mais interface et coaching en anglais, plans par
+      défaut en miles/km à régler -- friction culturelle réelle pour le francophone moyen.
+
+Campus Coach (by Running Addict) -- le champion FR communautaire
+
+      Ce qu'il fait : plans 5 kmmarathon + trail, sur-mesure, adaptatifs (12 semaines à 1 an),
+      renforcement musculaire et "Gut Training" intégrés, sync
+      Garmin/COROS/Suunto/Apple/Strava, forte communauté ("Campusiens"), assistant coach
+      24/7, contenus pédagogiques (talks, +500 articles), offre PRO hybride avec coach humain
+      en visio + chat. Fondé en 2024 par 4 associés dont Nicolas (Running Addict) ; revendique
+      "600 000 coureurs" et un risque de blessure "divisé par 3,7". Note App Store/Trustpilot
+      ~4,7/5. The Running Collective + 2
+
+      Ce qu'il ne fait PAS : ciblage explicite débutantsintermédiaires ("RA a toujours dit qu'il
+      ciblait plus les débutants voire intermédiaires... que les types qui veulent faire sub30 au
+      10k" -- forum courseapied) ; plafonné à ~6 séances/semaine ; pas de recueil structuré du
+      ressenti décisionnel ni de log de décisions ; algorithme parfois critiqué ("pas easy de
+      comprendre les allures"). C'est un excellent générateur de plan communautaire, pas un
+      système de mémoire qualitative. Courseapied Courseapied
+
+      Tarif : abonnement app + offre PRO (coach humain) plus chère.
+
+      Pénétration FR : très forte -- c'est probablement le concurrent FR le plus dangereux pour
+
+     Cadence par sa notoriété (audience Running Addict), sa communauté et sa crédibilité. 
+
+      Une allégation non vérifiée de contrôle fiscal circulait sur un forum (nov. 2024) -- à traiter
+      comme rumeur.
+RunMotion Coach -- le coach IA conversationnel français
+
+      Ce qu'il fait : plans adaptatifs 5 kmultra + vélo/natation/triathlon, coach virtuel au
+      caractère personnalisable (positif / autoritaire / philosophe), conversations sur
+      nutrition/récup, calcul VMA & indice d'endurance (algo co-signé d'une publi scientifique
+      MIT par Guillaume Adam), prédiction de chrono, module étirements (50+ vidéos). Fondé
+      2019 (Guillaume & Romain Adam), coach officiel UTMB World Series. Revendique 400
+      000+ utilisateurs (le site affiche désormais "1 million+", à traiter comme claim marketing).
+      "88 % de réussite des objectifs". Google Play Athlé expliqué
+      Ce qu'il ne fait PAS : analyses post-séance jugées "sommaires" par les utilisateurs ("pour ça
+      j'utilise mon app COROS qui est beaucoup plus complète") ; impossibilité de modifier le
+      type de séance à la dernière minute (seulement décaler la semaine) -- frustration
+      récurrente en avis App Store ; séances de fractionné jugées "pas assez spécifiques" par des
+      intermédiaires. Le "coach conversationnel" est scripté, pas une vraie mémoire contextuelle.
+      Tarif : 14,99 /mois, 89,99 /an (84,99  avec code), version gratuite limitée. Athlé expliqué
+      Pénétration FR : forte, app française indépendante bien installée (French Tech).
+
+Kiprun Pacer (Decathlon) -- le gratuit qui rebat les cartes
+
+      Ce qu'il fait : plans 5 kmmarathon + trail jusqu'à 120 km, 100 % gratuit, adaptatif via
+      débrief de séance (ressenti, fatigue, douleur, difficulté perçue) -- la fonction la plus
+      proche conceptuellement de Cadence sur le marché FR -- sync
+      Garmin/COROS/Polar/Suunto/Fitbit/Apple, points fidélité Decathlon. Conçu avec Jérôme
+      Sordello, Cédric Morio (Dr en sciences du sport, SportsLab Decathlon). 500 000+
+      téléchargements, 4,7/5 (~8 000 avis), et "15 % des finishers du Marathon de Paris" s'y
+      seraient préparés (claim Decathlon, via Triatlón Noticias). Triatlón Noticias + 2
+      Ce qu'il ne fait PAS / limites : le débrief de ressenti est un input léger (curseur
+      fatigue/difficulté), pas un journal qualitatif riche ni un log de décisions ; test de niveau
+      initial (demi-Cooper 6 min) jugé imprécis, sous-estime la VMA  plans incohérents ;
+      volumes erratiques et parfois trop durs ("certaines semaines à 40 km, la suivante 80, la
+      suivante 50" -- forum courseapied ; "leurs plans sont trop durs et inégaux") ; pas de
+      renforcement intégré historiquement ; tracking GPS smartphone peu fiable. C'est l'attaque
+      "free" la plus sérieuse, mais sa couche qualitative reste primitive. Courseapied
+      Tarif : gratuit (modèle = fidélisation écosystème Decathlon).
+      Pénétration FR : massive et croissante (gratuité + force de frappe Decathlon) -- le
+      principal risque de commoditisation par le bas pour Cadence.
+
+Garmin Coach / Nike Run Club / Strava Premium -- les "gratuits" des fabricants/plateformes
+
+      Garmin Coach : gratuit avec montre Garmin, plans à coachs nommés, bonnes cibles
+      d'allure -- mais pas de plan marathon dans l'app (uniquement semi/10 km ; le marathon
+      n'est accessible que via Garmin Connect web), angle mort majeur pour la cible primo-
+      marathonien. The Running Genie Garmin Forums
+      Nike Run Club : gratuit, ~6 plans (jusqu'au marathon 16 sem.), ~300 guided runs audio,
+      communauté, 11 langues / 160 pays -- mais tracking limité (temps écoulé seulement, pas
+      de moving time), pas de cross-training, liste de chaussures pauvre, pas d'adaptation fine
+      ; association avec une montre Garmin = doublons pénibles. Nike + 2
+      Strava Premium : c'est un tracker social, pas un trainer -- segments, analyse de charge,
+      routes. La référence du partage et des "kudos", mais ne planifie ni n'interprète les décisions.
+      Détient désormais Runna.
+
+Vert.run / Athletica / Humango -- les spécialistes adjacents
+
+      Vert.run : focalisé trail & ultra, coaching humain abordable (Pro 9,90 $/mois annuel ;
+      Coaching 1:1 ~33­45 $/mois ; revendique 85 000130 000 coureurs), plans conçus par
+      élites, "premier coach IA trail". Angle mort : onboarding pauvre dénoncé en avis ("il ne
+      demande que l'âge, le sexe et la distance max... n'a pas exploité mon Strava ni demandé
+      mon objectif chrono... je reste sur RunMotion"), peu adapté au marathon route FR. Vert
+
+         Google Play
+
+      Athletica & Humango : plateformes AI multisport orientées triathlon/endurance
+      avancée, "coach IA" (Hugo chez Humango) qui adapte aux blessures déclarées. Humango :
+      Fitness gratuit, Endurance 9 $/mois, All-Star 19 $/mois. Angles morts : "pas beginner-
+      friendly" (jargon, "Cadence ramp-4"), pas de vidéos technique/nutrition (Humango), "less
+      of a coach, more of a triathlon-savvy assistant". Hors-cible francophone grand public.
+
+Coachs running indépendants utilisant des apps
+
+Beaucoup de coachs FR pilotent leurs athlètes via TrainingPeaks, Campus PRO, Vert Coaching
+ou simplement Strava + Google Sheets. Leur force est le contexte humain (ils demandent
+"comment tu te sens, qu'est-ce qui s'est passé cette semaine ?") -- mais à 99­200 $/mois, ils sont
+inaccessibles à la masse des primo-marathoniens. C'est exactement le "job" relationnel et
+contextuel du coach humain que Cadence cherche à scaler par le logiciel.
+
+3. Besoins non résolus des coureurs FR : la douleur est dans la décision, pas dans le
+plan
+
+Les forums FR, les avis App Store et la presse running font remonter quatre frustrations
+récurrentes, toutes situées dans la couche "décision et ressenti" -- précisément le terrain de
+Cadence.
+A. "L'app me dit quoi faire, mais pas quoi faire de mes sensations"
+
+Le besoin n°1 du coureur intermédiaire n'est pas un meilleur plan -- c'est une aide à la décision
+en situation d'incertitude. Les apps actuelles imposent une charge ; le coureur, lui, vit dans le
+doute permanent. Verbatim emblématique (Jogging International) : "Une douleur qui survient au
+beau milieu d'une séance, et le doute s'installe... Arrêter, poursuivre ? La décision n'est pas facile
+à prendre." Le coureur doit interpréter seul "voyant vert / orange / rouge" -- aucune app ne
+l'accompagne dans ce raisonnement ni n'en garde la trace. Jogging international
+
+B. La gestion de la blessure et de la fatigue : le grand angle mort
+
+C'est le pattern le plus dense et le plus émotionnel. Verbatims :
+
+      Le regret de ne pas s'être écouté (Running Addict) : "j'enrage de ne pas m'être arrêté
+      avant... de ne pas avoir écouté la petite voix intérieure qui me disait 't'es fatigué, baisse le
+      régime'"  6 semaines d'arrêt sur fracture. Running Addict
+      Le coût de l'ignorance des signaux (Kikourou, coureur expérimenté 3h15 à Paris) :
+      enchaînement grippe  élongation  tendinopathie rotulienne ; "La fatigue est normale au
+      bout d'un moment, mais derrière je n'ai pas voulu attendre suffisamment pour récupérer, et
+      je le paye." Kikourou
+      Le bon réflexe, mais fait à la main (Running Addict) : "j'ai complètement adapté mon
+      programme en supprimant quasiment toute l'intensité de cette semaine... À chaque
+      entraînement j'ai écouté mon corps, ses sensations. Pas de douleur = je passe à l'étape
+      suivante." -- le coureur exécute manuellement un protocole décisionnel que aucune app ne
+      formalise ni ne mémorise. Running Addict
+
+Runna ne gère pas la blessure (cf. §2) ; Kiprun n'a qu'un curseur ; les coachs IA "déclarent" une
+blessure mais ne raisonnent pas avec le coureur sur le pourquoi ni n'apprennent du contexte
+(sommeil, stress pro, surcharge cumulée). C'est le trou béant.
+
+C. "Écoute ton corps" : un mantra omniprésent, jamais outillé
+
+"Écoute ton corps / écoute tes sensations" revient dans presque chaque échange FR sur la
+douleur et la fatigue. Mais c'est une injonction creuse : personne n'apprend au coureur comment
+écouter, quoi noter, ni comment relier un ressenti d'aujourd'hui à une décision d'il y a trois
+semaines. Le RPE (échelle de Borg/ressenti 0-10) est l'outil que les coureurs avancés s'auto-
+administrent -- preuve que la donnée qualitative est demandée, mais bricolée. Cadence peut
+être l'app qui structure, date et croise ce ressenti avec le biométrique.
+D. Ce que les coureurs font "à la main" faute de mieux : le carnet et le Google Sheet
+
+Signal de marché le plus fort : les coureurs reconstruisent manuellement la couche qualitative
+que les apps n'offrent pas. Verbatims :
+
+      "Je remplis mon logbook sur Google Sheets : date, activité, durée... et j'ajoute un dernier
+      paramètre, totalement subjectif mais lourdement pondéré : mon ressenti sur une échelle de
+      0 à 10, le RPE." (blog hic et nunc) -- ce coureur calcule lui-même ATL/CTL et cible un ratio
+      de charge ~1,2 pour éviter la blessure. hic et nunc
+      "D'autres coureurs préfèrent tout enregistrer... même des notes sur ce qu'ils ont ressenti
+      pendant la course." (modèles Google Sheets running). Uatrainings
+      La pédagogie FR le théorise explicitement (conseils-courseapied / Overstims) : "il est
+      indispensable de garder une trace du déroulement réel des séances (contenu, temps
+      réalisés, sensations) mais aussi du contexte (conditions météo, état de forme, motivation)...
+      Mais face à la masse d'informations, le coureur se trouve démuni, voire perdu." Voilà le brief
+      produit de Cadence, écrit par le marché lui-même : recueillir le contexte + le ressenti, ET
+      aider à l'analyser. Course à Pied
+      Un coach FR (courir-comme-un-pro) note pourquoi le carnet bat les sensations seules :
+      "lorsque l'on se fie aux sensations, on a naturellement tendance à beaucoup augmenter les
+      charges quand ça va bien, ou à les réduire au moindre pépin" -- argument parfait pour un
+      log de décisions horodaté qui objective les choix. Courir Comme Un Pro
+
+E. Questions récurrentes des primo-marathoniens
+
+Sur Kikourou/Running Addict, les débutants tournent autour des mêmes angoisses : combien de
+séances/semaine (réponse communautaire : 3 minimum), gestion du "mur du 30/35 km", allure
+de départ (l'erreur classique des "5 premiers km trop rapides"), récupération post-marathon, et
+"puis-je continuer malgré cette douleur ?". Ces questions sont contextuelles et personnelles --
+exactement ce qu'un plan figé ne peut traiter et qu'une couche IA nourrie au contexte qualitatif
+pourrait adresser. Kikourou
+
+Synthèse besoins : le coureur intermédiaire FR n'a pas un déficit de plans (gratuits et payants
+abondent). Il a un déficit d'aide à la décision contextualisée et de mémoire de ses propres
+apprentissages. Il comble ce vide avec un carnet papier, un Google Sheet et "la petite voix
+intérieure" -- des solutions de fortune qui prouvent la douleur.
+4. Le wedge de Cadence : du coach-prescripteur au coach-mémoire
+
+Le gap précis que Cadence peut combler
+
+Le marché est saturé sur trois couches : (1) génération du plan, (2) prescription d'allures/séances,
+(3) tracking biométrique. Il est vide sur une quatrième couche : la mémoire décisionnelle et
+qualitative. Concrètement, personne ne fait aujourd'hui, de façon intégrée :
+
+  1. Recueillir le contexte et le ressenti de façon structurée et rapide (au-delà d'un curseur
+      RPE) : douleur localisée, sommeil, stress, charge mentale, météo, motivation, sensation
+      d'effort.
+
+  2. Logger les décisions et leur contexte : "j'ai sauté la séance VMA parce que mollet tendu +
+      nuit à 5h"  horodaté, retrouvable.
+
+  3. Croiser ce qualitatif avec le quantitatif Garmin/COROS/HealthKit/Strava (charge, FC,
+      allures).
+
+  4. Restituer de l'intelligence : un coach IA qui dit non pas seulement "voici ta séance", mais "il
+      y a 3 semaines, dans un contexte similaire (fatigue + douleur mollet), tu as forcé et tu as
+      coupé 10 jours ; aujourd'hui les signaux se ressemblent."
+
+C'est le passage du coach-prescripteur (tout le monde) au coach-mémoire/analyste (personne).
+Kiprun (débrief) et Humango (Hugo adapte à la blessure déclarée) en effleurent l'idée, mais
+aucun ne fait de la donnée qualitative et du log décisionnel le coeur du produit.
+
+Profil exact de la population cible
+
+      Segment : primo-marathonien et marathonien 2-3 éditions / coureur intermédiaire visant
+      un chrono (sub-4h, sub-3h45) -- ni grand débutant (servi par Kiprun gratuit, Couch-to-5K,
+      NRC) ni élite/sub-3 confirmé (qui a un coach humain ou bricole son plan).
+      Volume : 3-5 séances/semaine, 30-60 km/sem.
+      Device : équipé montre GPS (Garmin Forerunner 55/165/255/265, COROS Pace 3/4, Apple
+      Watch) + Strava -- prérequis assumé.
+      Motivation : bien-être + accomplissement personnel (finir/améliorer son marathon), pas la
+      performance pure ; sensible à la peur de la blessure (le "running boom" charrie une vague
+      d'inquiétude documentée sur les plans trop agressifs).
+      Démographie : 30-45 ans, urbain/périurbain, CSP+ (panier running 415-528 /an), forte
+      composante féminine (49 % des coureurs, 70 % des nouveaux entrants) -- un
+      positionnement et un ton inclusifs sont stratégiques.
+      Taille adressable : 146 000 finishers marathon/an en France + le flux des semi-
+      marathoniens en bascule vers le marathon ; ~51 % de primo-marathoniens à Paris donne un
+      ordre de grandeur du renouvellement annuel de la cible coeur.
+Le "Job to be Done" central non adressé
+    "Aide-moi à prendre la bonne décision quand mon corps et ma vie ne suivent pas le plan --
+    et souviens-toi de ce que j'apprends sur moi, pour que je ne refasse pas les mêmes
+    erreurs."
+
+Ce n'est pas "fais-moi un plan" (résolu) ni "motive-moi" (résolu par NRC/Strava). C'est réduire
+l'anxiété décisionnelle et capitaliser l'expérience personnelle -- exactement ce que le coureur
+cherche aujourd'hui dans son Google Sheet RPE et sa "petite voix intérieure".
+
+Le wedge d'entrée : la fonctionnalité qui doit être irréprochable
+Le "journal de bord intelligent" -- recueil ultra-rapide du ressenti/contexte + log des
+décisions, croisé avec les données de la montre, restitué en insights personnels. Pour
+conquérir le segment, cette brique doit être :
+
+  1. Sans friction (15-20 secondes post-séance, sinon abandon -- la leçon des Google Sheets :
+      "si trop compliqué, on l'abandonne").
+
+  2. Restitutive immédiatement : montrer dès la 2e-3e semaine un croisement utile ("tes
+      meilleures séances arrivent quand tu as dormi 7h+"), sinon l'utilisateur ne voit pas la valeur
+      du qualitatif.
+
+  3. Décisionnelle, pas culpabilisante : aider à décider "j'y vais / j'allège / je repose" avec un
+      raisonnement transparent, pas un score opaque.
+
+Le plan d'entraînement peut être "suffisamment bon" au départ (voire s'appuyer sur des
+intégrations) -- ce qui doit être irréprochable, c'est la couche mémoire+décision. C'est
+l'inverse de la stratégie de Runna/Campus (plan d'abord). C'est le wedge.
+
+Comment formuler le positionnement en français
+Éviter le vocabulaire "plan/coach IA" sur-utilisé. Capitaliser sur le langage natif des coureurs FR
+("écoute ton corps", "sensations", "le doute"). Pistes de baseline :
+
+      "Cadence -- le carnet de bord qui comprend tes sensations."
+      "Écoute ton corps. Cadence s'en souvient."
+      "Au-delà des chiffres de ta montre : Cadence relie ce que tu ressens, ce que tu décides, et
+      ce que ça donne."
+      "Le coach qui se souvient pourquoi tu as ralenti."
+
+Angle anti-blessure assumé (différenciant vs le "injury problem" de Runna) : "Progresser sans se
+cramer : Cadence t'aide à décider quand pousser et quand lever le pied." Le ton doit être
+français, bienveillant, non-performatif (cohérent avec la motivation "bien-être" de 59 % des
+coureurs et la forte présence féminine), et insister sur l'apprentissage de soi plutôt que la seule
+performance.
+
+5. Recommandations actionnables
+
+Étape 1 -- Valider le wedge "mémoire + décision" avant de bâtir le plan (0-3 mois)
+
+      Construire le MVP autour du journal qualitatif + log décisionnel + 1 insight croisé, pas
+      autour d'un générateur de plan. S'appuyer sur les intégrations
+      (Garmin/COROS/HealthKit/Strava) pour le quantitatif et, au besoin, sur des plans
+      "suffisamment bons" en marque blanche au départ. La différenciation est la couche
+      d'intelligence, pas le plan.
+      Tester la friction de saisie sur 30-50 primo-marathoniens FR recrutés via clubs, Strava
+      clubs et forums (Kikourou, courseapied, groupes Facebook marathon). Seuil de validation :
+      60 % de saisie post-séance maintenue à 4 semaines. En dessous, le wedge est mort -- re-
+      designer la saisie (vocal, choix rapides, pré-remplissage depuis la montre) avant tout le
+      reste.
+      Mesurer le "moment aha" : l'utilisateur doit recevoir un insight personnel jugé utile avant
+      J+21. Seuil : 40 % déclarent "Cadence m'a appris quelque chose sur moi".
+
+Étape 2 -- Posséder la niche "primo-marathonien anxieux de la blessure" (3-9 mois)
+
+      Positionnement anti-"injury problem" : capitaliser frontalement sur la faille documentée
+      de Runna (plans agressifs, pas de gestion blessure). Messages : "décider quand pousser /
+      quand lever le pied", "progresser sans se cramer".
+      Distribution FR ciblée : partenariats contenu avec créateurs running FR (hors écosystème
+      Running Addict/Campus, qui est concurrent), présence sur les expos des marathons (Paris
+      Run Experience : 80 000 visiteurs), clubs et coachs indépendants (Cadence comme outil de
+      suivi du coach  canal B2B2C). Finishers
+      Ton et visuel inclusifs (cible 49 % féminine, motivation bien-être) -- se démarquer du
+      registre "performance/dépassement" saturé.
+      Seuil de cap : si la rétention M3 dépasse celle des benchmarks d'apps fitness, et si le NPS
+      sur la fonction "aide à la décision" est élevé, accélérer ; sinon rester en niche et approfondir
+      l'insight.
+
+Étape 3 -- Monétisation et défense (9-18 mois)
+
+      Tarif : se positionner sous Runna (~20 /mois) et au niveau de RunMotion (14,99 /mois,
+      89,99 /an), avec essai gratuit généreux (la norme FR est 7-14 jours). Ne pas concurrencer
+      Kiprun sur le gratuit : assumer le payant en justifiant par la couche d'intelligence
+      personnelle. Tester un free-tier "journal seul" pour l'acquisition, premium pour les insights
+      IA.
+      Douve défensive : la valeur de Cadence croît avec l'historique accumulé (plus le coureur
+      logge, plus les insights sont personnels)  effet de rétention et coût de changement que les
+      concurrents "plan-first" n'ont pas. Investir tôt dans la qualité et la lisibilité de la restitution
+      longitudinale.
+      Surveiller les menaces : (1) Kiprun Pacer enrichit son débrief  commoditisation par le
+      bas ; (2) Campus Coach ajoute une couche qualitative (forte audience FR) ; (3)
+      Strava/Runna intègre un "journal de ressenti". Seuil d'alerte : si l'un d'eux lance un vrai log
+      décisionnel croisé, Cadence doit avoir déjà gagné la profondeur d'historique et la qualité
+      d'insight -- sa seule défense réelle.
+
+Ce qui ferait changer ces recommandations
+
+      Si la saisie qualitative s'avère trop coûteuse pour l'utilisateur (rétention saisie <40 % à 4
+      sem.)  pivoter vers un recueil passif/semi-automatique (dériver le ressenti des données
+      montre + micro-questions ciblées) plutôt que déclaratif.
+      Si la cible primo-marathonien convertit mal  tester le segment adjacent "retour de
+      blessure" (douleur très présente, valeur du log décisionnel maximale) ou les coachs
+      indépendants (B2B2C) qui ont déjà le réflexe contextuel.
+
+6. Caveats et limites des données
+
+      Chiffres d'utilisateurs = marketing. Les "600 000" (Campus), "400 000 / 1 million+"
+      (RunMotion), "500 000 téléchargements" (Kiprun), "2 millions MAU / +74 %" (Runna) et
+      "85 000130 000" (Vert) sont des revendications d'éditeurs ou des reprises presse, non
+      auditées. Les téléchargements  utilisateurs actifs  payants. À traiter comme ordres de
+      grandeur, pas comme parts de marché.
+      Le "problème blessure" de Runna n'est pas prouvé scientifiquement. La source
+      (the5krunner) le dit explicitement : "No comparative peer-reviewed study has yet
+      established that Runna athletes get hurt at higher rates... The anecdotes on TikTok, Reddit,
+      and Threads are real, but unproven." Le marathon blesse massivement quel que soit le plan
+      (jusqu'à 9 coureurs sur 10 rapportent une gêne sur 16 semaines selon une étude Utrecht
+      citée). Cadence peut utiliser cet angle marketing, mais ne doit pas survendre une promesse
+      médicale. The5KRunner The5KRunner
+      Données de finishers hors Paris à manier avec prudence. Les médias confondent souvent
+      "participants toutes distances" et "finishers marathon" (Lyon : ~30 000 vs 3 742 ; Nice-
+      Cannes : ~18 000 vs 8 511 ; Toulouse : ~30 000 vs 5 720). Les chiffres marathon-seul retenus
+      ici proviennent de classements d'affluence (Marathons.fr/MarathonView) ; l'estimation
+      nationale ~146 000 est une sommation, non un chiffre officiel.
+      Pénétration GPS : fourchette, pas certitude. 85 % (Observatoire/SportsShoes, population
+      large) vs 93 % (Baromètre RunMotion, échantillon de coureurs réguliers, donc biaisé vers
+      les plus engagés). Aucune source n'isole proprement les "coureurs au téléphone seul" (~6 %
+      trackent via app mobile). La cible de Cadence (marathonien intermédiaire) est dans le haut
+      de la fourchette d'équipement.
+      Statistique "50 % planifient via app/coach en ligne" issue d'une seule étude (Observatoire
+      du Running 2025 via Dans la Tête d'un Coureur) -- à corroborer avant d'en faire un pilier
+      stratégique.
+      Cadence n'a pas été testée. Sa proposition (recueil qualitatif + log décisionnel + IA croisée)
+      est décrite par le commanditaire. Le wedge identifié est réel côté besoin marché ; le risque
+      d'exécution (friction de saisie, qualité réelle des insights, froideur d'une IA vs chaleur d'un
+      coach humain) reste entier et conditionne tout. Plusieurs concurrents touchent déjà l'idée
+      (débrief Kiprun, Hugo/Humango) -- la fenêtre existe mais n'est pas illimitée.
+      Allégation non vérifiée concernant un contrôle fiscal de Campus Coach (forum, nov. 2024)
+      : rapportée pour exhaustivité, non confirmée, à ne pas exploiter.
+
+Conclusion -- réponse directe à la question posée. Qui sert Cadence ? Le primo-marathonien et
+marathonien intermédiaire français, équipé d'une montre GPS, 30-45 ans, motivé par le bien-être
+et l'accomplissement, et inquiet de la blessure -- un segment de l'ordre de 146 000 finishers
+marathon/an, à forte composante féminine. Quel besoin précis ? Non pas un plan de plus, mais
+une aide à la décision contextualisée ("je continue / j'allège / je repose ?") et une mémoire de ses
+propres apprentissages, aujourd'hui bricolées au carnet, au Google Sheet RPE et à "la petite voix
+intérieure". Pourquoi maintenant ? Convergence du boom du premier marathon, de la défiance
+naissante envers les plans algorithmiques agressifs (épisode Runna/WSJ), et de l'ubiquité des
+montres GPS qui rend le quantitatif abondant et le qualitatif criant d'absence. Quel wedge
+différenciant ? Le passage du coach-prescripteur (saturé) au coach-mémoire : recueillir ressenti
++ décisions + contexte, les croiser avec le biométrique, et restituer des insights personnels -- une
+douve qui se renforce avec l'historique, là où tous les concurrents s'arrêtent à la prescription.
+

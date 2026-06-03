@@ -35,10 +35,19 @@ export type StridesRule = "always" | "never" | "alt-weeks";
  */
 export type RacePaceBankId = "moderate" | "big";
 
+/**
+ * Which SV2 (threshold) bank a `sv2` role draws from. Omitted → the default
+ * `sv2` bank (5K/10K time blocks; the half-marathon's short distance reps). The
+ * half-marathon's "début construction" sets `"buildEarly"` to draw its own
+ * time-block menu (`Banks.sv2BuildEarly`) instead — coach Mathieu Bert's
+ * early-build SV2 sessions are time-based (4×6min…), not the short distance reps.
+ */
+export type Sv2BankId = "buildEarly";
+
 export type RoleTemplate =
   | { kind: "easy"; strides: StridesRule }
   | { kind: "sv1_long" }
-  | { kind: "sv2" }
+  | { kind: "sv2"; bank?: Sv2BankId }
   | { kind: "vma_short" }
   | { kind: "vma_long" }
   | { kind: "mixed" }
@@ -49,7 +58,14 @@ export type RoleTemplate =
    * Encoded as a sentinel because the choice depends on the week index, which a
    * static table can't carry.
    */
-  | { kind: "build_late_alt" };
+  | { kind: "build_late_alt" }
+  /**
+   * Early-build's alternating quality slot. The engine resolves it per week to
+   * VMA longue (week 0) ↔ VMA courte (week 1) — the half-marathon's
+   * "début construction" week-1 longue / week-2 courte progression. Like
+   * `build_late_alt`, a sentinel because the choice depends on the week index.
+   */
+  | { kind: "build_early_alt" };
 
 /**
  * A phase's session composition. Slots 1–5 are explicit; `overflow` reproduces
@@ -90,10 +106,15 @@ export type Compositions = {
 export type BankEntry =
   // Time-based interval blocks. SV1 long (@ SV1) and SV2 (@ T).
   | { kind: "time"; reps: number; workSec: number; recoverySec: number }
-  // Distance-based intervals @ I (VMA courte / longue).
+  // Distance-based intervals. VMA courte / longue (@ I); also SV2 (@ T) for
+  // distances whose SV2 menu is short distance reps (half-marathon 16×400m…) —
+  // the engine's `sv2` role builds `dist` entries at T.
   | { kind: "dist"; reps: number; repDistanceM: number; recoverySec: number }
   // Distance intervals run at the explicit race pace (allure spé, rappel).
   | { kind: "paced"; reps: number; repDistanceM: number; recoverySec: number }
+  // Time-terminated reps at the explicit race pace (allure spé "pics"
+  // 3×15min / 4×10min). Time sibling of `paced`.
+  | { kind: "pacedTime"; reps: number; workSec: number; recoverySec: number }
   // Mixte: a time block @ T (SV2) → bridge → a distance block @ I (VMA courte).
   | {
       kind: "mixte";
@@ -105,7 +126,19 @@ export type BankEntry =
 /** Difficulty-ordered banks, one per quality session type. */
 export type Banks = {
   sv1Long: BankEntry[];
+  /**
+   * Threshold session. `time` entries → time blocks @ T (5K/10K); `dist` entries
+   * → distance reps @ T (half-marathon's short-rep SV2: 16×400m…). The engine's
+   * `sv2` role dispatches on the drawn entry's kind.
+   */
   sv2: BankEntry[];
+  /**
+   * Optional secondary SV2 bank for the half-marathon's "début construction",
+   * drawn when a `sv2` role carries `bank: "buildEarly"`. Time blocks @ T
+   * (4×6min…) rather than the short distance reps of the default `sv2` bank.
+   * Omitted by 5K/10K and by the half's other phases — they use `sv2`.
+   */
+  sv2BuildEarly?: BankEntry[];
   vmaShort: BankEntry[];
   vmaLong: BankEntry[];
   mixed: BankEntry[];
@@ -136,6 +169,13 @@ export type PlanConstants = {
     longRunWarmupMax?: number;
     cooldownMin: number;
     cooldownMax: number;
+    /**
+     * Optional longer cooldown band for the weekend long run (SV1 long), the
+     * cooldown sibling of `longRunWarmupMin/Max`. Adds endurance volume to the
+     * long run only. When omitted, the long run uses the default cooldown band.
+     */
+    longRunCooldownMin?: number;
+    longRunCooldownMax?: number;
   };
 };
 
@@ -159,6 +199,14 @@ export type TaperRules = {
     earlyAddend: number;
     lateAddend: number;
   };
+  /**
+   * Full Mon→Sun taper weeks that PRECEDE the race-week tail, each with its own
+   * composition — the half-marathon's 2-week affûtage (week 1 here, week 2 is the
+   * race-week tail laid out by `taperSessions`). The last `leadWeeks.length`
+   * pre-taper weeks are reassigned from base/build/peak to these compositions and
+   * run at reduced taper volume. Omitted (5K/10K) → the taper is the tail only.
+   */
+  leadWeeks?: Composition[];
 };
 
 export type Playbook = {
@@ -199,6 +247,12 @@ export const paced = (
   repDistanceM: number,
   recoverySec: number,
 ): BankEntry => ({ kind: "paced", reps, repDistanceM, recoverySec });
+
+export const pacedTime = (
+  reps: number,
+  workSec: number,
+  recoverySec: number,
+): BankEntry => ({ kind: "pacedTime", reps, workSec, recoverySec });
 
 export const mixte = (
   first: { reps: number; workSec: number; recoverySec: number },

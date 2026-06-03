@@ -133,6 +133,11 @@ export function tenKPaceMps(vdot: number): number {
   return racePaceMps(10000, vdot);
 }
 
+/** Half-marathon (21.1 km) race pace in m/s. */
+export function halfMarathonPaceMps(vdot: number): number {
+  return racePaceMps(21097, vdot);
+}
+
 /**
  * Predict the finish time (seconds) for `distanceMeters` at the athlete's
  * current `vdot` — the inverse of `computeVdot`. Race effort means the
@@ -673,6 +678,27 @@ function pacedDistanceStep(
   };
 }
 
+function pacedTimeStep(
+  intent: Step["intent"],
+  seconds: number,
+  paceMps: number,
+): Step {
+  const band = 0.02;
+  return {
+    kind: "step",
+    intent,
+    duration: { type: "time", seconds: Math.round(seconds) },
+    target:
+      paceMps > 0
+        ? {
+            type: "pace_range",
+            min_speed_mps: round2(paceMps * (1 - band)),
+            max_speed_mps: round2(paceMps * (1 + band)),
+          }
+        : { type: "rpe", value: 9 },
+  };
+}
+
 function clamp(n: number, lo: number, hi: number): number {
   return Math.max(lo, Math.min(hi, n));
 }
@@ -717,6 +743,17 @@ export type StructureSpec =
       reps: number;
       repDistanceM: number;
       targetPaceMps: number; // explicit pace (e.g. 5K race pace from VDOT)
+      recoverySec: number;
+    }
+  | {
+      // Time-terminated reps at an explicit race pace (e.g. half-marathon "pics"
+      // 3×15min / 4×10min). Distance sibling of `intervals_paced`.
+      kind: "intervals_paced_time";
+      warmupSec: number;
+      cooldownSec: number;
+      reps: number;
+      workDurationSec: number;
+      targetPaceMps: number;
       recoverySec: number;
     }
   | {
@@ -811,6 +848,19 @@ export function buildFromSpec(
             count: spec.reps,
             children: [
               pacedDistanceStep("work", spec.repDistanceM, spec.targetPaceMps),
+              timeStep("recovery", spec.recoverySec, "E", paces),
+            ],
+          },
+          timeStep("cooldown", spec.cooldownSec, "E", paces),
+        ];
+      case "intervals_paced_time":
+        return [
+          timeStep("warmup", spec.warmupSec, "E", paces),
+          {
+            kind: "repeat",
+            count: spec.reps,
+            children: [
+              pacedTimeStep("work", spec.workDurationSec, spec.targetPaceMps),
               timeStep("recovery", spec.recoverySec, "E", paces),
             ],
           },

@@ -295,17 +295,34 @@ export function buildPlan(
   const grid = planGrid(spec, planStartYmd, raceYmd);
   const { gridStartYmd, taperStartYmd, preTaperWeeks } = grid;
 
-  const split = preTaperSplit(preTaperWeeks);
-  const phaseByWeek = expandPhases({ ...split, taper: 0 });
-  const maxBuildMultiple = preTaperWeeks + 1 < 6 ? 1.2 : 2.5;
+  // Taper "lead" weeks (the half-marathon's affûtage week 1): full Mon→Sun weeks,
+  // each with its own composition, carved off the END of the pre-taper weeks and
+  // run at reduced taper volume — they precede the race-week tail. Clamped so at
+  // least one week survives for the base/build/peak split (which yields peak=1).
+  // 5K/10K have no leadWeeks → leadCount 0 → identical to before.
+  const leadWeekDefs = spec.playbook.taper.leadWeeks ?? [];
+  const leadCount = Math.min(
+    leadWeekDefs.length,
+    Math.max(0, preTaperWeeks - 1),
+  );
+  const phaseWeeks = preTaperWeeks - leadCount;
+
+  const split = preTaperSplit(phaseWeeks);
+  const phaseByWeek: BlockType[] = [
+    ...expandPhases({ ...split, taper: 0 }),
+    ...Array.from({ length: leadCount }, (): BlockType => "taper"),
+  ];
+  const maxBuildMultiple = phaseWeeks + 1 < 6 ? 1.2 : 2.5;
   const volumeCurve = weeklyVolumeCurve({
-    weeks: preTaperWeeks,
+    weeks: phaseWeeks,
     currentKm,
     peakKm,
     taperWeeks: 0,
     maxBuildMultiple,
   });
   const planPeakKm = Math.max(currentKm, ...volumeCurve);
+  // Reduced volume for the lead weeks — same factor the race-week tail uses.
+  const leadWeekKm = planPeakKm * TAPER_VOLUME_FACTOR;
 
   const common: TraceCommon = { planStartYmd, raceYmd, paces, locale };
 
@@ -319,7 +336,12 @@ export function buildPlan(
   for (let w = 0; w < preTaperWeeks; w++) {
     const phase = phaseByWeek[w];
     if (!phase) continue;
-    const weekKm = volumeCurve[w] ?? 0;
+    // Lead weeks are the trailing `leadCount` weeks (phase "taper"); they draw
+    // their own composition and run at the reduced lead-week volume.
+    const leadIdx = w - phaseWeeks;
+    const compositionOverride =
+      leadIdx >= 0 ? leadWeekDefs[leadIdx] : undefined;
+    const weekKm = leadIdx >= 0 ? leadWeekKm : (volumeCurve[w] ?? 0);
     const weekStartYmd = addDaysYmd(gridStartYmd, w * 7); // a Monday
 
     if (phase === prevPhase) {
@@ -344,6 +366,8 @@ export function buildPlan(
       planProgress: preTaperWeeks <= 1 ? 1 : w / (preTaperWeeks - 1),
       // Previous week's last hard day — keeps the cross-boundary recovery gap.
       prevLastHardDow,
+      // Lead weeks (affûtage week 1) supply their composition directly.
+      compositionOverride,
     });
 
     // Carry this week's last hard day into the next iteration's microcycle.
@@ -398,7 +422,10 @@ export function buildPlan(
     blocks: buildBlocks(
       gridStartYmd,
       planStartYmd,
-      taperStartYmd,
+      // With lead weeks the taper block opens at the first lead week's Monday so
+      // affûtage week 1 (a "taper"-phase microcycle) lands inside the taper block;
+      // otherwise it opens at the race-week tail's Monday as before.
+      leadCount > 0 ? addDaysYmd(gridStartYmd, phaseWeeks * 7) : taperStartYmd,
       raceYmd,
       phaseByWeek,
     ),

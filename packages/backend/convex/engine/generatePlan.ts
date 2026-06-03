@@ -53,6 +53,7 @@ import {
   expandPhases,
   type TracedSession,
 } from "../agoge/plans/buildFiveKPlan";
+import { buildHalfMarathonPlan } from "../agoge/plans/buildHalfMarathonPlan";
 import { buildTenKPlan } from "../agoge/plans/buildTenKPlan";
 
 const GENERATOR_VERSION = "v1";
@@ -198,12 +199,17 @@ export const generate = internalAction({
 
     let blockIds: Partial<Record<BlockType, ComponentId>>;
 
-    if (race.format === "5k" || race.format === "10k") {
-      // 5K/10K: every base/build/peak block is a full Mon→Sun week and the taper
-      // is a variable 4–10 day tail anchored to race day. The whole plan is
-      // computed by the pure `buildFiveKPlan` / `buildTenKPlan` (shared verbatim
-      // with the admin simulator); here we create the blocks and persist the
-      // traced sessions. Both builders return the same `PlanTrace` shape.
+    if (
+      race.format === "5k" ||
+      race.format === "10k" ||
+      race.format === "half_marathon"
+    ) {
+      // 5K/10K/half: every base/build/peak block is a full Mon→Sun week and the
+      // taper is a variable tail anchored to race day (the half adds a Mon→Sun
+      // affûtage week 1 before that tail — also persisted into the taper block).
+      // The whole plan is computed by the pure per-distance builder; here we
+      // create the blocks and persist the traced sessions. All return the same
+      // `PlanTrace` shape.
       const planInputs = {
         planStartYmd: planStart,
         raceYmd,
@@ -218,14 +224,23 @@ export const generate = internalAction({
       const trace =
         race.format === "10k"
           ? buildTenKPlan(planInputs)
-          : buildFiveKPlan(planInputs);
+          : race.format === "half_marathon"
+            ? buildHalfMarathonPlan(planInputs)
+            : buildFiveKPlan(planInputs);
+
+      // The taper block opens at the affûtage-week-1 Monday when the plan has
+      // taper lead weeks (half-marathon); else at the race-week tail Monday. The
+      // builder already encoded this in `trace.blocks`.
+      const taperBlockStart =
+        trace.blocks.find((b) => b.type === "taper")?.startYmd ??
+        trace.grid.taperStartYmd;
 
       blockIds = await createBlocks5K(
         ctx,
         plan._id,
         trace.grid.gridStartYmd,
         planStart,
-        trace.grid.taperStartYmd,
+        taperBlockStart,
         raceYmd,
         trace.phaseByWeek,
       );

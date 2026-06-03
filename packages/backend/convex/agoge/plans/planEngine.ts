@@ -51,6 +51,7 @@ import type {
   RacePaceBankId,
   RoleTemplate,
   StridesRule,
+  Sv2BankId,
 } from "./planPlaybook";
 
 // ---------------------------------------------------------------------------
@@ -96,12 +97,18 @@ export type MicrocycleArgs = {
    * quality. See `minHardDowAfter` / `lastHardDow`.
    */
   prevLastHardDow?: number;
+  /**
+   * When set, this composition is expanded directly instead of switching on
+   * `phase` — used by `buildPlan` to lay out the taper's `leadWeeks` (the
+   * half-marathon's affûtage week 1) as a normal Mon→Sun microcycle.
+   */
+  compositionOverride?: Composition;
 };
 
 type PlanRole =
   | { kind: "easy"; addStrides: boolean; shakeout?: boolean }
   | { kind: "sv1_long" }
-  | { kind: "sv2" }
+  | { kind: "sv2"; bank?: Sv2BankId }
   | { kind: "vma_short" }
   | { kind: "vma_long" }
   | { kind: "mixed" }
@@ -166,6 +173,10 @@ function rolesForPhase(
 ): PlanRole[] {
   if (slots <= 0) return [];
   const { phase, weekIndexInPhase: week } = args;
+  // A leadWeek (taper week 1) supplies its own composition, expanded directly.
+  if (args.compositionOverride) {
+    return expandComposition(args.compositionOverride, slots, week);
+  }
   switch (phase) {
     case "base":
       return expandComposition(pb.compositions.base, slots, week);
@@ -200,10 +211,14 @@ function templateToRole(t: RoleTemplate, week: number): PlanRole {
       const inLate = Math.max(0, week - 2);
       return inLate % 2 === 0 ? { kind: "vma_long" } : { kind: "mixed" };
     }
+    case "build_early_alt":
+      // Early build alternates VMA longue (week 0) ↔ VMA courte (week 1) — the
+      // half-marathon's "début construction" longue-then-courte progression.
+      return week % 2 === 0 ? { kind: "vma_long" } : { kind: "vma_short" };
     case "sv1_long":
       return { kind: "sv1_long" };
     case "sv2":
-      return { kind: "sv2" };
+      return { kind: "sv2", bank: t.bank };
     case "vma_short":
       return { kind: "vma_short" };
     case "vma_long":
@@ -393,10 +408,28 @@ function warmupSeconds(
   return Math.round(lerp(lo, hi, t));
 }
 
-function cooldownSeconds(pb: Playbook, weekKm: number, peakKm: number): number {
+/**
+ * Cooldown seconds scaled by weekKm/peakKm. Long runs (`isLongRun`) use the
+ * playbook's wider long-run cooldown band when present (the cooldown sibling of
+ * `warmupSeconds`'s long-run band); every other session uses the default band.
+ */
+function cooldownSeconds(
+  pb: Playbook,
+  weekKm: number,
+  peakKm: number,
+  isLongRun = false,
+): number {
   const t = weekKm / Math.max(peakKm, 1);
   const d = pb.constants.durationsSec;
-  return Math.round(lerp(d.cooldownMin, d.cooldownMax, t));
+  const lo =
+    isLongRun && d.longRunCooldownMin !== undefined
+      ? d.longRunCooldownMin
+      : d.cooldownMin;
+  const hi =
+    isLongRun && d.longRunCooldownMax !== undefined
+      ? d.longRunCooldownMax
+      : d.cooldownMax;
+  return Math.round(lerp(lo, hi, t));
 }
 
 /** EF duration clamped to the playbook band, scaled by weekKm/peakKm within it. */
@@ -450,6 +483,7 @@ function pickEntry(bank: BankEntry[], args: MicrocycleArgs): BankEntry {
 type TimeEntry = Extract<BankEntry, { kind: "time" }>;
 type DistEntry = Extract<BankEntry, { kind: "dist" }>;
 type PacedEntry = Extract<BankEntry, { kind: "paced" }>;
+type PacedTimeEntry = Extract<BankEntry, { kind: "pacedTime" }>;
 type MixteEntry = Extract<BankEntry, { kind: "mixte" }>;
 
 /** km estimate for a session label/guard. Structure stays the source of truth. */
@@ -520,6 +554,30 @@ function buildPaced(
   };
   const totalM =
     ePace * (wu + cd + e.reps * e.recoverySec) + e.reps * e.repDistanceM;
+  return { spec, distanceKm: round1(totalM / 1000) };
+}
+
+/** Time-terminated reps at an explicit pace (allure spé "pics" 3×15min / 4×10min). */
+function buildPacedTime(
+  e: PacedTimeEntry,
+  wu: number,
+  cd: number,
+  ePace: number,
+  targetPaceMps: number,
+): Built {
+  const spec: StructureSpec = {
+    kind: "intervals_paced_time",
+    warmupSec: wu,
+    cooldownSec: cd,
+    reps: e.reps,
+    workDurationSec: e.workSec,
+    targetPaceMps,
+    recoverySec: e.recoverySec,
+  };
+  // Work runs at race pace; warmup/cooldown/recoveries at E.
+  const pace = targetPaceMps > 0 ? targetPaceMps : ePace;
+  const totalM =
+    pace * e.reps * e.workSec + ePace * (wu + cd + e.reps * e.recoverySec);
   return { spec, distanceKm: round1(totalM / 1000) };
 }
 
@@ -616,10 +674,11 @@ function roleToSessionSpec(
       const e = pickEntry(pb.banks.sv1Long, args);
       if (e.kind !== "time") return null;
       const longWu = warmupSeconds(pb, weekKm, peakKm, true);
+      const longCd = cooldownSeconds(pb, weekKm, peakKm, true);
       const { spec: structureSpec, distanceKm } = buildTime(
         e,
         longWu,
-        cd,
+        longCd,
         ePace,
         "SV1",
       );
@@ -632,22 +691,29 @@ function roleToSessionSpec(
       };
     }
     case "sv2": {
-      // Threshold time blocks @ T (e.g. 5×3min → 3×12min), drawn from the bank.
-      const e = pickEntry(pb.banks.sv2, args);
-      if (e.kind !== "time") return null;
-      const { spec: structureSpec, distanceKm } = buildTime(
-        e,
-        wu,
-        cd,
-        ePace,
-        "T",
-      );
+      // Threshold session @ T, drawn from the bank. `time` entries → time blocks
+      // (5×3min → 3×12min); `dist` entries → distance reps (half-marathon's
+      // short-rep SV2: 16×400m…). Both run at the T (threshold) anchor. A role
+      // tagged `bank: "buildEarly"` draws the half's time-block early-build menu
+      // (`sv2BuildEarly`) when present; everything else uses the default `sv2`.
+      const bank =
+        role.bank === "buildEarly" && pb.banks.sv2BuildEarly
+          ? pb.banks.sv2BuildEarly
+          : pb.banks.sv2;
+      const e = pickEntry(bank, args);
+      const built =
+        e.kind === "time"
+          ? buildTime(e, wu, cd, ePace, "T")
+          : e.kind === "dist"
+            ? buildDist(e, wu, cd, ePace, "T")
+            : null;
+      if (!built) return null;
       return {
         ...base,
         type: "threshold",
         intensity: "T",
-        distanceKm,
-        structureSpec,
+        distanceKm: built.distanceKm,
+        structureSpec: built.spec,
       };
     }
     case "vma_short": {
@@ -708,45 +774,45 @@ function roleToSessionSpec(
       };
     }
     case "race_pace": {
-      // Allure spé: distance reps at the race pace, drawn from the role's bank
-      // ("moderate" for sub-threshold work, "big" for the peak session).
+      // Allure spé: reps at the race pace, drawn from the role's bank ("moderate"
+      // for sub-threshold work, "big" for the peak session). `paced` entries are
+      // distance reps; `pacedTime` entries are time reps (the "pics" 3×15min…).
       const e = pickEntry(pb.banks.racePace[role.bank], args);
-      if (e.kind !== "paced") return null;
       const racePace = vdot ? spec.racePaceMps(vdot) : 0;
-      const { spec: structureSpec, distanceKm } = buildPaced(
-        e,
-        wu,
-        cd,
-        ePace,
-        racePace,
-      );
+      const built =
+        e.kind === "paced"
+          ? buildPaced(e, wu, cd, ePace, racePace)
+          : e.kind === "pacedTime"
+            ? buildPacedTime(e, wu, cd, ePace, racePace)
+            : null;
+      if (!built) return null;
       return {
         ...base,
         type: "race_pace",
         intensity: "I",
-        distanceKm,
-        structureSpec,
+        distanceKm: built.distanceKm,
+        structureSpec: built.spec,
       };
     }
     case "taper_tune_up": {
       // Rappel d'allure: a single tune-up at race pace. Drawn from the rappel bank
       // by level (progress is pinned to 1 by the taper — it's the plan's end).
+      // Supports both distance (`paced`) and time (`pacedTime`) reps.
       const e = pickEntry(pb.banks.rappel, args);
-      if (e.kind !== "paced") return null;
       const racePace = vdot ? spec.racePaceMps(vdot) : 0;
-      const { spec: structureSpec, distanceKm } = buildPaced(
-        e,
-        wu,
-        cd,
-        ePace,
-        racePace,
-      );
+      const built =
+        e.kind === "paced"
+          ? buildPaced(e, wu, cd, ePace, racePace)
+          : e.kind === "pacedTime"
+            ? buildPacedTime(e, wu, cd, ePace, racePace)
+            : null;
+      if (!built) return null;
       return {
         ...base,
         type: "race_pace",
         intensity: "I",
-        distanceKm,
-        structureSpec,
+        distanceKm: built.distanceKm,
+        structureSpec: built.spec,
       };
     }
   }
