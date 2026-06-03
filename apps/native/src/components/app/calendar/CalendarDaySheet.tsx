@@ -12,6 +12,7 @@ import { formatLongDate } from "@/lib/format";
 import { useLanguage } from "@/lib/i18n";
 import { AddWorkoutButton } from "@/components/app/workout/add-workout-button";
 import { WorkoutCard } from "@/components/app/workout/workout-card";
+import { dateKey } from "@/components/app/calendar/helpers";
 
 interface CalendarDaySheetProps {
   sheetRef: React.RefObject<GorhomBottomSheetModal | null>;
@@ -35,6 +36,7 @@ export function CalendarDaySheet({
   const { t } = useTranslation();
   const locale = useLanguage();
   const selectedDateObj = new Date(selectedDate + "T00:00:00");
+  const isPast = selectedDate < dateKey(new Date());
 
   return (
     <BottomSheetModal
@@ -74,12 +76,14 @@ export function CalendarDaySheet({
                         icon="calendar-outline"
                         label={t("workout.detail.actions.reschedule")}
                         onPress={() => onReschedule(w)}
+                        disabled={isPast}
                       />
                       {w.blockId != null && (
                         <DayAction
                           icon="swap-horizontal-outline"
                           label={t("workout.detail.actions.swap")}
                           onPress={() => onSwap(w)}
+                          disabled={isPast}
                         />
                       )}
                     </View>
@@ -88,10 +92,12 @@ export function CalendarDaySheet({
               );
             })
           )}
-          <AddWorkoutButton
-            label={t("calendar.selectedDay.addWorkout")}
-            onPress={onAddWorkout}
-          />
+          {workouts.length === 0 && (
+            <AddWorkoutButton
+              label={t("calendar.selectedDay.addWorkout")}
+              onPress={onAddWorkout}
+            />
+          )}
         </View>
       </View>
     </BottomSheetModal>
@@ -102,20 +108,27 @@ function DayAction({
   icon,
   label,
   onPress,
+  disabled = false,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
   onPress: () => void;
+  disabled?: boolean;
 }) {
   return (
     <Pressable
       onPress={onPress}
-      className="flex-row items-center gap-1.5 rounded-full border px-3 py-1.5 active:opacity-70"
-      style={{ backgroundColor: LIGHT_THEME.w1, borderColor: LIGHT_THEME.wBrd }}
+      disabled={disabled}
+      className="flex-row items-center gap-2 rounded-full border px-4 py-2.5 active:opacity-70"
+      style={{
+        backgroundColor: LIGHT_THEME.w1,
+        borderColor: LIGHT_THEME.wBrd,
+        opacity: disabled ? 0.4 : 1,
+      }}
     >
-      <Ionicons name={icon} size={13} color={LIGHT_THEME.wMute} />
+      <Ionicons name={icon} size={15} color={LIGHT_THEME.wMute} />
       <Text
-        className="font-coach-semibold text-[12px]"
+        className="font-coach-semibold text-[13px]"
         style={{ color: LIGHT_THEME.wText }}
       >
         {label}
