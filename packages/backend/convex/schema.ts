@@ -11,6 +11,7 @@ import { contacts } from "./table/contacts";
 import { feedback } from "./table/feedback";
 import { sessionFeedback } from "./table/sessionFeedback";
 import { users } from "./table/users";
+import { weeklyReviews } from "./table/weeklyReviews";
 
 // NOTE: Training-domain tables (athletes, zones, events, races, goals, plans,
 // blocks, workouts, workoutTemplates) are owned by the Agoge component
@@ -34,4 +35,5 @@ export default defineSchema({
   feedback,
   sessionFeedback,
   users,
+  weeklyReviews,
 });
