@@ -10,12 +10,42 @@ import { describe, expect, it } from "vitest";
 import {
   computeVdot,
   easySlowdownFraction,
+  isSupportedFormat,
+  minimumPlanWeeksForFormat,
   paceMpsAtIntensity,
   trainingPaces,
 } from "./periodization";
 
 /** m/s for a given pace expressed in seconds per km. */
 const mpsAt = (secPerKm: number) => 1000 / secPerKm;
+
+describe("minimumPlanWeeksForFormat", () => {
+  it("floors the marathon at 10 weeks and the 5K at 4", () => {
+    expect(minimumPlanWeeksForFormat("marathon")).toBe(10);
+    expect(minimumPlanWeeksForFormat("5k")).toBe(4);
+  });
+
+  it("leaves 10K and half-marathon without an enforced floor", () => {
+    expect(minimumPlanWeeksForFormat("10k")).toBeUndefined();
+    expect(minimumPlanWeeksForFormat("half_marathon")).toBeUndefined();
+  });
+});
+
+describe("isSupportedFormat", () => {
+  it("supports exactly the four dedicated distances", () => {
+    expect(isSupportedFormat("5k")).toBe(true);
+    expect(isSupportedFormat("10k")).toBe(true);
+    expect(isSupportedFormat("half_marathon")).toBe(true);
+    expect(isSupportedFormat("marathon")).toBe(true);
+  });
+
+  it("rejects formats that relied on the removed general generator", () => {
+    expect(isSupportedFormat("15k")).toBe(false);
+    expect(isSupportedFormat("10_miles")).toBe(false);
+    expect(isSupportedFormat("custom")).toBe(false);
+    expect(isSupportedFormat(undefined)).toBe(false);
+  });
+});
 
 describe("easySlowdownFraction", () => {
   it("slows faster easy paces more (first-match cascade, top to bottom)", () => {

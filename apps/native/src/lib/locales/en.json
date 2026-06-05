@@ -729,6 +729,10 @@
       "voiceNotePause": "Pause voice note",
       "voiceNoteUnavailable": "Couldn't load the recording",
       "structure": "Structure",
+      "fueling": {
+        "label": "Fueling",
+        "body": "This run lasts over an hour. Practice your race fueling: take in 30–60 g of carbs per hour (gels, sports drink)."
+      },
       "adherence": "Adherence",
       "weekOfBlock": "{{type}} · Week {{week}} of {{total}}",
       "result": "Result",
@@ -1155,8 +1159,7 @@
           "10k": "10K",
           "15k": "15K",
           "half_marathon": "Half marathon",
-          "marathon": "Marathon",
-          "custom": "Custom"
+          "marathon": "Marathon"
         }
       }
     },

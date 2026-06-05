@@ -27,8 +27,14 @@ export function roleTemplateLabel(t: RoleTemplate): string {
       return "Mixte (SV2 + VMA)";
     case "race_pace":
       return t.bank === "moderate" ? "Allure spé (modérée)" : "Allure spé";
+    case "long_race_pace":
+      return "Endurance longue (blocs AS42)";
     case "build_late_alt":
       return "VMA longue ↔ Mixte (by week)";
+    case "build_early_alt":
+      return "VMA longue ↔ courte (by week)";
+    case "marathon_build_early_alt":
+      return "SV2 ↔ VMA longue (by week)";
   }
 }
 
@@ -92,6 +98,8 @@ export function bankEntryLabel(e: BankEntry): string {
   switch (e.kind) {
     case "time":
       return `${e.reps} × ${minutes(e.workSec)} · récup ${recovery(e.recoverySec)}`;
+    case "pacedTime":
+      return `${e.reps} × ${minutes(e.workSec)} (allure) · récup ${recovery(e.recoverySec)}`;
     case "dist":
     case "paced":
       return `${e.reps} × ${e.repDistanceM} m · récup ${recovery(e.recoverySec)}`;

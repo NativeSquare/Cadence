@@ -1,8 +1,4 @@
-import type {
-  Discipline,
-  Format,
-  GoalType,
-} from "@/components/app/account/race-form";
+import type { Format, GoalType } from "@/components/app/account/race-form";
 
 export type GoalBranch = "race" | "fitness";
 
@@ -23,8 +19,6 @@ export type RaceDetailsValue = {
   name: string;
   date: string;
   format: Format | "";
-  discipline: Discipline | "";
-  customDistanceKm: string;
 };
 
 export type RaceGoalValue = {

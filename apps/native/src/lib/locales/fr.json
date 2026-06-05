@@ -729,6 +729,10 @@
       "voiceNotePause": "Mettre en pause",
       "voiceNoteUnavailable": "Impossible de charger l'enregistrement",
       "structure": "Structure",
+      "fueling": {
+        "label": "Ravitaillement",
+        "body": "Cette sortie dépasse une heure. Travaille ton ravitaillement de course : prends 30 à 60 g de glucides par heure (gels, boisson d'effort)."
+      },
       "adherence": "Conformité",
       "weekOfBlock": "{{type}} · Semaine {{week}} sur {{total}}",
       "result": "Résultat",
@@ -1155,8 +1159,7 @@
           "10k": "10K",
           "15k": "15K",
           "half_marathon": "Semi-marathon",
-          "marathon": "Marathon",
-          "custom": "Personnalisé"
+          "marathon": "Marathon"
         }
       }
     },

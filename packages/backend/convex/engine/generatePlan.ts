@@ -39,36 +39,22 @@ import {
   microcycle,
   type Paces,
   type Schedule,
-  type SessionSpec,
-  splitPhases,
   summarizeStructure,
-  taperWeeksForFormat,
   trainingPaces,
-  weeklyVolumeCurve,
   workoutName,
   ymdToNoonUtc,
 } from "../agoge/periodization";
 import {
   buildFiveKPlan,
-  expandPhases,
   type TracedSession,
 } from "../agoge/plans/buildFiveKPlan";
 import { buildHalfMarathonPlan } from "../agoge/plans/buildHalfMarathonPlan";
+import { buildMarathonPlan } from "../agoge/plans/buildMarathonPlan";
 import { buildTenKPlan } from "../agoge/plans/buildTenKPlan";
 
 const GENERATOR_VERSION = "v1";
 const BASELINE_LOOKBACK_DAYS = 56;
 const FALLBACK_WEEKLY_KM = 20;
-
-/** Shared inputs for every emitted training workout in a single plan run. */
-type WorkoutCommon = {
-  athleteId: ComponentId;
-  planId: ComponentId;
-  locale: Locale;
-  paces: Paces | undefined;
-  planStart: string;
-  raceYmd: string;
-};
 
 function scheduleFromAthlete(athlete: {
   availableDays?: number[];
@@ -79,54 +65,6 @@ function scheduleFromAthlete(athlete: {
     sessionsPerWeek:
       athlete.sessionsPerWeek ?? DEFAULT_SCHEDULE.sessionsPerWeek,
   };
-}
-
-/**
- * Materialise one planned training workout from a `SessionSpec` at `dateYmd`.
- * Drops anything outside [planStart, raceYmd) (race day belongs to the race
- * workout) and anything too short to be worth a workout.
- */
-async function emitTrainingWorkout(
-  ctx: ActionCtx,
-  common: WorkoutCommon,
-  blockId: ComponentId,
-  dateYmd: string,
-  session: SessionSpec,
-): Promise<void> {
-  if (dateYmd < common.planStart || dateYmd >= common.raceYmd) return;
-  const distanceMeters = Math.round(session.distanceKm * 1000);
-  if (distanceMeters < 500 && !session.structureSpec) return;
-  const structure = buildStructure(
-    session.type,
-    session.intensity,
-    distanceMeters,
-    common.paces,
-    session.structureSpec,
-  );
-  if (!structure) return;
-
-  // Structure is the source of truth for what the workout demands —
-  // distance/pace/duration are derived from it on read.
-  const labelDistance = summarizeStructure(structure).distanceMeters;
-
-  await ctx.runMutation(components.agoge.public.createWorkout, {
-    athleteId: common.athleteId,
-    planId: common.planId,
-    blockId,
-    name: workoutName({
-      type: session.type,
-      distanceMeters: labelDistance,
-      structure,
-      locale: common.locale,
-    }),
-    type: session.type,
-    sport: "run",
-    status: "planned",
-    planned: {
-      date: ymdToNoonUtc(dateYmd),
-      structure,
-    },
-  });
 }
 
 export const generate = internalAction({
@@ -188,137 +126,81 @@ export const generate = internalAction({
     const paces: Paces | undefined =
       vdot !== undefined ? trainingPaces(vdot) : undefined;
 
-    const common: WorkoutCommon = {
-      athleteId: plan.athleteId,
-      planId: plan._id,
-      locale,
-      paces,
-      planStart,
+    // Only the four dedicated distances reach here (others were rejected by the
+    // `isSupportedFormat` gate above). Every base/build/peak block is a full
+    // Mon→Sun week and the taper is a variable tail anchored to race day (the
+    // half adds one Mon→Sun affûtage lead week before that tail, the marathon
+    // two — all persisted into the taper block). The whole plan is computed by
+    // the pure per-distance builder; here we create the blocks and persist the
+    // traced sessions. All return the same `PlanTrace` shape.
+    const planInputs = {
+      planStartYmd: planStart,
       raceYmd,
+      currentKm,
+      schedule,
+      locale,
+      raceDistanceMeters: race.distanceMeters,
+      peakKm,
+      vdot,
+      paces,
     };
-
-    let blockIds: Partial<Record<BlockType, ComponentId>>;
-
-    if (
-      race.format === "5k" ||
-      race.format === "10k" ||
-      race.format === "half_marathon"
-    ) {
-      // 5K/10K/half: every base/build/peak block is a full Mon→Sun week and the
-      // taper is a variable tail anchored to race day (the half adds a Mon→Sun
-      // affûtage week 1 before that tail — also persisted into the taper block).
-      // The whole plan is computed by the pure per-distance builder; here we
-      // create the blocks and persist the traced sessions. All return the same
-      // `PlanTrace` shape.
-      const planInputs = {
-        planStartYmd: planStart,
-        raceYmd,
-        currentKm,
-        schedule,
-        locale,
-        raceDistanceMeters: race.distanceMeters,
-        peakKm,
-        vdot,
-        paces,
-      };
-      const trace =
-        race.format === "10k"
-          ? buildTenKPlan(planInputs)
-          : race.format === "half_marathon"
-            ? buildHalfMarathonPlan(planInputs)
+    const trace =
+      race.format === "10k"
+        ? buildTenKPlan(planInputs)
+        : race.format === "half_marathon"
+          ? buildHalfMarathonPlan(planInputs)
+          : race.format === "marathon"
+            ? buildMarathonPlan(planInputs)
             : buildFiveKPlan(planInputs);
 
-      // The taper block opens at the affûtage-week-1 Monday when the plan has
-      // taper lead weeks (half-marathon); else at the race-week tail Monday. The
-      // builder already encoded this in `trace.blocks`.
-      const taperBlockStart =
-        trace.blocks.find((b) => b.type === "taper")?.startYmd ??
-        trace.grid.taperStartYmd;
+    // The taper block opens at the affûtage-week-1 Monday when the plan has
+    // taper lead weeks (half-marathon); else at the race-week tail Monday. The
+    // builder already encoded this in `trace.blocks`.
+    const taperBlockStart =
+      trace.blocks.find((b) => b.type === "taper")?.startYmd ??
+      trace.grid.taperStartYmd;
 
-      blockIds = await createBlocks5K(
-        ctx,
-        plan._id,
-        trace.grid.gridStartYmd,
-        planStart,
-        taperBlockStart,
-        raceYmd,
-        trace.phaseByWeek,
-      );
+    const blockIds = await createBlocks5K(
+      ctx,
+      plan._id,
+      trace.grid.gridStartYmd,
+      planStart,
+      taperBlockStart,
+      raceYmd,
+      trace.phaseByWeek,
+    );
 
-      // Persist every non-dropped session. The trace already applied the same
-      // emit guards (date window + min distance) the old inline
-      // `emitTrainingWorkout` used, so dropped sessions are skipped identically.
-      const persist = async (
-        blockId: ComponentId,
-        s: TracedSession,
-      ): Promise<void> => {
-        if (s.dropped || !s.structure) return;
-        await ctx.runMutation(components.agoge.public.createWorkout, {
-          athleteId: plan.athleteId,
-          planId: plan._id,
-          blockId,
-          name: s.workoutName ?? "",
-          type: s.spec.type,
-          sport: "run",
-          status: "planned",
-          planned: {
-            date: ymdToNoonUtc(s.dateYmd),
-            structure: s.structure,
-          },
-        });
-      };
-
-      for (const week of trace.weeks) {
-        const blockId = blockIds[week.phase];
-        if (!blockId) continue;
-        for (const s of week.sessions) await persist(blockId, s);
-      }
-      const taperBlockId = blockIds.taper;
-      if (taperBlockId) {
-        for (const s of trace.taper.sessions) await persist(taperBlockId, s);
-      }
-    } else {
-      // Other formats: race-anchored week grid — weeks count back from race day
-      // so the final training week ends the day before the race and the taper
-      // culminates at the race. A non-multiple-of-7 gap lands as a partial first
-      // week, whose pre-`planStart` days are dropped by the date guard.
-      const planWeeks = Math.max(1, Math.ceil((totalDays + 1) / 7));
-      const gridStart = addDaysYmd(raceYmd, -planWeeks * 7);
-      const taperWeeks = Math.min(taperWeeksForFormat(race.format), planWeeks);
-      const maxBuildMultiple = planWeeks < 6 ? 1.2 : 2.5;
-      const volumeCurve = weeklyVolumeCurve({
-        weeks: planWeeks,
-        currentKm,
-        peakKm,
-        taperWeeks,
-        maxBuildMultiple,
+    // Persist every non-dropped session. The trace already applied the same
+    // emit guards (date window + min distance) we used to do inline, so
+    // dropped sessions are skipped identically.
+    const persist = async (
+      blockId: ComponentId,
+      s: TracedSession,
+    ): Promise<void> => {
+      if (s.dropped || !s.structure) return;
+      await ctx.runMutation(components.agoge.public.createWorkout, {
+        athleteId: plan.athleteId,
+        planId: plan._id,
+        blockId,
+        name: s.workoutName ?? "",
+        type: s.spec.type,
+        sport: "run",
+        status: "planned",
+        planned: {
+          date: ymdToNoonUtc(s.dateYmd),
+          structure: s.structure,
+        },
       });
-      const phaseByWeek = expandPhases(splitPhases(planWeeks, race.format));
+    };
 
-      blockIds = await createBlocks(
-        ctx,
-        plan._id,
-        gridStart,
-        planStart,
-        raceYmd,
-        phaseByWeek,
-      );
-
-      for (let w = 0; w < planWeeks; w++) {
-        const phase = phaseByWeek[w];
-        if (!phase) continue;
-        const blockId = blockIds[phase];
-        if (!blockId) continue;
-        const weekKm = volumeCurve[w] ?? 0;
-        const weekStart = addDaysYmd(gridStart, w * 7);
-        const weekStartDow = isoDayOfWeek(weekStart);
-
-        for (const session of microcycle(phase, weekKm, schedule)) {
-          const dayOffset = (session.dayOfWeek - weekStartDow + 7) % 7;
-          const dateYmd = addDaysYmd(weekStart, dayOffset);
-          await emitTrainingWorkout(ctx, common, blockId, dateYmd, session);
-        }
-      }
+    for (const week of trace.weeks) {
+      const blockId = blockIds[week.phase];
+      if (!blockId) continue;
+      for (const s of week.sessions) await persist(blockId, s);
+    }
+    const taperBlockId = blockIds.taper;
+    if (taperBlockId) {
+      for (const s of trace.taper.sessions) await persist(taperBlockId, s);
     }
 
     // Race day: emit the race itself as a workout so it shows up alongside
@@ -462,50 +344,6 @@ async function loadBaselineVolume(
   if (totalKm <= 0) return FALLBACK_WEEKLY_KM;
   const weeklyKm = totalKm / (BASELINE_LOOKBACK_DAYS / 7);
   return Math.max(5, weeklyKm);
-}
-
-async function createBlocks(
-  ctx: ActionCtx,
-  planId: ComponentId,
-  gridStart: string,
-  planStart: string,
-  raceYmd: string,
-  phaseByWeek: BlockType[],
-): Promise<Partial<Record<BlockType, ComponentId>>> {
-  const blockIds: Partial<Record<BlockType, ComponentId>> = {};
-  const order: BlockType[] = ["base", "build", "peak", "taper"];
-  const lastWeekIdx = phaseByWeek.length - 1;
-
-  for (const phase of order) {
-    const startIdx = phaseByWeek.indexOf(phase);
-    if (startIdx === -1) continue;
-    let endIdx = startIdx;
-    while (
-      endIdx + 1 < phaseByWeek.length &&
-      phaseByWeek[endIdx + 1] === phase
-    ) {
-      endIdx++;
-    }
-    // Weeks count back from race day, so the grid's first week may start
-    // before `planStart`; clamp the opening block to the real start date.
-    const gridBlockStart = addDaysYmd(gridStart, startIdx * 7);
-    const startDate = gridBlockStart < planStart ? planStart : gridBlockStart;
-    // The closing block runs through race day (it owns the race workout);
-    // every other block ends the day before the next one begins.
-    const endDate =
-      endIdx === lastWeekIdx
-        ? raceYmd
-        : addDaysYmd(gridStart, (endIdx + 1) * 7 - 1);
-    const blockId = await ctx.runMutation(components.agoge.public.createBlock, {
-      planId,
-      type: phase,
-      startDate,
-      endDate,
-    });
-    blockIds[phase] = blockId;
-  }
-
-  return blockIds;
 }
 
 /**

@@ -1,9 +1,7 @@
 import {
-  DISCIPLINES,
   FORMATS,
   getRaceDateBounds,
   getRaceDateError,
-  type Discipline,
   type Format,
 } from "@/components/app/account/race-form";
 import { DateField, FormField, PillSelect } from "@/components/app/form";
@@ -19,24 +17,6 @@ const inputStyle = {
   borderColor: LIGHT_THEME.wBrd,
   color: LIGHT_THEME.wText,
 };
-
-const CUSTOM_DISTANCE_MAX_KM = 500;
-
-function clampDistanceKm(input: string): string {
-  let cleaned = input.replace(/[^0-9.]/g, "");
-  const firstDot = cleaned.indexOf(".");
-  if (firstDot !== -1) {
-    cleaned =
-      cleaned.slice(0, firstDot + 1) +
-      cleaned.slice(firstDot + 1).replace(/\./g, "");
-  }
-  if (cleaned === "" || cleaned === ".") return cleaned;
-  const num = Number.parseFloat(cleaned);
-  if (Number.isFinite(num) && num > CUSTOM_DISTANCE_MAX_KM) {
-    return String(CUSTOM_DISTANCE_MAX_KM);
-  }
-  return cleaned;
-}
 
 function todayIso(): string {
   const d = new Date();
@@ -74,20 +54,8 @@ export function StepRaceDetails({
     () => ({
       "5k": t("account.races.form.formats.5k"),
       "10k": t("account.races.form.formats.10k"),
-      "15k": t("account.races.form.formats.15k"),
       half_marathon: t("account.races.form.formats.half_marathon"),
       marathon: t("account.races.form.formats.marathon"),
-      custom: t("account.races.form.formats.custom"),
-    }),
-    [t],
-  );
-
-  const disciplineLabels = useMemo<Record<Discipline, string>>(
-    () => ({
-      road: t("account.races.form.disciplines.road"),
-      trail: t("account.races.form.disciplines.trail"),
-      track: t("account.races.form.disciplines.track"),
-      cross_country: t("account.races.form.disciplines.cross_country"),
     }),
     [t],
   );
@@ -147,32 +115,6 @@ export function StepRaceDetails({
         />
       </FormField>
 
-      {value.format === "custom" && (
-        <FormField label={t("goal.raceDetails.customDistance")}>
-          <View className="flex-row items-center gap-3">
-            <TextInput
-              className="h-12 flex-1 rounded-xl border px-4 font-coach-medium text-[15px]"
-              style={inputStyle}
-              placeholder={t("goal.raceDetails.customDistancePlaceholder")}
-              placeholderTextColor={LIGHT_THEME.wMute}
-              keyboardType="decimal-pad"
-              value={value.customDistanceKm}
-              onChangeText={(v) =>
-                onChange({ ...value, customDistanceKm: clampDistanceKm(v) })
-              }
-              selectionColor={COLORS.lime}
-              cursorColor={COLORS.lime}
-            />
-            <Text
-              className="font-coach-medium text-[13px]"
-              style={{ color: LIGHT_THEME.wMute, width: 36 }}
-            >
-              km
-            </Text>
-          </View>
-        </FormField>
-      )}
-
       <DateField
         label={t("goal.raceDetails.date")}
         value={value.date || undefined}
@@ -189,15 +131,6 @@ export function StepRaceDetails({
             : undefined
         }
       />
-
-      <FormField label={t("goal.raceDetails.discipline")}>
-        <PillSelect
-          options={DISCIPLINES}
-          labels={disciplineLabels}
-          value={value.discipline || undefined}
-          onChange={(v) => onChange({ ...value, discipline: v })}
-        />
-      </FormField>
     </View>
   );
 }

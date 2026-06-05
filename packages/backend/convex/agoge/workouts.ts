@@ -501,6 +501,23 @@ export const getWorkout = query({
         workoutId: workout._id,
       }),
     ]);
+
+    // Resolve the plan's race format (plan → goal → race) so the client can show
+    // format-specific guidance (e.g. the marathon fueling note on long runs). Two
+    // cheap extra reads, only when the workout belongs to a plan with a race goal.
+    let raceFormat: string | null = null;
+    if (plan?.goalId) {
+      const goal = await ctx.runQuery(components.agoge.public.getGoal, {
+        goalId: plan.goalId,
+      });
+      if (goal?.raceId) {
+        const race = await ctx.runQuery(components.agoge.public.getRace, {
+          raceId: goal.raceId,
+        });
+        raceFormat = race?.format ?? null;
+      }
+    }
+
     return {
       workout: {
         ...workout,
@@ -511,6 +528,7 @@ export const getWorkout = query({
       },
       block,
       plan,
+      raceFormat,
     };
   },
 });

@@ -37,7 +37,7 @@ export type Priority = RacePriority;
 export type Discipline = Exclude<AgogeDiscipline, "ultra">;
 export type Format = Extract<
   RaceFormat,
-  "5k" | "10k" | "15k" | "half_marathon" | "marathon" | "custom"
+  "5k" | "10k" | "half_marathon" | "marathon"
 >;
 export type { ItraCategory, RaceStatus };
 
@@ -51,29 +51,16 @@ export const STATUSES = [
   "cancelled",
 ] as const satisfies readonly RaceStatus[];
 
-export const DISCIPLINES = [
-  "road",
-  "trail",
-  "track",
-  "cross_country",
-] as const satisfies readonly Discipline[];
-
 export const FORMATS = [
   "5k",
   "10k",
-  "15k",
   "half_marathon",
   "marathon",
-  "custom",
 ] as const satisfies readonly Format[];
 
-export const FORMAT_DISTANCE_METERS: Record<
-  Exclude<Format, "custom">,
-  number
-> = {
+export const FORMAT_DISTANCE_METERS: Record<Format, number> = {
   "5k": 5000,
   "10k": 10000,
-  "15k": 15000,
   half_marathon: 21098,
   marathon: 42195,
 };
@@ -84,6 +71,7 @@ export const FORMAT_DISTANCE_METERS: Record<
 // the mutation enforces it regardless.
 export const MIN_PLAN_WEEKS_BY_FORMAT: Partial<Record<Format, number>> = {
   "5k": 4,
+  marathon: 10,
 };
 
 // Upper bound on lead time per format. UI-only guardrail (no backend
@@ -113,15 +101,15 @@ function addDaysYmd(ymd: string, days: number): string {
 
 /**
  * The selectable race-date window for a format, relative to today. A 5K needs
- * 4–12 weeks of lead time; formats with no bound floor at today and have no
- * ceiling. Returns YYYY-MM-DD bounds (maxYmd omitted when uncapped) — feed
- * straight into DateField's minDate/maxDate.
+ * 4–12 weeks of lead time, a marathon at least 10 weeks; formats with no bound
+ * floor at today and have no ceiling. Returns YYYY-MM-DD bounds (maxYmd omitted
+ * when uncapped) — feed straight into DateField's minDate/maxDate.
  */
 export function getRaceDateBounds(
   todayYmd: string,
   format: Format | "" | undefined,
 ): { minYmd: string; maxYmd?: string } {
-  const bounded = format && format !== "custom" ? format : undefined;
+  const bounded = format || undefined;
   const minWeeks = bounded ? MIN_PLAN_WEEKS_BY_FORMAT[bounded] : undefined;
   const maxWeeks = bounded ? MAX_PLAN_WEEKS_BY_FORMAT[bounded] : undefined;
   return {
@@ -149,7 +137,7 @@ export function getRaceDateError(
   raceYmd: string,
   format: Format | "" | undefined,
 ): RaceDateError | null {
-  if (!format || format === "custom" || !raceYmd) return null;
+  if (!format || !raceYmd) return null;
   const minWeeks = MIN_PLAN_WEEKS_BY_FORMAT[format];
   const maxWeeks = MAX_PLAN_WEEKS_BY_FORMAT[format];
   const days = daysBetweenYmd(todayYmd, raceYmd);
@@ -161,46 +149,6 @@ export function getRaceDateError(
   }
   return null;
 }
-
-const CUSTOM_DISTANCE_MIN_KM = 1;
-const CUSTOM_DISTANCE_MAX_KM = 500;
-
-function clampDistanceKm(input: string): string {
-  let cleaned = input.replace(/[^0-9.]/g, "");
-  const firstDot = cleaned.indexOf(".");
-  if (firstDot !== -1) {
-    cleaned =
-      cleaned.slice(0, firstDot + 1) +
-      cleaned.slice(firstDot + 1).replace(/\./g, "");
-  }
-  if (cleaned === "" || cleaned === ".") return cleaned;
-  const num = Number.parseFloat(cleaned);
-  if (Number.isFinite(num) && num > CUSTOM_DISTANCE_MAX_KM) {
-    return String(CUSTOM_DISTANCE_MAX_KM);
-  }
-  return cleaned;
-}
-
-export const ITRA_CATEGORIES = [
-  "XXS",
-  "XS",
-  "S",
-  "M",
-  "L",
-  "XL",
-  "XXL",
-] as const satisfies readonly ItraCategory[];
-
-// ITRA categories are universal abbreviations — same in every locale.
-const ITRA_CATEGORY_LABELS: Record<ItraCategory, string> = {
-  XXS: "XXS",
-  XS: "XS",
-  S: "S",
-  M: "M",
-  L: "L",
-  XL: "XL",
-  XXL: "XXL",
-};
 
 export type GoalType = "performance" | "completion";
 
@@ -301,7 +249,6 @@ type FormState = {
   priority: Priority;
   discipline: Discipline;
   format: Format | "";
-  distanceKm: string;
   status: RaceStatus;
   city: string;
   country: string;
@@ -324,7 +271,6 @@ const EMPTY_FORM: FormState = {
   priority: "B",
   discipline: "road",
   format: "",
-  distanceKm: "",
   status: "upcoming",
   city: "",
   country: "",
@@ -342,10 +288,6 @@ const EMPTY_FORM: FormState = {
 };
 
 function initialToForm(initial: RaceFormInitial): FormState {
-  const km =
-    initial.distanceMeters != null
-      ? String(Math.round((initial.distanceMeters / 1000) * 10) / 10)
-      : "";
   const sec = initial.result?.finishTimeSec;
   let h = "";
   let mm = "";
@@ -364,7 +306,6 @@ function initialToForm(initial: RaceFormInitial): FormState {
     priority: initial.priority,
     discipline: initial.discipline ?? "road",
     format: initial.format ?? "",
-    distanceKm: km,
     status: initial.status,
     city: initial.location?.city ?? "",
     country: initial.location?.country ?? "",
@@ -425,19 +366,11 @@ export function RaceForm({
     dns: t("account.races.form.statusLabels.dns"),
     cancelled: t("account.races.form.statusLabels.cancelled"),
   };
-  const disciplineLabels: Record<Discipline, string> = {
-    road: t("account.races.form.disciplines.road"),
-    trail: t("account.races.form.disciplines.trail"),
-    track: t("account.races.form.disciplines.track"),
-    cross_country: t("account.races.form.disciplines.cross_country"),
-  };
   const formatLabels: Record<Format, string> = {
     "5k": t("account.races.form.formats.5k"),
     "10k": t("account.races.form.formats.10k"),
-    "15k": t("account.races.form.formats.15k"),
     half_marathon: t("account.races.form.formats.half_marathon"),
     marathon: t("account.races.form.formats.marathon"),
-    custom: t("account.races.form.formats.custom"),
   };
 
   const [form, setForm] = React.useState<FormState>(
@@ -463,7 +396,6 @@ export function RaceForm({
     form.name.trim().length > 0 &&
     dateIsValid &&
     form.format !== "" &&
-    (form.format !== "custom" || form.distanceKm.trim().length > 0) &&
     (form.goalType !== "performance" || form.targetValue.trim().length > 0) &&
     !showPastDatePrompt;
 
@@ -510,33 +442,7 @@ export function RaceForm({
       }
     }
 
-    let distanceMeters: number;
-    if (format === "custom") {
-      const km = Number.parseFloat(form.distanceKm.trim());
-      if (!Number.isFinite(km)) {
-        setError(t("account.races.form.errors.invalidDistance"));
-        return;
-      }
-      if (km < CUSTOM_DISTANCE_MIN_KM) {
-        setError(
-          t("account.races.form.errors.distanceMin", {
-            min: CUSTOM_DISTANCE_MIN_KM,
-          }),
-        );
-        return;
-      }
-      if (km > CUSTOM_DISTANCE_MAX_KM) {
-        setError(
-          t("account.races.form.errors.distanceMax", {
-            max: CUSTOM_DISTANCE_MAX_KM,
-          }),
-        );
-        return;
-      }
-      distanceMeters = Math.round(km * 1000);
-    } else {
-      distanceMeters = FORMAT_DISTANCE_METERS[format];
-    }
+    const distanceMeters = FORMAT_DISTANCE_METERS[format];
 
     let elevationGainMeters: number | undefined;
     if (form.elevationGainM.trim().length > 0) {
@@ -839,44 +745,6 @@ export function RaceForm({
               />
             </FormField>
 
-            {form.format === "custom" && (
-              <FormField label={t("account.races.form.fields.distance")}>
-                <View className="flex-row items-center gap-3">
-                  <TextInput
-                    className="h-12 flex-1 rounded-xl border px-4 font-coach-medium text-[15px]"
-                    style={inputStyle}
-                    placeholder={t("account.races.form.fields.distancePlaceholder")}
-                    placeholderTextColor={LIGHT_THEME.wMute}
-                    keyboardType="decimal-pad"
-                    value={form.distanceKm}
-                    onChangeText={(v) =>
-                      setForm((f) => ({
-                        ...f,
-                        distanceKm: clampDistanceKm(v),
-                      }))
-                    }
-                    selectionColor={COLORS.lime}
-                    cursorColor={COLORS.lime}
-                  />
-                  <Text
-                    className="font-coach-medium text-[13px]"
-                    style={{ color: LIGHT_THEME.wMute, width: 36 }}
-                  >
-                    km
-                  </Text>
-                </View>
-              </FormField>
-            )}
-
-            <FormField label={t("account.races.form.fields.discipline")}>
-              <PillSelect
-                options={DISCIPLINES}
-                labels={disciplineLabels}
-                value={form.discipline}
-                onChange={(v) => setForm((f) => ({ ...f, discipline: v }))}
-              />
-            </FormField>
-
             {showStatusPill && (
               <FormField label={t("account.races.form.fields.status")}>
                 <PillSelect
@@ -884,23 +752,6 @@ export function RaceForm({
                   labels={statusLabels}
                   value={form.status}
                   onChange={(v) => setForm((f) => ({ ...f, status: v }))}
-                />
-              </FormField>
-            )}
-
-            {form.discipline === "trail" && (
-              <FormField label={t("account.races.form.fields.itraOptional")}>
-                <PillSelect
-                  options={ITRA_CATEGORIES}
-                  labels={ITRA_CATEGORY_LABELS}
-                  value={form.itraCategory}
-                  onChange={(v) =>
-                    setForm((f) => ({
-                      ...f,
-                      itraCategory: f.itraCategory === v ? "" : v,
-                    }))
-                  }
-                  allowClear
                 />
               </FormField>
             )}

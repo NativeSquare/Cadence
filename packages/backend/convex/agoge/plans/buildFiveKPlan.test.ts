@@ -32,6 +32,7 @@ import {
   workoutName,
 } from "../periodization";
 import { fiveKGrid, microcycle5K, taperSessions5K } from "./fiveK";
+import { newPlanMemory } from "./planEngine";
 import {
   type BuildFiveKPlanInputs,
   buildFiveKPlan,
@@ -136,8 +137,12 @@ function oracle(inputs: BuildFiveKPlanInputs): EmittedWorkout[] {
     planStart,
     raceYmd,
   );
-  const phaseByWeek = oracleExpand(oracleSplit(preTaperWeeks));
+  const split = oracleSplit(preTaperWeeks);
+  const phaseByWeek = oracleExpand(split);
   const maxBuildMultiple = preTaperWeeks + 1 < 6 ? 1.2 : 2.5;
+  // Mirror buildPlan's cross-week plan memory so the oracle reproduces the
+  // dedup / uniqueness / smoothing behaviour, not the pre-rules behaviour.
+  const memory = newPlanMemory();
   const volumeCurve = weeklyVolumeCurve({
     weeks: preTaperWeeks,
     currentKm,
@@ -172,6 +177,8 @@ function oracle(inputs: BuildFiveKPlanInputs): EmittedWorkout[] {
       raceDow: isoDayOfWeek(raceYmd),
       planProgress: preTaperWeeks <= 1 ? 1 : w / (preTaperWeeks - 1),
       prevLastHardDow,
+      memory,
+      baseWeeks: split.base,
     });
     // Independent copy of `lastHardDow`: latest non-easy session's day-of-week.
     prevLastHardDow = sessions.reduce<number | undefined>(
@@ -194,6 +201,7 @@ function oracle(inputs: BuildFiveKPlanInputs): EmittedWorkout[] {
     schedule,
     paces,
     vdot,
+    memory,
   });
   for (const { spec, dateYmd } of taperList) emit(out, common, dateYmd, spec);
 

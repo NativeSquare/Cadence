@@ -15,6 +15,10 @@
  * concrete playbook directly). Keep it Convex-free.
  */
 
+// `import type` erases at build, so `convex/values` never leaks into the
+// admin browser bundle (see file header).
+import type { BlockType } from "@nativesquare/agoge/schema";
+
 // ---------------------------------------------------------------------------
 // Role templates — the serializable, coach-readable mirror of the engine's
 // internal `PlanRole`. A composition is a list of these.
@@ -44,6 +48,19 @@ export type RacePaceBankId = "moderate" | "big";
  */
 export type Sv2BankId = "buildEarly";
 
+/**
+ * Which marathon long-run block bank a `long_race_pace` role draws from — one per
+ * marathon phase. The marathon's headline session is an "endurance longue" (long
+ * run) carrying time blocks at marathon race pace (AS42); each phase has its own
+ * progression of block menus. Used only by the marathon playbook.
+ */
+export type MarathonLongBankId =
+  | "buildEarly"
+  | "buildLate"
+  | "peak"
+  | "affutage1"
+  | "affutage2";
+
 export type RoleTemplate =
   | { kind: "easy"; strides: StridesRule }
   | { kind: "sv1_long" }
@@ -52,6 +69,12 @@ export type RoleTemplate =
   | { kind: "vma_long" }
   | { kind: "mixed" }
   | { kind: "race_pace"; bank: RacePaceBankId }
+  /**
+   * The marathon "endurance longue" — a long run with marathon-pace (AS42) time
+   * blocks inside. Draws from `Banks.marathonLong[bank]`. Placed like the long
+   * run (latest hard day) and runs at the long-run warmup/cooldown bands.
+   */
+  | { kind: "long_race_pace"; bank: MarathonLongBankId }
   /**
    * Late-build's alternating quality slot. The engine resolves it per week to
    * VMA longue (even late-week) ↔ Mixte (odd), using `inLate = max(0, week-2)`.
@@ -65,7 +88,14 @@ export type RoleTemplate =
    * "début construction" week-1 longue / week-2 courte progression. Like
    * `build_late_alt`, a sentinel because the choice depends on the week index.
    */
-  | { kind: "build_early_alt" };
+  | { kind: "build_early_alt" }
+  /**
+   * The marathon "début construction" alternating quality slot. Resolves to SV2
+   * (even weeks 0 & 2) ↔ VMA longue (odd week 1) — coach Mathieu Bert's "1ère &
+   * 3ème semaine SV2, 2ème semaine VMA longue". Distinct from `build_early_alt`
+   * (VMA longue↔courte); a sentinel because the choice depends on the week index.
+   */
+  | { kind: "marathon_build_early_alt" };
 
 /**
  * A phase's session composition. Slots 1–5 are explicit; `overflow` reproduces
@@ -148,6 +178,13 @@ export type Banks = {
    * 10K's "fin construction" (5K leaves it empty — it never draws moderate).
    */
   racePace: Record<RacePaceBankId, BankEntry[]>;
+  /**
+   * Marathon "endurance longue" block menus, keyed by phase — the time blocks at
+   * marathon race pace (AS42) embedded in the long run (6×6min…2×36min). Drawn
+   * when a `long_race_pace` role carries the matching `bank`. Marathon-only;
+   * omitted by every other distance.
+   */
+  marathonLong?: Partial<Record<MarathonLongBankId, BankEntry[]>>;
   /** Taper "rappel d'allure" tune-up. */
   rappel: BankEntry[];
 };
@@ -156,6 +193,14 @@ export type PlanConstants = {
   durationsSec: {
     easyMin: number;
     easyMax: number;
+    /**
+     * Optional base-phase easy band. In `base`, easy runs progress by base-week
+     * index from `baseEasyMin` → `baseEasyMax` (coach Mathieu Bert: "passer
+     * progressivement de 40min vers 1h"), independent of weekly volume — extra
+     * volume goes to the long run instead. Default to `easyMin`/`easyMax`.
+     */
+    baseEasyMin?: number;
+    baseEasyMax?: number;
     /** Race-eve shakeout — short and fixed. */
     shakeout: number;
     warmupMin: number;
@@ -183,6 +228,21 @@ export type PlanConstants = {
 // Taper composition rules.
 // ---------------------------------------------------------------------------
 
+/**
+ * A full Mon→Sun taper week that precedes the race-week tail. Each carries its
+ * own composition and volume fraction (of plan peak). The half-marathon's single
+ * affûtage week is `{ composition, volumeFactor: 0.6 }`; the marathon's 3-week
+ * affûtage uses two lead weeks (0.85, 0.60) before the 0.50 tail, the second
+ * flagged `longRunMidWeek` (the coach pulls that long out of the week's end).
+ */
+export type LeadWeek = {
+  composition: Composition;
+  /** Week volume as a fraction of plan peak km. */
+  volumeFactor: number;
+  /** When set, the long run lands mid-week instead of on the latest day. */
+  longRunMidWeek?: boolean;
+};
+
 export type TaperRules = {
   /** Race-eve shakeout only for athletes training ≥ this many days/week. */
   shakeoutMinSessionsPerWeek: number;
@@ -206,7 +266,33 @@ export type TaperRules = {
    * pre-taper weeks are reassigned from base/build/peak to these compositions and
    * run at reduced taper volume. Omitted (5K/10K) → the taper is the tail only.
    */
-  leadWeeks?: Composition[];
+  leadWeeks?: LeadWeek[];
+  /**
+   * Race-week tail volume as a fraction of plan peak km. Defaults to the engine's
+   * `TAPER_VOLUME_FACTOR` (0.6) when omitted. The marathon's final affûtage week
+   * runs lighter (0.50).
+   */
+  tailVolumeFactor?: number;
+};
+
+/**
+ * Structural knobs a distance may override beyond the per-phase compositions.
+ * All optional — 5K/10K/half omit them and keep the engine defaults.
+ */
+export type PlanPhases = {
+  /**
+   * Number of build weeks treated as "construction-début" (buildEarly); the rest
+   * are "construction-fin" (buildLate). Defaults to 2 (5K/10K/half). Marathon = 3.
+   */
+  buildEarlyWeeks?: number;
+  /** Max build weeks in the pre-taper split. Defaults to 4. Marathon = 6 (3+3). */
+  buildWeeksCap?: number;
+  /**
+   * Minimum sessions/week per phase — the engine raises a thinner schedule to
+   * this floor (bounded by available days). Marathon = {build:3, peak:3, taper:3}
+   * (coach: "quand 2 séances → passer à 3"); base keeps the athlete's count.
+   */
+  minSessions?: Partial<Record<BlockType, number>>;
 };
 
 export type Playbook = {
@@ -215,6 +301,8 @@ export type Playbook = {
   /** Difficulty-ordered workout banks, drawn from per week by the engine. */
   banks: Banks;
   taper: TaperRules;
+  /** Optional structural overrides (build split, session floors). */
+  phases?: PlanPhases;
 };
 
 // ---------------------------------------------------------------------------

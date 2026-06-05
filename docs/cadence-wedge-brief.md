@@ -100,7 +100,7 @@ N'importe qui peut logger des décisions. Cadence enregistre aussi **le résulta
 - **🏠 Aujourd'hui** : la séance du jour porte une lecture du coach (« dormi 7h20, HRV ok — bonne fenêtre ») et un point d'entrée **« Pas sûr d'y aller ? »** → le moment de décision.
 - **📅 Calendrier** : l'histoire _ressentie_, pas juste le planning — chaque jour passé porte des marqueurs (ressenti loggé, décision prise, insight 💡).
 - **🧠 Coach** (fusion de l'ancien Chat + Analytics) : **le cœur du wedge**. On l'ouvre sur **« ce que j'ai appris sur toi »** (un portrait qui s'enrichit), les **insights**, le **registre des décisions** étiqueté ✓/⚠, et les courbes. Le chat n'est qu'un canal en bas, pas la porte d'entrée.
-- **Session** : la boucle se ferme par séance (ton vocal, ce qu'on en a dérivé, l'insight croisé).
+- **Session** : la boucle se ferme par séance — capture **voix-primaire, jamais exclusive** (2 taps de précision : effort, gêne ; fallback texte ; rien ne bloque sans audio), puis ce qu'on en a dérivé et l'insight croisé.
 
 **Le moment héros** — jeudi, VMA prévue, le coureur se réveille fatigué, mollet tendu :
 
@@ -109,7 +109,7 @@ N'importe qui peut logger des décisions. Cadence enregistre aussi **le résulta
 ## 8. La boucle, en langage simple
 
 ```
-   Le coureur parle (ou Cadence détecte)
+   Le coureur parle, tape ou écrit (ou Cadence détecte)
         → Cadence comprend (ressenti + contexte structuré)
         → croise avec les données de la montre
         → restitue au bon moment (un souvenir, un conseil)
@@ -147,7 +147,7 @@ flowchart TB
   DET -- "signal confirmé" --> ENG1
   DET -- "à clarifier" --> PROMPT["💬 COACH PROMPTE<br/>« HRV bas, comment tu te sens ? »"]
   PROMPT --> V
-  USER --> V["🎙️ Voix 15-20s"]
+  USER --> V["🎙️ Voix 15-20s · primaire<br/>(2 taps précision / texte · jamais bloquant)"]
   V --> T["Transcript persisté"] --> D["Signaux dérivés (LLM)<br/>rpe · douleur · sommeil · stress"] --> X["Croise qual × quant<br/>journalEntry × Soma × Agoge"]
   X --> Q{"signaux<br/>confirmés ?"}
 

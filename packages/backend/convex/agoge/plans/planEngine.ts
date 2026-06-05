@@ -47,6 +47,7 @@ import {
 import type {
   BankEntry,
   Composition,
+  MarathonLongBankId,
   Playbook,
   RacePaceBankId,
   RoleTemplate,
@@ -64,6 +65,35 @@ export type PlanEngineSpec = {
   /** VDOT → race pace (m/s) for this distance's race-pace and rappel sessions. */
   racePaceMps: (vdot: number) => number;
 };
+
+// ---------------------------------------------------------------------------
+// Plan-scoped memory — the cross-week state that lets a plan progress and vary
+// (coach Mathieu Bert's rules). Created fresh per `buildPlan` call (so the build
+// stays deterministic: same inputs → same plan) and threaded into every
+// `microcycle` / `taperSessions` call, mutating as sessions are emitted.
+// ---------------------------------------------------------------------------
+
+export type PlanMemory = {
+  /**
+   * Bank id → the set of entry indices already drawn this plan. Session
+   * selection prefers never-used entries (R4: "ne jamais utiliser 2 fois la même
+   * séance"), falling back to reuse only when a bank is exhausted.
+   */
+  usedBankIdx: Map<string, Set<number>>;
+  /**
+   * The `round1` km already assigned to an easy run this plan. New easies are
+   * nudged off a collision so no two share an exact distance (R4: "jamais 2 fois
+   * 8,2 km").
+   */
+  usedEasyKm: Set<number>;
+  /** Previous week's long-run km — caps week-over-week growth at +10% (R1). */
+  prevLongKm?: number;
+};
+
+export const newPlanMemory = (): PlanMemory => ({
+  usedBankIdx: new Map(),
+  usedEasyKm: new Set(),
+});
 
 // ---------------------------------------------------------------------------
 // Args + role types
@@ -103,6 +133,29 @@ export type MicrocycleArgs = {
    * half-marathon's affûtage week 1) as a normal Mon→Sun microcycle.
    */
   compositionOverride?: Composition;
+  /**
+   * When set, the long run lands mid-week instead of on the latest day — the
+   * marathon's affûtage week 2 (`leadWeeks[1].longRunMidWeek`).
+   */
+  longRunMidWeek?: boolean;
+  /**
+   * Cross-week plan memory (bank-entry dedup, easy-distance uniqueness, long-run
+   * smoothing). Threaded by `buildPlan`; undefined → no dedup/smoothing (each
+   * week independent, the pre-rules behaviour).
+   */
+  memory?: PlanMemory;
+  /**
+   * Number of weeks in the `base` phase, so the base easy ramp (40→60min) can
+   * progress by base-week index rather than `weekKm/peakKm` (R3). Undefined →
+   * the global volume-ratio scaling.
+   */
+  baseWeeks?: number;
+  /**
+   * This week's target long-run km — a smooth, ≤10%/week progressive curve
+   * computed by `buildPlan` (R1). The long-run builder flexes its endurance
+   * lead-in toward this. Undefined → emergent long-run distance (pre-rules).
+   */
+  longRunTargetKm?: number;
 };
 
 type PlanRole =
@@ -113,17 +166,42 @@ type PlanRole =
   | { kind: "vma_long" }
   | { kind: "mixed" }
   | { kind: "race_pace"; bank: RacePaceBankId }
+  | { kind: "long_race_pace"; bank: MarathonLongBankId }
   | { kind: "taper_tune_up" };
+
+/**
+ * The week's "long run" — the latest hard day, placed separately by `placeRoles`.
+ * Covers both the SV1 long (5K/10K/half) and the marathon's race-pace long run.
+ */
+function isLongRunRole(r: PlanRole): boolean {
+  return r.kind === "sv1_long" || r.kind === "long_race_pace";
+}
 
 const easyRole = (addStrides = false): PlanRole => ({
   kind: "easy",
   addStrides,
 });
 
-/** Quality = anything that isn't an easy run. SV1 long is handled separately
+/**
+ * Raise a schedule's `sessionsPerWeek` to a phase floor (e.g. marathon's "quand
+ * 2 séances → passer à 3"), bounded by the athlete's available-day count so we
+ * never ask for more days than exist. A `min` of undefined leaves it untouched.
+ */
+function floorSchedule(schedule: Schedule, min: number | undefined): Schedule {
+  if (min === undefined) return schedule;
+  const available = new Set(
+    schedule.availableDays.filter((d) => d >= 0 && d <= 6),
+  ).size;
+  const target = Math.min(Math.max(schedule.sessionsPerWeek, min), available);
+  return target === schedule.sessionsPerWeek
+    ? schedule
+    : { ...schedule, sessionsPerWeek: target };
+}
+
+/** Quality = anything that isn't an easy run. The long run is handled separately
  * by `placeRoles` (it owns the latest day), so it's excluded here. */
 function isQuality(r: PlanRole): boolean {
-  return r.kind !== "easy" && r.kind !== "sv1_long";
+  return r.kind !== "easy" && !isLongRunRole(r);
 }
 
 /**
@@ -180,12 +258,16 @@ function rolesForPhase(
   switch (phase) {
     case "base":
       return expandComposition(pb.compositions.base, slots, week);
-    case "build":
+    case "build": {
+      // Construction-début (buildEarly) covers the first `buildEarlyWeeks` build
+      // weeks (default 2; marathon 3), construction-fin (buildLate) the rest.
+      const earlyWeeks = pb.phases?.buildEarlyWeeks ?? 2;
       return expandComposition(
-        week < 2 ? pb.compositions.buildEarly : pb.compositions.buildLate,
+        week < earlyWeeks ? pb.compositions.buildEarly : pb.compositions.buildLate,
         slots,
         week,
       );
+    }
     case "peak":
       return expandComposition(pb.compositions.peak, slots, week);
     case "taper":
@@ -215,8 +297,14 @@ function templateToRole(t: RoleTemplate, week: number): PlanRole {
       // Early build alternates VMA longue (week 0) ↔ VMA courte (week 1) — the
       // half-marathon's "début construction" longue-then-courte progression.
       return week % 2 === 0 ? { kind: "vma_long" } : { kind: "vma_short" };
+    case "marathon_build_early_alt":
+      // Marathon "début construction" alternates SV2 (even weeks 0 & 2) ↔ VMA
+      // longue (odd week 1) — coach: 1ère & 3ème semaine SV2, 2ème VMA longue.
+      return week % 2 === 0 ? { kind: "sv2" } : { kind: "vma_long" };
     case "sv1_long":
       return { kind: "sv1_long" };
+    case "long_race_pace":
+      return { kind: "long_race_pace", bank: t.bank };
     case "sv2":
       return { kind: "sv2", bank: t.bank };
     case "vma_short":
@@ -275,6 +363,7 @@ function placeRoles(
   days: number[],
   anchor: number,
   minFirstHardDay = 0,
+  longRunMidWeek = false,
 ): { role: PlanRole; dayOfWeek: number }[] {
   const n = roles.length;
   if (n === 0 || days.length === 0) return [];
@@ -291,8 +380,9 @@ function placeRoles(
     taken[slot] = true;
   };
 
-  // SV1 long is the latest hard day (placed last in the `hard` list below).
-  const longIdx = roles.findIndex((r) => r.kind === "sv1_long");
+  // The long run is the latest hard day (placed last in the `hard` list below),
+  // unless `longRunMidWeek` pulls it into the week's middle (marathon affûtage 2).
+  const longIdx = roles.findIndex(isLongRunRole);
   const qualityIdxs: number[] = [];
   const easyIdxs: number[] = [];
   roles.forEach((r, i) => {
@@ -311,8 +401,24 @@ function placeRoles(
   while (lo < m && slotDays[lo]! < minFirstHardDay) lo++;
   if (lo > hi) lo = 0;
 
-  if (lo === 0) {
-    // Unconstrained: hard days (qualities then the SV1 long, the latest hard day)
+  if (longRunMidWeek && longIdx >= 0) {
+    // Marathon affûtage week 2: the long sits mid-week (≈the 2nd session), not on
+    // the latest day. Place it at slot 1 (or 0 in a tiny week), then seat the
+    // remaining qualities on the later slots with ≥2-day gaps; easies fill.
+    const longSlot = Math.min(1, hi);
+    place(longSlot, longIdx);
+    let lastDay = slotDays[longSlot]!;
+    let qi = 0;
+    for (let s = longSlot + 1; s < m && qi < qualityIdxs.length; s++) {
+      if (taken[s]) continue;
+      const d = slotDays[s]!;
+      if (d - lastDay < 2) continue;
+      place(s, qualityIdxs[qi]!);
+      lastDay = d;
+      qi++;
+    }
+  } else if (lo === 0) {
+    // Unconstrained: hard days (qualities then the long run, the latest hard day)
     // spread evenly across [0, hi] for maximum recovery between them.
     const hard = [...qualityIdxs];
     if (longIdx >= 0) hard.push(longIdx);
@@ -432,11 +538,116 @@ function cooldownSeconds(
   return Math.round(lerp(lo, hi, t));
 }
 
-/** EF duration clamped to the playbook band, scaled by weekKm/peakKm within it. */
-function easyDurationSec(pb: Playbook, weekKm: number, peakKm: number): number {
-  const t = weekKm / Math.max(peakKm, 1);
+/**
+ * EF duration within the playbook band. In `base`, it ramps by base-week index
+ * from `baseEasyMin` → `baseEasyMax` (~40min → 1h) regardless of weekly volume —
+ * extra base volume is routed to the long run, not the easies (coach Mathieu
+ * Bert, R3). Every other phase scales the band by `weekKm/peakKm` as before.
+ */
+function easyDurationSec(pb: Playbook, args: MicrocycleArgs): number {
   const d = pb.constants.durationsSec;
+  if (args.phase === "base") {
+    const lo = d.baseEasyMin ?? d.easyMin;
+    const hi = d.baseEasyMax ?? d.easyMax;
+    const bw = args.baseWeeks ?? 1;
+    // Ramp by base-week index; a 1-week (or unknown-length) base starts gentle.
+    const t = bw <= 1 ? 0 : (args.weekIndexInPhase ?? 0) / (bw - 1);
+    return Math.round(lerp(lo, hi, clamp01(t)));
+  }
+  const t = args.weekKm / Math.max(args.peakKm, 1);
   return Math.round(lerp(d.easyMin, d.easyMax, t));
+}
+
+/**
+ * The full legitimate easy-duration band, spanning both the volume-scaled band
+ * (easyMin/Max) and the base ramp band (baseEasyMin/Max). Used to bound the
+ * easy-variety spread + uniqueness nudge so they stay within sanctioned easy
+ * durations.
+ */
+function easyBand(pb: Playbook): { min: number; max: number } {
+  const d = pb.constants.durationsSec;
+  return {
+    min: Math.min(d.easyMin, d.baseEasyMin ?? d.easyMin),
+    max: Math.max(d.easyMax, d.baseEasyMax ?? d.easyMax),
+  };
+}
+
+/** Re-stamp an easy session's duration + km label together (km tracks duration). */
+function setEasyDuration(s: SessionSpec, ePace: number, durSec: number): void {
+  const d = Math.max(15 * 60, Math.round(durSec));
+  if (s.structureSpec?.kind === "easy_continuous") {
+    s.structureSpec.durationSec = d;
+  }
+  s.distanceKm = round1((ePace * d) / 1000);
+}
+
+/**
+ * Vary a group of easy runs so no two are alike and the plan never repeats an
+ * easy distance (coach Mathieu Bert: "jamais 2 easy de la même durée/distance";
+ * "jamais 2 fois 8,2 km"). The group is spread symmetrically around its own mean
+ * — one shorter, one longer, so the total volume is preserved — then each is
+ * nudged off any distance already used elsewhere in the plan. Mutates in place.
+ */
+function diversifyEasies(
+  easies: SessionSpec[],
+  ePace: number,
+  band: { min: number; max: number },
+  memory: PlanMemory | undefined,
+): void {
+  if (ePace <= 0 || easies.length === 0) return;
+  const SPREAD_STEP = 5 * 60; // 5 min between consecutive easies in a week
+  const NUDGE = 20; // seconds per uniqueness nudge (~0.1 km at easy pace)
+  // Strides ("lignes droites") add a fixed 6×(100m + 100m) = 1.2 km to the
+  // *displayed* distance, so the uniqueness key must include them — else a
+  // strided and a plain easy can collide on the card even at different durations.
+  const STRIDES_M = 1200;
+  const n = easies.length;
+
+  const durOf = (s: SessionSpec): number =>
+    s.structureSpec?.kind === "easy_continuous"
+      ? s.structureSpec.durationSec
+      : 0;
+  const stridesM = (s: SessionSpec): number =>
+    s.structureSpec?.kind === "easy_continuous" && s.structureSpec.addStrides
+      ? STRIDES_M
+      : 0;
+  /** The km the athlete sees for this easy (footing + any strides). */
+  const labelKm = (s: SessionSpec, durSec: number): number =>
+    round1((ePace * durSec + stridesM(s)) / 1000);
+  const meanSec = easies.reduce((sum, e) => sum + durOf(e), 0) / n;
+
+  // 1) Volume-preserving spread around the mean, clamped to the easy band.
+  easies.forEach((e, i) => {
+    const offset = (i - (n - 1) / 2) * SPREAD_STEP;
+    const dur = Math.min(band.max, Math.max(band.min, meanSec + offset));
+    setEasyDuration(e, ePace, dur);
+  });
+
+  // 2) Nudge each off a distance already claimed in the plan. Step by ~one 0.1km
+  // bucket of duration and search outward (alternating shorter/longer) for a free
+  // bucket, staying inside the legitimate easy band — so the nudge never makes an
+  // easy run un-easy. A duplicate is accepted only when the whole band is full.
+  if (!memory) return;
+  const bucketSec = Math.max(NUDGE, Math.round(100 / ePace)); // ≈ 0.1 km
+  const maxSteps = Math.ceil((band.max - band.min) / bucketSec) + 1;
+  for (const e of easies) {
+    let dur = durOf(e);
+    let km = labelKm(e, dur);
+    if (memory.usedEasyKm.has(km)) {
+      for (let k = 1; k <= maxSteps * 2; k++) {
+        const delta = (k % 2 === 1 ? 1 : -1) * bucketSec * Math.ceil(k / 2);
+        const cand = Math.min(band.max, Math.max(band.min, dur + delta));
+        const candKm = labelKm(e, cand);
+        if (!memory.usedEasyKm.has(candKm)) {
+          dur = cand;
+          km = candKm;
+          break;
+        }
+      }
+      setEasyDuration(e, ePace, dur);
+    }
+    memory.usedEasyKm.add(km);
+  }
 }
 
 function clamp01(n: number): number {
@@ -470,13 +681,59 @@ export function selectBankIndex(
   return Math.min(len - 1, start + within);
 }
 
-/** Draw the week's entry from a bank, keyed on the athlete's level + progress. */
-function pickEntry(bank: BankEntry[], args: MicrocycleArgs): BankEntry {
-  const idx = selectBankIndex(
+/**
+ * Pick an index near `preferred` that hasn't been drawn from `bankKey` yet,
+ * scanning outward and preferring the harder (upward) direction on ties. When
+ * the bank is exhausted (every index used), `preferred` is reused. Records the
+ * chosen index in memory. With no memory, returns `preferred` unchanged.
+ */
+function chooseUnusedIndex(
+  len: number,
+  preferred: number,
+  bankKey: string,
+  memory: PlanMemory | undefined,
+): number {
+  if (!memory || len <= 1) return preferred;
+  let used = memory.usedBankIdx.get(bankKey);
+  if (!used) {
+    used = new Set<number>();
+    memory.usedBankIdx.set(bankKey, used);
+  }
+  let chosen = preferred;
+  if (used.has(preferred)) {
+    for (let d = 1; d < len; d++) {
+      const up = preferred + d;
+      if (up < len && !used.has(up)) {
+        chosen = up;
+        break;
+      }
+      const down = preferred - d;
+      if (down >= 0 && !used.has(down)) {
+        chosen = down;
+        break;
+      }
+    }
+  }
+  used.add(chosen);
+  return chosen;
+}
+
+/**
+ * Draw the week's entry from a bank, keyed on the athlete's level + progress,
+ * then nudged off any already-used index so the same session isn't repeated
+ * while a fresh one remains (R4). `bankKey` identifies the bank in plan memory.
+ */
+function pickEntry(
+  bank: BankEntry[],
+  args: MicrocycleArgs,
+  bankKey: string,
+): BankEntry {
+  const preferred = selectBankIndex(
     bank.length,
     levelFromVdot(args.vdot),
     clamp01(args.planProgress ?? 0),
   );
+  const idx = chooseUnusedIndex(bank.length, preferred, bankKey, args.memory);
   return bank[idx]!;
 }
 
@@ -622,6 +879,56 @@ function buildMixte(
   return { spec, distanceKm: round1(totalM / 1000) };
 }
 
+/**
+ * Smooth the long run (coach Mathieu Bert, R1): it must never grow more than
+ * 10%/week, and should progress steadily toward its target distances. Given the
+ * emergent long-run distance (work blocks at their pace, the easy-pace lead-in +
+ * recoveries at E), this fits the easy-pace **lead-in** (warmup + cooldown — the
+ * endurance-volume lever) so the realised distance lands within
+ * `[prev, prev × 1.10]` through base/build/peak (`progressive`), or merely under
+ * the +10% cap in the taper. Returns the fitted warmup/cooldown + final km and
+ * records it as the new `prevLongKm`.
+ */
+function fitLongRun(
+  workDistM: number,
+  recTotalSec: number,
+  wu: number,
+  cd: number,
+  ePace: number,
+  progressive: boolean,
+  memory: PlanMemory | undefined,
+): { wu: number; cd: number; km: number } {
+  const realKm = (w: number, c: number) =>
+    (ePace * (w + c + recTotalSec) + workDistM) / 1000;
+  const emergentKm = realKm(wu, cd);
+
+  let targetKm = emergentKm;
+  const prev = memory?.prevLongKm;
+  if (prev !== undefined) {
+    const cap = prev * 1.1;
+    const floor = progressive ? prev : 0;
+    targetKm = Math.min(cap, Math.max(floor, emergentKm));
+  }
+
+  let nwu = wu;
+  let ncd = cd;
+  if (ePace > 0 && Math.abs(targetKm - emergentKm) > 1e-9 && wu + cd > 0) {
+    const neededLeadSec = Math.max(
+      0,
+      (targetKm * 1000 - ePace * recTotalSec - workDistM) / ePace,
+    );
+    // Bound the lead-in to ≤2× its emergent size so flexing up to hold the long
+    // run on a cutback week never yields an absurd warmup.
+    const scale = Math.min(2, neededLeadSec / (wu + cd));
+    nwu = Math.round(wu * scale);
+    ncd = Math.round(cd * scale);
+  }
+
+  const km = round1(realKm(nwu, ncd));
+  if (memory) memory.prevLongKm = km;
+  return { wu: nwu, cd: ncd, km };
+}
+
 function roleToSessionSpec(
   spec: PlanEngineSpec,
   role: PlanRole,
@@ -645,7 +952,7 @@ function roleToSessionSpec(
   // and to display rough km on cards). Compute from the structure where
   // possible; else estimate.
   const easyKm =
-    ePace > 0 ? (ePace * easyDurationSec(pb, weekKm, peakKm)) / 1000 : 8;
+    ePace > 0 ? (ePace * easyDurationSec(pb, args)) / 1000 : 8;
 
   switch (role.kind) {
     case "easy": {
@@ -653,7 +960,7 @@ function roleToSessionSpec(
       // normal easy scales within the playbook band with volume.
       const durationSec = role.shakeout
         ? C.durationsSec.shakeout
-        : easyDurationSec(pb, weekKm, peakKm);
+        : easyDurationSec(pb, args);
       const structureSpec: StructureSpec = {
         kind: "easy_continuous",
         durationSec,
@@ -671,22 +978,65 @@ function roleToSessionSpec(
       // Long run with SV1-pace time blocks. Drawn from the SV1 bank by level +
       // plan progress (e.g. 3×6min easiest → 2×20min hardest). The long run uses
       // the wider warmup band (the endurance lead-in) when the playbook sets one.
-      const e = pickEntry(pb.banks.sv1Long, args);
+      const e = pickEntry(pb.banks.sv1Long, args, "sv1Long");
       if (e.kind !== "time") return null;
-      const longWu = warmupSeconds(pb, weekKm, peakKm, true);
-      const longCd = cooldownSeconds(pb, weekKm, peakKm, true);
-      const { spec: structureSpec, distanceKm } = buildTime(
-        e,
-        longWu,
-        longCd,
+      const baseWu = warmupSeconds(pb, weekKm, peakKm, true);
+      const baseCd = cooldownSeconds(pb, weekKm, peakKm, true);
+      // Work runs at SV1; lead-in + recoveries at E — match `summarizeStructure`
+      // so the smoothing acts on the distance the athlete actually sees.
+      const sv1Pace = paces?.SV1 ?? ePace;
+      const fit = fitLongRun(
+        (sv1Pace > 0 ? sv1Pace : ePace) * e.reps * e.workSec,
+        e.reps * e.recoverySec,
+        baseWu,
+        baseCd,
         ePace,
-        "SV1",
+        args.phase !== "taper",
+        args.memory,
       );
+      const { spec: structureSpec } = buildTime(e, fit.wu, fit.cd, ePace, "SV1");
       return {
         ...base,
         type: "long",
         intensity: "SV1",
-        distanceKm,
+        distanceKm: fit.km,
+        structureSpec,
+      };
+    }
+    case "long_race_pace": {
+      // Marathon "endurance longue": a long run with marathon-pace (AS42) TIME
+      // blocks inside (6×6min…2×36min), recoveries at easy footing. Uses the
+      // long-run warmup/cooldown bands (the endurance lead-in/out) and the
+      // explicit marathon race pace. Drawn from the phase's `marathonLong` bank.
+      const bank = pb.banks.marathonLong?.[role.bank] ?? [];
+      if (bank.length === 0) return null;
+      const e = pickEntry(bank, args, `marathonLong.${role.bank}`);
+      if (e.kind !== "pacedTime") return null;
+      const racePace = vdot ? spec.racePaceMps(vdot) : 0;
+      const baseWu = warmupSeconds(pb, weekKm, peakKm, true);
+      const baseCd = cooldownSeconds(pb, weekKm, peakKm, true);
+      // Work at marathon race pace (AS42); lead-in + recoveries at E.
+      const fit = fitLongRun(
+        (racePace > 0 ? racePace : ePace) * e.reps * e.workSec,
+        e.reps * e.recoverySec,
+        baseWu,
+        baseCd,
+        ePace,
+        args.phase !== "taper",
+        args.memory,
+      );
+      const { spec: structureSpec } = buildPacedTime(
+        e,
+        fit.wu,
+        fit.cd,
+        ePace,
+        racePace,
+      );
+      return {
+        ...base,
+        type: "long",
+        intensity: "M",
+        distanceKm: fit.km,
         structureSpec,
       };
     }
@@ -696,11 +1046,9 @@ function roleToSessionSpec(
       // short-rep SV2: 16×400m…). Both run at the T (threshold) anchor. A role
       // tagged `bank: "buildEarly"` draws the half's time-block early-build menu
       // (`sv2BuildEarly`) when present; everything else uses the default `sv2`.
-      const bank =
-        role.bank === "buildEarly" && pb.banks.sv2BuildEarly
-          ? pb.banks.sv2BuildEarly
-          : pb.banks.sv2;
-      const e = pickEntry(bank, args);
+      const useBuildEarly = role.bank === "buildEarly" && pb.banks.sv2BuildEarly;
+      const bank = useBuildEarly ? pb.banks.sv2BuildEarly! : pb.banks.sv2;
+      const e = pickEntry(bank, args, useBuildEarly ? "sv2BuildEarly" : "sv2");
       const built =
         e.kind === "time"
           ? buildTime(e, wu, cd, ePace, "T")
@@ -718,7 +1066,7 @@ function roleToSessionSpec(
     }
     case "vma_short": {
       // Short VO₂max distance reps @ I (200–400m), drawn from the bank.
-      const e = pickEntry(pb.banks.vmaShort, args);
+      const e = pickEntry(pb.banks.vmaShort, args, "vmaShort");
       if (e.kind !== "dist") return null;
       const { spec: structureSpec, distanceKm } = buildDist(
         e,
@@ -737,7 +1085,7 @@ function roleToSessionSpec(
     }
     case "vma_long": {
       // Long VO₂max distance reps @ I (600–800m), drawn from the bank.
-      const e = pickEntry(pb.banks.vmaLong, args);
+      const e = pickEntry(pb.banks.vmaLong, args, "vmaLong");
       if (e.kind !== "dist") return null;
       const { spec: structureSpec, distanceKm } = buildDist(
         e,
@@ -756,7 +1104,7 @@ function roleToSessionSpec(
     }
     case "mixed": {
       // SV2 time block @ T → bridge → VMA-courte distance block @ I.
-      const e = pickEntry(pb.banks.mixed, args);
+      const e = pickEntry(pb.banks.mixed, args, "mixed");
       if (e.kind !== "mixte") return null;
       const { spec: structureSpec, distanceKm } = buildMixte(
         e,
@@ -777,7 +1125,11 @@ function roleToSessionSpec(
       // Allure spé: reps at the race pace, drawn from the role's bank ("moderate"
       // for sub-threshold work, "big" for the peak session). `paced` entries are
       // distance reps; `pacedTime` entries are time reps (the "pics" 3×15min…).
-      const e = pickEntry(pb.banks.racePace[role.bank], args);
+      const e = pickEntry(
+        pb.banks.racePace[role.bank],
+        args,
+        `racePace.${role.bank}`,
+      );
       const racePace = vdot ? spec.racePaceMps(vdot) : 0;
       const built =
         e.kind === "paced"
@@ -798,7 +1150,7 @@ function roleToSessionSpec(
       // Rappel d'allure: a single tune-up at race pace. Drawn from the rappel bank
       // by level (progress is pinned to 1 by the taper — it's the plan's end).
       // Supports both distance (`paced`) and time (`pacedTime`) reps.
-      const e = pickEntry(pb.banks.rappel, args);
+      const e = pickEntry(pb.banks.rappel, args, "rappel");
       const racePace = vdot ? spec.racePaceMps(vdot) : 0;
       const built =
         e.kind === "paced"
@@ -837,10 +1189,16 @@ export function microcycle(
   spec: PlanEngineSpec,
   args: MicrocycleArgs,
 ): SessionSpec[] {
-  const picked = pickTrainingDays(args.schedule);
+  // Raise a thin schedule to the phase's session floor (marathon: build/peak/
+  // taper → ≥3). Bounded by available days; base/other distances keep their count.
+  const schedule = floorSchedule(
+    args.schedule,
+    spec.playbook.phases?.minSessions?.[args.phase],
+  );
+  const picked = pickTrainingDays(schedule);
   if (picked.length === 0) return [];
 
-  const roles = rolesForPhase(spec.playbook, args, picked.length);
+  const roles = rolesForPhase(spec.playbook, { ...args, schedule }, picked.length);
   if (roles.length === 0) return [];
 
   // Mon→Sun weeks: anchor on Monday so "latest" means Sunday-most.
@@ -851,6 +1209,7 @@ export function microcycle(
     picked,
     MONDAY_ANCHOR,
     minHardDowAfter(args.prevLastHardDow),
+    args.longRunMidWeek ?? false,
   );
   if (args.phase === "peak" && args.raceDow !== undefined) {
     relocatePeakSpe(spec, placed, args.raceDow);
@@ -861,6 +1220,16 @@ export function microcycle(
     const sessionSpec = roleToSessionSpec(spec, role, args, dayOfWeek);
     if (sessionSpec) out.push(sessionSpec);
   }
+
+  // Vary the week's easy runs (length spread + plan-wide distance uniqueness).
+  diversifyEasies(
+    out.filter(
+      (s) => s.type === "easy" && s.structureSpec?.kind === "easy_continuous",
+    ),
+    args.paces?.E ?? 0,
+    easyBand(spec.playbook),
+    args.memory,
+  );
   return out;
 }
 
@@ -1005,6 +1374,8 @@ export type TaperSessionsArgs = {
   schedule: Schedule;
   paces?: Paces;
   vdot?: number;
+  /** Cross-week plan memory — taper sessions share the plan's dedup/uniqueness. */
+  memory?: PlanMemory;
 };
 
 /**
@@ -1024,7 +1395,12 @@ export function taperSessions(
   args: TaperSessionsArgs,
 ): { spec: SessionSpec; dateYmd: string }[] {
   const pb = spec.playbook;
-  const { taperStartYmd, raceYmd, schedule } = args;
+  const { taperStartYmd, raceYmd } = args;
+  // Apply the taper session floor (marathon: race week → ≥3) before budgeting.
+  const schedule = floorSchedule(
+    args.schedule,
+    pb.phases?.minSessions?.taper,
+  );
 
   const dates: string[] = [];
   for (let d = taperStartYmd; d < raceYmd; d = addDaysYmd(d, 1)) dates.push(d);
@@ -1098,7 +1474,7 @@ export function taperSessions(
     tryPlace(easyRole(false), d);
   }
 
-  return placed
+  const built = placed
     .sort((a, b) => (a.dateYmd < b.dateYmd ? -1 : 1))
     .flatMap(({ role, dateYmd }) => {
       const sessionSpec = roleToSessionSpec(
@@ -1115,11 +1491,31 @@ export function taperSessions(
           // The taper is the plan's end: draw the tune-up from the top of the
           // level-windowed rappel bank.
           planProgress: 1,
+          memory: args.memory,
         },
         isoDayOfWeek(dateYmd),
       );
       return sessionSpec ? [{ spec: sessionSpec, dateYmd }] : [];
     });
+
+  // Vary the taper's easy runs too (R2): one shorter, one longer, distinct
+  // distances — but never the fixed race-eve shakeout (it stays a 20-min loosener).
+  const d = pb.constants.durationsSec;
+  diversifyEasies(
+    built
+      .map((b) => b.spec)
+      .filter(
+        (s) =>
+          s.type === "easy" &&
+          s.structureSpec?.kind === "easy_continuous" &&
+          s.structureSpec.durationSec !== d.shakeout,
+      ),
+    args.paces?.E ?? 0,
+    easyBand(pb),
+    args.memory,
+  );
+
+  return built;
 }
 
 function round1(n: number): number {

@@ -180,6 +180,10 @@ export const FIVE_K_PLAYBOOK: Playbook = {
     durationsSec: {
       easyMin: min(30),
       easyMax: min(50),
+      // Base: easy runs progress 40min → 1h by base-week index (coach Mathieu
+      // Bert) — base volume growth goes to the long run, not the easies.
+      baseEasyMin: min(40),
+      baseEasyMax: min(60),
       shakeout: min(20),
       warmupMin: min(15),
       warmupMax: min(20),

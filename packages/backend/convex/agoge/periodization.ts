@@ -138,6 +138,11 @@ export function halfMarathonPaceMps(vdot: number): number {
   return racePaceMps(21097, vdot);
 }
 
+/** Marathon (42.195 km) race pace in m/s — the AS42 allure marathon. */
+export function marathonPaceMps(vdot: number): number {
+  return racePaceMps(42195, vdot);
+}
+
 /**
  * Predict the finish time (seconds) for `distanceMeters` at the athlete's
  * current `vdot` — the inverse of `computeVdot`. Race effort means the
@@ -174,11 +179,8 @@ export function predictRaceTime(vdot: number, distanceMeters: number): number {
 export const SUPPORTED_FORMATS = new Set<RaceFormat>([
   "5k",
   "10k",
-  "15k",
-  "10_miles",
   "half_marathon",
   "marathon",
-  "custom",
 ]);
 
 export function isSupportedFormat(format: RaceFormat | undefined): boolean {
@@ -224,11 +226,16 @@ export function distancePeakKm(
  * build=2 + peak=1 + taper=1 (one construction-early + one construction-late
  * + spécifique + taper). Below 4 weeks, the build collapses to 0 or 1 week
  * and the plan has no training value.
+ *
+ * Marathon floor = 10 weeks: the marathon needs a 6-week build (3 early + 3
+ * late) plus base and a 3-week taper; below 10 weeks the build can't develop
+ * the endurance the distance requires.
  */
 export function minimumPlanWeeksForFormat(
   format: RaceFormat | undefined,
 ): number | undefined {
   if (format === "5k") return 4;
+  if (format === "marathon") return 10;
   return undefined;
 }
 

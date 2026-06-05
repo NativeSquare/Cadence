@@ -60,8 +60,6 @@ const EMPTY_RACE_DETAILS: RaceDetailsValue = {
   name: "",
   date: "",
   format: "",
-  discipline: "",
-  customDistanceKm: "",
 };
 
 const EMPTY_RACE_GOAL: RaceGoalValue = {
@@ -147,13 +145,10 @@ export default function NewGoalScreen() {
       const fieldsFilled =
         raceDetails.name.trim() !== "" &&
         raceDetails.date !== "" &&
-        raceDetails.format !== "" &&
-        raceDetails.discipline !== "" &&
-        (raceDetails.format !== "custom" ||
-          raceDetails.customDistanceKm.trim() !== "");
+        raceDetails.format !== "";
       if (!fieldsFilled) return false;
-      // Mirror of backend rule: 5K needs ≥ 4 weeks lead time. Other formats
-      // currently have no enforced minimum.
+      // Mirror of backend rule: 5K needs ≥ 4 weeks lead time, marathon ≥ 10.
+      // The other formats have no enforced minimum.
       const dateError = getRaceDateError(
         todayIso(),
         raceDetails.date,
@@ -233,17 +228,16 @@ export default function NewGoalScreen() {
         await createFitnessGoal({ fitnessIntent: fitnessGoal });
       } else if (branch === "race") {
         const format = raceDetails.format;
-        if (format === "" || raceDetails.discipline === "") return;
-        const distanceMeters =
-          format === "custom"
-            ? Math.round(Number.parseFloat(raceDetails.customDistanceKm) * 1000)
-            : FORMAT_DISTANCE_METERS[format];
+        if (format === "") return;
+        const distanceMeters = FORMAT_DISTANCE_METERS[format];
         await createRace({
           race: {
             name: raceDetails.name.trim(),
             date: raceDetails.date,
             priority: "A",
-            discipline: raceDetails.discipline,
+            // Discipline isn't a plan-generation input; default it so the
+            // required backend field is satisfied.
+            discipline: "road",
             format,
             distanceMeters,
             status: "upcoming",

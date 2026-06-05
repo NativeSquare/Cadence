@@ -1,4 +1,3 @@
-import { FORMAT_DISTANCE_METERS } from "@/components/app/account/race-form";
 import { FormField, PillSelect, TimeField } from "@/components/app/form";
 import { Text } from "@/components/ui/text";
 import { LIGHT_THEME } from "@/lib/design-tokens";
@@ -6,6 +5,18 @@ import { useTranslation } from "react-i18next";
 import { View } from "react-native";
 
 export type SeedRaceFormat = "5k" | "10k" | "15k" | "half_marathon" | "marathon";
+
+// Distances for the past-race VDOT seed. Kept independent of the goal-race
+// `Format` (which only generates plans for 5K/10K/half/marathon): a 15K is a
+// perfectly valid *past* result to estimate fitness from, even though we don't
+// build 15K plans.
+const SEED_FORMAT_DISTANCE_METERS: Record<SeedRaceFormat, number> = {
+  "5k": 5000,
+  "10k": 10000,
+  "15k": 15000,
+  half_marathon: 21098,
+  marathon: 42195,
+};
 
 export type RecentRaceValue = {
   format: SeedRaceFormat | "";
@@ -40,7 +51,7 @@ export function recentRaceToSeconds(value: RecentRaceValue): number {
 
 export function recentRaceToDistanceMeters(value: RecentRaceValue): number {
   if (value.format === "") return 0;
-  return FORMAT_DISTANCE_METERS[value.format];
+  return SEED_FORMAT_DISTANCE_METERS[value.format];
 }
 
 export function isRecentRaceValid(value: RecentRaceValue): boolean {

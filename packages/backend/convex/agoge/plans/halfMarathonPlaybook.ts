@@ -204,6 +204,10 @@ export const HALF_MARATHON_PLAYBOOK: Playbook = {
       // EF progresses toward ~1h05 in late phases via the weekKm/peakKm scaling.
       easyMin: min(35),
       easyMax: min(65),
+      // Base: easy runs progress 40min → 1h by base-week index (coach Mathieu
+      // Bert) — base volume growth goes to the long run, not the easies.
+      baseEasyMin: min(40),
+      baseEasyMax: min(60),
       shakeout: min(20),
       warmupMin: min(15),
       warmupMax: min(20),
@@ -305,6 +309,6 @@ export const HALF_MARATHON_PLAYBOOK: Playbook = {
     tuneUpWindowDaysBeforeRace: { lo: 4, hi: 5 },
     raceWeekBudgetOffset: 1,
     taperDays: { earlyWeekCutoffDow: 2, earlyAddend: 8, lateAddend: 1 },
-    leadWeeks: [AFFUTAGE_WEEK_1],
+    leadWeeks: [{ composition: AFFUTAGE_WEEK_1, volumeFactor: 0.6 }],
   },
 };

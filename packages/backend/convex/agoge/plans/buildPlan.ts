@@ -37,6 +37,7 @@ import {
 import {
   lastHardDow,
   microcycle,
+  newPlanMemory,
   type PlanEngineSpec,
   type PlanGrid,
   planGrid,
@@ -54,6 +55,8 @@ export type BuildPlanOptions = {
   format: RaceFormat;
   /** Race distance fallback when inputs omit `raceDistanceMeters`. */
   defaultDistanceMeters: number;
+  /** Max build weeks for `preTaperSplit`. Defaults to 4; marathon passes 6 (3+3). */
+  buildWeeksCap?: number;
 };
 
 // ---------------------------------------------------------------------------
@@ -63,11 +66,14 @@ export type BuildPlanOptions = {
 
 /**
  * Split a plan's pre-taper Mon→Sun weeks into base/build/peak. peak = 1
- * (spécifique / pics), build = up to 4 (2 construction-début + 2 construction-fin),
- * base = the rest. The taper is sized in days and created separately, so it isn't
- * part of this split.
+ * (spécifique / pics), build = up to `buildCap` (default 4 = 2 construction-début
+ * + 2 construction-fin; marathon passes 6 = 3 + 3), base = the rest. The taper is
+ * sized in days and created separately, so it isn't part of this split.
  */
-export function preTaperSplit(preTaperWeeks: number): {
+export function preTaperSplit(
+  preTaperWeeks: number,
+  buildCap = 4,
+): {
   base: number;
   build: number;
   peak: number;
@@ -75,7 +81,7 @@ export function preTaperSplit(preTaperWeeks: number): {
   if (preTaperWeeks <= 0) return { base: 0, build: 0, peak: 0 };
   if (preTaperWeeks === 1) return { base: 0, build: 0, peak: 1 };
   const peak = 1;
-  const build = Math.min(4, preTaperWeeks - peak);
+  const build = Math.min(buildCap, preTaperWeeks - peak);
   const base = preTaperWeeks - peak - build;
   return { base, build, peak };
 }
@@ -307,7 +313,7 @@ export function buildPlan(
   );
   const phaseWeeks = preTaperWeeks - leadCount;
 
-  const split = preTaperSplit(phaseWeeks);
+  const split = preTaperSplit(phaseWeeks, opts.buildWeeksCap);
   const phaseByWeek: BlockType[] = [
     ...expandPhases({ ...split, taper: 0 }),
     ...Array.from({ length: leadCount }, (): BlockType => "taper"),
@@ -321,10 +327,17 @@ export function buildPlan(
     maxBuildMultiple,
   });
   const planPeakKm = Math.max(currentKm, ...volumeCurve);
-  // Reduced volume for the lead weeks — same factor the race-week tail uses.
-  const leadWeekKm = planPeakKm * TAPER_VOLUME_FACTOR;
+  // Reduced tail volume — the playbook's `tailVolumeFactor` (marathon 0.5) or the
+  // default. Each lead week scales by its own `volumeFactor` (see the loop below).
+  const tailVolumeFactor =
+    spec.playbook.taper.tailVolumeFactor ?? TAPER_VOLUME_FACTOR;
 
   const common: TraceCommon = { planStartYmd, raceYmd, paces, locale };
+
+  // Plan-scoped memory (bank-entry dedup, easy-distance uniqueness, long-run
+  // smoothing) — created once, mutated as each week is built, so the rules see
+  // cross-week state. Fresh per call → the build stays deterministic.
+  const memory = newPlanMemory();
 
   const weeks: TracedWeek[] = [];
   let weekIndexInPhase = 0;
@@ -337,11 +350,13 @@ export function buildPlan(
     const phase = phaseByWeek[w];
     if (!phase) continue;
     // Lead weeks are the trailing `leadCount` weeks (phase "taper"); they draw
-    // their own composition and run at the reduced lead-week volume.
+    // their own composition and run at their own fraction of plan peak.
     const leadIdx = w - phaseWeeks;
-    const compositionOverride =
-      leadIdx >= 0 ? leadWeekDefs[leadIdx] : undefined;
-    const weekKm = leadIdx >= 0 ? leadWeekKm : (volumeCurve[w] ?? 0);
+    const leadWeek = leadIdx >= 0 ? leadWeekDefs[leadIdx] : undefined;
+    const compositionOverride = leadWeek?.composition;
+    const weekKm = leadWeek
+      ? planPeakKm * leadWeek.volumeFactor
+      : (volumeCurve[w] ?? 0);
     const weekStartYmd = addDaysYmd(gridStartYmd, w * 7); // a Monday
 
     if (phase === prevPhase) {
@@ -368,6 +383,12 @@ export function buildPlan(
       prevLastHardDow,
       // Lead weeks (affûtage week 1) supply their composition directly.
       compositionOverride,
+      // Marathon affûtage week 2 pulls its long run to mid-week.
+      longRunMidWeek: leadWeek?.longRunMidWeek ?? false,
+      // Cross-week plan memory (dedup / uniqueness / long-run smoothing).
+      memory,
+      // Base-phase length, so the base easy ramp progresses by base-week index.
+      baseWeeks: split.base,
     });
 
     // Carry this week's last hard day into the next iteration's microcycle.
@@ -393,11 +414,12 @@ export function buildPlan(
   const taperList = taperSessions(spec, {
     taperStartYmd,
     raceYmd,
-    weekKm: planPeakKm * TAPER_VOLUME_FACTOR,
+    weekKm: planPeakKm * tailVolumeFactor,
     peakKm: planPeakKm,
     schedule,
     paces,
     vdot,
+    memory,
   });
   const taper = taperList.map(({ spec: sessionSpec, dateYmd }) =>
     traceSession(common, dateYmd, sessionSpec),

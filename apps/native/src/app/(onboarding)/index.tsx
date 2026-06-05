@@ -62,8 +62,6 @@ const EMPTY_RACE_DETAILS: RaceDetailsValue = {
   name: "",
   date: "",
   format: "",
-  discipline: "",
-  customDistanceKm: "",
 };
 
 const EMPTY_RACE_GOAL: RaceGoalValue = {
@@ -136,13 +134,11 @@ export default function Onboarding() {
         const fieldsFilled =
           raceDetails.name.trim() !== "" &&
           raceDetails.date !== "" &&
-          raceDetails.format !== "" &&
-          raceDetails.discipline !== "" &&
-          (raceDetails.format !== "custom" ||
-            raceDetails.customDistanceKm.trim() !== "");
+          raceDetails.format !== "";
         if (!fieldsFilled) return false;
         // Mirror StepRaceDetails' lead-time guard so the red error and the
-        // Next button stay in agreement (e.g. a 5K must be 4–12 weeks out).
+        // Next button stay in agreement (e.g. a 5K must be 4–12 weeks out,
+        // a marathon at least 10 weeks).
         return (
           getRaceDateError(
             todayIso(),
@@ -201,21 +197,18 @@ export default function Onboarding() {
 
       // 2. Create goal (and plan + baseline-test gating)
       if (branch === "race") {
-        if (raceDetails.format === "" || raceDetails.discipline === "") {
+        if (raceDetails.format === "") {
           throw new Error("Race details incomplete");
         }
-        const distanceMeters =
-          raceDetails.format === "custom"
-            ? Math.round(
-                Number.parseFloat(raceDetails.customDistanceKm) * 1000,
-              )
-            : FORMAT_DISTANCE_METERS[raceDetails.format];
+        const distanceMeters = FORMAT_DISTANCE_METERS[raceDetails.format];
         await createRaceWithGoal({
           race: {
             name: raceDetails.name.trim(),
             date: raceDetails.date,
             priority: "A",
-            discipline: raceDetails.discipline,
+            // Discipline isn't a plan-generation input; default it so the
+            // required backend field is satisfied.
+            discipline: "road",
             format: raceDetails.format,
             distanceMeters,
             status: "upcoming",

@@ -607,36 +607,58 @@ describe("microcycle5K — day spacing", () => {
   });
 });
 
-describe("microcycle5K — EF duration constraint", () => {
-  it("easy_continuous durationSec clamps within [30min, 50min]", () => {
-    const sessionsHigh = microcycle5K({
+describe("microcycle5K — EF duration (base ramp, R3)", () => {
+  // Mean easy duration for a base week — averages out the in-week length spread
+  // (diversifyEasies), so we test the ramp target, not an individual easy.
+  const baseEasyMean = (
+    weekIndexInPhase: number,
+    baseWeeks: number,
+    weekKm: number,
+  ): number => {
+    const durs = microcycle5K({
       ...baseArgs,
       phase: "base",
-      weekIndexInPhase: 0,
-      weekKm: 60,
+      weekIndexInPhase,
+      baseWeeks,
+      weekKm,
       schedule: SCHEDULE_4,
-    });
-    const easyHigh = sessionsHigh.find(
-      (s) => s.structureSpec?.kind === "easy_continuous",
-    );
-    if (easyHigh?.structureSpec?.kind === "easy_continuous") {
-      expect(easyHigh.structureSpec.durationSec).toBeLessThanOrEqual(50 * 60);
-      expect(easyHigh.structureSpec.durationSec).toBeGreaterThanOrEqual(30 * 60);
-    }
+    })
+      .filter((s) => s.structureSpec?.kind === "easy_continuous")
+      .map((s) =>
+        s.structureSpec?.kind === "easy_continuous"
+          ? s.structureSpec.durationSec
+          : 0,
+      );
+    return durs.reduce((a, b) => a + b, 0) / durs.length;
+  };
 
-    const sessionsLow = microcycle5K({
+  it("base easy duration ramps ~40min → 1h by base-week index", () => {
+    const first = baseEasyMean(0, 6, 30);
+    const last = baseEasyMean(5, 6, 30);
+    expect(first).toBeGreaterThanOrEqual(40 * 60 - 1);
+    expect(first).toBeLessThan(last); // progressive across base
+    expect(last).toBeLessThanOrEqual(60 * 60 + 1);
+  });
+
+  it("base easy duration is volume-independent (extra volume goes to the long run)", () => {
+    // Same base-week index, very different weekly volume → identical easy mean.
+    expect(baseEasyMean(2, 6, 60)).toBeCloseTo(baseEasyMean(2, 6, 15), 5);
+  });
+
+  it("each base easy stays within a sane band around the ramp target", () => {
+    const sessions = microcycle5K({
       ...baseArgs,
       phase: "base",
-      weekIndexInPhase: 0,
-      weekKm: 10,
-      schedule: SCHEDULE_4,
+      weekIndexInPhase: 3,
+      baseWeeks: 6,
+      weekKm: 40,
+      schedule: SCHEDULE_5,
     });
-    const easyLow = sessionsLow.find(
-      (s) => s.structureSpec?.kind === "easy_continuous",
-    );
-    if (easyLow?.structureSpec?.kind === "easy_continuous") {
-      expect(easyLow.structureSpec.durationSec).toBeGreaterThanOrEqual(30 * 60);
-      expect(easyLow.structureSpec.durationSec).toBeLessThan(35 * 60);
+    for (const s of sessions) {
+      if (s.structureSpec?.kind === "easy_continuous") {
+        expect(s.structureSpec.durationSec).toBeGreaterThanOrEqual(35 * 60);
+        expect(s.structureSpec.durationSec).toBeLessThanOrEqual(62 * 60);
+      }
     }
   });
 });

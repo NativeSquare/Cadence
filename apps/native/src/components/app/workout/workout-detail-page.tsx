@@ -326,6 +326,12 @@ export function WorkoutDetailPage({ workoutId }: WorkoutDetailPageProps) {
           {/* Planned structure in its own card. */}
           {workout.planned && <StructureCard planned={workout.planned} />}
 
+          {/* Marathon fueling note on runs over an hour (coach: 30–60 g
+              carbs/hour). Self-hides off-marathon or under the threshold. */}
+          {workout.planned && result.raceFormat === "marathon" && (
+            <FuelingCard planned={workout.planned} />
+          )}
+
           {/* Post-session voice note (self-hides when absent). */}
           {workout.actual && <WorkoutAudioNote workoutId={workoutId} />}
 
@@ -507,6 +513,35 @@ function StructureCard({ planned }: { planned: PlannedFace }) {
         )}
       </View>
       <WorkoutStructureView structure={structure} />
+    </Card>
+  );
+}
+
+// ── Fueling card: marathon-only, on runs over an hour ──
+//
+// The coach prescribes practising race fueling on every run longer than an hour
+// (30–60 g of carbs/hour). Gated to marathon plans by the caller; here we only
+// check the planned duration. Self-hides under the one-hour threshold.
+const FUELING_MIN_DURATION_SEC = 3600;
+
+function FuelingCard({ planned }: { planned: PlannedFace }) {
+  const { t } = useTranslation();
+
+  const structure = planned.structure as WorkoutStructure | undefined;
+  if (!structure || !Array.isArray(structure.blocks)) return null;
+  const summary = summarizeStructure(structure);
+  if (!summary?.durationSeconds || summary.durationSeconds <= FUELING_MIN_DURATION_SEC)
+    return null;
+
+  return (
+    <Card>
+      <SectionLabel>{t("workout.detail.fueling.label")}</SectionLabel>
+      <Text
+        className="font-coach text-sm"
+        style={{ color: LIGHT_THEME.wSub, lineHeight: 20 }}
+      >
+        {t("workout.detail.fueling.body")}
+      </Text>
     </Card>
   );
 }
