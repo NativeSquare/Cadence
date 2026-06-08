@@ -20,7 +20,7 @@ A French runner aged 25–45, training consistently — at least 3 sessions a we
 
 ## Business Model
 
-Single Pro subscription at €18.99/mo (30%-off annual), hard paywall, 14-day free trial. RevenueCat manages entitlements with server-side mirroring. Rationale: positioned just below Runna's standalone price, above RunMotion, in the band French runners have already demonstrated willingness to pay. No freemium tier diluting the coaching relationship — the trial is the acquisition surface.
+Single Pro subscription at €18.99/mo (30%-off annual), hard paywall, 14-day free trial. Rationale: positioned just below Runna's standalone price, above RunMotion, in the band French runners have already demonstrated willingness to pay. No freemium tier diluting the coaching relationship — the trial is the acquisition surface.
 
 ## Go-to-Market
 
