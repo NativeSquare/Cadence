@@ -560,7 +560,14 @@
       "errorDistanceRequired": "Enter the distance you covered.",
       "errorTimeRequired": "Enter your finish time.",
       "coachLabel": "Coach",
-      "responseDone": "Done"
+      "responseDone": "Done",
+      "decision": {
+        "nextUp": "Next hard session: {{name}}",
+        "ease": "Ease it",
+        "keep": "Keep it as is",
+        "easedConfirm": "Done — I eased {{name}}. You can undo it anytime from that session.",
+        "easeError": "Couldn't adjust it. Try again."
+      }
     },
     "bodyPart": {
       "calf_left": "Left calf",

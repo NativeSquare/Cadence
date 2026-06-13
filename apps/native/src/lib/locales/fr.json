@@ -560,7 +560,14 @@
       "errorDistanceRequired": "Indique la distance parcourue.",
       "errorTimeRequired": "Indique ton temps d'arrivée.",
       "coachLabel": "Coach",
-      "responseDone": "Terminé"
+      "responseDone": "Terminé",
+      "decision": {
+        "nextUp": "Prochaine séance dure : {{name}}",
+        "ease": "Allège-la",
+        "keep": "Garde-la telle quelle",
+        "easedConfirm": "C'est fait — j'ai allégé {{name}}. Tu peux annuler à tout moment depuis cette séance.",
+        "easeError": "Impossible de l'ajuster. Réessaie."
+      }
     },
     "bodyPart": {
       "calf_left": "Mollet gauche",

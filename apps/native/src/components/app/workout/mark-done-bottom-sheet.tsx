@@ -13,7 +13,7 @@ import {
   BottomSheetModal as GorhomBottomSheetModal,
   BottomSheetTextInput,
 } from "@gorhom/bottom-sheet";
-import { useAction } from "convex/react";
+import { useAction, useMutation } from "convex/react";
 import { Check, Mic, Sparkles, Square } from "lucide-react-native";
 import React from "react";
 import { Controller, useForm } from "react-hook-form";
@@ -77,6 +77,9 @@ export function MarkDoneBottomSheet({
   // signals, mark done, persist). It's all-or-nothing: a transcription/LLM
   // failure commits nothing, so the recording is kept and the user retries.
   const capturePostSession = useAction(api.journal.capturePostSession);
+  const easeConflictingSession = useMutation(
+    api.engine.interventions.easeConflictingSession,
+  );
   const { uploadFileToStorage } = useUploadImage();
   const micPermission = useMicrophonePermission();
   const voiceRecording = useVoiceRecording();
@@ -91,12 +94,17 @@ export function MarkDoneBottomSheet({
   const [recordedUri, setRecordedUri] = React.useState<string | null>(null);
   const [recordedDurationMs, setRecordedDurationMs] = React.useState(0);
   // The coach's in-the-moment reply, shown after a successful capture instead
-  // of dismissing immediately — the "we heard you" beat. `concern` is the
-  // routing tier (drives the response tone; slice 2 adds a decision prompt
-  // for "act").
+  // of dismissing immediately — the "we heard you" beat. When the debrief is
+  // serious AND a hard session is coming up, `conflict` carries it so we can
+  // offer a one-tap ease (the Path B decision prompt).
   const [response, setResponse] = React.useState<{
     coachReply: string;
-    concern?: "none" | "watch" | "act";
+    conflict: {
+      workoutId: string;
+      name: string;
+      date: string;
+      type: string;
+    } | null;
   } | null>(null);
   const isSubmitting = form.formState.isSubmitting;
   const isRecording = voiceRecording.isRecording;
@@ -204,7 +212,7 @@ export function MarkDoneBottomSheet({
       setRecordedDurationMs(0);
       setResponse({
         coachReply: result.coachReply,
-        concern: result.derived.concern,
+        conflict: result.conflict,
       });
     } catch (err) {
       setSubmitError(getConvexErrorMessage(err));
@@ -232,6 +240,8 @@ export function MarkDoneBottomSheet({
       <BottomSheetModal ref={sheetRef} onDismiss={handleDismiss}>
         <CoachResponse
           coachReply={response.coachReply}
+          conflict={response.conflict}
+          onEase={(workoutId) => easeConflictingSession({ workoutId })}
           onDone={dismissAfterResponse}
         />
       </BottomSheetModal>
@@ -345,19 +355,41 @@ export function MarkDoneBottomSheet({
 
 /**
  * The coach's reply after a successful capture — the "we heard you" beat.
- * Shown in place of the form; tapping Done dismisses the sheet. The reply text
- * is LLM-narrated server-side (already localized), scaled to the debrief's
- * concern tier. Slice 2 will add a decision prompt (Keep / Ease / Rest) below
- * this reply when the concern is "act" and a hard session is in conflict.
+ * Shown in place of the form. The reply text is LLM-narrated server-side
+ * (already localized), scaled to the debrief's concern tier.
+ *
+ * When `conflict` is present (a serious debrief AND an upcoming hard session),
+ * we offer the Path B decision prompt: Ease it (one-tap, reuses the Engine's
+ * revertible reshape) or Keep it. Without a conflict it's just the reply + Done.
  */
 function CoachResponse({
   coachReply,
+  conflict,
+  onEase,
   onDone,
 }: {
   coachReply: string;
+  conflict: { workoutId: string; name: string } | null;
+  onEase: (workoutId: string) => Promise<unknown>;
   onDone: () => void;
 }) {
   const { t } = useTranslation();
+  const [phase, setPhase] = React.useState<
+    "prompt" | "easing" | "eased" | "error"
+  >("prompt");
+
+  const handleEase = async () => {
+    if (!conflict) return;
+    selectionFeedback();
+    setPhase("easing");
+    try {
+      await onEase(conflict.workoutId);
+      setPhase("eased");
+    } catch (err) {
+      console.error("[MarkDoneBottomSheet] ease failed", err);
+      setPhase("error");
+    }
+  };
 
   return (
     <View className="gap-6 px-5 pb-4 pt-2">
@@ -378,15 +410,87 @@ function CoachResponse({
         {coachReply}
       </Text>
 
-      <Pressable
-        onPress={onDone}
-        className="items-center rounded-2xl py-3.5 active:opacity-90"
-        style={{ backgroundColor: LIGHT_THEME.wText }}
-      >
-        <Text className="font-coach-bold text-sm" style={{ color: "#FFFFFF" }}>
-          {t("workout.markDone.responseDone")}
-        </Text>
-      </Pressable>
+      {/* Decision prompt — only when a hard session is in conflict and the
+          runner hasn't already eased it. */}
+      {conflict && phase !== "eased" && (
+        <View className="gap-2">
+          <Text
+            className="font-coach-semibold text-[12px]"
+            style={{ color: LIGHT_THEME.wSub }}
+          >
+            {t("workout.markDone.decision.nextUp", { name: conflict.name })}
+          </Text>
+          {phase === "error" && (
+            <Text
+              className="font-coach text-[12px]"
+              style={{ color: COLORS.red }}
+            >
+              {t("workout.markDone.decision.easeError")}
+            </Text>
+          )}
+          <Pressable
+            onPress={handleEase}
+            disabled={phase === "easing"}
+            className="items-center rounded-2xl py-3.5 active:opacity-90"
+            style={{ backgroundColor: LIGHT_THEME.wText }}
+          >
+            {phase === "easing" ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <Text
+                className="font-coach-bold text-sm"
+                style={{ color: "#FFFFFF" }}
+              >
+                {t("workout.markDone.decision.ease")}
+              </Text>
+            )}
+          </Pressable>
+          <Pressable
+            onPress={onDone}
+            disabled={phase === "easing"}
+            className="items-center rounded-2xl border py-3.5 active:opacity-80"
+            style={{
+              backgroundColor: LIGHT_THEME.w1,
+              borderColor: LIGHT_THEME.wBrd,
+            }}
+          >
+            <Text
+              className="font-coach-semibold text-sm"
+              style={{ color: LIGHT_THEME.wText }}
+            >
+              {t("workout.markDone.decision.keep")}
+            </Text>
+          </Pressable>
+        </View>
+      )}
+
+      {/* Confirmation after an ease, or the plain Done when there's no prompt. */}
+      {(!conflict || phase === "eased") && (
+        <>
+          {phase === "eased" && conflict && (
+            <Text
+              className="font-coach text-[13px]"
+              style={{ color: LIGHT_THEME.wSub, lineHeight: 19 }}
+            >
+              {t("workout.markDone.decision.easedConfirm", {
+                name: conflict.name,
+              })}
+            </Text>
+          )}
+          <Pressable
+            onPress={onDone}
+            className="items-center rounded-2xl py-3.5 active:opacity-90"
+            style={{ backgroundColor: LIGHT_THEME.wText }}
+          >
+            <Text
+              className="font-coach-bold text-sm"
+              style={{ color: "#FFFFFF" }}
+            >
+              {t("workout.markDone.responseDone")}
+            </Text>
+          </Pressable>
+        </>
+      )}
     </View>
   );
 }

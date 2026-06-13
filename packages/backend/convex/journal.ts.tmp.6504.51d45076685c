@@ -143,18 +143,15 @@ export const capturePostSession = action({
  * render and act on the ease prompt, or null if none.
  */
 async function findConflictingHardSession(
-  ctx: ActionCtx,
-  userId: Id<"users">,
+  ctx: Parameters<typeof capturePostSession>[0] extends never
+    ? never
+    : Parameters<Parameters<typeof action>[0]["handler"]>[0],
+  userId: string,
   actualDate: string,
-): Promise<{
-  workoutId: string;
-  name: string;
-  date: string;
-  type: string;
-} | null> {
+): Promise<{ workoutId: string; name: string; date: string; type: string } | null> {
   const athlete = await ctx.runQuery(
     components.agoge.public.getAthleteByUserId,
-    { userId },
+    { userId: userId as never },
   );
   if (!athlete) return null;
 

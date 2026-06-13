@@ -159,23 +159,25 @@ export function CoachInterventionCard({
         </View>
       </View>
 
-      <View className="gap-1">
-        <Text
-          className="font-coach-semibold text-[11px] uppercase tracking-wider"
-          style={{ color: LIGHT_THEME.wMute }}
-        >
-          {t("workout.coachIntervention.subtitle")}
-        </Text>
-        {signalLines.map((line, i) => (
+      {signalLines.length > 0 && (
+        <View className="gap-1">
           <Text
-            key={i}
-            className="font-coach text-[13px] leading-5"
-            style={{ color: LIGHT_THEME.wText }}
+            className="font-coach-semibold text-[11px] uppercase tracking-wider"
+            style={{ color: LIGHT_THEME.wMute }}
           >
-            • {line}
+            {t("workout.coachIntervention.subtitle")}
           </Text>
-        ))}
-      </View>
+          {signalLines.map((line, i) => (
+            <Text
+              key={i}
+              className="font-coach text-[13px] leading-5"
+              style={{ color: LIGHT_THEME.wText }}
+            >
+              • {line}
+            </Text>
+          ))}
+        </View>
+      )}
 
       <View className="flex-row gap-3">
         <DiffColumn
