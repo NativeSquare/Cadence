@@ -53,6 +53,15 @@ export const derivedValidator = v.object({
   ),
   mood: v.optional(v.string()),
   rawNotes: v.optional(v.string()),
+  // Triage tier the LLM assigns to the whole debrief: does it warrant
+  // interrupting the runner? "none" = nothing notable, "watch" = worth a
+  // gentle acknowledgment, "act" = serious enough to (later) offer a plan
+  // change. Drives the scaled coach response in the Mark Done sheet. Optional
+  // in storage so pre-existing `derived` rows (which lack it) still validate;
+  // `deriveSignals` always emits it on new entries.
+  concern: v.optional(
+    v.union(v.literal("none"), v.literal("watch"), v.literal("act")),
+  ),
 });
 
 const documentSchema = {

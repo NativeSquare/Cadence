@@ -74,7 +74,7 @@ export const capturePostSession = action({
 
     // ── Flaky external calls first (no DB state yet) ──
     const transcript = await callWhisper(apiKey, blob, locale);
-    const derived = await deriveSignals(transcript, locale);
+    const { derived, coachReply } = await deriveSignals(transcript, locale);
 
     // ── Commit: complete the workout, then persist the journal entry ──
     const actual: {
@@ -106,6 +106,8 @@ export const capturePostSession = action({
       derived,
     });
 
-    return { transcript, derived };
+    // `coachReply` rides back to the client for the in-the-moment "we heard
+    // you" response in the Mark Done sheet; it is not persisted.
+    return { transcript, derived, coachReply };
   },
 });

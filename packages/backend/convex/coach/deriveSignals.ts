@@ -98,6 +98,31 @@ const derivedSchema = z.object({
     .describe(
       "Anything else useful the runner said that doesn't fit the fields above, verbatim and in their own language.",
     ),
+  concern: z
+    .enum(["none", "watch", "act"])
+    .describe(
+      [
+        "How much this debrief warrants interrupting the runner. Judge the whole message, not any single number:",
+        '"none" — nothing notable; the session went fine.',
+        '"watch" — a mild niggle or off-feeling worth acknowledging and keeping an eye on, but not acting on.',
+        '"act" — something serious: real pain, an injury scare, or clear anxiety about upcoming hard sessions, where a good coach would consider changing the plan.',
+        'Lean on what the runner conveys, not just severity numbers — genuine worry counts even without a high pain score. Always pick exactly one.',
+      ].join(" "),
+    ),
+});
+
+/**
+ * The LLM emits the signals plus a short first-person coach reply in the same
+ * call. `coachReply` is *narration*, not a stored signal — the caller returns
+ * it to the client for the in-the-moment "we heard you" response and does not
+ * persist it on the entry.
+ */
+const replySchema = derivedSchema.extend({
+  coachReply: z
+    .string()
+    .describe(
+      "A short (1-2 sentence) first-person reply from the coach to the runner, in the runner's language. Warm, direct, never clinical. Scale it to `concern`: affirm a good session for \"none\"; acknowledge and say you'll keep an eye on it for \"watch\"; for \"act\", take it seriously and recommend going easy on the next hard session. Never invent specific plan numbers.",
+    ),
 });
 
 function systemPrompt(locale: "en" | "fr"): string {
@@ -107,6 +132,7 @@ function systemPrompt(locale: "en" | "fr"): string {
     `The transcript is in ${lang}. Read it carefully and fill in ONLY the fields the runner actually mentioned — leave everything else unset. Do not infer, guess, or invent.`,
     "Pain/effort/sleep/stress/motivation enums are fixed English tokens. Body-part keys are canonical snake_case (see the field description). `mood` and `rawNotes` stay in the runner's own language.",
     "If the runner said nothing relevant to a field, omit it.",
+    "Always set `concern` (the triage tier) and write a `coachReply` — a short first-person reply in the runner's language, scaled to that tier.",
   ].join(" ");
 }
 
@@ -140,21 +166,27 @@ function clamp(
 export async function deriveSignals(
   transcript: string,
   locale: "en" | "fr",
-): Promise<Derived> {
+): Promise<{ derived: Derived; coachReply: string }> {
   const { object } = await generateObject({
     model: anthropic.chat("claude-haiku-4-5-20251001"),
-    schema: derivedSchema,
+    schema: replySchema,
     system: systemPrompt(locale),
     prompt: transcript,
   });
 
-  const painLocations = object.painLocations
+  // `coachReply` is narration, returned to the client but not stored on the
+  // entry; everything else is the structured `derived` signal object.
+  const { coachReply, ...signals } = object;
+
+  const painLocations = signals.painLocations
     ?.map((p) => compact({ ...p, severity: clamp(p.severity, 1, 5) }))
     .filter((p) => typeof p.area === "string" && p.area.length > 0);
 
-  return compact({
-    ...object,
-    rpe: clamp(object.rpe, 0, 10),
+  const derived = compact({
+    ...signals,
+    rpe: clamp(signals.rpe, 0, 10),
     painLocations: painLocations?.length ? painLocations : undefined,
   });
+
+  return { derived, coachReply };
 }

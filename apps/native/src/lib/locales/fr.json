@@ -558,7 +558,9 @@
       "testTimeMinutes": "min",
       "testTimeSeconds": "sec",
       "errorDistanceRequired": "Indique la distance parcourue.",
-      "errorTimeRequired": "Indique ton temps d'arrivée."
+      "errorTimeRequired": "Indique ton temps d'arrivée.",
+      "coachLabel": "Coach",
+      "responseDone": "Terminé"
     },
     "bodyPart": {
       "calf_left": "Mollet gauche",

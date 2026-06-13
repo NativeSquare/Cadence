@@ -14,7 +14,7 @@ import {
   BottomSheetTextInput,
 } from "@gorhom/bottom-sheet";
 import { useAction } from "convex/react";
-import { Check, Mic, Square } from "lucide-react-native";
+import { Check, Mic, Sparkles, Square } from "lucide-react-native";
 import React from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
@@ -90,6 +90,14 @@ export function MarkDoneBottomSheet({
   const [submitError, setSubmitError] = React.useState<string | null>(null);
   const [recordedUri, setRecordedUri] = React.useState<string | null>(null);
   const [recordedDurationMs, setRecordedDurationMs] = React.useState(0);
+  // The coach's in-the-moment reply, shown after a successful capture instead
+  // of dismissing immediately — the "we heard you" beat. `concern` is the
+  // routing tier (drives the response tone; slice 2 adds a decision prompt
+  // for "act").
+  const [response, setResponse] = React.useState<{
+    coachReply: string;
+    concern?: "none" | "watch" | "act";
+  } | null>(null);
   const isSubmitting = form.formState.isSubmitting;
   const isRecording = voiceRecording.isRecording;
 
@@ -179,7 +187,7 @@ export function MarkDoneBottomSheet({
         "audio/m4a",
       );
 
-      await capturePostSession({
+      const result = await capturePostSession({
         workoutId,
         audioStorageId,
         durationMs: recordedDurationMs,
@@ -188,14 +196,25 @@ export function MarkDoneBottomSheet({
         testDurationSeconds: testFields?.durationSeconds,
       });
 
-      sheetRef.current?.dismiss();
+      // Don't dismiss — show the coach's reply (the "we heard you" beat). The
+      // recording inputs are cleared now; the sheet dismisses when the runner
+      // taps Done on the response view.
       form.reset(DEFAULTS);
       setRecordedUri(null);
       setRecordedDurationMs(0);
+      setResponse({
+        coachReply: result.coachReply,
+        concern: result.derived.concern,
+      });
     } catch (err) {
       setSubmitError(getConvexErrorMessage(err));
     }
   });
+
+  const dismissAfterResponse = React.useCallback(() => {
+    selectionFeedback();
+    sheetRef.current?.dismiss();
+  }, [sheetRef]);
 
   const handleDismiss = React.useCallback(() => {
     if (voiceRecording.isRecording) void voiceRecording.stop();
@@ -203,9 +222,21 @@ export function MarkDoneBottomSheet({
     setSubmitError(null);
     setRecordedUri(null);
     setRecordedDurationMs(0);
+    setResponse(null);
   }, [form, voiceRecording]);
 
   const canSubmit = !isSubmitting && !!recordedUri && !isRecording;
+
+  if (response) {
+    return (
+      <BottomSheetModal ref={sheetRef} onDismiss={handleDismiss}>
+        <CoachResponse
+          coachReply={response.coachReply}
+          onDone={dismissAfterResponse}
+        />
+      </BottomSheetModal>
+    );
+  }
 
   return (
     <BottomSheetModal ref={sheetRef} onDismiss={handleDismiss}>
@@ -309,6 +340,54 @@ export function MarkDoneBottomSheet({
         </Pressable>
       </View>
     </BottomSheetModal>
+  );
+}
+
+/**
+ * The coach's reply after a successful capture — the "we heard you" beat.
+ * Shown in place of the form; tapping Done dismisses the sheet. The reply text
+ * is LLM-narrated server-side (already localized), scaled to the debrief's
+ * concern tier. Slice 2 will add a decision prompt (Keep / Ease / Rest) below
+ * this reply when the concern is "act" and a hard session is in conflict.
+ */
+function CoachResponse({
+  coachReply,
+  onDone,
+}: {
+  coachReply: string;
+  onDone: () => void;
+}) {
+  const { t } = useTranslation();
+
+  return (
+    <View className="gap-6 px-5 pb-4 pt-2">
+      <View className="flex-row items-center gap-2">
+        <Sparkles size={16} color={LIGHT_THEME.wMute} strokeWidth={2} />
+        <Text
+          className="font-coach-semibold text-[11px] uppercase tracking-wider"
+          style={{ color: LIGHT_THEME.wMute }}
+        >
+          {t("workout.markDone.coachLabel")}
+        </Text>
+      </View>
+
+      <Text
+        className="font-coach text-base"
+        style={{ color: LIGHT_THEME.wText, lineHeight: 24 }}
+      >
+        {coachReply}
+      </Text>
+
+      <Pressable
+        onPress={onDone}
+        className="items-center rounded-2xl py-3.5 active:opacity-90"
+        style={{ backgroundColor: LIGHT_THEME.wText }}
+      >
+        <Text className="font-coach-bold text-sm" style={{ color: "#FFFFFF" }}>
+          {t("workout.markDone.responseDone")}
+        </Text>
+      </Pressable>
+    </View>
   );
 }
 

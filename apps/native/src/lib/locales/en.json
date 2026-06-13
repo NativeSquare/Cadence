@@ -558,7 +558,9 @@
       "testTimeMinutes": "min",
       "testTimeSeconds": "sec",
       "errorDistanceRequired": "Enter the distance you covered.",
-      "errorTimeRequired": "Enter your finish time."
+      "errorTimeRequired": "Enter your finish time.",
+      "coachLabel": "Coach",
+      "responseDone": "Done"
     },
     "bodyPart": {
       "calf_left": "Left calf",
