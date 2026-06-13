@@ -228,6 +228,30 @@ export const activeForWorkout = query({
   },
 });
 
+/**
+ * Workout ids with an active (non-reverted) intervention for the current user.
+ * Interventions are infrequent, so the row scan is cheap and the result small —
+ * the calendar uses it to badge every reshaped session at once without a query
+ * per cell.
+ */
+export const activeInterventionWorkoutIds = query({
+  args: {},
+  returns: v.array(v.string()),
+  handler: async (ctx): Promise<string[]> => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return [];
+    const rows = await ctx.db
+      .query("coachInterventions")
+      .withIndex("by_userId_firedAt", (q) => q.eq("userId", userId))
+      .collect();
+    const ids = new Set<string>();
+    for (const r of rows) {
+      if (r.revertedAt == null) ids.add(r.workoutId);
+    }
+    return [...ids];
+  },
+});
+
 export const revertIntervention = mutation({
   args: { interventionId: v.id("coachInterventions") },
   handler: async (ctx, { interventionId }) => {

@@ -13,7 +13,7 @@ import {
   workoutTypeLabel,
 } from "@/components/app/workout/workout-helpers";
 import { Text } from "@/components/ui/text";
-import { LIGHT_THEME } from "@/lib/design-tokens";
+import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
 import { useLanguage, type Language } from "@/lib/i18n";
 import { Ionicons } from "@expo/vector-icons";
 import type { WorkoutDoc } from "@nativesquare/agoge/schema";
@@ -27,6 +27,9 @@ import { Pressable, View } from "react-native";
 interface WorkoutCardProps {
   workout: WorkoutDoc;
   onPress: () => void;
+  /** True when an active (non-reverted) coach intervention reshaped this
+   *  session — surfaces a small "Adjusted by coach" badge. */
+  coachAdjusted?: boolean;
 }
 
 function workoutDate(w: WorkoutDoc): string | undefined {
@@ -44,7 +47,11 @@ function formatWorkoutDay(
   return { weekday, day: String(d.getDate()) };
 }
 
-export function WorkoutCard({ workout, onPress }: WorkoutCardProps) {
+export function WorkoutCard({
+  workout,
+  onPress,
+  coachAdjusted,
+}: WorkoutCardProps) {
   const { t } = useTranslation();
   const locale = useLanguage();
 
@@ -123,6 +130,20 @@ export function WorkoutCard({ workout, onPress }: WorkoutCardProps) {
         >
           {subtitleParts.join(" · ")}
         </Text>
+        {coachAdjusted && (
+          <View
+            className="mt-1.5 flex-row items-center gap-1 self-start rounded-full px-2 py-0.5"
+            style={{ backgroundColor: "rgba(140,170,0,0.14)" }}
+          >
+            <Ionicons name="sparkles" size={10} color={COLORS.grn} />
+            <Text
+              className="font-coach-semibold text-[10px] uppercase"
+              style={{ letterSpacing: 0.04 * 10, color: COLORS.grn }}
+            >
+              {t("plan.todayCard.coachAdjusted")}
+            </Text>
+          </View>
+        )}
       </View>
       <Ionicons name="chevron-forward" size={16} color={LIGHT_THEME.wMute} />
     </Pressable>
