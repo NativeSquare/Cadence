@@ -560,6 +560,35 @@
       "errorDistanceRequired": "Indique la distance parcourue.",
       "errorTimeRequired": "Indique ton temps d'arrivée."
     },
+    "bodyPart": {
+      "calf_left": "Mollet gauche",
+      "calf_right": "Mollet droit",
+      "shin_left": "Tibia gauche",
+      "shin_right": "Tibia droit",
+      "achilles_left": "Achille gauche",
+      "achilles_right": "Achille droit",
+      "ankle_left": "Cheville gauche",
+      "ankle_right": "Cheville droite",
+      "foot_left": "Pied gauche",
+      "foot_right": "Pied droit",
+      "knee_left": "Genou gauche",
+      "knee_right": "Genou droit",
+      "hamstring_left": "Ischio gauche",
+      "hamstring_right": "Ischio droit",
+      "quad_left": "Quadriceps gauche",
+      "quad_right": "Quadriceps droit",
+      "it_band_left": "Bandelette IT gauche",
+      "it_band_right": "Bandelette IT droite",
+      "hip_left": "Hanche gauche",
+      "hip_right": "Hanche droite",
+      "hip_flexor_left": "Fléchisseur de hanche gauche",
+      "hip_flexor_right": "Fléchisseur de hanche droit",
+      "glute_left": "Fessier gauche",
+      "glute_right": "Fessier droit",
+      "groin": "Aine",
+      "lower_back": "Bas du dos",
+      "upper_back": "Haut du dos"
+    },
     "baseline": {
       "manualCta": "J'ai un résultat de course récent",
       "sheetTitle": "Passer le test",
@@ -728,6 +757,32 @@
       "voiceNotePlay": "Lire la note vocale",
       "voiceNotePause": "Mettre en pause",
       "voiceNoteUnavailable": "Impossible de charger l'enregistrement",
+      "transcript": "Transcription",
+      "signals": {
+        "mentioned": "Tu as parlé de",
+        "painWithSeverity": "{{area}} ({{severity}}/5)",
+        "rpe": "RPE {{value}}",
+        "effort": {
+          "easy": "Ressenti facile",
+          "right": "Ressenti juste",
+          "hard": "Ressenti difficile"
+        },
+        "sleep": {
+          "poor": "Mauvais sommeil",
+          "ok": "Sommeil correct",
+          "good": "Bon sommeil"
+        },
+        "stress": {
+          "low": "Peu de stress",
+          "med": "Un peu de stress",
+          "high": "Beaucoup de stress"
+        },
+        "motivation": {
+          "low": "Peu de motivation",
+          "med": "Motivation stable",
+          "high": "Très motivé"
+        }
+      },
       "structure": "Structure",
       "fueling": {
         "label": "Ravitaillement",

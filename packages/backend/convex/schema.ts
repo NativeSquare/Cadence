@@ -9,6 +9,11 @@ import { coachInterventions } from "./table/coachInterventions";
 import { coachMemories } from "./table/coachMemories";
 import { contacts } from "./table/contacts";
 import { feedback } from "./table/feedback";
+import { journalEntry } from "./table/journalEntry";
+// `sessionFeedback` is superseded by `journalEntry`. It stays registered only
+// so the `journalEntry.backfillFromSessionFeedback` migration can read it; once
+// that migration has run in production, both this table and its file are
+// removed in a follow-up.
 import { sessionFeedback } from "./table/sessionFeedback";
 import { users } from "./table/users";
 import { weeklyReviews } from "./table/weeklyReviews";
@@ -33,6 +38,7 @@ export default defineSchema({
   coachMemories,
   contacts,
   feedback,
+  journalEntry,
   sessionFeedback,
   users,
   weeklyReviews,

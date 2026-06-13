@@ -560,6 +560,35 @@
       "errorDistanceRequired": "Enter the distance you covered.",
       "errorTimeRequired": "Enter your finish time."
     },
+    "bodyPart": {
+      "calf_left": "Left calf",
+      "calf_right": "Right calf",
+      "shin_left": "Left shin",
+      "shin_right": "Right shin",
+      "achilles_left": "Left Achilles",
+      "achilles_right": "Right Achilles",
+      "ankle_left": "Left ankle",
+      "ankle_right": "Right ankle",
+      "foot_left": "Left foot",
+      "foot_right": "Right foot",
+      "knee_left": "Left knee",
+      "knee_right": "Right knee",
+      "hamstring_left": "Left hamstring",
+      "hamstring_right": "Right hamstring",
+      "quad_left": "Left quad",
+      "quad_right": "Right quad",
+      "it_band_left": "Left IT band",
+      "it_band_right": "Right IT band",
+      "hip_left": "Left hip",
+      "hip_right": "Right hip",
+      "hip_flexor_left": "Left hip flexor",
+      "hip_flexor_right": "Right hip flexor",
+      "glute_left": "Left glute",
+      "glute_right": "Right glute",
+      "groin": "Groin",
+      "lower_back": "Lower back",
+      "upper_back": "Upper back"
+    },
     "baseline": {
       "manualCta": "I have a recent race result",
       "sheetTitle": "Skip the test",
@@ -728,6 +757,32 @@
       "voiceNotePlay": "Play voice note",
       "voiceNotePause": "Pause voice note",
       "voiceNoteUnavailable": "Couldn't load the recording",
+      "transcript": "Transcript",
+      "signals": {
+        "mentioned": "You mentioned",
+        "painWithSeverity": "{{area}} ({{severity}}/5)",
+        "rpe": "RPE {{value}}",
+        "effort": {
+          "easy": "Felt easy",
+          "right": "Felt right",
+          "hard": "Felt hard"
+        },
+        "sleep": {
+          "poor": "Slept poorly",
+          "ok": "Slept ok",
+          "good": "Slept well"
+        },
+        "stress": {
+          "low": "Low stress",
+          "med": "Some stress",
+          "high": "High stress"
+        },
+        "motivation": {
+          "low": "Low motivation",
+          "med": "Steady motivation",
+          "high": "High motivation"
+        }
+      },
       "structure": "Structure",
       "fueling": {
         "label": "Fueling",

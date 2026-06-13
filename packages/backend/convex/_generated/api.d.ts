@@ -47,6 +47,7 @@ import type * as auth_ResendOTPPasswordReset from "../auth/ResendOTPPasswordRese
 import type * as broadcastSend from "../broadcastSend.js";
 import type * as broadcasts from "../broadcasts.js";
 import type * as coach_agent from "../coach/agent.js";
+import type * as coach_deriveSignals from "../coach/deriveSignals.js";
 import type * as coach_instructions from "../coach/instructions.js";
 import type * as coach_messages from "../coach/messages.js";
 import type * as coach_narrations_dailyCheckIn from "../coach/narrations/dailyCheckIn.js";
@@ -69,6 +70,7 @@ import type * as engine_reschedule from "../engine/reschedule.js";
 import type * as engine_rules from "../engine/rules.js";
 import type * as engine_weeklyReview from "../engine/weeklyReview.js";
 import type * as http from "../http.js";
+import type * as journal from "../journal.js";
 import type * as migrations from "../migrations.js";
 import type * as notifications from "../notifications.js";
 import type * as soma_garmin from "../soma/garmin.js";
@@ -87,6 +89,7 @@ import type * as table_coachInterventions from "../table/coachInterventions.js";
 import type * as table_coachMemories from "../table/coachMemories.js";
 import type * as table_contacts from "../table/contacts.js";
 import type * as table_feedback from "../table/feedback.js";
+import type * as table_journalEntry from "../table/journalEntry.js";
 import type * as table_sessionFeedback from "../table/sessionFeedback.js";
 import type * as table_users from "../table/users.js";
 import type * as table_weeklyReviews from "../table/weeklyReviews.js";
@@ -139,6 +142,7 @@ declare const fullApi: ApiFromModules<{
   broadcastSend: typeof broadcastSend;
   broadcasts: typeof broadcasts;
   "coach/agent": typeof coach_agent;
+  "coach/deriveSignals": typeof coach_deriveSignals;
   "coach/instructions": typeof coach_instructions;
   "coach/messages": typeof coach_messages;
   "coach/narrations/dailyCheckIn": typeof coach_narrations_dailyCheckIn;
@@ -161,6 +165,7 @@ declare const fullApi: ApiFromModules<{
   "engine/rules": typeof engine_rules;
   "engine/weeklyReview": typeof engine_weeklyReview;
   http: typeof http;
+  journal: typeof journal;
   migrations: typeof migrations;
   notifications: typeof notifications;
   "soma/garmin": typeof soma_garmin;
@@ -179,6 +184,7 @@ declare const fullApi: ApiFromModules<{
   "table/coachMemories": typeof table_coachMemories;
   "table/contacts": typeof table_contacts;
   "table/feedback": typeof table_feedback;
+  "table/journalEntry": typeof table_journalEntry;
   "table/sessionFeedback": typeof table_sessionFeedback;
   "table/users": typeof table_users;
   "table/weeklyReviews": typeof table_weeklyReviews;

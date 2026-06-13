@@ -13,7 +13,7 @@ import {
   BottomSheetModal as GorhomBottomSheetModal,
   BottomSheetTextInput,
 } from "@gorhom/bottom-sheet";
-import { useMutation } from "convex/react";
+import { useAction } from "convex/react";
 import { Check, Mic, Square } from "lucide-react-native";
 import React from "react";
 import { Controller, useForm } from "react-hook-form";
@@ -73,10 +73,10 @@ export function MarkDoneBottomSheet({
   plannedDate,
 }: MarkDoneBottomSheetProps) {
   const { t } = useTranslation();
-  const updateWorkout = useMutation(api.agoge.workouts.updateWorkout);
-  const recordForWorkout = useMutation(
-    api.table.sessionFeedback.recordForWorkout,
-  );
+  // One action owns the whole capture→derive pipeline (transcribe, extract
+  // signals, mark done, persist). It's all-or-nothing: a transcription/LLM
+  // failure commits nothing, so the recording is kept and the user retries.
+  const capturePostSession = useAction(api.journal.capturePostSession);
   const { uploadFileToStorage } = useUploadImage();
   const micPermission = useMicrophonePermission();
   const voiceRecording = useVoiceRecording();
@@ -179,16 +179,13 @@ export function MarkDoneBottomSheet({
         "audio/m4a",
       );
 
-      const actual = {
-        date: plannedDate ?? nowIso(),
-        ...(testFields ?? {}),
-      };
-      await updateWorkout({ workoutId, status: "completed", actual });
-
-      await recordForWorkout({
+      await capturePostSession({
         workoutId,
         audioStorageId,
         durationMs: recordedDurationMs,
+        actualDate: plannedDate ?? nowIso(),
+        testDistanceMeters: testFields?.distanceMeters,
+        testDurationSeconds: testFields?.durationSeconds,
       });
 
       sheetRef.current?.dismiss();
