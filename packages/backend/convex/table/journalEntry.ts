@@ -1,7 +1,7 @@
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { defineTable } from "convex/server";
-import { v } from "convex/values";
-import { internalMutation, query } from "../_generated/server";
+import { ConvexError, v } from "convex/values";
+import { internalMutation, mutation, query } from "../_generated/server";
 import { migrations } from "../migrations";
 
 /**
@@ -76,6 +76,14 @@ const documentSchema = {
   transcript: v.optional(v.string()),
   transcriptLang: v.optional(v.union(v.literal("en"), v.literal("fr"))),
   derived: v.optional(derivedValidator),
+  // The runner's logged intention at the post-session fork: Keep → "go",
+  // Ease → "ease". Set only when a decision fork was actually presented
+  // (`concern: "act"` + a conflicting hard session); quiet sessions leave it
+  // unset, so "decision is present" means "a real choice was on the table".
+  // This is the minimal first-class Decision — `reason`, context snapshot, and
+  // outcome are deliberately deferred until there's a reader. See CONTEXT.md
+  // "Decision vs Intervention".
+  decision: v.optional(v.union(v.literal("go"), v.literal("ease"))),
 };
 
 export const journalEntry = defineTable(documentSchema)
@@ -111,6 +119,37 @@ export const recordPostSession = internalMutation({
       transcriptLang: args.transcriptLang,
       derived: args.derived,
     });
+  },
+});
+
+/**
+ * Log the runner's intention at the post-session decision fork onto the entry
+ * the capture just created. Called from the Mark Done sheet: Keep → "go",
+ * Ease → "ease" (the ease additionally fires the Engine intervention; this only
+ * records the choice). Auth-scoped to the owner. The minimal first-class
+ * Decision — see the `decision` field comment.
+ */
+export const recordDecision = mutation({
+  args: {
+    entryId: v.id("journalEntry"),
+    intention: v.union(v.literal("go"), v.literal("ease")),
+  },
+  handler: async (ctx, { entryId, intention }) => {
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) {
+      throw new ConvexError({
+        code: "UNAUTHORIZED",
+        message: "Not authenticated",
+      });
+    }
+    const row = await ctx.db.get(entryId);
+    if (!row || row.userId !== userId) {
+      throw new ConvexError({
+        code: "NOT_FOUND",
+        message: "Journal entry not found",
+      });
+    }
+    await ctx.db.patch(entryId, { decision: intention });
   },
 });
 

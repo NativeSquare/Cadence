@@ -8,6 +8,7 @@ import { useUploadImage } from "@/hooks/use-upload-image";
 import { useVoiceRecording } from "@/hooks/use-voice-recording";
 import { getConvexErrorMessage } from "@/utils/getConvexErrorMessage";
 import { api } from "@packages/backend/convex/_generated/api";
+import type { Id } from "@packages/backend/convex/_generated/dataModel";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   BottomSheetModal as GorhomBottomSheetModal,
@@ -80,6 +81,11 @@ export function MarkDoneBottomSheet({
   const easeConflictingSession = useMutation(
     api.engine.interventions.easeConflictingSession,
   );
+  // Logs the runner's intention (`go`/`ease`) onto the journal entry the
+  // capture just created — the minimal first-class Decision. Independent of
+  // the ease reshape: Keep logs `go` and changes nothing; Ease logs `ease`
+  // alongside the Engine intervention.
+  const recordDecision = useMutation(api.table.journalEntry.recordDecision);
   const { uploadFileToStorage } = useUploadImage();
   const micPermission = useMicrophonePermission();
   const voiceRecording = useVoiceRecording();
@@ -99,6 +105,9 @@ export function MarkDoneBottomSheet({
   // offer a one-tap ease (the Path B decision prompt).
   const [response, setResponse] = React.useState<{
     coachReply: string;
+    // The journal entry the capture created — the target for `recordDecision`
+    // when the runner picks Keep/Ease.
+    entryId: Id<"journalEntry">;
     conflict: {
       workoutId: string;
       name: string;
@@ -212,6 +221,7 @@ export function MarkDoneBottomSheet({
       setRecordedDurationMs(0);
       setResponse({
         coachReply: result.coachReply,
+        entryId: result.entryId,
         conflict: result.conflict,
       });
     } catch (err) {
@@ -242,6 +252,9 @@ export function MarkDoneBottomSheet({
           coachReply={response.coachReply}
           conflict={response.conflict}
           onEase={(workoutId) => easeConflictingSession({ workoutId })}
+          onDecision={(intention) =>
+            recordDecision({ entryId: response.entryId, intention })
+          }
           onDone={dismissAfterResponse}
         />
       </BottomSheetModal>
@@ -366,11 +379,13 @@ function CoachResponse({
   coachReply,
   conflict,
   onEase,
+  onDecision,
   onDone,
 }: {
   coachReply: string;
   conflict: { workoutId: string; name: string } | null;
   onEase: (workoutId: string) => Promise<unknown>;
+  onDecision: (intention: "go" | "ease") => Promise<unknown>;
   onDone: () => void;
 }) {
   const { t } = useTranslation();
@@ -384,11 +399,21 @@ function CoachResponse({
     setPhase("easing");
     try {
       await onEase(conflict.workoutId);
+      // Log the intention once the reshape succeeded — best-effort, the
+      // decision log must never block or fail the ease.
+      void onDecision("ease");
       setPhase("eased");
     } catch (err) {
       console.error("[MarkDoneBottomSheet] ease failed", err);
       setPhase("error");
     }
+  };
+
+  // Keep: log `go` (best-effort) and dismiss. Only reachable when a fork was
+  // presented, so a logged decision always means a real choice was on offer.
+  const handleKeep = () => {
+    void onDecision("go");
+    onDone();
   };
 
   return (
@@ -446,7 +471,7 @@ function CoachResponse({
             )}
           </Pressable>
           <Pressable
-            onPress={onDone}
+            onPress={handleKeep}
             disabled={phase === "easing"}
             className="items-center rounded-2xl border py-3.5 active:opacity-80"
             style={{

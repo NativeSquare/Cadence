@@ -110,16 +110,21 @@ export const capturePostSession = action({
       actual,
     });
 
-    await ctx.runMutation(internal.table.journalEntry.recordPostSession, {
-      userId,
-      workoutId: args.workoutId,
-      dayKey: dayKeyFromInstant(args.actualDate),
-      audioStorageId: args.audioStorageId,
-      durationMs: args.durationMs,
-      transcript,
-      transcriptLang: locale,
-      derived,
-    });
+    // Annotated (not inferred) to break the action→generated-API→action type
+    // cycle that otherwise makes this handler's return type implicitly `any`.
+    const entryId: Id<"journalEntry"> = await ctx.runMutation(
+      internal.table.journalEntry.recordPostSession,
+      {
+        userId,
+        workoutId: args.workoutId,
+        dayKey: dayKeyFromInstant(args.actualDate),
+        audioStorageId: args.audioStorageId,
+        durationMs: args.durationMs,
+        transcript,
+        transcriptLang: locale,
+        derived,
+      },
+    );
 
     // When the debrief is serious enough to act on (`concern: "act"`), look for
     // the nearest upcoming hard session in the next few days. If one exists,
@@ -132,8 +137,9 @@ export const capturePostSession = action({
 
     // `coachReply` rides back to the client for the in-the-moment "we heard
     // you" response in the Mark Done sheet; it is not persisted. `conflict`
-    // drives the decision prompt when present.
-    return { transcript, derived, coachReply, conflict };
+    // drives the decision prompt when present. `entryId` lets the client log
+    // the runner's intention (`recordDecision`) onto the entry on Keep/Ease.
+    return { transcript, derived, coachReply, conflict, entryId };
   },
 });
 
