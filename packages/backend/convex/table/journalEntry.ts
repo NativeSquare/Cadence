@@ -1,6 +1,7 @@
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { defineTable } from "convex/server";
 import { ConvexError, v } from "convex/values";
+import { components } from "../_generated/api";
 import { internalMutation, mutation, query } from "../_generated/server";
 import { migrations } from "../migrations";
 
@@ -168,6 +169,112 @@ export const getForWorkout = query({
       .withIndex("by_workout", (q) => q.eq("workoutId", workoutId))
       .order("desc")
       .first();
+    if (!row || row.userId !== userId) return null;
+    const audioUrl = row.audioStorageId
+      ? await ctx.storage.getUrl(row.audioStorageId)
+      : null;
+    return { ...row, audioUrl };
+  },
+});
+
+/**
+ * The Decisions list behind the Coach dashboard — the runner's recorded calls
+ * at a post-session fork (`decision` set: Keep → "go", Ease → "ease"). Strict:
+ * only rows where a real choice was on the table appear (a fork is presented
+ * only on `concern: "act"` + a conflicting hard session), so this is
+ * near-empty for most users by design — it stakes out the moat surface, it
+ * doesn't pretend to be full.
+ *
+ * Enriched server-side: each row is joined to its Agoge workout for a
+ * display-ready `{ workoutName, workoutType }`. A deleted/reassigned workout
+ * yields `null` names (kept, not dropped — a recorded decision must not vanish
+ * because the workout was later edited); the client renders a localized
+ * fallback label. Recent-N descending; the volume is trivial so the per-row
+ * join is a non-issue. Auth-scoped to the owner.
+ */
+export const listDecisions = query({
+  args: { limit: v.optional(v.number()) },
+  handler: async (ctx, { limit }) => {
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) return [];
+
+    const rows = await ctx.db
+      .query("journalEntry")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .order("desc")
+      .collect();
+
+    const decided = rows
+      .filter((r) => r.decision !== undefined)
+      .slice(0, limit ?? 50);
+
+    return await Promise.all(
+      decided.map(async (r) => {
+        const workout = await ctx.runQuery(components.agoge.public.getWorkout, {
+          workoutId: r.workoutId,
+        });
+        return {
+          entryId: r._id,
+          workoutId: r.workoutId,
+          dayKey: r.dayKey,
+          decision: r.decision!,
+          workoutName: workout?.name ?? null,
+          workoutType: workout?.type ?? null,
+        };
+      }),
+    );
+  },
+});
+
+/**
+ * Scan reader for the chat Coach (`listJournalEntries` tool). Compact rows —
+ * `derived` (the structured distillation) but NO transcript — so the agent can
+ * sweep a date range cheaply and decide what to open with `getEntry`. Keeping
+ * full transcripts out of the list is what protects the agent's context
+ * window. Optional `dayKey` bounds (inclusive) and a `decisionOnly` filter.
+ * Auth-scoped to the owner.
+ */
+export const listEntries = query({
+  args: {
+    startDate: v.optional(v.string()),
+    endDate: v.optional(v.string()),
+    decisionOnly: v.optional(v.boolean()),
+  },
+  handler: async (ctx, { startDate, endDate, decisionOnly }) => {
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) return [];
+
+    const rows = await ctx.db
+      .query("journalEntry")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .order("desc")
+      .collect();
+
+    return rows
+      .filter((r) => (startDate ? r.dayKey >= startDate : true))
+      .filter((r) => (endDate ? r.dayKey <= endDate : true))
+      .filter((r) => (decisionOnly ? r.decision !== undefined : true))
+      .map((r) => ({
+        entryId: r._id,
+        dayKey: r.dayKey,
+        workoutId: r.workoutId,
+        decision: r.decision ?? null,
+        derived: r.derived ?? null,
+      }));
+  },
+});
+
+/**
+ * Drill-in reader for the chat Coach (`getJournalEntry` tool): the full entry
+ * including transcript and a playable audio URL — the runner's actual words,
+ * fetched only when restitution needs them. Auth-scoped to the owner.
+ */
+export const getEntry = query({
+  args: { entryId: v.id("journalEntry") },
+  handler: async (ctx, { entryId }) => {
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) return null;
+    const row = await ctx.db.get(entryId);
     if (!row || row.userId !== userId) return null;
     const audioUrl = row.audioStorageId
       ? await ctx.storage.getUrl(row.audioStorageId)

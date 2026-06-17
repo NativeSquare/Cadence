@@ -44,6 +44,14 @@ export default function AppLayout() {
             animation: "slide_from_right",
           }}
         />
+        <Stack.Screen
+          name="coach/chat"
+          options={{
+            headerShown: false,
+            presentation: "card",
+            animation: "slide_from_right",
+          }}
+        />
       </Stack>
     </View>
   );

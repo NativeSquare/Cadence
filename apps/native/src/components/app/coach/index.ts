@@ -1,3 +1,4 @@
+export { CoachDashboard } from "./CoachDashboard";
 export { CoachScreen } from "./CoachScreen";
 export { CoachChatView } from "./CoachChatView";
 export { ChatHeader } from "./ChatHeader";

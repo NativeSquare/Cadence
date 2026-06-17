@@ -1,5 +1,5 @@
-import { CoachScreen } from "@/components/app/coach";
+import { CoachDashboard } from "@/components/app/coach";
 
 export default function Coach() {
-  return <CoachScreen />;
+  return <CoachDashboard />;
 }

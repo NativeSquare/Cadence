@@ -277,6 +277,23 @@
       "subtitle": "Tout ce qui figure dans cette liste fait partie de chacune de nos conversations.",
       "empty": "Rien pour l'instant. Au fil de nos échanges, je noterai ce qui compte pour ton entraînement."
     },
+    "portrait": {
+      "title": "Ce que j'ai appris sur toi",
+      "empty": "J'apprends encore à te connaître. Continue à raconter tes séances et je comprendrai peu à peu comment tu cours."
+    },
+    "decisions": {
+      "title": "Tes décisions",
+      "empty": "Quand tu fais un choix sur une séance — la maintenir ou l'alléger — il apparaîtra ici.",
+      "deletedWorkout": "Séance",
+      "badge": {
+        "kept": "Maintenue",
+        "eased": "Allégée"
+      }
+    },
+    "chatEntry": {
+      "title": "Pose-moi une question",
+      "subtitle": "Démarre une conversation avec ton coach"
+    },
     "typing": {
       "badge": "Coach"
     },

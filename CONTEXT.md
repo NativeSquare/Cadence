@@ -128,7 +128,13 @@ A short, stable, athlete-facing fact the chat **Coach** records about the Runner
 _Distinct from_ **Insight**: a Coach Memory is free-text the LLM chose to remember; an Insight is a detector-produced, evidence-thresholded pattern (not yet built).
 
 **Context sheet**:
-The in-app surface listing the Runner's **Coach Memories** verbatim — the transparency guarantee that the Runner always sees what the Coach is told.
+The in-app surface listing the Runner's **Coach Memories** verbatim — the transparency guarantee that the Runner always sees what the Coach is told. _Status (2026-06-17)_: as its own surface (the chat-header sheet) it is **folded into the Portrait** at MVP — while the Portrait is itself a verbatim render, the Portrait *is* the transparency guarantee. The `CoachContextSheet` component is **shelved, not deleted**: it returns as the "see the raw memories" disclosure the moment the Portrait gains synthesis (paraphrase) and the verbatim guarantee needs its own home again.
+
+**Portrait** ("Ce que j'ai appris sur toi"):
+The Coach-tab section that shows the Runner who the Coach understands them to be. *Intended* end state: an evolving first-person synthesis over **Coach Memories** plus longitudinal signals. *MVP today*: a styled render of the Runner's **Coach Memories** — no synthesis, no storage. Because the render is verbatim, the Portrait also **carries the transparency guarantee** at MVP (the **Context sheet** is folded in). The richer summary (and the "longitudinal signals") waits on **Insights** / **Outcomes**, which are deferred; when synthesis lands it stops being verbatim, and the shelved Context sheet returns as a "raw memories" disclosure.
+
+**Coach dashboard**:
+The Coach tab's landing surface — a vertical read, not a chat box: **Portrait**, then the **Decisions** list, then an entry into the chat. The free-form chat is a pushed screen, not the tab itself. Analytics ("Courbes") is a separate tab, not folded in at MVP.
 
 ### Journal — the wedge spine
 

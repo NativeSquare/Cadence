@@ -18,6 +18,7 @@
 import { createTool } from "@convex-dev/agent";
 import { z } from "zod";
 import { api, components } from "../../_generated/api";
+import type { Id } from "../../_generated/dataModel";
 
 const dateRangeFields = {
   startDate: z
@@ -231,6 +232,49 @@ export const readingTools = {
     needsApproval: false,
     execute: async (ctx): Promise<unknown> => {
       return await ctx.runQuery(api.soma.index.listConnections, {});
+    },
+  }),
+
+  // ---------------------------------------------------------------------------
+  // Journal — the runner's qualitative spine (voice debriefs + decisions)
+  // ---------------------------------------------------------------------------
+
+  listJournalEntries: createTool({
+    description:
+      "Scan the runner's post-session journal entries in a date range. " +
+      "Returns COMPACT rows — the LLM-extracted `derived` signals (RPE, pain, " +
+      "sleep, stress, motivation, effort, mood, concern tier), the logged " +
+      "decision (go/ease), dayKey, workoutId, and entryId — but NOT the " +
+      "transcript. Use this to find which sessions are worth opening, then " +
+      "call getJournalEntry for the runner's actual words. Set decisionOnly " +
+      "to list only sessions where the runner made a keep/ease call.",
+    inputSchema: z.object({
+      ...dateRangeFields,
+      decisionOnly: z
+        .boolean()
+        .optional()
+        .describe("Only entries where the runner logged a keep/ease decision."),
+    }),
+    needsApproval: false,
+    execute: async (ctx, args): Promise<unknown> => {
+      return await ctx.runQuery(api.table.journalEntry.listEntries, args);
+    },
+  }),
+
+  getJournalEntry: createTool({
+    description:
+      "Read one journal entry in full, including its transcript (the runner's " +
+      "actual words) and a playable audio URL. Use after listJournalEntries " +
+      "to ground restitution in what the runner literally said at a similar " +
+      "moment.",
+    inputSchema: z.object({
+      entryId: z.string().describe("The journalEntry id from listJournalEntries."),
+    }),
+    needsApproval: false,
+    execute: async (ctx, { entryId }): Promise<unknown> => {
+      return await ctx.runQuery(api.table.journalEntry.getEntry, {
+        entryId: entryId as Id<"journalEntry">,
+      });
     },
   }),
 };

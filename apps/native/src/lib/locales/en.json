@@ -277,6 +277,23 @@
       "subtitle": "Everything in this list is part of every conversation we have.",
       "empty": "Nothing yet. As we talk, I'll keep track of things about you that matter for your training."
     },
+    "portrait": {
+      "title": "What I've learned about you",
+      "empty": "I'm still getting to know you. Keep logging your sessions and I'll start to understand how you run."
+    },
+    "decisions": {
+      "title": "Your decisions",
+      "empty": "When you make a call on a session — keep it or ease it — it'll show up here.",
+      "deletedWorkout": "Session",
+      "badge": {
+        "kept": "Kept",
+        "eased": "Eased"
+      }
+    },
+    "chatEntry": {
+      "title": "Ask me anything",
+      "subtitle": "Start a conversation with your coach"
+    },
     "typing": {
       "badge": "Coach"
     },
