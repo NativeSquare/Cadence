@@ -1,40 +1,26 @@
 /**
- * HRV daily chart with coach-intervention markers.
+ * HRV daily chart.
  *
  * Reads daily RMSSD values and renders a per-day bar across a 4-week or
- * 12-week window. A dashed line marks the window mean (the trigger compares
- * each day against a 14-day rolling baseline; the chart shows the simpler
- * window average so the runner has a single reference line to read against).
- *
- * Each row from `analytics.interventions.list` becomes a pinging lime dot
- * over the day the rule fired. Tapping a dot opens the intervention detail
- * sheet (one sentence + original→new diff + optional signal details).
+ * 12-week window. A dashed line marks the window mean. Read-only Analytics
+ * context — no plan trigger reads this (ADR-0003).
  */
 
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { View } from "react-native";
 import Svg, { G, Line, Rect, Text as SvgText } from "react-native-svg";
 import { Activity } from "lucide-react-native";
-import type { BottomSheetModal as GorhomBottomSheetModal } from "@gorhom/bottom-sheet";
 import { Text } from "@/components/ui/text";
 import { LIGHT_THEME } from "@/lib/design-tokens";
 import { CardShell } from "../parts/CardShell";
 import { ChartEmpty } from "../parts/ChartEmpty";
 import { WEEK_COUNTS, type WeekWindow } from "../lib/window";
-import {
-  InterventionMarkers,
-  InterventionVerticals,
-  type ChartIntervention,
-  type ChartMarker,
-} from "../parts/InterventionMarkers";
-import { InterventionDetailSheet } from "../parts/InterventionDetailSheet";
 import type { DataTypeKey } from "@/lib/providers/capabilities";
 
 type HrvDay = { date: string; hrvRmssd: number };
 type Props = {
   days: HrvDay[];
-  interventions: ChartIntervention[];
   width: number;
   lockedDataType?: DataTypeKey;
 };
@@ -49,37 +35,11 @@ const PAD_R = 8;
 const PAD_T = 18;
 const PAD_B = 22;
 
-export function HrvCard({ days, interventions, width, lockedDataType }: Props) {
+export function HrvCard({ days, width, lockedDataType }: Props) {
   const { t } = useTranslation();
   const [window, setWindow] = useState<WeekWindow>("4w");
-  const [active, setActive] = useState<ChartIntervention | null>(null);
-  const sheetRef = useRef<GorhomBottomSheetModal | null>(null);
 
   const series = useMemo(() => buildSeries(days, window), [days, window]);
-
-  const innerW = Math.max(0, width - PAD_L - PAD_R);
-  const slotW = innerW / Math.max(1, series.bars.length);
-
-  const markers = useMemo<ChartMarker[]>(() => {
-    if (series.bars.length === 0) return [];
-    const byDate = new Map(series.bars.map((b, i) => [b.key, i]));
-    const out: ChartMarker[] = [];
-    for (const itv of interventions) {
-      const dateKey = new Date(itv.firedAt).toISOString().slice(0, 10);
-      const idx = byDate.get(dateKey);
-      if (idx === undefined) continue;
-      out.push({
-        intervention: itv,
-        leftPx: PAD_L + idx * slotW + slotW / 2,
-      });
-    }
-    return out;
-  }, [interventions, series.bars, slotW]);
-
-  const handleMarkerPress = (intervention: ChartIntervention) => {
-    setActive(intervention);
-    sheetRef.current?.present();
-  };
 
   return (
     <CardShell
@@ -108,14 +68,8 @@ export function HrvCard({ days, interventions, width, lockedDataType }: Props) {
             </Text>
           </View>
           <View style={{ position: "relative" }}>
-            <HrvBars width={width} series={series} markers={markers} />
-            <InterventionMarkers
-              markers={markers}
-              topPx={PAD_T - 6}
-              onPress={handleMarkerPress}
-            />
+            <HrvBars width={width} series={series} />
           </View>
-          <InterventionDetailSheet sheetRef={sheetRef} intervention={active} />
         </>
       )}
     </CardShell>
@@ -170,15 +124,7 @@ function niceMax(v: number): number {
   return step * pow;
 }
 
-function HrvBars({
-  width,
-  series,
-  markers,
-}: {
-  width: number;
-  series: Series;
-  markers: ChartMarker[];
-}) {
+function HrvBars({ width, series }: { width: number; series: Series }) {
   const innerW = Math.max(0, width - PAD_L - PAD_R);
   const innerH = CHART_HEIGHT - PAD_T - PAD_B;
 
@@ -219,11 +165,6 @@ function HrvBars({
           );
         })}
       </G>
-      <InterventionVerticals
-        markers={markers}
-        topY={PAD_T - 4}
-        bottomY={PAD_T + innerH}
-      />
       <G>
         {series.bars.map((b, i) => {
           if (b.value <= 0) return null;

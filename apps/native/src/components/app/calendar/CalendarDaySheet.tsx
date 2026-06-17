@@ -18,8 +18,6 @@ interface CalendarDaySheetProps {
   sheetRef: React.RefObject<GorhomBottomSheetModal | null>;
   selectedDate: string;
   workouts: WorkoutDoc[];
-  /** Workout ids with an active coach reshape — badged in the row. */
-  adjustedWorkoutIds: Set<string>;
   onWorkoutPress: (workoutId: string) => void;
   onAddWorkout: () => void;
   onReschedule: (workout: WorkoutDoc) => void;
@@ -30,7 +28,6 @@ export function CalendarDaySheet({
   sheetRef,
   selectedDate,
   workouts,
-  adjustedWorkoutIds,
   onWorkoutPress,
   onAddWorkout,
   onReschedule,
@@ -76,7 +73,6 @@ export function CalendarDaySheet({
                   <WorkoutCard
                     workout={w}
                     onPress={() => onWorkoutPress(w._id)}
-                    coachAdjusted={adjustedWorkoutIds.has(w._id)}
                   />
                   {canEdit && (
                     <View className="flex-row gap-1.5 pl-1">

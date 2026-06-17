@@ -105,13 +105,6 @@ export function CalendarScreen() {
   const [selectedDate, setSelectedDate] = useState<string>(mountTodayKey);
 
   const workouts = useQuery(api.agoge.workouts.listWorkouts, monthRange);
-  const adjustedWorkoutIdList = useQuery(
-    api.engine.interventions.activeInterventionWorkoutIds,
-  );
-  const adjustedWorkoutIds = useMemo(
-    () => new Set(adjustedWorkoutIdList ?? []),
-    [adjustedWorkoutIdList],
-  );
   const activePlan = useQuery(api.agoge.plans.getAthletePlan);
   const blocks = useQuery(
     api.agoge.blocks.listBlocks,
@@ -408,7 +401,6 @@ export function CalendarScreen() {
         sheetRef={daySheetRef}
         selectedDate={selectedDate}
         workouts={selectedWorkouts}
-        adjustedWorkoutIds={adjustedWorkoutIds}
         onWorkoutPress={handleWorkoutPress}
         onAddWorkout={handleAddWorkout}
         onReschedule={handleReschedule}

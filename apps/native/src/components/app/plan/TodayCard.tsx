@@ -179,29 +179,6 @@ function volumeSummary(workout: WorkoutData): string | null {
 
 // ─── Header (shared) ────────────────────────────────────────────────────────
 
-function CoachAdjustedBadge() {
-  const { t } = useTranslation();
-  return (
-    <View
-      className="flex-row items-center gap-1.5 self-start rounded-full px-2.5 py-1 mb-2"
-      style={{ backgroundColor: "rgba(200,255,0,0.16)" }}
-    >
-      <Svg width={11} height={11} viewBox="0 0 24 24" fill="none">
-        <Path
-          d="M12 2L14 10L22 12L14 14L12 22L10 14L2 12L10 10Z"
-          fill={COLORS.lime}
-        />
-      </Svg>
-      <Text
-        className="text-[11px] font-coach-semibold uppercase"
-        style={{ letterSpacing: 0.04 * 11, color: COLORS.lime }}
-      >
-        {t("plan.todayCard.coachAdjusted")}
-      </Text>
-    </View>
-  );
-}
-
 function CardHeader({ workout }: { workout: WorkoutData }) {
   const { t } = useTranslation();
   // The label container has CSS uppercase, so the translated value can stay
@@ -211,7 +188,6 @@ function CardHeader({ workout }: { workout: WorkoutData }) {
 
   return (
     <View className="px-5 pt-5 pb-3">
-      {workout.coachAdjusted && <CoachAdjustedBadge />}
       <View className="flex-row items-start justify-between mb-1.5">
         {kindLabel && workout.kind ? (
           <Text

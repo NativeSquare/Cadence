@@ -6,7 +6,6 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "@packages/backend/convex/_generated/api";
 
 import { SettingsGroup } from "@/components/app/account/settings-group";
-import { Switch } from "@/components/ui/switch";
 import { Text } from "@/components/ui/text";
 import { LIGHT_THEME } from "@/lib/design-tokens";
 
@@ -21,25 +20,13 @@ export default function CoachSettingsScreen() {
   const { t } = useTranslation();
   const user = useQuery(api.table.users.currentUser);
   const setCoachPrefs = useMutation(api.table.users.setCoachPrefs);
-  const setInterventionsEnabled = useMutation(
-    api.table.users.setCoachInterventionsEnabled,
-  );
 
   const tone: CoachTone = user?.coachPrefs?.tone ?? DEFAULT_TONE;
-  // Default ON: a missing field is treated as enabled. Only an explicit
-  // `false` opts the user out.
-  const interventionsEnabled = user?.coachInterventionsEnabled !== false;
 
   const update = (next: { tone: CoachTone }) => {
     setCoachPrefs({
       prefs: { tone: next.tone },
     }).catch((err) => console.warn("[coach] setCoachPrefs failed", err));
-  };
-
-  const toggleInterventions = (enabled: boolean) => {
-    setInterventionsEnabled({ enabled }).catch((err) =>
-      console.warn("[coach] setCoachInterventionsEnabled failed", err),
-    );
   };
 
   return (
@@ -79,30 +66,6 @@ export default function CoachSettingsScreen() {
                 onPress={() => update({ tone: value })}
               />
             ))}
-          </SettingsGroup>
-
-          <SettingsGroup title={t("account.coach.interventionsSection")}>
-            <View className="flex-row items-center gap-4 px-5 py-4">
-              <View className="flex-1">
-                <Text
-                  className="font-coach-medium text-[16px]"
-                  style={{ color: LIGHT_THEME.wText }}
-                >
-                  {t("account.coach.interventionsToggle.label")}
-                </Text>
-                <Text
-                  className="mt-1 font-coach text-[12px]"
-                  style={{ color: LIGHT_THEME.wMute }}
-                >
-                  {t("account.coach.interventionsToggle.description")}
-                </Text>
-              </View>
-              <Switch
-                checked={interventionsEnabled}
-                onCheckedChange={toggleInterventions}
-                disabled={user === undefined}
-              />
-            </View>
           </SettingsGroup>
         </View>
       </ScrollView>

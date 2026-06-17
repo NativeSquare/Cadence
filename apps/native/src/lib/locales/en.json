@@ -375,8 +375,7 @@
       "totalSuffix": "Total · {{total}}",
       "moreItems": "+ {{count}} more",
       "syncing": "Syncing",
-      "syncFailed": "Sync failed",
-      "coachAdjusted": "Adjusted by coach"
+      "syncFailed": "Sync failed"
     },
     "exportSheet": {
       "title": "Send Workout",
@@ -851,23 +850,6 @@
       "confirm": "Swap dates",
       "confirmTitle": "Swap these two sessions?",
       "confirmSubtitle": "Their dates will be exchanged."
-    },
-    "coachIntervention": {
-      "cardTitle": "Adjusted by your coach",
-      "subtitle": "Why I changed this",
-      "signals": {
-        "hrv": "HRV today {{today}} ms · 14-day average {{baseline}} ms",
-        "sleep": "Sleep last night {{hours}} h",
-        "rhr": "Resting HR today {{bpm}} bpm",
-        "adherence": "Missed quality sessions this week: {{count}}"
-      },
-      "diffOriginal": "Originally planned",
-      "diffNew": "What I changed it to",
-      "revert": "Revert to original",
-      "revertConfirmTitle": "Revert this change?",
-      "revertConfirmBody": "Your original session will replace the easy run.",
-      "revertedLabel": "You reverted this change.",
-      "revertError": "Couldn't revert. Try again."
     }
   },
   "tabs": {
@@ -915,20 +897,6 @@
       "noBody": "Log at least two weigh-ins to see your weight trend.",
       "noCycle": "No cycle data yet — once a record syncs, your current phase will show here.",
       "noHrv": "No HRV data in this window yet."
-    },
-    "intervention": {
-      "sheetTitle": "Adjusted by your coach",
-      "fallbackSentence": "I swapped \"{{original}}\" for \"{{newName}}\".",
-      "diffOriginal": "Originally planned",
-      "diffNew": "What I changed it to",
-      "revertedLabel": "You reverted this change.",
-      "showDetails": "Show details",
-      "hideDetails": "Hide details",
-      "signals": {
-        "hrv": "HRV {{today}} ms vs 14-day average {{baseline}} ms (z = {{z}})",
-        "sleep": "Sleep that night: {{hours}} h",
-        "rhr": "Resting HR that day: {{bpm}} bpm"
-      }
     },
     "cards": {
       "weeklyDistance": {
@@ -1045,11 +1013,6 @@
           "label": "Pragmatic",
           "description": "Terse and operational. Just the facts."
         }
-      },
-      "interventionsSection": "Proactive coaching",
-      "interventionsToggle": {
-        "label": "Adjust my workouts on low recovery",
-        "description": "When your HRV is well below your baseline, I'll downshift your next hard session and tell you why."
       }
     },
     "language": {
