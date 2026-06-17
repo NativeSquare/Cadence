@@ -1,8 +1,8 @@
 /**
  * Unit tests for the deterministic coaching rules.
  *
- * These pure checks back both the manual reschedule/swap actions and the Coach's
- * reschedule policy. The `excludeIds` generalization is the crux: a swap must
+ * These pure checks back the manual reschedule/swap actions (the only callers;
+ * the Coach never reshapes). The `excludeIds` generalization is the crux: a swap must
  * exclude *both* moving workouts from a destination week's tally so it isn't
  * blocked by phantom double-counting. No Convex deps — runs under vitest.
  */

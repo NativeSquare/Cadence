@@ -91,44 +91,10 @@ const rescheduleArgs = v.object({
   date: v.string(),
 });
 
-async function validateRescheduleWorkout(
-  ctx: QueryCtx | MutationCtx,
-  args: typeof rescheduleArgs.type,
-): Promise<ValidationResult> {
-  const owned = await loadOwnedWorkout(ctx, args.workoutId);
-  if (!owned) return fail([requireAuthError]);
-  const { workout } = owned;
-
-  const errors: ValidationError[] = [];
-  if (!workout.planned) {
-    push(errors, {
-      code: "INVALID_STATE",
-      message: "Cannot reschedule a workout without a planned face",
-    });
-  }
-  if (workout.status === "completed") {
-    push(errors, {
-      code: "INVALID_STATE",
-      message: "Cannot reschedule a completed workout",
-    });
-  }
-  push(errors, validateIsoInstantDate(args.date, "date"));
-  push(
-    errors,
-    validatePlannedDateNotAfterActual({ date: args.date }, workout.actual),
-  );
-  push(
-    errors,
-    await validatePlannedDateInBlock(ctx, args.date, workout.blockId),
-  );
-
-  return result(errors);
-}
-
-// Manual ±1-day reschedule. Distinct from `rescheduleWorkout` (which the
-// Engine calls): user-facing, so it carries product constraints (one day only,
-// no past day, target day must be empty) plus the deterministic coaching caps.
-// The richer `reason` lets the UI localize why a candidate day is disabled.
+// Manual ±1-day reschedule — the only reschedule path. User-facing, so it
+// carries product constraints (one day only, no past day, target day must be
+// empty) plus the deterministic coaching caps. The richer `reason` lets the UI
+// localize why a candidate day is disabled.
 const adjacentReasonValidator = v.union(
   v.literal("not_authorized"),
   v.literal("invalid_state"),
@@ -393,12 +359,6 @@ export const dryRunCreateWorkout = query({
   handler: (ctx, args) => validateCreateWorkout(ctx, args),
 });
 
-export const dryRunRescheduleWorkout = query({
-  args: rescheduleArgs.fields,
-  returns: validationResultValidator,
-  handler: (ctx, args) => validateRescheduleWorkout(ctx, args),
-});
-
 export const dryRunUpdateWorkout = query({
   args: updateWorkoutArgs.fields,
   returns: validationResultValidator,
@@ -598,50 +558,6 @@ export const createWorkout = mutation({
     //   { userId: auth.userId, workoutId, operation: "upsert" },
     // );
     return workoutId;
-  },
-});
-
-export const rescheduleWorkout = mutation({
-  args: rescheduleArgs.fields,
-  handler: async (ctx, args) => {
-    const validation = await validateRescheduleWorkout(ctx, args);
-    if (!validation.ok)
-      throw new ConvexError({
-        code: "VALIDATION_FAILED",
-        errors: validation.errors,
-      });
-
-    const { workoutId, date } = args;
-    const owned = await loadOwnedWorkout(ctx, workoutId);
-    if (!owned)
-      throw new ConvexError({
-        code: "VALIDATION_FAILED",
-        errors: [requireAuthError],
-      });
-    const { userId, workout } = owned;
-    const planned = workout.planned;
-    if (!planned) {
-      throw new ConvexError({
-        code: "VALIDATION_FAILED",
-        errors: [
-          {
-            code: "INVALID_STATE",
-            message: "Cannot reschedule a workout without a planned face",
-          },
-        ],
-      });
-    }
-
-    await ctx.runMutation(components.agoge.public.updateWorkout, {
-      workoutId,
-      planned: { ...planned, date },
-    });
-    // Auto-sync to providers disabled — re-enable when ready.
-    // await ctx.scheduler.runAfter(
-    //   0,
-    //   internal.agoge.sync.syncWorkoutToProviders,
-    //   { userId, workoutId, operation: "upsert" },
-    // );
   },
 });
 

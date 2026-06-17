@@ -63,7 +63,6 @@ import type * as emails from "../emails.js";
 import type * as engine_baselineTest from "../engine/baselineTest.js";
 import type * as engine_generatePlan from "../engine/generatePlan.js";
 import type * as engine_interventions from "../engine/interventions.js";
-import type * as engine_reschedule from "../engine/reschedule.js";
 import type * as engine_rules from "../engine/rules.js";
 import type * as http from "../http.js";
 import type * as journal from "../journal.js";
@@ -152,7 +151,6 @@ declare const fullApi: ApiFromModules<{
   "engine/baselineTest": typeof engine_baselineTest;
   "engine/generatePlan": typeof engine_generatePlan;
   "engine/interventions": typeof engine_interventions;
-  "engine/reschedule": typeof engine_reschedule;
   "engine/rules": typeof engine_rules;
   http: typeof http;
   journal: typeof journal;

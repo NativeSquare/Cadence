@@ -2,9 +2,10 @@
  * Engine: prescriptive coaching rules (deterministic)
  *
  * These are opinions, not Agoge invariants: "don't add 3+ quality sessions in
- * a week", "don't blow up the weekly volume by >10%". They guard manual edits
- * (reschedule, swap) and the Coach's reschedule policy alike. Shared here so a
- * single deterministic source of truth backs every caller — no LLM-as-judge.
+ * a week", "don't blow up the weekly volume by >10%". They guard the manual
+ * edits (reschedule, swap) — the only callers; the Coach never reshapes. Shared
+ * here so a single deterministic source of truth backs every caller — no
+ * LLM-as-judge.
  *
  * The check functions are pure (take `planWorkouts`); the `validate*` helpers
  * do the DB read of the athlete's current plan and run the checks.
