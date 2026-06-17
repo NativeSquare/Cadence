@@ -49,7 +49,6 @@ import type * as coach_agent from "../coach/agent.js";
 import type * as coach_deriveSignals from "../coach/deriveSignals.js";
 import type * as coach_instructions from "../coach/instructions.js";
 import type * as coach_messages from "../coach/messages.js";
-import type * as coach_narrations_dailyCheckIn from "../coach/narrations/dailyCheckIn.js";
 import type * as coach_narrations_needsFeedbackReminder from "../coach/narrations/needsFeedbackReminder.js";
 import type * as coach_profiles from "../coach/profiles.js";
 import type * as coach_threads from "../coach/threads.js";
@@ -139,7 +138,6 @@ declare const fullApi: ApiFromModules<{
   "coach/deriveSignals": typeof coach_deriveSignals;
   "coach/instructions": typeof coach_instructions;
   "coach/messages": typeof coach_messages;
-  "coach/narrations/dailyCheckIn": typeof coach_narrations_dailyCheckIn;
   "coach/narrations/needsFeedbackReminder": typeof coach_narrations_needsFeedbackReminder;
   "coach/profiles": typeof coach_profiles;
   "coach/threads": typeof coach_threads;

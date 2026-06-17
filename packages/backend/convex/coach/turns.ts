@@ -31,7 +31,7 @@ export type TurnSeed =
  * stream. From a mutation/HTTP handler/cron, schedule `internal.coach.turns.run`
  * instead — Convex mutations cannot call actions inline.
  *
- * For coach-initiated narration (daily check-in, reminders) use
+ * For coach-initiated narration (reminders) use
  * `deliverCoachNarration` — it routes through the same
  * Agent but with the `narrate` profile and assistant-only thread semantics.
  */
