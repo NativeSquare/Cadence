@@ -6,10 +6,9 @@
  * for the same calendar date, the last non-zero reading wins (mirrors how
  * `analytics/daily.ts` reconciles steps / resting HR).
  *
- * Note: the readiness *trigger* uses its own internal query
- * (`soma.getHrvReadiness`) that computes the live z-score and excludes today
- * from the baseline. This query is for chart rendering only — it returns the
- * raw daily values; the card draws the baseline overlay client-side.
+ * Read-only Analytics context — no plan trigger reads HRV (ADR-0003). This
+ * query returns the raw daily values; the card draws the window mean overlay
+ * client-side.
  */
 
 import { getAuthUserId } from "@convex-dev/auth/server";

@@ -9,6 +9,7 @@ import {
   query,
 } from "../_generated/server";
 import { generateFunctions } from "../utils/generateFunctions";
+import { migrations } from "../migrations";
 
 const coachTone = v.union(
   v.literal("mentor"),
@@ -52,8 +53,10 @@ const documentSchema = {
   role: v.optional(v.union(v.literal("user"), v.literal("admin"))),
   locale: v.optional(v.union(v.literal("en"), v.literal("fr"))),
   coachPrefs: v.optional(coachPrefs),
-  // Default ON: absence / undefined is treated as enabled. Explicit `false`
-  // opts out of proactive plan modifications (HRV-readiness trigger etc.).
+  // @deprecated — gated the now-removed autonomous triggers (ADR-0003). No
+  // reader remains. Kept only so existing docs validate; delete this line in a
+  // follow-up once `unsetCoachInterventionsEnabled` has run in prod (Convex
+  // can't drop a field while live docs still carry it).
   coachInterventionsEnabled: v.optional(v.boolean()),
 
   // Pro subscription mirror (RevenueCat). undefined = never subscribed.
@@ -82,8 +85,7 @@ const partialSchema = {
   role: v.optional(v.union(v.literal("user"), v.literal("admin"))),
   locale: v.optional(v.union(v.literal("en"), v.literal("fr"))),
   coachPrefs: v.optional(coachPrefs),
-  // Default ON: absence / undefined is treated as enabled. Explicit `false`
-  // opts out of proactive plan modifications (HRV-readiness trigger etc.).
+  // @deprecated — see documentSchema above (ADR-0003).
   coachInterventionsEnabled: v.optional(v.boolean()),
 
   // Pro subscription mirror (RevenueCat). undefined = never subscribed.
@@ -231,14 +233,20 @@ export const checkPro = internalQuery({
   handler: async (ctx, { userId }) => hasPro(ctx, userId),
 });
 
-export const setCoachInterventionsEnabled = mutation({
-  args: { enabled: v.boolean() },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (userId === null) {
-      throw new Error("Not authenticated");
+/**
+ * One-shot cleanup: strip the deprecated `coachInterventionsEnabled` field from
+ * every user doc. It gated the autonomous triggers removed in ADR-0003 and has
+ * no reader. Run this against the live deployment, then delete the field line
+ * from the schema in a follow-up:
+ *   npx convex run migrations:runAll \
+ *     '{fn: "table/users:unsetCoachInterventionsEnabled"}'
+ */
+export const unsetCoachInterventionsEnabled = migrations.define({
+  table: "users",
+  migrateOne: async (ctx, doc) => {
+    if (doc.coachInterventionsEnabled !== undefined) {
+      await ctx.db.patch(doc._id, { coachInterventionsEnabled: undefined });
     }
-    await ctx.db.patch(userId, { coachInterventionsEnabled: args.enabled });
   },
 });
 

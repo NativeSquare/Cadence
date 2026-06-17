@@ -11,8 +11,8 @@
  *   prior thread history as context. The coach does not write to the plan;
  *   plan changes go through the deterministic Engine or the UI.
  *
- * - `narrate`: one-shot coach-initiated message (daily check-in, reminders,
- *   intervention notifications). No tools, single step, no streaming, no
+ * - `narrate`: one-shot coach-initiated message (daily check-in, reminders).
+ *   No tools, single step, no streaming, no
  *   auto-save (`runCoachNarration` saves the assistant message manually so the
  *   thread shows only the coach's message — there is no synthetic user turn).
  *   Prior thread history is intentionally excluded; each narration is

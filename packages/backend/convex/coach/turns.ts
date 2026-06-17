@@ -31,8 +31,8 @@ export type TurnSeed =
  * stream. From a mutation/HTTP handler/cron, schedule `internal.coach.turns.run`
  * instead — Convex mutations cannot call actions inline.
  *
- * For coach-initiated narration (daily check-in, reminders, intervention
- * notifications) use `deliverCoachNarration` — it routes through the same
+ * For coach-initiated narration (daily check-in, reminders) use
+ * `deliverCoachNarration` — it routes through the same
  * Agent but with the `narrate` profile and assistant-only thread semantics.
  */
 export async function runCoachTurn(
@@ -71,7 +71,7 @@ export async function runCoachTurn(
  * The caller provides a deterministic `fallback` string. If the LLM call
  * throws or returns empty, we save the fallback instead so the user always
  * gets a notification. Returns the text that was saved (LLM output or
- * fallback) so callers like weeklyReview can persist it on their own rows.
+ * fallback) so callers can persist it on their own rows.
  *
  * The push notification fires as a consequence of the new assistant message.
  */

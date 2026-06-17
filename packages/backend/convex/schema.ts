@@ -5,7 +5,6 @@ import { audienceMembers } from "./table/audienceMembers";
 import { audiences } from "./table/audiences";
 import { broadcastRecipients } from "./table/broadcastRecipients";
 import { broadcasts } from "./table/broadcasts";
-import { coachInterventions } from "./table/coachInterventions";
 import { coachMemories } from "./table/coachMemories";
 import { contacts } from "./table/contacts";
 import { feedback } from "./table/feedback";
@@ -16,7 +15,6 @@ import { journalEntry } from "./table/journalEntry";
 // removed in a follow-up.
 import { sessionFeedback } from "./table/sessionFeedback";
 import { users } from "./table/users";
-import { weeklyReviews } from "./table/weeklyReviews";
 
 // NOTE: Training-domain tables (athletes, zones, events, races, goals, plans,
 // blocks, workouts, workoutTemplates) are owned by the Agoge component
@@ -34,12 +32,10 @@ export default defineSchema({
   audiences,
   broadcastRecipients,
   broadcasts,
-  coachInterventions,
   coachMemories,
   contacts,
   feedback,
   journalEntry,
   sessionFeedback,
   users,
-  weeklyReviews,
 });

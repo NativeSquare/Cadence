@@ -8,7 +8,6 @@
  * deltas — each card shows one thing.
  */
 
-import { CoachInterventionCard } from "@/components/app/workout/coach-intervention-card";
 import { ConfirmationSheet } from "@/components/shared/confirmation-sheet";
 import { ManualPaceSheet } from "@/components/app/workout/manual-pace-sheet";
 import { MarkDoneBottomSheet } from "@/components/app/workout/mark-done-bottom-sheet";
@@ -141,9 +140,6 @@ export function WorkoutDetailPage({ workoutId }: WorkoutDetailPageProps) {
   const locale = useLanguage();
   const router = useRouter();
   const result = useQuery(api.agoge.workouts.getWorkout, {
-    workoutId,
-  });
-  const intervention = useQuery(api.engine.interventions.activeForWorkout, {
     workoutId,
   });
   const deleteWorkout = useMutation(api.agoge.workouts.deleteWorkout);
@@ -314,11 +310,6 @@ export function WorkoutDetailPage({ workoutId }: WorkoutDetailPageProps) {
               </View>
             )}
           </View>
-
-          {/* AI coach analysis leads the readout. */}
-          {intervention && (
-            <CoachInterventionCard intervention={intervention} />
-          )}
 
           {/* Recorded health data — one card per metric. */}
           {workout.actual && <HealthMetrics actual={workout.actual} />}

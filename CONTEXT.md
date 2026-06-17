@@ -22,8 +22,8 @@ _Avoid_: "the chatbot", "the assistant". The Coach never refers to the Engine as
 The human user. In moments of ambiguity the Runner **decides an intention** (go / ease / rest / swap); they never freely edit the plan.
 _Avoid_: "user" in domain conversation; "Athlete" — see ambiguity below.
 
-**Detection**:
-The system-initiated entry point: a scan (HRV, adherence) that either lets the Engine act silently or *prompts* the Runner for qualitative input.
+**Detection** _(no live autonomous scan — 2026-06-17)_:
+The system-initiated entry point: a scan that either lets the Engine act silently or *prompts* the Runner for qualitative input. The quantitative scans that existed (HRV, weekly adherence) were **removed** in the reset to zero (ADR-0003); the concept is kept for the proactive layer to be rebuilt deliberately. Today the only entry point that reaches the Engine is the Runner's own post-session decision.
 _Avoid_: "trigger" as a synonym — a trigger is one mechanism Detection uses, not Detection itself.
 
 ### Decide vs Act (the core distinction)
@@ -35,6 +35,8 @@ Choosing an *intention* under uncertainty. The Runner decides; the Engine then t
 Executing the deterministic plan mutation. Only the Engine acts.
 
 > **Chemin A** (confirmed signals): Engine decides *and* acts, Coach informs. **Chemin B** (qualitative/uncertain signals): Coach restitutes memory → Runner decides intention → Engine acts → Coach confirms. Chemin B is the wedge's hero moment.
+>
+> _Status (2026-06-17)_: **Chemin A has no live path** — all autonomous triggers were removed (ADR-0003). The product is reactive only: the Engine acts solely via Chemin B (post-session ease). Chemin A returns when the proactive layer is rebuilt.
 
 ### Agoge — the training-plan domain (external component)
 
@@ -76,8 +78,8 @@ Owns recorded physiological reality (Garmin / Strava / HealthKit). Source of tru
 A day's biometric record keyed to a calendar day, carrying heart-rate data (HRV, resting HR) among other fields.
 
 **HRV z-score**:
-Today's HRV (rMSSD) expressed as deviations from the Runner's own **14-day baseline** (≥7 samples, else "no signal"). **The one Soma signal the Engine acts on** — it drives the `hrv_low_v1` reshape.
-_Avoid_: bare "HRV" when you mean the z-score; the rule compares against the personal baseline, never an absolute number.
+Today's HRV (rMSSD) expressed as deviations from the Runner's own **14-day baseline** (≥7 samples, else "no signal"). **Read-only context only** as of the reset to zero (ADR-0003): the Engine acts on **no** Soma signal. The `hrv_low_v1` reshape and the z-score computation (`getHrvReadiness`) were removed; the raw HRV **display chart** (`analytics/hrv.ts`) stays as Analytics context.
+_Avoid_: claiming HRV "drives" any plan change — it currently drives none.
 
 **Companion signals** (last night's sleep hours, today's resting HR):
 Captured alongside the HRV reading as context for narration and the decision snapshot. They colour the message; they do **not** independently trigger a reshape.
@@ -98,24 +100,23 @@ The deterministic construction of a **Goal**'s initial **Plan** (`generatePlan.t
 Any deterministic modification of *upcoming* Workouts (scale intensity, deload, drop filler, ease one session). The only way the live plan changes after generation.
 
 **Trigger**:
-A named condition that *authorizes* a Reshape — e.g. `hrv_low_v1` (HRV z-score low), `post_session_ease`. Recorded as `ruleId` on the resulting **Intervention**.
+A named condition that *authorizes* a Reshape. The only **live** trigger is `post_session_ease` (the Runner's Chemin B ease). The autonomous triggers `hrv_low_v1`, `adherence_low_v1`, and `weekly_review_v1` were **removed** in the reset to zero (ADR-0003).
 
 **Guardrail** (`philosophy.*` in code):
 A deterministic invariant that *blocks* a plan move violating training sense — ≤2 quality Workouts/week, ≤+10% weekly volume. Validates Runner edits (**Reschedule**, **Swap**) *and* Coach suggestions. A Guardrail forbids; a Trigger causes. **Live today** — enforced in `agoge/workouts.ts` on every reschedule/swap.
 _Note_: the old "Philosophy" abstraction module was deleted; only the `philosophy.*` error-code prefix survives as residue.
 
-**Intervention**:
-A single recorded, revertible Engine **Reshape** on a Workout, carrying its **Trigger** (`ruleId`) and original + new state. Stored in `coachInterventions`.
-_Avoid_: "edit", "change" — an Intervention is specifically the *logged, revertible* unit.
+**Intervention** _(retired 2026-06-17)_:
+Formerly a separately-stored, revertible Engine **Reshape** (in `coachInterventions`). The table is **deleted outright** (no backfill — ADR-0002 addendum). The surviving trace of a Reshape is `journalEntry.decision === "ease"` on the debrief entry; the before/after snapshot, the revert, and the "Adjusted by coach" badge are all dropped. The runner's transparency is the in-the-moment CoachResponse confirmation, not a persistent record.
 
 **Reschedule / Swap**:
 The Runner's two manual plan edits — move one Workout to another date (Reschedule); exchange two Workouts' dates (Swap). Each is validated against the **Guardrails** before applying.
 
-**Weekly Review**:
-The Monday heartbeat: close the past week (**auto-miss** past-due planned Workouts, grade adherence + load) and **reshape** the upcoming week. Stored in `weeklyReviews`.
+**Weekly Review** _(removed 2026-06-17)_:
+Formerly the Monday heartbeat — close the past week (auto-miss, grade adherence + load) and reshape the upcoming week. **Removed in full** in the reset to zero (ADR-0003): cron, engine, pure core, tests, `weeklyReviews` table, and Coach narration all deleted. No autonomous heartbeat remains.
 
-**Auto-miss**:
-Marking a past-due planned Workout as missed at week close. Only ever applied to *confirmed* past state, never an uncertain present.
+**Auto-miss** _(removed 2026-06-17)_:
+Formerly the week-close flip of a past-due planned Workout → `missed`. Removed with the Weekly Review. Past-due Workouts now stay `planned` until the Runner triages them; the UI derives `needs_feedback` from the date and offers a manual "Mark Missed". No automatic writer of `missed` status remains.
 
 ### Coach — narration & memory
 
@@ -134,7 +135,7 @@ The in-app surface listing the Runner's **Coach Memories** verbatim — the tran
 The qualitative layer. The "memory decisional and qualitative" fourth layer the market left empty.
 
 **Journal Entry**:
-The unit of qualitative capture, keyed to a calendar day and (for post/pre-session) a Workout. Holds the audio, transcript, derived signals, and — per spec — the decision and outcome. Stored in `journalEntry`.
+The unit of the journal spine, keyed to a calendar day and (when about a session) a Workout. A row exists only when there is content to record: a runner voice capture (audio, transcript, derived signals), and/or a **Decision** (system or runner) — its trigger, the chosen action, and any executed mutation's before/after state. Silent evaluations that change nothing write no row. Stored in `journalEntry`; this is the single decision log.
 
 **Derived Signals** (`derived`):
 The structured signals an LLM extracts from a transcript (RPE, pain locations, sleep quality, life stress, motivation, effort feel, mood, notes). The LLM fills only what the Runner actually said; there is no code gate.
@@ -146,8 +147,7 @@ The triage level the extraction assigns to an entry: `none` / `watch` / `act`. S
 A hard/quality Workout sitting close enough (≤3 days) to a concerning post-session signal that easing it is offered.
 
 **Decision** (the decision log):
-The Runner's chosen intention (`go` / `ease` / `rest` / `swap`) plus the *reason* (from their own words) and a **context snapshot** of the quantitative state at that moment. The unit of the decision log.
-_Avoid_: conflating with **Intervention** — see ambiguity below.
+A recorded moment where a **Trigger** prompted a choice to act or not — made by the **Engine** (Chemin A: a *system* decision, e.g. `hrv_low_v1`) or the **Runner** (Chemin B: a chosen intention `go` / `ease`). Carries the trigger (`ruleId`), the chosen action (including no-op like `go` / Keep), and — when it acted — the executed mutation's before/after state. The unit of the decision log; its *acted* facet replaces the old **Intervention**. Stored as rows in the **Journal** (`journalEntry`). A silent evaluation that produces no change records nothing.
 
 **Restitution**:
 The Coach surfacing past decisions/memory at a similar moment ("le 12 mai, même contexte, tu as forcé → 10j d'arrêt"). The pull side of the wedge.
@@ -165,7 +165,7 @@ The later, deterministic labeling of a past Decision — `good_call` / `watch` /
 
 **Workout vs Session**: **Workout** = Agoge's prescription (planned or done) — the only training atom. ("Activity", Soma's raw recorded effort, is retired — Cadence doesn't use it.) "**Session**" is informal UX shorthand ("post-session voice", "Session detail page") — acceptable in UI copy, but in domain conversation say **Workout**.
 
-**Decision vs Intervention**: A **Decision** is the Runner's *intention* + reason + context (Journal). An **Intervention** is the Engine's *executed, revertible* plan mutation (Engine). _Resolved 2026-06-16_: the MVP first-class **Decision** is a single `intention` field (`go` / `ease`) on the **Journal Entry**, written only when a fork was actually presented (post-session `concern: "act"` + a **Conflict** → Keep logs `go`, Ease logs `ease`). `reason`, `contextSnapshot`, and `outcome` are deliberately deferred until there is a concrete reader (restitution / outcome-labeling) — the irreplaceable, in-the-moment bit is the chosen intention; everything else is reconstructable later. So the **Decision** and the **Intervention** are now distinct records: the intention is logged on the entry even when no plan mutation happens (`go`), while an ease additionally writes the **Intervention**.
+**Decision vs Intervention** _(superseded 2026-06-17)_: Previously two records in two tables — the Runner's *intention* on `journalEntry`, and the Engine's *executed, revertible* mutation on `coachInterventions`. Now **unified into one Decision concept**, recorded as rows in the **Journal** (`journalEntry`), covering both *system* decisions (Chemin A, e.g. `hrv_low_v1`) and *runner* decisions (Chemin B, `go` / `ease`). A row is written only when there is content — a mutation fired, voice was captured, or the runner actively chose at a presented fork (Keep `go` included); silent no-op evaluations write nothing. The executed mutation is the *acted* facet of a Decision row, not a separate **Intervention**, and **revert (the undo) is dropped** — the before/after snapshot is retained only as analytics signal. See ADR-0002.
 
 **Insight vs Coach Memory**: An **Insight** is a deterministically detected, evidence-backed *pattern* (machine + human faces). A **Coach Memory** is a softer durable fact feeding the Portrait. Insights feed Detection and generation; Memories feed narration. Do not merge them.
 
@@ -174,6 +174,6 @@ The later, deterministic labeling of a past Decision — `good_call` / `watch` /
 > **Dev**: When the runner says "calf felt tight" after a hard session, does the plan change?
 > **Domain**: Not by itself. That's a **Derived Signal** (a pain location) on the **Journal Entry**. The extraction sets a **Concern tier**. Only if it's `act` *and* there's a **Conflict** — a hard **Workout** within three days — does the Coach offer to ease it.
 > **Dev**: And if they tap "Ease it"?
-> **Domain**: The Runner has **decided** an intention. The **Engine acts** — it performs a **Reshape**, recorded as a revertible **Intervention**. The Coach then **narrates** it. Note the Coach never reshapes; it only informs.
+> **Domain**: The Runner has **decided** an intention. The **Engine acts** — it performs a **Reshape** of the conflicting upcoming Workout, and the choice is recorded as `decision: "ease"` on the debrief **Journal Entry** (no separate Intervention record, no revert). The Coach **narrates** it in the moment. Note the Coach never reshapes; it only informs.
 > **Dev**: So where's the "memory" — the "last time you pushed through this you lost ten days"?
 > **Domain**: That's **Restitution**, and it reads from the **decision log**. It needs first-class **Decisions** with **Outcomes** labeled — which is exactly the part we haven't built yet.
