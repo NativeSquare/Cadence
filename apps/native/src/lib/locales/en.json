@@ -577,6 +577,22 @@
       "errorTimeRequired": "Enter your finish time.",
       "coachLabel": "Coach",
       "responseDone": "Done",
+      "tier": {
+        "none": "All good",
+        "watch": "Worth watching",
+        "act": "Take action"
+      },
+      "capture": {
+        "uploading": "Uploading…",
+        "transcribing": "Transcribing…",
+        "analyzing": {
+          "0": "Reading how it went…",
+          "1": "Picking out the signals…",
+          "2": "Almost there…"
+        },
+        "heardLabel": "What I heard",
+        "retry": "Try again"
+      },
       "decision": {
         "nextUp": "Next hard session: {{name}}",
         "ease": "Ease it",

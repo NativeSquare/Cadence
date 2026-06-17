@@ -577,6 +577,22 @@
       "errorTimeRequired": "Indique ton temps d'arrivée.",
       "coachLabel": "Coach",
       "responseDone": "Terminé",
+      "tier": {
+        "none": "Tout roule",
+        "watch": "À surveiller",
+        "act": "À traiter"
+      },
+      "capture": {
+        "uploading": "Envoi…",
+        "transcribing": "Transcription…",
+        "analyzing": {
+          "0": "J'écoute ton débrief…",
+          "1": "Je repère les signaux…",
+          "2": "Presque fini…"
+        },
+        "heardLabel": "Ce que j'ai entendu",
+        "retry": "Réessayer"
+      },
       "decision": {
         "nextUp": "Prochaine séance dure : {{name}}",
         "ease": "Allège-la",

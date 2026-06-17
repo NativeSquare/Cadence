@@ -13,6 +13,11 @@
 import { Text } from "@/components/ui/text";
 import { LIGHT_THEME } from "@/lib/design-tokens";
 import { selectionFeedback } from "@/lib/haptics";
+import {
+  ConcernTierPill,
+  SignalChips,
+  buildChips,
+} from "@/components/app/workout/signal-display";
 import { api } from "@packages/backend/convex/_generated/api";
 import { useQuery } from "convex/react";
 import {
@@ -24,7 +29,6 @@ import { File, Paths } from "expo-file-system";
 import { ChevronDown, ChevronRight, Pause, Play } from "lucide-react-native";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import type { TFunction } from "i18next";
 import { ActivityIndicator, Pressable, View } from "react-native";
 
 function formatClock(ms: number): string {
@@ -32,52 +36,6 @@ function formatClock(ms: number): string {
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
   return `${minutes}:${seconds.toString().padStart(2, "0")}`;
-}
-
-type Derived = NonNullable<
-  NonNullable<
-    ReturnType<typeof useQuery<typeof api.table.journalEntry.getForWorkout>>
-  >["derived"]
->;
-
-/** Title-case a snake_case body-part key as a last-resort display fallback. */
-function prettifyKey(key: string): string {
-  return key
-    .split("_")
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(" ");
-}
-
-/** Build the "You mentioned" chip labels from the extracted signals. */
-function buildChips(t: TFunction, derived: Derived): string[] {
-  const chips: string[] = [];
-
-  for (const pain of derived.painLocations ?? []) {
-    const area = t(`workout.bodyPart.${pain.area}`, {
-      defaultValue: prettifyKey(pain.area),
-    });
-    chips.push(
-      pain.severity != null
-        ? t("workout.detail.signals.painWithSeverity", {
-            area,
-            severity: pain.severity,
-          })
-        : area,
-    );
-  }
-  if (derived.rpe != null)
-    chips.push(t("workout.detail.signals.rpe", { value: derived.rpe }));
-  if (derived.effortFeel)
-    chips.push(t(`workout.detail.signals.effort.${derived.effortFeel}`));
-  if (derived.sleepQuality)
-    chips.push(t(`workout.detail.signals.sleep.${derived.sleepQuality}`));
-  if (derived.lifeStress)
-    chips.push(t(`workout.detail.signals.stress.${derived.lifeStress}`));
-  if (derived.motivation)
-    chips.push(t(`workout.detail.signals.motivation.${derived.motivation}`));
-  if (derived.mood) chips.push(derived.mood);
-
-  return chips;
 }
 
 export function WorkoutAudioNote({ workoutId }: { workoutId: string }) {
@@ -89,7 +47,17 @@ export function WorkoutAudioNote({ workoutId }: { workoutId: string }) {
   const chips = entry.derived ? buildChips(t, entry.derived) : [];
 
   return (
-    <Shell label={t("workout.detail.voiceNote")}>
+    <Shell
+      label={t("workout.detail.voiceNote")}
+      // The tier pill headlines the card's verdict. Suppressed entirely when
+      // `concern` is absent (legacy / backfilled entries) — green is a
+      // judgment ("nothing notable"), never a default for an untriaged entry.
+      accessory={
+        entry.derived?.concern ? (
+          <ConcernTierPill concern={entry.derived.concern} />
+        ) : null
+      }
+    >
       {entry.audioUrl ? (
         <VoiceNote
           url={entry.audioUrl}
@@ -98,32 +66,7 @@ export function WorkoutAudioNote({ workoutId }: { workoutId: string }) {
         />
       ) : null}
 
-      {chips.length > 0 && (
-        <View className="gap-2">
-          <Text
-            className="font-coach-semibold text-[12px]"
-            style={{ color: LIGHT_THEME.wSub }}
-          >
-            {t("workout.detail.signals.mentioned")}
-          </Text>
-          <View className="flex-row flex-wrap gap-2">
-            {chips.map((label, i) => (
-              <View
-                key={`${label}-${i}`}
-                className="rounded-full px-3 py-1.5"
-                style={{ backgroundColor: LIGHT_THEME.w3 }}
-              >
-                <Text
-                  className="font-coach text-[12px]"
-                  style={{ color: LIGHT_THEME.wText }}
-                >
-                  {label}
-                </Text>
-              </View>
-            ))}
-          </View>
-        </View>
-      )}
+      <SignalChips chips={chips} />
 
       {entry.transcript ? <Transcript text={entry.transcript} /> : null}
     </Shell>
@@ -215,9 +158,11 @@ function VoiceNote({
 
 function Shell({
   label,
+  accessory,
   children,
 }: {
   label: string;
+  accessory?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
@@ -228,12 +173,15 @@ function Shell({
         borderColor: LIGHT_THEME.wBrd,
       }}
     >
-      <Text
-        className="font-coach-semibold text-[11px] uppercase tracking-wider"
-        style={{ color: LIGHT_THEME.wMute }}
-      >
-        {label}
-      </Text>
+      <View className="flex-row items-center justify-between gap-2">
+        <Text
+          className="font-coach-semibold text-[11px] uppercase tracking-wider"
+          style={{ color: LIGHT_THEME.wMute }}
+        >
+          {label}
+        </Text>
+        {accessory}
+      </View>
       {children}
     </View>
   );

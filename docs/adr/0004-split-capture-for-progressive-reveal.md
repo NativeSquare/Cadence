@@ -1,0 +1,21 @@
+# Split post-session capture into transcribe + deriveAndCommit, for progressive reveal
+
+The post-session voice debrief — the qualitative wedge's hero moment — ran through a single all-or-nothing action, `capturePostSession`. After the client uploaded the audio, that one action did Whisper transcription → `deriveSignals` LLM → mark the **Workout** done → persist the **Journal Entry**, and returned `{ transcript, derived, coachReply, conflict }` once, at the very end. Its deliberate property: both flaky external calls (Whisper, then the extraction LLM) run **before any DB write**, so a failure commits nothing — no orphaned completion, no audio-only stub — and the runner cleanly retries.
+
+The cost of that shape was UX: from the runner's side the whole Whisper+LLM duration was a single opaque spinner on a disabled button. There was no way to fill the wait, because the client received the transcript no earlier than the signals — both arrived together at the end.
+
+We **split the action in two**: `transcribe` (audio in → transcript out, **no DB write**) → `deriveAndCommit` (transcript in → LLM extraction, mark Workout done, persist Journal Entry). The client awaits them in sequence, so the runner's own transcribed words **fade in as soon as Whisper finishes**, while the extraction LLM is still working; the structured signals and the tier verdict land at the end. The dead time is filled with real content, in two installments that mirror the real processing.
+
+This is paired with surfacing the **Concern tier** as a colored verdict (`act`/`watch`/`none` → red/amber/green pill) in both the in-the-moment `CoachResponse` and the persistent session-detail readout — but that part is additive presentation; this ADR is about the pipeline reshape.
+
+## Consequences
+
+- **The all-or-nothing DB guarantee is preserved, not lost — but relocated.** The property the original design protected was a committed-but-partial state. `transcribe` writes nothing, and `deriveAndCommit` still runs its LLM call before its writes, so a failure at either step commits nothing. What changed is *where* the guarantee lives: it is no longer "one action," it is "the only writer is `deriveAndCommit`, and it writes only after its flaky call succeeds." A future reader who sees two actions where the old comments and project memory asserted a *single* all-or-nothing `capturePostSession` would otherwise misread this as a regression — it is the opposite.
+
+- **A second failure point and a held transcript.** There are now two failure surfaces instead of one. The client holds the transcript from a successful `transcribe`; a `deriveAndCommit` failure surfaces the error *under the still-visible transcript* and retries **only** `deriveAndCommit` — no re-upload, no second Whisper call. An upload/`transcribe` failure (transcript never appeared) retries the whole chain. Resuming from the held transcript is the payoff that justifies the split over a cosmetic end-of-call reveal animation, which would not have shortened the perceived wait.
+
+- **The transcript transits the client between the two calls.** `deriveAndCommit` receives the transcript the client got back from `transcribe`. This is the runner's own spoken debrief about themselves — low sensitivity, and tampering only corrupts their own signals — so we pass it through rather than re-transcribing server-side (which would double the Whisper cost). If decision-log / outcome integrity ever needs a tamper-proof transcript, `deriveAndCommit` can re-transcribe or verify; today it trusts the client value.
+
+- **Rejected alternative — cosmetic sequenced reveal on the single action.** Keep one action, and on its single return choreograph transcript → chips → reply fading in. This preserves the single-action simplicity but does **not** fill the wait: the runner watches the full Whisper+LLM spinner, then everything cascades in over ~1s at the end. We chose the split specifically because this is the wedge's hero moment and the dead time is worth filling with the runner's real words.
+
+- **Rejected alternative — keep the single action.** The simplest path, and correct for any peripheral screen. Rejected here only because the post-session capture is the core qualitative beat; the reintroduced second action is the price of the "watch the coach hear you" experience.

@@ -30,28 +30,23 @@ function addDaysYmd(ymd: string, days: number): string {
 }
 
 /**
- * Capture a post-session voice debrief: transcribe it, extract structured
- * signals, mark the workout done, and persist the journal entry — the
- * capture→derive pipeline of Cadence's qualitative wedge.
+ * Step 1 of the post-session capture: transcribe the uploaded audio. Returns
+ * the transcript (and the locale it was transcribed in) and writes NOTHING.
  *
- * All-or-nothing: the two flaky external calls (Whisper, then the extraction
- * LLM) run BEFORE any database write. If either fails the action throws and
- * nothing is committed — no orphaned completion, no audio-only stub — so the
- * runner simply retries the recording. The retained audio is NOT deleted (it
- * plays back on the detail page), unlike the coach-chat `transcribe` action.
+ * Split out from `deriveAndCommit` so the client can show the runner their own
+ * words the moment Whisper finishes — filling the dead time while the
+ * extraction LLM runs (the wedge's "watch the coach hear you" beat). Writing
+ * nothing here keeps the all-or-nothing DB guarantee: the only writer is
+ * `deriveAndCommit`, and it writes only after its own flaky LLM call succeeds.
+ * A failure at this step commits nothing, so the runner cleanly retries.
+ * See ADR-0004.
  */
-export const capturePostSession = action({
-  args: {
-    workoutId: v.string(),
-    audioStorageId: v.id("_storage"),
-    durationMs: v.number(),
-    // The workout's actual (completed) date — an instant ISO string.
-    actualDate: v.string(),
-    // Present only for baseline test workouts.
-    testDistanceMeters: v.optional(v.number()),
-    testDurationSeconds: v.optional(v.number()),
-  },
-  handler: async (ctx, args) => {
+export const transcribe = action({
+  args: { audioStorageId: v.id("_storage") },
+  handler: async (
+    ctx,
+    args,
+  ): Promise<{ transcript: string; transcriptLang: "en" | "fr" }> => {
     const userId = await getAuthUserId(ctx);
     if (userId === null) {
       throw new ConvexError({
@@ -75,7 +70,8 @@ export const capturePostSession = action({
       });
     }
 
-    // Locale is the server-side source of truth (drives Whisper hint + prompt).
+    // Locale is the server-side source of truth (drives the Whisper hint and,
+    // later, the extraction prompt language).
     const user = await ctx.runQuery(api.table.users.get, { id: userId });
     const locale: "en" | "fr" = user?.locale === "fr" ? "fr" : "en";
 
@@ -87,9 +83,59 @@ export const capturePostSession = action({
       });
     }
 
-    // ── Flaky external calls first (no DB state yet) ──
     const transcript = await callWhisper(apiKey, blob, locale);
-    const { derived, coachReply } = await deriveSignals(transcript, locale);
+    return { transcript, transcriptLang: locale };
+  },
+});
+
+/**
+ * Step 2 of the post-session capture: extract structured signals from the
+ * (already-transcribed) text, mark the workout done, and persist the journal
+ * entry — the "derive" half of Cadence's qualitative wedge.
+ *
+ * All-or-nothing: the flaky extraction LLM runs BEFORE any database write, so a
+ * failure commits nothing — no orphaned completion, no audio-only stub — and
+ * the client retries *this step only*, reusing the transcript it already holds
+ * (no second Whisper call). The transcript is passed from the client: it is the
+ * runner's own spoken debrief about themselves, so tampering only corrupts
+ * their own signals — we trust it rather than re-transcribe. See ADR-0004.
+ */
+export const deriveAndCommit = action({
+  args: {
+    workoutId: v.string(),
+    audioStorageId: v.id("_storage"),
+    durationMs: v.number(),
+    // The workout's actual (completed) date — an instant ISO string.
+    actualDate: v.string(),
+    // The transcript from `transcribe`, plus the locale it was produced in
+    // (drives the extraction prompt language).
+    transcript: v.string(),
+    transcriptLang: v.union(v.literal("en"), v.literal("fr")),
+    // Present only for baseline test workouts.
+    testDistanceMeters: v.optional(v.number()),
+    testDurationSeconds: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) {
+      throw new ConvexError({
+        code: "UNAUTHORIZED",
+        message: "Not authenticated",
+      });
+    }
+
+    if (!(await ctx.runQuery(internal.table.users.checkPro, { userId }))) {
+      throw new ConvexError({
+        code: "SUBSCRIPTION_REQUIRED",
+        message: "An active Cadence Pro subscription is required.",
+      });
+    }
+
+    // ── Flaky external call first (no DB state yet) ──
+    const { derived, coachReply } = await deriveSignals(
+      args.transcript,
+      args.transcriptLang,
+    );
 
     // ── Commit: complete the workout, then persist the journal entry ──
     const actual: {
@@ -120,8 +166,8 @@ export const capturePostSession = action({
         dayKey: dayKeyFromInstant(args.actualDate),
         audioStorageId: args.audioStorageId,
         durationMs: args.durationMs,
-        transcript,
-        transcriptLang: locale,
+        transcript: args.transcript,
+        transcriptLang: args.transcriptLang,
         derived,
       },
     );
@@ -136,10 +182,11 @@ export const capturePostSession = action({
         : null;
 
     // `coachReply` rides back to the client for the in-the-moment "we heard
-    // you" response in the Mark Done sheet; it is not persisted. `conflict`
-    // drives the decision prompt when present. `entryId` lets the client log
-    // the runner's intention (`recordDecision`) onto the entry on Keep/Ease.
-    return { transcript, derived, coachReply, conflict, entryId };
+    // you" response in the Mark Done sheet; it is not persisted. `derived`
+    // drives the signal chips + Concern-tier pill, `conflict` the decision
+    // prompt when present. `entryId` lets the client log the runner's intention
+    // (`recordDecision`) onto the entry on Keep/Ease.
+    return { derived, coachReply, conflict, entryId };
   },
 });
 

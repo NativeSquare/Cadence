@@ -160,8 +160,8 @@ function clamp(
 
 /**
  * Extract structured signals from a transcript. Throws on LLM failure — the
- * caller (capturePostSession) runs this before any DB write, so a failure
- * leaves no partial state and the runner cleanly retries.
+ * caller (deriveAndCommit) runs this before any DB write, so a failure leaves
+ * no partial state and the runner cleanly retries.
  */
 export async function deriveSignals(
   transcript: string,

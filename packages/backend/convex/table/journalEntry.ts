@@ -93,9 +93,9 @@ export const journalEntry = defineTable(documentSchema)
   .index("by_user_dayKey", ["userId", "dayKey"]);
 
 /**
- * Persist a post-session journal entry. Internal — the `capturePostSession`
- * action authenticates, runs the (flaky) transcription + extraction first, and
- * only then calls this to commit, passing the resolved `userId`.
+ * Persist a post-session journal entry. Internal — the `deriveAndCommit`
+ * action authenticates, runs the (flaky) extraction first, and only then calls
+ * this to commit, passing the resolved `userId`.
  */
 export const recordPostSession = internalMutation({
   args: {

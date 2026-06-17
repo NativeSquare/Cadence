@@ -3,6 +3,13 @@ import { Text } from "@/components/ui/text";
 import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
 import { selectionFeedback } from "@/lib/haptics";
 import { nowIso } from "@/components/app/workout/workout-form-helpers";
+import {
+  ConcernTierPill,
+  SignalChips,
+  buildChips,
+  tierColors,
+  type DerivedSignals,
+} from "@/components/app/workout/signal-display";
 import { useMicrophonePermission } from "@/hooks/use-microphone-permission";
 import { useUploadImage } from "@/hooks/use-upload-image";
 import { useVoiceRecording } from "@/hooks/use-voice-recording";
@@ -27,9 +34,16 @@ import {
   Pressable,
   View,
 } from "react-native";
+import Animated, { FadeIn } from "react-native-reanimated";
 import { z } from "zod";
 
 const MAX_RECORDING_MS = 120_000;
+
+// How long each "Analyzing…" sub-message shows before rotating. The labels are
+// honest *categories* of work (transcribing already happened), not a precise
+// progress bar — see ADR-0004.
+const ANALYZING_CYCLE_MS = 2600;
+const ANALYZING_STEPS = 3;
 
 const formSchema = z.object({
   testDistanceKm: z.number().positive().optional(),
@@ -38,6 +52,23 @@ const formSchema = z.object({
 });
 
 type FormValues = z.infer<typeof formSchema>;
+
+// Test-workout actuals, resolved + validated before the capture pipeline runs.
+type TestFields = { distanceMeters: number; durationSeconds: number };
+
+// Everything the commit step needs, held client-side after `transcribe`
+// succeeds. On a `deriveAndCommit` failure we retry from here — no re-upload,
+// no second Whisper call (ADR-0004).
+type HeldCapture = {
+  audioStorageId: Id<"_storage">;
+  transcript: string;
+  transcriptLang: "en" | "fr";
+  testFields: TestFields | null;
+};
+
+// The capture pipeline's phase. "idle" = the form is showing (pre-submit, or
+// after a transcribe failure cleared everything).
+type Phase = "idle" | "uploading" | "transcribing" | "analyzing";
 
 function formatDuration(ms: number): string {
   const totalSeconds = Math.floor(ms / 1000);
@@ -74,10 +105,12 @@ export function MarkDoneBottomSheet({
   plannedDate,
 }: MarkDoneBottomSheetProps) {
   const { t } = useTranslation();
-  // One action owns the whole capture→derive pipeline (transcribe, extract
-  // signals, mark done, persist). It's all-or-nothing: a transcription/LLM
-  // failure commits nothing, so the recording is kept and the user retries.
-  const capturePostSession = useAction(api.journal.capturePostSession);
+  // The capture→derive pipeline is split into two actions so the runner sees
+  // their transcript the moment Whisper finishes, while the extraction LLM
+  // still runs (ADR-0004). `transcribe` writes nothing; `deriveAndCommit` is
+  // the sole writer and is all-or-nothing on its own LLM call.
+  const transcribe = useAction(api.journal.transcribe);
+  const deriveAndCommit = useAction(api.journal.deriveAndCommit);
   const easeConflictingSession = useMutation(
     api.engine.interventions.easeConflictingSession,
   );
@@ -99,12 +132,20 @@ export function MarkDoneBottomSheet({
   const [submitError, setSubmitError] = React.useState<string | null>(null);
   const [recordedUri, setRecordedUri] = React.useState<string | null>(null);
   const [recordedDurationMs, setRecordedDurationMs] = React.useState(0);
+  // Pipeline state. `phase` drives the in-flight progress view; `transcript`
+  // fades in the moment it lands and stays inline through the final response;
+  // `held` lets a failed commit retry from the transcript.
+  const [phase, setPhase] = React.useState<Phase>("idle");
+  const [transcript, setTranscript] = React.useState<string | null>(null);
+  const [held, setHeld] = React.useState<HeldCapture | null>(null);
   // The coach's in-the-moment reply, shown after a successful capture instead
   // of dismissing immediately — the "we heard you" beat. When the debrief is
   // serious AND a hard session is coming up, `conflict` carries it so we can
   // offer a one-tap ease (the Path B decision prompt).
   const [response, setResponse] = React.useState<{
     coachReply: string;
+    derived: DerivedSignals;
+    transcript: string;
     // The journal entry the capture created — the target for `recordDecision`
     // when the runner picks Keep/Ease.
     entryId: Id<"journalEntry">;
@@ -115,8 +156,8 @@ export function MarkDoneBottomSheet({
       type: string;
     } | null;
   } | null>(null);
-  const isSubmitting = form.formState.isSubmitting;
   const isRecording = voiceRecording.isRecording;
+  const isCapturing = phase !== "idle";
 
   const stopRecording = React.useCallback(async () => {
     const ms = voiceRecording.durationMs;
@@ -166,6 +207,48 @@ export function MarkDoneBottomSheet({
     }
   }, [isRecording, voiceRecording.durationMs, stopRecording]);
 
+  // Step 2: extract signals + commit. Reused for the first run and for a
+  // resume-from-transcript retry after a `deriveAndCommit` failure. On failure
+  // it keeps `transcript`/`held` so the retry button can call it again.
+  const commit = React.useCallback(
+    async (capture: HeldCapture) => {
+      setSubmitError(null);
+      setPhase("analyzing");
+      try {
+        const result = await deriveAndCommit({
+          workoutId,
+          audioStorageId: capture.audioStorageId,
+          durationMs: recordedDurationMs,
+          actualDate: plannedDate ?? nowIso(),
+          transcript: capture.transcript,
+          transcriptLang: capture.transcriptLang,
+          testDistanceMeters: capture.testFields?.distanceMeters,
+          testDurationSeconds: capture.testFields?.durationSeconds,
+        });
+        // Settle into the response view: the form inputs are cleared; the
+        // transcript rides along so it stays inline beneath the reply.
+        form.reset(DEFAULTS);
+        setRecordedUri(null);
+        setRecordedDurationMs(0);
+        setPhase("idle");
+        setTranscript(null);
+        setHeld(null);
+        setResponse({
+          coachReply: result.coachReply,
+          derived: result.derived,
+          transcript: capture.transcript,
+          entryId: result.entryId,
+          conflict: result.conflict,
+        });
+      } catch (err) {
+        // Keep `transcript` + `held` visible so the runner can retry from here.
+        setPhase("idle");
+        setSubmitError(getConvexErrorMessage(err));
+      }
+    },
+    [deriveAndCommit, workoutId, recordedDurationMs, plannedDate, form],
+  );
+
   const handleSubmit = form.handleSubmit(async (data) => {
     setSubmitError(null);
     Keyboard.dismiss();
@@ -178,8 +261,7 @@ export function MarkDoneBottomSheet({
       return;
     }
 
-    let testFields: { distanceMeters: number; durationSeconds: number } | null =
-      null;
+    let testFields: TestFields | null = null;
     if (isTest) {
       const km = data.testDistanceKm;
       if (km == null || !(km > 0)) {
@@ -198,35 +280,28 @@ export function MarkDoneBottomSheet({
       };
     }
 
+    // Step 1: upload + transcribe. A failure here clears everything (the
+    // transcript never appeared) and drops back to the form for a fresh retry.
+    let capture: HeldCapture;
     try {
-      const audioStorageId = await uploadFileToStorage(
-        recordedUri,
-        "audio/m4a",
-      );
-
-      const result = await capturePostSession({
-        workoutId,
+      setPhase("uploading");
+      const audioStorageId = await uploadFileToStorage(recordedUri, "audio/m4a");
+      setPhase("transcribing");
+      const { transcript: tx, transcriptLang } = await transcribe({
         audioStorageId,
-        durationMs: recordedDurationMs,
-        actualDate: plannedDate ?? nowIso(),
-        testDistanceMeters: testFields?.distanceMeters,
-        testDurationSeconds: testFields?.durationSeconds,
       });
-
-      // Don't dismiss — show the coach's reply (the "we heard you" beat). The
-      // recording inputs are cleared now; the sheet dismisses when the runner
-      // taps Done on the response view.
-      form.reset(DEFAULTS);
-      setRecordedUri(null);
-      setRecordedDurationMs(0);
-      setResponse({
-        coachReply: result.coachReply,
-        entryId: result.entryId,
-        conflict: result.conflict,
-      });
+      capture = { audioStorageId, transcript: tx, transcriptLang, testFields };
+      setTranscript(tx);
+      setHeld(capture);
     } catch (err) {
+      setPhase("idle");
+      setTranscript(null);
+      setHeld(null);
       setSubmitError(getConvexErrorMessage(err));
+      return;
     }
+
+    await commit(capture);
   });
 
   const dismissAfterResponse = React.useCallback(() => {
@@ -240,22 +315,43 @@ export function MarkDoneBottomSheet({
     setSubmitError(null);
     setRecordedUri(null);
     setRecordedDurationMs(0);
+    setPhase("idle");
+    setTranscript(null);
+    setHeld(null);
     setResponse(null);
   }, [form, voiceRecording]);
 
-  const canSubmit = !isSubmitting && !!recordedUri && !isRecording;
+  const canSubmit = !isCapturing && !!recordedUri && !isRecording;
 
   if (response) {
     return (
       <BottomSheetModal ref={sheetRef} onDismiss={handleDismiss}>
         <CoachResponse
           coachReply={response.coachReply}
+          derived={response.derived}
+          transcript={response.transcript}
           conflict={response.conflict}
           onEase={(workoutId) => easeConflictingSession({ workoutId })}
           onDecision={(intention) =>
             recordDecision({ entryId: response.entryId, intention })
           }
           onDone={dismissAfterResponse}
+        />
+      </BottomSheetModal>
+    );
+  }
+
+  // Capture in flight, or a commit failed with the transcript still in hand
+  // (retry-from-transcript). Either way we show the progressive-reveal view
+  // instead of the form.
+  if (isCapturing || (held && transcript)) {
+    return (
+      <BottomSheetModal ref={sheetRef} onDismiss={handleDismiss}>
+        <CaptureStage
+          phase={phase}
+          transcript={transcript}
+          error={submitError}
+          onRetry={held ? () => void commit(held) : undefined}
         />
       </BottomSheetModal>
     );
@@ -350,16 +446,9 @@ export function MarkDoneBottomSheet({
             backgroundColor: canSubmit ? LIGHT_THEME.wText : LIGHT_THEME.w3,
           }}
         >
-          {isSubmitting ? (
-            <ActivityIndicator color="#FFFFFF" />
-          ) : (
-            <Text
-              className="font-coach-bold text-sm"
-              style={{ color: "#FFFFFF" }}
-            >
-              {t("workout.markDone.submit")}
-            </Text>
-          )}
+          <Text className="font-coach-bold text-sm" style={{ color: "#FFFFFF" }}>
+            {t("workout.markDone.submit")}
+          </Text>
         </Pressable>
       </View>
     </BottomSheetModal>
@@ -367,9 +456,124 @@ export function MarkDoneBottomSheet({
 }
 
 /**
+ * The progressive-reveal view shown while the capture pipeline runs. A phase
+ * pill animates the work in flight; the runner's transcript fades in the moment
+ * `transcribe` returns and stays put while `deriveAndCommit` runs. On a commit
+ * failure the error + a "Try again" sit under the still-visible transcript
+ * (retry-from-transcript — ADR-0004).
+ */
+function CaptureStage({
+  phase,
+  transcript,
+  error,
+  onRetry,
+}: {
+  phase: Phase;
+  transcript: string | null;
+  error: string | null;
+  onRetry?: () => void;
+}) {
+  const { t } = useTranslation();
+
+  return (
+    <View className="gap-6 px-5 pb-4 pt-2">
+      <View className="flex-row items-center gap-2">
+        <Sparkles size={16} color={LIGHT_THEME.wMute} strokeWidth={2} />
+        <Text
+          className="font-coach-semibold text-[11px] uppercase tracking-wider"
+          style={{ color: LIGHT_THEME.wMute }}
+        >
+          {t("workout.markDone.coachLabel")}
+        </Text>
+      </View>
+
+      {transcript && (
+        <Animated.View entering={FadeIn.duration(280)} className="gap-2">
+          <Text
+            className="font-coach-semibold text-[12px]"
+            style={{ color: LIGHT_THEME.wSub }}
+          >
+            {t("workout.markDone.capture.heardLabel")}
+          </Text>
+          <Text
+            className="font-coach text-[15px]"
+            style={{ color: LIGHT_THEME.wText, lineHeight: 22 }}
+          >
+            {transcript}
+          </Text>
+        </Animated.View>
+      )}
+
+      {phase !== "idle" && <PhasePill phase={phase} />}
+
+      {error && (
+        <View className="gap-3">
+          <Text
+            className="font-coach text-sm"
+            style={{ color: COLORS.red }}
+          >
+            {error}
+          </Text>
+          {onRetry && (
+            <Pressable
+              onPress={onRetry}
+              className="items-center rounded-2xl py-3.5 active:opacity-90"
+              style={{ backgroundColor: LIGHT_THEME.wText }}
+            >
+              <Text
+                className="font-coach-bold text-sm"
+                style={{ color: "#FFFFFF" }}
+              >
+                {t("workout.markDone.capture.retry")}
+              </Text>
+            </Pressable>
+          )}
+        </View>
+      )}
+    </View>
+  );
+}
+
+/**
+ * Animated "what's happening" pill. Uploading/transcribing carry one label
+ * each; analyzing rotates through a few honest sub-messages on a timer (the
+ * backend is a black box past this point — ADR-0004).
+ */
+function PhasePill({ phase }: { phase: Exclude<Phase, "idle"> }) {
+  const { t } = useTranslation();
+  const [step, setStep] = React.useState(0);
+
+  React.useEffect(() => {
+    if (phase !== "analyzing") return;
+    setStep(0);
+    const id = setInterval(
+      () => setStep((s) => (s + 1) % ANALYZING_STEPS),
+      ANALYZING_CYCLE_MS,
+    );
+    return () => clearInterval(id);
+  }, [phase]);
+
+  const label =
+    phase === "analyzing"
+      ? t(`workout.markDone.capture.analyzing.${step}`)
+      : t(`workout.markDone.capture.${phase}`);
+
+  return (
+    <View className="flex-row items-center gap-2 self-start">
+      <ActivityIndicator size="small" color={LIGHT_THEME.wMute} />
+      <Text className="font-coach text-[13px]" style={{ color: LIGHT_THEME.wSub }}>
+        {label}
+      </Text>
+    </View>
+  );
+}
+
+/**
  * The coach's reply after a successful capture — the "we heard you" beat.
- * Shown in place of the form. The reply text is LLM-narrated server-side
- * (already localized), scaled to the debrief's concern tier.
+ * Shown in place of the form. Headlined by the Concern-tier pill (the one
+ * colored verdict), then the LLM-narrated reply on a tier-tinted card, the
+ * runner's transcript inline, and the neutral signal chips. The reply text is
+ * already localized and scaled to the debrief's concern tier server-side.
  *
  * When `conflict` is present (a serious debrief AND an upcoming hard session),
  * we offer the Path B decision prompt: Ease it (one-tap, reuses the Engine's
@@ -377,12 +581,16 @@ export function MarkDoneBottomSheet({
  */
 function CoachResponse({
   coachReply,
+  derived,
+  transcript,
   conflict,
   onEase,
   onDecision,
   onDone,
 }: {
   coachReply: string;
+  derived: DerivedSignals;
+  transcript: string;
   conflict: { workoutId: string; name: string } | null;
   onEase: (workoutId: string) => Promise<unknown>;
   onDecision: (intention: "go" | "ease") => Promise<unknown>;
@@ -392,6 +600,9 @@ function CoachResponse({
   const [phase, setPhase] = React.useState<
     "prompt" | "easing" | "eased" | "error"
   >("prompt");
+
+  const chips = buildChips(t, derived);
+  const tier = derived.concern ? tierColors(derived.concern) : null;
 
   const handleEase = async () => {
     if (!conflict) return;
@@ -418,22 +629,55 @@ function CoachResponse({
 
   return (
     <View className="gap-6 px-5 pb-4 pt-2">
-      <View className="flex-row items-center gap-2">
-        <Sparkles size={16} color={LIGHT_THEME.wMute} strokeWidth={2} />
+      <View className="flex-row items-center justify-between gap-2">
+        <View className="flex-row items-center gap-2">
+          <Sparkles size={16} color={LIGHT_THEME.wMute} strokeWidth={2} />
+          <Text
+            className="font-coach-semibold text-[11px] uppercase tracking-wider"
+            style={{ color: LIGHT_THEME.wMute }}
+          >
+            {t("workout.markDone.coachLabel")}
+          </Text>
+        </View>
+        {derived.concern && <ConcernTierPill concern={derived.concern} />}
+      </View>
+
+      <View
+        className="gap-2 rounded-2xl p-4"
+        style={
+          tier
+            ? {
+                backgroundColor: tier.wash,
+                borderLeftWidth: 3,
+                borderLeftColor: tier.fg,
+              }
+            : { backgroundColor: LIGHT_THEME.w2 }
+        }
+      >
         <Text
-          className="font-coach-semibold text-[11px] uppercase tracking-wider"
-          style={{ color: LIGHT_THEME.wMute }}
+          className="font-coach text-base"
+          style={{ color: LIGHT_THEME.wText, lineHeight: 24 }}
         >
-          {t("workout.markDone.coachLabel")}
+          {coachReply}
         </Text>
       </View>
 
-      <Text
-        className="font-coach text-base"
-        style={{ color: LIGHT_THEME.wText, lineHeight: 24 }}
-      >
-        {coachReply}
-      </Text>
+      <View className="gap-2">
+        <Text
+          className="font-coach-semibold text-[12px]"
+          style={{ color: LIGHT_THEME.wSub }}
+        >
+          {t("workout.markDone.capture.heardLabel")}
+        </Text>
+        <Text
+          className="font-coach text-[15px]"
+          style={{ color: LIGHT_THEME.wText, lineHeight: 22 }}
+        >
+          {transcript}
+        </Text>
+      </View>
+
+      <SignalChips chips={chips} />
 
       {/* Decision prompt — only when a hard session is in conflict and the
           runner hasn't already eased it. */}
