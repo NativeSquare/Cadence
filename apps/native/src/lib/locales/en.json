@@ -65,7 +65,7 @@
   },
   "auth": {
     "framing": {
-      "vision": "What your watch can't see, Cadence hears. And remembers.",
+      "vision": "What your watch can't see, Cadence hears it. And remembers it.",
       "grounded": "Debrief your run, and your week adjusts."
     },
     "continueWithGoogle": "Continue with Google",
