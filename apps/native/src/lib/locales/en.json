@@ -373,12 +373,6 @@
       "emptyTitle": "Log your first workout",
       "emptyBody": "Once you start training, you'll see your streak, frequency, and 4-week volume trend here."
     },
-    "raceUpgrade": {
-      "eyebrow": "Ready for a race?",
-      "title": "Training for something specific?",
-      "body": "Pick a race and we'll tailor a plan around it.",
-      "cta": "Choose a race"
-    },
     "quickActions": {
       "title": "Quick Actions",
       "schedule": "Schedule",
@@ -420,18 +414,6 @@
     "next": "Next",
     "done": "Done",
     "stepOf": "Step {{current}} of {{total}}",
-    "chooseType": {
-      "heading": "What's your goal?",
-      "helper": "We'll tailor your experience based on your answer.",
-      "race": {
-        "title": "Train for a race",
-        "desc": "Build a plan around a specific event."
-      },
-      "fitness": {
-        "title": "General fitness",
-        "desc": "No race in mind. Stay active with intent."
-      }
-    },
     "raceDetails": {
       "heading": "Tell us about your race",
       "name": "Name",
@@ -462,38 +444,10 @@
     "plan": {
       "heading": "Your training plan",
       "helper": "We'll build a personalized plan that leads up to race day. Pick when you'd like it to start.",
-      "helperFitness": "We'll build a personalized plan around your focus. Pick when you'd like it to start.",
       "startDate": "Plan start date",
       "generating": {
         "title": "Building your plan",
-        "subtitle": "Mapping out your weeks toward race day. This usually takes a moment.",
-        "subtitleFitness": "Mapping out your weeks ahead. This usually takes a moment."
-      }
-    },
-    "fitness": {
-      "heading": "Pick your focus",
-      "helper": "You can add a race later. This just helps us tailor suggestions.",
-      "options": {
-        "start_running": {
-          "label": "New to running",
-          "desc": "Building a base from scratch."
-        },
-        "build_base": {
-          "label": "Build a base",
-          "desc": "Grow weekly volume and aerobic depth."
-        },
-        "maintain_fitness": {
-          "label": "Maintain fitness",
-          "desc": "Keep your current shape."
-        },
-        "restart_running": {
-          "label": "Return from injury",
-          "desc": "Rebuild safely after time off."
-        },
-        "general_health": {
-          "label": "Stay healthy",
-          "desc": "Move regularly for overall wellbeing."
-        }
+        "subtitle": "Mapping out your weeks toward race day. This usually takes a moment."
       }
     },
     "errors": {

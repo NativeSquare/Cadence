@@ -30,8 +30,6 @@ export const TEST_DESCRIPTION: Record<Locale, string> = {
   fr: "Cours 5 km aussi vite que tu peux le maintenir. Ton temps déterminera les allures cibles du reste du plan.",
 };
 
-export type PlanCategory = "race" | "fitness";
-
 /** Pure: (distance, time) → VDOT. Works for any pair, not just 5K. */
 export function deriveVdotFromTest(
   distanceMeters: number,
@@ -43,15 +41,10 @@ export function deriveVdotFromTest(
 export async function scheduleGenerate(
   ctx: MutationCtx,
   planId: string,
-  category: PlanCategory,
 ): Promise<void> {
-  await ctx.scheduler.runAfter(
-    0,
-    category === "race"
-      ? internal.engine.generatePlan.generate
-      : internal.engine.generatePlan.generateFitness,
-    { planId },
-  );
+  await ctx.scheduler.runAfter(0, internal.engine.generatePlan.generate, {
+    planId,
+  });
 }
 
 /**
@@ -96,7 +89,7 @@ export async function recordVdotFromCompletedTest(
   });
   if (!goal) return;
 
-  await scheduleGenerate(ctx, workout.planId, goal.category as PlanCategory);
+  await scheduleGenerate(ctx, workout.planId);
 }
 
 /**
@@ -115,7 +108,6 @@ export async function gatePlanGeneration(
     userId: Id<"users">;
     planId: string;
     planStartDate: string;
-    category: PlanCategory;
   },
 ): Promise<void> {
   const latestVdot = await ctx.runQuery(
@@ -124,7 +116,7 @@ export async function gatePlanGeneration(
   );
 
   if (latestVdot) {
-    await scheduleGenerate(ctx, args.planId, args.category);
+    await scheduleGenerate(ctx, args.planId);
     return;
   }
 
@@ -198,7 +190,7 @@ async function applyVdotAndKickPlans(
         }
       }
 
-      await scheduleGenerate(ctx, plan._id, goal.category as PlanCategory);
+      await scheduleGenerate(ctx, plan._id);
     }
   }
 }

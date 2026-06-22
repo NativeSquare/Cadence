@@ -2,15 +2,13 @@
  * Engine: plan generation. Fill a freshly-created Plan with Blocks + planned
  * Workouts.
  *
- * - `generate`: race-category goals (finish + time targets). Paces from
+ * - `generate`: every goal is race-anchored (finish + time targets). Paces from
  *   Daniels VDOT; 80/20 easy/quality split in Base/Build/Taper; Peak goes
  *   pyramidal to fit race-specific M-pace work. Ultra/relay formats are skipped.
- * - `generateFitness`: fitness-category goals — single base block, no peak,
- *   no taper, no paces. Length + volume tuned per `fitnessIntent`.
  *
- * Math is in `../agoge/periodization.ts`. Both actions are idempotent: if
- * Blocks already exist for the plan, the action returns early (handles
- * scheduler retries and accidental double-fires).
+ * Math is in `../agoge/periodization.ts`. The action is idempotent: if Blocks
+ * already exist for the plan, it returns early (handles scheduler retries and
+ * accidental double-fires).
  */
 
 import type { BlockType } from "@nativesquare/agoge/schema";
@@ -25,23 +23,15 @@ type ComponentId = string;
 import {
   addDaysYmd,
   buildRaceStructure,
-  buildStructure,
   computeVdot,
   daysBetweenYmd,
   DEFAULT_SCHEDULE,
   distancePeakKm,
-  type FitnessIntent,
-  fitnessPlanShape,
-  fitnessVolumeCurve,
-  isoDayOfWeek,
   isSupportedFormat,
   type Locale,
-  microcycle,
   type Paces,
   type Schedule,
-  summarizeStructure,
   trainingPaces,
-  workoutName,
   ymdToNoonUtc,
 } from "../agoge/periodization";
 import {
@@ -224,95 +214,6 @@ export const generate = internalAction({
           structure: raceStructure,
         },
       });
-    }
-
-    await markGenerated(ctx, plan._id, plan.notes, undefined);
-  },
-});
-
-export const generateFitness = internalAction({
-  args: { planId: v.string() },
-  handler: async (ctx, { planId }): Promise<void> => {
-    const plan = await ctx.runQuery(components.agoge.public.getPlan, {
-      planId,
-    });
-    if (!plan) return;
-
-    const existingBlocks = await ctx.runQuery(
-      components.agoge.public.getBlocksByPlan,
-      { planId: plan._id },
-    );
-    if (existingBlocks.length > 0) return;
-
-    const goal = await ctx.runQuery(components.agoge.public.getGoal, {
-      goalId: plan.goalId,
-    });
-    if (!goal || goal.category !== "fitness" || !goal.fitnessIntent) return;
-
-    const athlete = await ctx.runQuery(components.agoge.public.getAthlete, {
-      athleteId: plan.athleteId,
-    });
-    if (!athlete) return;
-
-    const user = await ctx.runQuery(api.table.users.get, {
-      id: athlete.userId as Id<"users">,
-    });
-    const locale: Locale = user?.locale ?? "en";
-
-    const baselineKm = await loadBaselineVolume(ctx, plan.athleteId);
-    const shape = fitnessPlanShape(
-      goal.fitnessIntent as FitnessIntent,
-      baselineKm,
-    );
-    const volumeCurve = fitnessVolumeCurve(shape);
-    const planStart = plan.startDate;
-
-    // Fitness has no phases — one base block spans the whole plan.
-    const blockId = await ctx.runMutation(components.agoge.public.createBlock, {
-      planId: plan._id,
-      type: "base",
-      startDate: planStart,
-      endDate: addDaysYmd(planStart, shape.weeks * 7 - 1),
-    });
-    const schedule = scheduleFromAthlete(athlete);
-
-    for (let w = 0; w < shape.weeks; w++) {
-      const weekKm = volumeCurve[w] ?? 0;
-      const weekStart = addDaysYmd(planStart, w * 7);
-      const weekStartDow = isoDayOfWeek(weekStart);
-      for (const session of microcycle("base", weekKm, schedule)) {
-        const dayOffset = (session.dayOfWeek - weekStartDow + 7) % 7;
-        const dateYmd = addDaysYmd(weekStart, dayOffset);
-        const distanceMeters = Math.round(session.distanceKm * 1000);
-        if (distanceMeters < 500) continue;
-        // No VDOT in fitness plans → buildStructure emits RPE-targeted steps.
-        const structure = buildStructure(
-          session.type,
-          session.intensity,
-          distanceMeters,
-          undefined,
-        );
-        if (!structure) continue;
-        const labelDistance = summarizeStructure(structure).distanceMeters;
-        await ctx.runMutation(components.agoge.public.createWorkout, {
-          athleteId: plan.athleteId,
-          planId: plan._id,
-          blockId,
-          name: workoutName({
-            type: session.type,
-            distanceMeters: labelDistance,
-            structure,
-            locale,
-          }),
-          type: session.type,
-          sport: "run",
-          status: "planned",
-          planned: {
-            date: ymdToNoonUtc(dateYmd),
-            structure,
-          },
-        });
-      }
     }
 
     await markGenerated(ctx, plan._id, plan.notes, undefined);

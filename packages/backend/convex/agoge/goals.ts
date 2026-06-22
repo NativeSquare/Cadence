@@ -16,7 +16,6 @@ import {
   query,
   type QueryCtx,
 } from "../_generated/server";
-import { gatePlanGeneration } from "../engine/baselineTest";
 import {
   fail,
   loadAthlete,
@@ -30,7 +29,7 @@ import {
   type ValidationResult,
   validationResultValidator,
 } from "./helpers";
-import { deletePlansForRace } from "./plans";
+import { archiveAndPrunePlan } from "./plans";
 
 const GOAL_STATUSES = [
   "active",
@@ -201,25 +200,17 @@ export const deleteGoal = mutation({
 });
 
 // ---------------------------------------------------------------------------
-// Fitness-goal helpers (host-app concern)
+// Active-goal read (host-app concern)
 //
-// "1 Athlete = 1 Active Primary Objective" — implemented as: at most one
-// active fitness Goal at a time. Active race Goals are governed by the
-// no-upcoming-A-race-conflict rule on the race side. The Home tab reads both
-// signals through `getMyActiveGoal` below.
+// "1 Athlete = 1 Active Primary Objective". Every Goal is race-anchored
+// (ADR-0005), so the single active Goal is governed by the
+// no-upcoming-A-race-conflict rule on the race side. The Home tab reads it
+// through `getMyActiveGoal` below.
 // ---------------------------------------------------------------------------
 
-const fitnessIntentValidator = v.union(
-  v.literal("start_running"),
-  v.literal("restart_running"),
-  v.literal("build_base"),
-  v.literal("maintain_fitness"),
-);
-
 /**
- * The athlete's active goal — the most recently created active goal, race-
- * anchored or not — joined with its race (null for fitness goals) and its
- * non-archived plan. Powers the Home tab.
+ * The athlete's active goal — the most recently created active goal — joined
+ * with its race and its non-archived plan. Powers the Home tab.
  */
 export const getMyActiveGoal = query({
   args: {},
@@ -253,72 +244,20 @@ export const getMyActiveGoal = query({
   },
 });
 
-export const createMyFitnessGoal = mutation({
-  args: {
-    fitnessIntent: fitnessIntentValidator,
-    description: v.optional(v.string()),
-  },
-  handler: async (ctx, args) => {
-    const auth = await loadAthlete(ctx);
-    if (!auth)
-      throw new ConvexError({
-        code: "VALIDATION_FAILED",
-        errors: [requireAuthError],
-      });
-
-    const activeGoals = await ctx.runQuery(
-      components.agoge.public.getGoalsByAthleteAndStatus,
-      { athleteId: auth.athlete._id, status: "active" },
-    );
-    if (activeGoals.some((g) => g.category === "fitness")) {
-      throw new ConvexError({
-        code: "VALIDATION_FAILED",
-        errors: [
-          {
-            code: "CONFLICT",
-            message: "Athlete already has an active fitness goal.",
-          },
-        ],
-      });
-    }
-
-    const goalId = await ctx.runMutation(components.agoge.public.createGoal, {
-      athleteId: auth.athlete._id,
-      category: "fitness",
-      fitnessIntent: args.fitnessIntent,
-      description: args.description,
-      status: "active",
-    });
-
-    // Goal ⟺ Plan invariant: every active goal — race or fitness — gets a plan
-    // anchored to today.
-    const startDate = new Date().toISOString().slice(0, 10);
-    const planId = await ctx.runMutation(components.agoge.public.createPlan, {
-      athleteId: auth.athlete._id,
-      goalId,
-      startDate,
-    });
-    await gatePlanGeneration(ctx, {
-      athleteId: auth.athlete._id,
-      userId: auth.userId,
-      planId,
-      planStartDate: startDate,
-      category: "fitness",
-    });
-
-    return goalId;
-  },
-});
-
 /**
  * Retire the athlete's active goal(s) so a fresh one can be created.
  *
- * "Change goal" in the app replaces the single active goal. Race goals are
- * deleted outright (race + its cascaded goal + plans) so a new A-race won't
- * trip the no-upcoming-A-race conflict rule; fitness goals are marked
- * `abandoned` and their plans archived. Iterates over every active goal, which
- * also clears the loose state where a fitness goal can linger active alongside
- * a race goal.
+ * "Change goal" replaces the single active goal with a lossless **archive plus
+ * a targeted prune** (ADR-0005), not a delete:
+ *   - the Plan(s) are archived and their un-run prescriptions deleted, while
+ *     completed workouts survive as history (`archiveAndPrunePlan`);
+ *   - a race goal's Race is set to `cancelled` — which clears the
+ *     no-upcoming-A-race conflict so the next race can be created — and the
+ *     goal is marked `abandoned` to match (a cancelled race ⇒ an abandoned
+ *     goal). The Race is kept as the provenance anchor for the completed work.
+ *
+ * Iterates over every active goal, which also clears the loose state where two
+ * goals could linger active at once.
  */
 export const abandonMyActiveGoal = mutation({
   args: {},
@@ -335,33 +274,27 @@ export const abandonMyActiveGoal = mutation({
       { athleteId: auth.athlete._id, status: "active" },
     );
 
-    const now = new Date().toISOString();
     for (const goal of activeGoals) {
-      if (goal.category === "race" && goal.raceId) {
-        // Delete the race; Agoge cascades the attached goal. Plans are removed
-        // up front (mirrors `deleteMyRace`) so the cascade doesn't trip the
-        // now-required `targetRaceId` field.
-        await deletePlansForRace(ctx, goal.raceId);
-        await ctx.runMutation(components.agoge.public.deleteRace, {
-          raceId: goal.raceId,
-        });
-      } else {
-        const plans = await ctx.runQuery(
-          components.agoge.public.getPlansByGoal,
-          { goalId: goal._id },
-        );
-        for (const plan of plans) {
-          if (plan.archivedAt !== undefined) continue;
-          await ctx.runMutation(components.agoge.public.updatePlan, {
-            planId: plan._id,
-            archivedAt: now,
-          });
+      const plans = await ctx.runQuery(
+        components.agoge.public.getPlansByGoal,
+        { goalId: goal._id },
+      );
+      for (const plan of plans) {
+        if (plan.archivedAt === undefined) {
+          await archiveAndPrunePlan(ctx, plan._id);
         }
-        await ctx.runMutation(components.agoge.public.updateGoal, {
-          goalId: goal._id,
-          status: "abandoned",
+      }
+
+      if (goal.raceId) {
+        await ctx.runMutation(components.agoge.public.updateRace, {
+          raceId: goal.raceId,
+          status: "cancelled",
         });
       }
+      await ctx.runMutation(components.agoge.public.updateGoal, {
+        goalId: goal._id,
+        status: "abandoned",
+      });
     }
     return null;
   },

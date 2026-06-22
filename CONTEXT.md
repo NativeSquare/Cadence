@@ -48,7 +48,10 @@ Owns everything about the prescribed plan. Accessed via `components.agoge.*`. So
 Agoge's training-domain record of a Runner. Exactly **one per Cadence User** (1:1). Distinct from the app `users` row.
 
 **Goal**:
-The Athlete's single active target. Holds a *category* (only `"race"` at MVP), a *raceTarget* (e.g. `{ type: "time", seconds: 11940 }` or a finish target), and a *raceId* pointing at the **Race**. (General-fitness goals are dropped for MVP.) An Athlete has exactly **one active Goal**; because every MVP Goal references a Race, every Goal has a date.
+The Athlete's single active target. Holds a *category* (only `"race"` at MVP), a *raceTarget* (e.g. `{ type: "time", seconds: 11940 }` or a finish target), and a *raceId* pointing at the **Race**. (The general-fitness category is **removed** at MVP — not merely hidden — so every Goal is race-anchored.) An Athlete has exactly **one active Goal**; because every Goal references a Race, every Goal has a date. A race Goal's `status` is **derived from its Race's status**, never set directly.
+
+**Abandon** (changing the Goal):
+Retiring the active Goal so a new one can replace it. The old Goal, its **Race**, and its **Plan** are **archived, never destroyed** — the Race remains the provenance anchor for past work. The Plan's un-run prescriptions are **discarded**; **done** Workouts survive as durable history. _Avoid_: "delete the goal" — abandonment keeps history and only drops the disposable future prescriptions.
 
 **Plan**:
 The ordered list of **Workouts**, built with an intent and linked to the active **Goal**. One Plan per Goal.
@@ -57,7 +60,7 @@ The ordered list of **Workouts**, built with an intent and linked to the active 
 An *optional* grouping of a Plan's Workouts into a phase — **Base / Build / Peak / Taper**. A Plan may have no Blocks.
 
 **Workout**:
-A single prescribed or completed training session — the atom of the Plan. "Planned" and "done" are **states of one Workout**, not separate tables.
+A single prescribed or completed training session — the atom of the Plan. "Planned" and "done" are **states of one Workout**, not separate tables. A **done** Workout (one carrying recorded *actuals*) is durable history; a merely **planned** one is a disposable, deterministically regenerable prescription. That asymmetry governs what survives an **Abandon**: actuals-bearing Workouts are kept, prescription-only ones are dropped.
 _Avoid_: "Activity" (Soma's raw recorded effort), "Session" — see ambiguity below.
 
 **Race**:

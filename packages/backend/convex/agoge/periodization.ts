@@ -364,61 +364,6 @@ function round1(n: number): number {
 }
 
 // ---------------------------------------------------------------------------
-// Fitness plan shape
-// ---------------------------------------------------------------------------
-
-export type FitnessIntent =
-  | "start_running"
-  | "restart_running"
-  | "build_base"
-  | "maintain_fitness";
-
-export type FitnessShape = {
-  weeks: number;
-  startKm: number;
-  endKm: number;
-};
-
-/**
- * Length + volume bookends per fitness intent. `start_running` ignores the
- * athlete's baseline (the fallback is meaningless for someone who isn't yet
- * a runner) and uses a hardcoded floor; the others ramp off recent volume.
- */
-export function fitnessPlanShape(
-  intent: FitnessIntent,
-  baselineKm: number,
-): FitnessShape {
-  switch (intent) {
-    case "start_running":
-      return { weeks: 8, startKm: 10, endKm: 20 };
-    case "restart_running":
-      return { weeks: 8, startKm: baselineKm * 0.5, endKm: baselineKm };
-    case "build_base":
-      return { weeks: 12, startKm: baselineKm, endKm: baselineKm * 1.4 };
-    case "maintain_fitness":
-      return { weeks: 4, startKm: baselineKm, endKm: baselineKm };
-  }
-}
-
-/**
- * Per-week target km. Linear ramp `startKm → endKm` with a -20% cutback every
- * 4th week (skipping the last week). No taper — fitness plans don't peak.
- */
-export function fitnessVolumeCurve(shape: FitnessShape): number[] {
-  const { weeks, startKm, endKm } = shape;
-  const curve: number[] = [];
-  for (let i = 0; i < weeks; i++) {
-    const t = weeks === 1 ? 1 : i / (weeks - 1);
-    let km = startKm + (endKm - startKm) * t;
-    if ((i + 1) % 4 === 0 && i !== weeks - 1) {
-      km = km * 0.8;
-    }
-    curve.push(round1(km));
-  }
-  return curve;
-}
-
-// ---------------------------------------------------------------------------
 // Microcycle (weekly session distribution)
 // ---------------------------------------------------------------------------
 

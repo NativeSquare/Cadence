@@ -39,16 +39,10 @@ import { TodayCard } from "./TodayCard";
 import { NeedsFeedbackCard } from "./NeedsFeedbackCard";
 import { RaceCountdown } from "./RaceCountdown";
 import { QuickActions } from "./QuickActions";
-import { TrainingPulseCard } from "./TrainingPulseCard";
-import { RaceUpgradeCTA } from "./RaceUpgradeCTA";
 import { ExportToProviderSheet } from "./ExportToProviderSheet";
 import { MarkDoneBottomSheet } from "@/components/app/workout/mark-done-bottom-sheet";
 import { LIGHT_THEME } from "@/lib/design-tokens";
-import {
-  buildWorkoutsByDate,
-  computeTrainingPulse,
-  mapRaceToGoalData,
-} from "./utils";
+import { buildWorkoutsByDate, mapRaceToGoalData } from "./utils";
 import type { WorkoutData } from "./types";
 
 const REST_FALLBACK: WorkoutData = {
@@ -126,11 +120,6 @@ export function PlanScreen() {
 
   const baseSelectedWorkout: WorkoutData =
     workoutsByDate[selectedDateKey] ?? REST_FALLBACK;
-
-  const trainingPulse = useMemo(
-    () => (planWorkouts ? computeTrainingPulse(planWorkouts, today) : null),
-    [planWorkouts, today],
-  );
 
   const exportSheetRef = useRef<BottomSheetModal>(null);
   const markDoneSheetRef = useRef<BottomSheetModal>(null);
@@ -362,25 +351,6 @@ export function PlanScreen() {
                 />
               </View>
             ) : null}
-
-            {activeGoal.goal.category === "fitness" &&
-              activeGoal.goal.fitnessIntent &&
-              trainingPulse && (
-                <View className="px-4 mt-5">
-                  <TrainingPulseCard
-                    intent={activeGoal.goal.fitnessIntent}
-                    pulse={trainingPulse}
-                  />
-                </View>
-              )}
-
-            {activeGoal.goal.category === "fitness" && (
-              <View className="px-4 mt-5">
-                <RaceUpgradeCTA
-                  onPress={() => router.push("/(app)/goal/new")}
-                />
-              </View>
-            )}
 
             {/* Quick Actions: Schedule + Log */}
             <View className="px-4 mt-5">

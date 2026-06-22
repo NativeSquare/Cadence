@@ -323,6 +323,35 @@ export async function deletePlansForRace(
   }
 }
 
+/**
+ * Archive a Plan and prune its un-run prescriptions. Workouts carrying recorded
+ * `actual`s (real training that happened) are **kept** as history, still
+ * attached to the now-archived plan; prescription-only workouts (planned /
+ * needs-feedback / runner-marked `missed` — anything without `actual`) are
+ * **deleted**. The plan itself is archived, never deleted, so it stays the
+ * provenance anchor for the completed workouts. See ADR-0005.
+ */
+export async function archiveAndPrunePlan(
+  ctx: MutationCtx,
+  planId: string,
+): Promise<void> {
+  const workouts = await ctx.runQuery(
+    components.agoge.public.getWorkoutsByPlan,
+    { planId },
+  );
+  for (const workout of workouts) {
+    if (workout.actual === undefined) {
+      await ctx.runMutation(components.agoge.public.deleteWorkout, {
+        workoutId: workout._id,
+      });
+    }
+  }
+  await ctx.runMutation(components.agoge.public.updatePlan, {
+    planId,
+    archivedAt: new Date().toISOString(),
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Pure helpers
 // ---------------------------------------------------------------------------

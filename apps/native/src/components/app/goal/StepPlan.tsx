@@ -3,18 +3,16 @@ import { Text } from "@/components/ui/text";
 import { LIGHT_THEME } from "@/lib/design-tokens";
 import { useTranslation } from "react-i18next";
 import { View } from "react-native";
-import type { GoalBranch, PlanValue } from "./types";
+import type { PlanValue } from "./types";
 
 export function StepPlan({
   value,
   onChange,
-  branch,
   minDate,
   maxDate,
 }: {
   value: PlanValue;
   onChange: (next: PlanValue) => void;
-  branch: GoalBranch;
   minDate?: string;
   maxDate?: string;
 }) {
@@ -33,7 +31,7 @@ export function StepPlan({
         className="font-coach-medium text-[14px]"
         style={{ color: LIGHT_THEME.wSub, lineHeight: 20 }}
       >
-        {t(branch === "fitness" ? "goal.plan.helperFitness" : "goal.plan.helper")}
+        {t("goal.plan.helper")}
       </Text>
 
       <DateField

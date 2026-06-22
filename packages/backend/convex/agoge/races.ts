@@ -409,7 +409,6 @@ export const createMyRaceWithGoal = mutation({
         userId: auth.userId,
         planId,
         planStartDate: startDate,
-        category: "race",
       });
     }
 
@@ -506,7 +505,6 @@ export const updateMyRaceWithGoal = mutation({
             userId: auth.userId,
             planId,
             planStartDate: startDate,
-            category: "race",
           });
         }
       }

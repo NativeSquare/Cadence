@@ -1,6 +1,5 @@
 import { RaceCountdown } from "@/components/app/plan/RaceCountdown";
-import { TrainingPulseCard } from "@/components/app/plan/TrainingPulseCard";
-import { computeTrainingPulse, mapRaceToGoalData } from "@/components/app/plan/utils";
+import { mapRaceToGoalData } from "@/components/app/plan/utils";
 import { ConfirmationSheet } from "@/components/shared/confirmation-sheet";
 import { Text } from "@/components/ui/text";
 import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
@@ -13,13 +12,6 @@ import { useRouter } from "expo-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { ActivityIndicator, Pressable, ScrollView, StatusBar, View } from "react-native";
-
-function toIsoDate(d: Date): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
 
 function formatSecondsAsClock(seconds: number): string {
   if (!Number.isFinite(seconds) || seconds <= 0) return "—";
@@ -62,7 +54,6 @@ function DetailRow({ label, value }: { label: string; value: string }) {
 export default function MyGoalScreen() {
   const { t } = useTranslation();
   const router = useRouter();
-  const today = React.useMemo(() => new Date(), []);
 
   const activeGoal = useQuery(api.agoge.goals.getMyActiveGoal);
   const abandonGoal = useMutation(api.agoge.goals.abandonMyActiveGoal);
@@ -70,36 +61,6 @@ export default function MyGoalScreen() {
   const confirmSheetRef = React.useRef<BottomSheetModal>(null);
   const [changing, setChanging] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
-
-  const isFitness = activeGoal?.goal.category === "fitness";
-  const planId = activeGoal?.plan?._id ?? null;
-
-  // Fitness goals render the TrainingPulseCard, which needs the plan's
-  // completed-workout history. Mirror PlanScreen's ±84-day window + plan
-  // filter, then reuse the shared pulse computation.
-  const workoutRange = React.useMemo(() => {
-    const start = new Date(today);
-    start.setDate(start.getDate() - 84);
-    const end = new Date(today);
-    end.setDate(end.getDate() + 84);
-    return {
-      startDate: `${toIsoDate(start)}T00:00:00.000Z`,
-      endDate: `${toIsoDate(end)}T23:59:59.999Z`,
-    };
-  }, [today]);
-
-  const workouts = useQuery(
-    api.agoge.workouts.listWorkouts,
-    isFitness && planId ? workoutRange : "skip",
-  );
-
-  const pulse = React.useMemo(() => {
-    if (!isFitness || !planId || !workouts) return null;
-    return computeTrainingPulse(
-      workouts.filter((w) => w.planId === planId),
-      today,
-    );
-  }, [isFitness, planId, workouts, today]);
 
   const handleConfirmChange = async () => {
     if (changing) return;
@@ -229,10 +190,6 @@ export default function MyGoalScreen() {
                   )}
                 </View>
               </>
-            ) : null}
-
-            {goal?.category === "fitness" && goal.fitnessIntent && pulse ? (
-              <TrainingPulseCard intent={goal.fitnessIntent} pulse={pulse} />
             ) : null}
 
             {error && (

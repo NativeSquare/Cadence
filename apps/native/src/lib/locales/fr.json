@@ -373,12 +373,6 @@
       "emptyTitle": "Enregistre ta première séance",
       "emptyBody": "Dès que tu commences à t'entraîner, tu verras ici ta série, ta fréquence et l'évolution de ton volume sur 4 semaines."
     },
-    "raceUpgrade": {
-      "eyebrow": "Prêt·e pour une course ?",
-      "title": "Tu prépares quelque chose de précis ?",
-      "body": "Choisis une course et on te bâtit un plan autour.",
-      "cta": "Choisir une course"
-    },
     "quickActions": {
       "title": "Actions rapides",
       "schedule": "Planifier",
@@ -420,18 +414,6 @@
     "next": "Suivant",
     "done": "Terminer",
     "stepOf": "Étape {{current}} sur {{total}}",
-    "chooseType": {
-      "heading": "Quel est votre objectif ?",
-      "helper": "Nous adapterons votre expérience en fonction de votre réponse.",
-      "race": {
-        "title": "Préparer une course",
-        "desc": "Construire un plan autour d'un événement précis."
-      },
-      "fitness": {
-        "title": "Forme générale",
-        "desc": "Pas de course en tête. Rester actif avec intention."
-      }
-    },
     "raceDetails": {
       "heading": "Parlez-nous de votre course",
       "name": "Nom",
@@ -462,38 +444,10 @@
     "plan": {
       "heading": "Votre plan d'entraînement",
       "helper": "Nous construisons un plan personnalisé jusqu'au jour de course. Choisissez quand le démarrer.",
-      "helperFitness": "Nous construisons un plan personnalisé autour de votre orientation. Choisissez quand le démarrer.",
       "startDate": "Date de début du plan",
       "generating": {
         "title": "Construction du plan",
-        "subtitle": "Nous orchestrons vos semaines jusqu'au jour J. Quelques instants…",
-        "subtitleFitness": "Nous orchestrons vos semaines à venir. Quelques instants…"
-      }
-    },
-    "fitness": {
-      "heading": "Choisissez votre orientation",
-      "helper": "Vous pourrez ajouter une course plus tard. C'est pour adapter nos suggestions.",
-      "options": {
-        "start_running": {
-          "label": "Débuter la course",
-          "desc": "Construire une base depuis zéro."
-        },
-        "build_base": {
-          "label": "Construire une base",
-          "desc": "Faire monter le volume et la base aérobie."
-        },
-        "maintain_fitness": {
-          "label": "Maintenir la forme",
-          "desc": "Garder votre niveau actuel."
-        },
-        "restart_running": {
-          "label": "Reprise après blessure",
-          "desc": "Reconstruire en douceur après une pause."
-        },
-        "general_health": {
-          "label": "Rester en forme",
-          "desc": "Bouger régulièrement pour le bien-être."
-        }
+        "subtitle": "Nous orchestrons vos semaines jusqu'au jour J. Quelques instants…"
       }
     },
     "errors": {

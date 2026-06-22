@@ -11,8 +11,6 @@ export { CalendarStrip } from "./CalendarStrip";
 export { TodayCard } from "./TodayCard";
 export { RaceCountdown } from "./RaceCountdown";
 export { QuickActions } from "./QuickActions";
-export { TrainingPulseCard } from "./TrainingPulseCard";
-export { RaceUpgradeCTA } from "./RaceUpgradeCTA";
 
 // Types
 export type { WorkoutData, RaceGoalData, WorkoutIntensity } from "./types";

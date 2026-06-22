@@ -3,13 +3,9 @@ import {
   getRaceDateError,
 } from "@/components/app/account/race-form";
 import {
-  StepChooseType,
-  StepFitnessGoal,
   StepPlan,
   StepRaceDetails,
   StepRaceGoal,
-  type FitnessGoal,
-  type GoalBranch,
   type PlanValue,
   type RaceDetailsValue,
   type RaceGoalValue,
@@ -46,7 +42,7 @@ import {
   View,
 } from "react-native";
 
-type Step = 1 | 2 | 3 | 4 | 5 | 6;
+type Step = 1 | 2 | 3 | 4 | 5;
 
 function todayIso(): string {
   const d = new Date();
@@ -96,19 +92,16 @@ export default function NewGoalScreen() {
 
   const athlete = useQuery(api.agoge.athletes.getAthlete);
   const createRace = useMutation(api.agoge.races.createMyRaceWithGoal);
-  const createFitnessGoal = useMutation(api.agoge.goals.createMyFitnessGoal);
   const upsertAthlete = useMutation(api.agoge.athletes.upsertAthlete);
   const setVdotFromRaceResult = useMutation(
     api.engine.baselineTest.setVdotFromRaceResult,
   );
 
   const [step, setStep] = useState<Step>(1);
-  const [branch, setBranch] = useState<GoalBranch | null>(null);
   const [raceDetails, setRaceDetails] =
     useState<RaceDetailsValue>(EMPTY_RACE_DETAILS);
   const [raceGoal, setRaceGoal] = useState<RaceGoalValue>(EMPTY_RACE_GOAL);
   const [plan, setPlan] = useState<PlanValue>(emptyPlan);
-  const [fitnessGoal, setFitnessGoalState] = useState<FitnessGoal | null>(null);
   const [recentRace, setRecentRace] =
     useState<RecentRaceValue>(EMPTY_RECENT_RACE);
   const [schedule, setSchedule] = useState<ScheduleValue>(EMPTY_SCHEDULE);
@@ -129,19 +122,11 @@ export default function NewGoalScreen() {
     setScheduleSeeded(true);
   }, [athlete, scheduleSeeded]);
 
-  // Race branch: 1 type → 2 details → 3 goal → 4 plan → 5 schedule → 6 recent race
-  // Fitness branch: 1 type → 2 intent → 3 plan → 4 schedule → 5 recent race
-  const totalSteps = branch === "fitness" ? 5 : 6;
-  const isPlanStep =
-    (branch === "race" && step === 4) || (branch === "fitness" && step === 3);
-  const isScheduleStep =
-    (branch === "race" && step === 5) || (branch === "fitness" && step === 4);
-  const isRecentRaceStep =
-    (branch === "race" && step === 6) || (branch === "fitness" && step === 5);
+  // 1 details → 2 goal → 3 plan → 4 schedule → 5 recent race
+  const totalSteps = 5;
 
   const canProceed = useMemo(() => {
-    if (step === 1) return branch != null;
-    if (step === 2 && branch === "race") {
+    if (step === 1) {
       const fieldsFilled =
         raceDetails.name.trim() !== "" &&
         raceDetails.date !== "" &&
@@ -156,31 +141,19 @@ export default function NewGoalScreen() {
       );
       return dateError === null;
     }
-    if (step === 2 && branch === "fitness") return fitnessGoal != null;
-    if (step === 3 && branch === "race") {
+    if (step === 2) {
       if (raceGoal.type === "completion") return true;
       if (raceGoal.type === "performance") return hasNonZeroTime(raceGoal);
       return false;
     }
-    if (isPlanStep) return plan.startDate !== "";
-    if (isScheduleStep) return isScheduleValid(schedule);
+    if (step === 3) return plan.startDate !== "";
+    if (step === 4) return isScheduleValid(schedule);
     // Recent race is optional — caller can submit with a valid time or skip.
-    if (isRecentRaceStep) return true;
+    if (step === 5) return true;
     return false;
-  }, [
-    step,
-    branch,
-    raceDetails,
-    raceGoal,
-    plan,
-    fitnessGoal,
-    schedule,
-    isPlanStep,
-    isScheduleStep,
-    isRecentRaceStep,
-  ]);
+  }, [step, raceDetails, raceGoal, plan, schedule]);
 
-  const isFinalStep = isRecentRaceStep;
+  const isFinalStep = step === 5;
 
   const handleClose = () => {
     router.back();
@@ -224,31 +197,25 @@ export default function NewGoalScreen() {
         sessionsPerWeek: schedule.sessionsPerWeek,
       });
 
-      if (branch === "fitness" && fitnessGoal) {
-        await createFitnessGoal({ fitnessIntent: fitnessGoal });
-      } else if (branch === "race") {
-        const format = raceDetails.format;
-        if (format === "") return;
-        const distanceMeters = FORMAT_DISTANCE_METERS[format];
-        await createRace({
-          race: {
-            name: raceDetails.name.trim(),
-            date: raceDetails.date,
-            priority: "A",
-            // Discipline isn't a plan-generation input; default it so the
-            // required backend field is satisfied.
-            discipline: "road",
-            format,
-            distanceMeters,
-            status: "upcoming",
-          },
-          goal: {
-            raceTarget: buildRaceTarget(raceGoal),
-          },
-        });
-      } else {
-        return;
-      }
+      const format = raceDetails.format;
+      if (format === "") return;
+      const distanceMeters = FORMAT_DISTANCE_METERS[format];
+      await createRace({
+        race: {
+          name: raceDetails.name.trim(),
+          date: raceDetails.date,
+          priority: "A",
+          // Discipline isn't a plan-generation input; default it so the
+          // required backend field is satisfied.
+          discipline: "road",
+          format,
+          distanceMeters,
+          status: "upcoming",
+        },
+        goal: {
+          raceTarget: buildRaceTarget(raceGoal),
+        },
+      });
 
       // Optionally seed VDOT from a recent race — skips the in-app 5K test
       // by giving the plan generator something to base paces on right away.
@@ -309,51 +276,27 @@ export default function NewGoalScreen() {
       >
         <View className="w-full max-w-md gap-6 self-center">
           {step === 1 && (
-            <StepChooseType
-              onSelect={(b) => {
-                setBranch(b);
-                setSubmitError(null);
-                setStep(2);
-              }}
-            />
-          )}
-          {step === 2 && branch === "race" && (
             <StepRaceDetails value={raceDetails} onChange={setRaceDetails} />
           )}
-          {step === 2 && branch === "fitness" && (
-            <StepFitnessGoal
-              value={fitnessGoal}
-              onChange={setFitnessGoalState}
-            />
-          )}
-          {step === 3 && branch === "race" && (
+          {step === 2 && (
             <StepRaceGoal value={raceGoal} onChange={setRaceGoal} />
           )}
-          {isPlanStep && branch === "fitness" && (
+          {step === 3 && (
             <StepPlan
               value={plan}
               onChange={setPlan}
-              branch="fitness"
-              minDate={todayIso()}
-            />
-          )}
-          {isPlanStep && branch === "race" && (
-            <StepPlan
-              value={plan}
-              onChange={setPlan}
-              branch="race"
               minDate={todayIso()}
               maxDate={raceDetails.date || undefined}
             />
           )}
-          {isScheduleStep && (
+          {step === 4 && (
             <StepSchedule value={schedule} onChange={setSchedule} />
           )}
-          {isRecentRaceStep && (
+          {step === 5 && (
             <StepRecentRace value={recentRace} onChange={setRecentRace} />
           )}
 
-          {isRecentRaceStep && (
+          {step === 5 && (
             <Pressable
               onPress={handleSkipRecentRace}
               disabled={submitting}
@@ -429,7 +372,6 @@ export default function NewGoalScreen() {
           )}
         </Pressable>
       </View>
-
     </KeyboardAvoidingView>
   );
 }

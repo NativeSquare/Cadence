@@ -4,12 +4,8 @@ import {
   type RaceFormSubmit,
 } from "@/components/app/account/race-form";
 import {
-  StepChooseType,
-  StepFitnessGoal,
   StepRaceDetails,
   StepRaceGoal,
-  type FitnessGoal,
-  type GoalBranch,
   type RaceDetailsValue,
   type RaceGoalValue,
 } from "@/components/app/goal";
@@ -31,7 +27,6 @@ import {
 } from "@/components/app/onboarding";
 import { Text } from "@/components/ui/text";
 import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
-import { selectionFeedback } from "@/lib/haptics";
 import { getConvexErrorMessage } from "@/utils/getConvexErrorMessage";
 import type { ExperienceLevel } from "@nativesquare/agoge/schema";
 import { api } from "@packages/backend/convex/_generated/api";
@@ -93,34 +88,27 @@ export default function Onboarding() {
   const patchUser = useMutation(api.table.users.patch);
   const upsertAthlete = useMutation(api.agoge.athletes.upsertAthlete);
   const createRaceWithGoal = useMutation(api.agoge.races.createMyRaceWithGoal);
-  const createFitnessGoal = useMutation(api.agoge.goals.createMyFitnessGoal);
   const setVdotFromRaceResult = useMutation(
     api.engine.baselineTest.setVdotFromRaceResult,
   );
 
-  // Step indexing is 1-based and unified across branches. Concrete screen per
-  // step depends on `branch` once it's set.
-  //   1 Welcome  2 Profile  3 Experience  4 Schedule  5 GoalType
-  //   6 RaceDetails | FitnessIntent
-  //   7 RaceGoal   | RecentRace
-  //   8 RecentRace (race branch only)
+  // Step indexing is 1-based.
+  //   1 Welcome  2 Profile  3 Experience  4 Schedule
+  //   5 RaceDetails  6 RaceGoal  7 RecentRace
   const [step, setStep] = useState<number>(1);
   const [profile, setProfile] = useState<ProfileValue>(EMPTY_PROFILE);
   const [experience, setExperience] = useState<ExperienceLevel | null>(null);
   const [schedule, setSchedule] = useState<ScheduleValue>(EMPTY_SCHEDULE);
-  const [branch, setBranch] = useState<GoalBranch | null>(null);
   const [raceDetails, setRaceDetails] =
     useState<RaceDetailsValue>(EMPTY_RACE_DETAILS);
   const [raceGoal, setRaceGoal] = useState<RaceGoalValue>(EMPTY_RACE_GOAL);
-  const [fitnessGoal, setFitnessGoal] = useState<FitnessGoal | null>(null);
   const [recentRace, setRecentRace] =
     useState<RecentRaceValue>(EMPTY_RECENT_RACE);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  const totalSteps = branch === "race" ? 8 : branch === "fitness" ? 7 : 7;
-  const isRecentRaceStep =
-    (branch === "race" && step === 8) || (branch === "fitness" && step === 7);
+  const totalSteps = 7;
+  const isRecentRaceStep = step === 7;
   const isFinalStep = isRecentRaceStep;
 
   const canProceed = useMemo(() => {
@@ -128,39 +116,32 @@ export default function Onboarding() {
     if (step === 2) return profile.sex !== null && profile.dateOfBirth !== "";
     if (step === 3) return experience !== null;
     if (step === 4) return isScheduleValid(schedule);
-    if (step === 5) return branch !== null;
+    if (step === 5) {
+      const fieldsFilled =
+        raceDetails.name.trim() !== "" &&
+        raceDetails.date !== "" &&
+        raceDetails.format !== "";
+      if (!fieldsFilled) return false;
+      // Mirror StepRaceDetails' lead-time guard so the red error and the
+      // Next button stay in agreement (e.g. a 5K must be 4–12 weeks out,
+      // a marathon at least 10 weeks).
+      return (
+        getRaceDateError(
+          todayIso(),
+          raceDetails.date,
+          raceDetails.format === "" ? undefined : raceDetails.format,
+        ) === null
+      );
+    }
     if (step === 6) {
-      if (branch === "race") {
-        const fieldsFilled =
-          raceDetails.name.trim() !== "" &&
-          raceDetails.date !== "" &&
-          raceDetails.format !== "";
-        if (!fieldsFilled) return false;
-        // Mirror StepRaceDetails' lead-time guard so the red error and the
-        // Next button stay in agreement (e.g. a 5K must be 4–12 weeks out,
-        // a marathon at least 10 weeks).
-        return (
-          getRaceDateError(
-            todayIso(),
-            raceDetails.date,
-            raceDetails.format === "" ? undefined : raceDetails.format,
-          ) === null
-        );
-      }
-      return fitnessGoal !== null;
+      if (raceGoal.type === "completion") return true;
+      if (raceGoal.type === "performance") return raceTargetSeconds(raceGoal) > 0;
+      return false;
     }
-    if (step === 7) {
-      if (branch === "race") {
-        if (raceGoal.type === "completion") return true;
-        if (raceGoal.type === "performance") return raceTargetSeconds(raceGoal) > 0;
-        return false;
-      }
-      // fitness final — RecentRace optional, so always allowed
-      return true;
-    }
-    if (step === 8 && branch === "race") return true;
+    // Recent race is optional — caller can submit with a valid time or skip.
+    if (step === 7) return true;
     return false;
-  }, [step, branch, profile, experience, schedule, raceDetails, raceGoal, fitnessGoal]);
+  }, [step, profile, experience, schedule, raceDetails, raceGoal]);
 
   const handleBack = () => {
     if (step === 1) return;
@@ -172,8 +153,6 @@ export default function Onboarding() {
     if (!canProceed || submitting) return;
     setSubmitError(null);
 
-    // GoalType screen advances on its own via StepChooseType's onSelect;
-    // tapping Next here also works if branch was set.
     if (!isFinalStep) {
       setStep((s) => s + 1);
       return;
@@ -195,29 +174,25 @@ export default function Onboarding() {
         sessionsPerWeek: schedule.sessionsPerWeek,
       });
 
-      // 2. Create goal (and plan + baseline-test gating)
-      if (branch === "race") {
-        if (raceDetails.format === "") {
-          throw new Error("Race details incomplete");
-        }
-        const distanceMeters = FORMAT_DISTANCE_METERS[raceDetails.format];
-        await createRaceWithGoal({
-          race: {
-            name: raceDetails.name.trim(),
-            date: raceDetails.date,
-            priority: "A",
-            // Discipline isn't a plan-generation input; default it so the
-            // required backend field is satisfied.
-            discipline: "road",
-            format: raceDetails.format,
-            distanceMeters,
-            status: "upcoming",
-          } satisfies Omit<RaceFormSubmit, "goal">,
-          goal: { raceTarget: buildRaceTarget(raceGoal) },
-        });
-      } else if (branch === "fitness" && fitnessGoal) {
-        await createFitnessGoal({ fitnessIntent: fitnessGoal });
+      // 2. Create the race goal (and plan + baseline-test gating)
+      if (raceDetails.format === "") {
+        throw new Error("Race details incomplete");
       }
+      const distanceMeters = FORMAT_DISTANCE_METERS[raceDetails.format];
+      await createRaceWithGoal({
+        race: {
+          name: raceDetails.name.trim(),
+          date: raceDetails.date,
+          priority: "A",
+          // Discipline isn't a plan-generation input; default it so the
+          // required backend field is satisfied.
+          discipline: "road",
+          format: raceDetails.format,
+          distanceMeters,
+          status: "upcoming",
+        } satisfies Omit<RaceFormSubmit, "goal">,
+        goal: { raceTarget: buildRaceTarget(raceGoal) },
+      });
 
       // 3. Optionally seed VDOT from a recent race — skips the in-app 5K test
       if (withRaceResult) {
@@ -238,19 +213,9 @@ export default function Onboarding() {
     }
   };
 
-  // Branch selection on step 5 immediately advances to step 6 (matches the
-  // existing goal/new pattern — fewer taps for an irreversible-feeling click).
-  const handleBranchSelect = (b: GoalBranch) => {
-    selectionFeedback();
-    setBranch(b);
-    setSubmitError(null);
-    setStep(6);
-  };
-
   // "I'll do the 5K test instead" — submit without writing the pace zone.
   const handleSkipRecentRace = async () => {
     if (submitting) return;
-    selectionFeedback();
     setSubmitError(null);
     await submit({ withRaceResult: false });
   };
@@ -298,20 +263,13 @@ export default function Onboarding() {
           {step === 4 && (
             <StepSchedule value={schedule} onChange={setSchedule} />
           )}
-          {step === 5 && <StepChooseType onSelect={handleBranchSelect} />}
-          {step === 6 && branch === "race" && (
+          {step === 5 && (
             <StepRaceDetails value={raceDetails} onChange={setRaceDetails} />
           )}
-          {step === 6 && branch === "fitness" && (
-            <StepFitnessGoal value={fitnessGoal} onChange={setFitnessGoal} />
-          )}
-          {step === 7 && branch === "race" && (
+          {step === 6 && (
             <StepRaceGoal value={raceGoal} onChange={setRaceGoal} />
           )}
-          {step === 7 && branch === "fitness" && (
-            <StepRecentRace value={recentRace} onChange={setRecentRace} />
-          )}
-          {step === 8 && branch === "race" && (
+          {step === 7 && (
             <StepRecentRace value={recentRace} onChange={setRecentRace} />
           )}
 
