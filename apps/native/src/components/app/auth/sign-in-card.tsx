@@ -144,6 +144,9 @@ const styles = StyleSheet.create({
   logo: {
     fontFamily: "Outfit-Bold",
     fontSize: 32,
+    lineHeight: 42,
+    paddingTop: 2,
+    includeFontPadding: true,
     color: GRAYS.g1,
     letterSpacing: -1.28,
   },
