@@ -1,14 +1,17 @@
 import { SignInCard } from "@/components/app/auth/sign-in-card";
-import { TestimonialCarousel } from "@/components/app/auth/testimonial-carousel";
+import { GRAYS } from "@/lib/design-tokens";
 import { StatusBar } from "expo-status-bar";
 import { ImageBackground, StyleSheet, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Animated, { FadeIn } from "react-native-reanimated";
 
 const backgroundImage = require("../../../../assets/images/background.jpg");
 
 export default function SignIn() {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
 
   return (
     <View style={styles.container}>
@@ -19,9 +22,21 @@ export default function SignIn() {
         style={styles.background}
         resizeMode="cover"
       >
-        {/* Top section: Testimonial area over background image */}
-        <View style={styles.testimonialSection}>
-          <TestimonialCarousel />
+        {/* Top section: honest product framing over the background image.
+            Replaced the fabricated testimonial carousel — no impersonated users. */}
+        <View style={styles.framingSection}>
+          <Animated.Text
+            entering={FadeIn.duration(600)}
+            style={styles.framingVision}
+          >
+            {t("auth.framing.vision")}
+          </Animated.Text>
+          <Animated.Text
+            entering={FadeIn.duration(600).delay(150)}
+            style={styles.framingGrounded}
+          >
+            {t("auth.framing.grounded")}
+          </Animated.Text>
         </View>
 
         {/* Bottom section: Auth controls with gradient fade from transparent to black */}
@@ -52,9 +67,27 @@ const styles = StyleSheet.create({
   background: {
     flex: 1,
   },
-  testimonialSection: {
+  framingSection: {
     flex: 0.42,
     overflow: "hidden",
+    justifyContent: "flex-end",
+    paddingHorizontal: 32,
+    paddingBottom: 8,
+  },
+  framingVision: {
+    fontFamily: "Outfit-Light",
+    fontSize: 28,
+    lineHeight: 36,
+    color: GRAYS.g1,
+    letterSpacing: -0.84,
+    marginBottom: 12,
+  },
+  framingGrounded: {
+    fontFamily: "Outfit-Regular",
+    fontSize: 14,
+    lineHeight: 20,
+    color: GRAYS.g3,
+    letterSpacing: -0.14,
   },
   authSection: {
     flex: 0.58,

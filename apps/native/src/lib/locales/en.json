@@ -64,8 +64,10 @@
     }
   },
   "auth": {
-    "tagline": "AI coaching that sees what you can't.",
-    "communityPulseSuffix": "runners training with Cadence",
+    "framing": {
+      "vision": "Coaching that learns the why, not just the what.",
+      "grounded": "Debrief each run by voice — your week adjusts around it."
+    },
     "continueWithGoogle": "Continue with Google",
     "continueWithApple": "Continue with Apple",
     "continueWithEmail": "Continue with email",

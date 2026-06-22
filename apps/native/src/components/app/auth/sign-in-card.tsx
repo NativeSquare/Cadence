@@ -12,7 +12,6 @@ import { useTranslation } from "react-i18next";
 import { Platform, Pressable, StyleSheet, View } from "react-native";
 import Animated, { FadeIn, FadeInUp } from "react-native-reanimated";
 import { GoogleButton, AppleButton } from "./oauth-buttons";
-import { CommunityPulse } from "./community-pulse";
 
 export function SignInCard() {
   const { t } = useTranslation();
@@ -81,28 +80,12 @@ export function SignInCard() {
 
   return (
     <View style={styles.container}>
-      {/* Logo / wordmark */}
+      {/* Logo / wordmark — the product framing lives in the top section above */}
       <Animated.View
         entering={FadeIn.duration(600)}
         style={styles.logoContainer}
       >
         <Text style={styles.logo}>cadence</Text>
-      </Animated.View>
-
-      {/* Tagline */}
-      <Animated.Text
-        entering={FadeIn.duration(600).delay(150)}
-        style={styles.tagline}
-      >
-        {t("auth.tagline")}
-      </Animated.Text>
-
-      {/* Community counter */}
-      <Animated.View
-        entering={FadeInUp.duration(500).delay(300)}
-        style={styles.pulseContainer}
-      >
-        <CommunityPulse />
       </Animated.View>
 
       {/* OAuth buttons */}
@@ -156,24 +139,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   logoContainer: {
-    marginBottom: 6,
+    marginBottom: 28,
   },
   logo: {
     fontFamily: "Outfit-Bold",
     fontSize: 32,
     color: GRAYS.g1,
     letterSpacing: -1.28,
-  },
-  tagline: {
-    fontFamily: "Outfit-Light",
-    fontSize: 15,
-    color: GRAYS.g3,
-    textAlign: "center",
-    marginBottom: 24,
-    letterSpacing: -0.15,
-  },
-  pulseContainer: {
-    marginBottom: 28,
   },
   buttonsContainer: {
     width: "100%",

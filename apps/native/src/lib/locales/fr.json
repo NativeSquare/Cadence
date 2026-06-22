@@ -64,8 +64,10 @@
     }
   },
   "auth": {
-    "tagline": "Un coaching IA qui voit ce que vous ne voyez pas.",
-    "communityPulseSuffix": "coureurs s'entraînent avec Cadence",
+    "framing": {
+      "vision": "Un coaching qui apprend le pourquoi, pas seulement le quoi.",
+      "grounded": "Débriefez chaque sortie à la voix — votre semaine s'ajuste en conséquence."
+    },
     "continueWithGoogle": "Continuer avec Google",
     "continueWithApple": "Continuer avec Apple",
     "continueWithEmail": "Continuer par e-mail",
