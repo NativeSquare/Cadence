@@ -194,14 +194,14 @@
     },
     "recentRace": {
       "heading": "Have you raced recently?",
-      "helper": "If you have a recent race time, we'll use it to set your training paces — and you skip the 5K test in week 1.",
+      "helper": "If you have a recent race time, we'll use it to set your training paces, and you skip the 5K test in week 1.",
       "distanceLabel": "Distance",
       "timeLabel": "Finish time",
       "hours": "hh",
       "minutes": "mm",
       "seconds": "ss",
       "useResult": "Use this result",
-      "skipForTest": "Skip — I'll do the 5K test instead"
+      "skipForTest": "Skip, I'll do the 5K test instead"
     }
   },
   "calendar": {
@@ -285,7 +285,7 @@
     },
     "decisions": {
       "title": "Your decisions",
-      "empty": "When you make a call on a session — keep it or ease it — it'll show up here.",
+      "empty": "When you make a call on a session (keep it or ease it), it'll show up here.",
       "deletedWorkout": "Session",
       "badge": {
         "kept": "Kept",
@@ -429,7 +429,7 @@
       },
       "fitness": {
         "title": "General fitness",
-        "desc": "No race in mind — stay active with intent."
+        "desc": "No race in mind. Stay active with intent."
       }
     },
     "raceDetails": {
@@ -441,8 +441,8 @@
       "discipline": "Discipline",
       "customDistance": "Distance (km)",
       "customDistancePlaceholder": "42.2",
-      "tooSoonForFormat": "Race is too soon for a {{format}} plan — need at least {{minWeeks}} weeks (currently {{days}} days).",
-      "tooFarForFormat": "Race is too far out for a {{format}} plan — must be within {{maxWeeks}} weeks (currently {{days}} days).",
+      "tooSoonForFormat": "Race is too soon for a {{format}} plan: needs at least {{minWeeks}} weeks (currently {{days}} days).",
+      "tooFarForFormat": "Race is too far out for a {{format}} plan: must be within {{maxWeeks}} weeks (currently {{days}} days).",
       "fiveKWindowNote": "Pick a date 4–12 weeks out. Under 4 weeks isn't enough to build speed safely; past 12, a focused 5K block stops adding much."
     },
     "raceGoal": {
@@ -472,7 +472,7 @@
     },
     "fitness": {
       "heading": "Pick your focus",
-      "helper": "You can add a race later — this just helps us tailor suggestions.",
+      "helper": "You can add a race later. This just helps us tailor suggestions.",
       "options": {
         "start_running": {
           "label": "New to running",
@@ -565,7 +565,7 @@
       "reRecord": "Record again",
       "recording": "Recording",
       "recorded": "Recorded",
-      "recordHint": "Speak freely — how your body felt, your energy, anything that came up.",
+      "recordHint": "Speak freely: how your body felt, your energy, anything that came up.",
       "recordingHint": "Tap to stop when you're done.",
       "reRecordHint": "Tap to record again.",
       "errorAudioRequired": "Record a quick voice debrief to finish.",
@@ -599,7 +599,7 @@
         "nextUp": "Next hard session: {{name}}",
         "ease": "Ease it",
         "keep": "Keep it as is",
-        "easedConfirm": "Done — I eased {{name}}. You can undo it anytime from that session.",
+        "easedConfirm": "Done. I eased {{name}}. You can undo it anytime from that session.",
         "easeError": "Couldn't adjust it. Try again."
       }
     },
@@ -724,7 +724,7 @@
     "targets": {
       "none": {
         "label": "None",
-        "description": "No target — just run the duration."
+        "description": "No target. Just run the duration."
       },
       "pace_range": {
         "label": "Pace",
@@ -732,7 +732,7 @@
       },
       "cadence_range": {
         "label": "Cadence",
-        "description": "Step rate window — useful for form drills."
+        "description": "Step rate window. Useful for form drills."
       },
       "rpe": {
         "label": "RPE",
@@ -930,7 +930,7 @@
       "noNutrition": "No nutrition entries logged in this window.",
       "noDaily": "No daily activity data in this window yet.",
       "noBody": "Log at least two weigh-ins to see your weight trend.",
-      "noCycle": "No cycle data yet — once a record syncs, your current phase will show here.",
+      "noCycle": "No cycle data yet. Once a record syncs, your current phase will show here.",
       "noHrv": "No HRV data in this window yet."
     },
     "cards": {
@@ -972,7 +972,7 @@
       },
       "hrv": {
         "title": "HRV",
-        "subtitle": "Daily heart-rate variability — higher means more recovered",
+        "subtitle": "Daily heart-rate variability. Higher means more recovered",
         "avgLabel": "Avg in window"
       },
       "bodyWeight": {
@@ -1232,7 +1232,7 @@
       "vdotTitle": "Fitness over time",
       "perKm": " /km",
       "lastMeasured": "Last measured {{relative}}",
-      "vdotExplainer": "VDOT is your fitness score — higher is fitter. A trained marathoner sits around 50, an elite is 80+.",
+      "vdotExplainer": "VDOT is your fitness score: higher is fitter. A trained marathoner sits around 50, an elite is 80+.",
       "reportRaceCta": "Report a recent race result",
       "emptyTitle": "Set your fitness",
       "emptyDescription": "We don't know your fitness yet. Report a recent race result, or complete the baseline test in your plan to get started.",
@@ -1249,11 +1249,11 @@
         },
         "SV1": {
           "label": "Aerobic threshold (SV1)",
-          "description": "Steady but still aerobic, just above easy — builds endurance."
+          "description": "Steady but still aerobic, just above easy. Builds endurance."
         },
         "M": {
           "label": "Marathon",
-          "description": "Marathon race effort — relaxed but committed."
+          "description": "Marathon race effort. Relaxed but committed."
         },
         "T": {
           "label": "Threshold",
@@ -1261,7 +1261,7 @@
         },
         "I": {
           "label": "Intervals",
-          "description": "VO₂max work — typically 3-5 minute reps."
+          "description": "VO₂max work. Typically 3-5 minute reps."
         },
         "R": {
           "label": "Repetition",
@@ -1434,15 +1434,15 @@
         "continue": "Continue",
         "cancel": "Cancel",
         "garmin": {
-          "intro": "On the next screen, Garmin will ask what to share. Historical Data is off by default — turn it on so we can analyze your past training.",
+          "intro": "On the next screen, Garmin will ask what to share. Historical Data is off by default. Turn it on so we can analyze your past training.",
           "caption": "Turn on Historical Data, then tap Save."
         },
         "appleHealth": {
-          "intro": "iOS will show a permission sheet next. Tap Turn On All so your coach gets the full picture — heart rate, sleep, workouts and more.",
+          "intro": "iOS will show a permission sheet next. Tap Turn On All so your coach gets the full picture: heart rate, sleep, workouts and more.",
           "caption": "Tap Turn On All at the top, then Allow."
         },
         "strava": {
-          "intro": "Strava defaults to checking all boxes. Keep private activities checked so your full history imports — otherwise we only see your public workouts.",
+          "intro": "Strava defaults to checking all boxes. Keep private activities checked so your full history imports. Otherwise we only see your public workouts.",
           "caption": "Leave private activities checked, then tap Authorize."
         }
       }
@@ -1450,7 +1450,7 @@
   },
   "paywall": {
     "title": "Unlock\nCadence Pro",
-    "subtitle": "Your AI running coach — adapting every session to how you actually train and recover.",
+    "subtitle": "Your AI running coach, adapting every session to how you actually train and recover.",
     "features": {
       "coach": "AI coach that adapts your plan daily",
       "sync": "Garmin & Strava auto-sync",
@@ -1471,7 +1471,7 @@
     "terms": "Terms",
     "privacy": "Privacy",
     "legal": "Payment is charged to your Apple ID at the end of the 14-day free trial. The subscription renews automatically unless cancelled at least 24 hours before the period ends. Manage or cancel anytime in Settings.",
-    "signOut": "Not now — sign out",
+    "signOut": "Not now, sign out",
     "loadError": "Plans couldn't load. Check your connection and try again.",
     "errorTitle": "Something went wrong",
     "restoreNoneTitle": "Nothing to restore",

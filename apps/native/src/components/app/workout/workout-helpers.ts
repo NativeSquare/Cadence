@@ -52,7 +52,7 @@ export function blockTypeLabel(t: TFunction, type: string): string {
 
 /**
  * Display label for a training block: type, optionally suffixed with the
- * user-supplied focus (e.g. "Build — Threshold"). Replaces the dropped `name`
+ * user-supplied focus (e.g. "Build · Threshold"). Replaces the dropped `name`
  * field — blocks are now identified by type + focus + dates.
  */
 export function blockLabel(
@@ -60,7 +60,7 @@ export function blockLabel(
   block: { type: string; focus?: string },
 ): string {
   const type = blockTypeLabel(t, block.type);
-  return block.focus ? `${type} — ${block.focus}` : type;
+  return block.focus ? `${type} · ${block.focus}` : type;
 }
 
 /**

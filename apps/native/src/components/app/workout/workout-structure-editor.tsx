@@ -181,7 +181,7 @@ export function WorkoutStructureEditor({
             className="font-coach text-[13px]"
             style={{ color: LIGHT_THEME.wMute }}
           >
-            No steps yet — add a step or repeat below.
+            No steps yet. Add a step or repeat below.
           </Text>
         </View>
       ) : (

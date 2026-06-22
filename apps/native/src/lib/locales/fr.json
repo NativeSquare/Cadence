@@ -194,14 +194,14 @@
     },
     "recentRace": {
       "heading": "As-tu couru une course récemment ?",
-      "helper": "Si tu as un temps récent, on s'en sert pour caler tes allures — et tu sautes le test 5 km de la semaine 1.",
+      "helper": "Si tu as un temps récent, on s'en sert pour caler tes allures, et tu sautes le test 5 km de la semaine 1.",
       "distanceLabel": "Distance",
       "timeLabel": "Temps final",
       "hours": "hh",
       "minutes": "mm",
       "seconds": "ss",
       "useResult": "Utiliser ce résultat",
-      "skipForTest": "Passer — je ferai le test 5 km"
+      "skipForTest": "Passer, je ferai le test 5 km"
     }
   },
   "calendar": {
@@ -285,7 +285,7 @@
     },
     "decisions": {
       "title": "Tes décisions",
-      "empty": "Quand tu fais un choix sur une séance — la maintenir ou l'alléger — il apparaîtra ici.",
+      "empty": "Quand tu fais un choix sur une séance (la maintenir ou l'alléger), il apparaîtra ici.",
       "deletedWorkout": "Séance",
       "badge": {
         "kept": "Maintenue",
@@ -429,7 +429,7 @@
       },
       "fitness": {
         "title": "Forme générale",
-        "desc": "Pas de course en tête — rester actif avec intention."
+        "desc": "Pas de course en tête. Rester actif avec intention."
       }
     },
     "raceDetails": {
@@ -441,8 +441,8 @@
       "discipline": "Discipline",
       "customDistance": "Distance (km)",
       "customDistancePlaceholder": "42.2",
-      "tooSoonForFormat": "Course trop proche pour un plan {{format}} — il faut au moins {{minWeeks}} semaines (actuellement {{days}} jours).",
-      "tooFarForFormat": "Course trop loin pour un plan {{format}} — elle doit être dans les {{maxWeeks}} semaines (actuellement {{days}} jours).",
+      "tooSoonForFormat": "Course trop proche pour un plan {{format}} : il faut au moins {{minWeeks}} semaines (actuellement {{days}} jours).",
+      "tooFarForFormat": "Course trop loin pour un plan {{format}} : elle doit être dans les {{maxWeeks}} semaines (actuellement {{days}} jours).",
       "fiveKWindowNote": "Choisis une date entre 4 et 12 semaines. Moins de 4 semaines ne suffit pas pour développer la vitesse en sécurité ; au-delà de 12, un bloc 5K dédié n'apporte plus grand-chose."
     },
     "raceGoal": {
@@ -472,7 +472,7 @@
     },
     "fitness": {
       "heading": "Choisissez votre orientation",
-      "helper": "Vous pourrez ajouter une course plus tard — c'est pour adapter nos suggestions.",
+      "helper": "Vous pourrez ajouter une course plus tard. C'est pour adapter nos suggestions.",
       "options": {
         "start_running": {
           "label": "Débuter la course",
@@ -565,7 +565,7 @@
       "reRecord": "Réenregistrer",
       "recording": "Enregistrement",
       "recorded": "Enregistré",
-      "recordHint": "Parle librement — tes sensations, ton énergie, ce qui t'a marqué.",
+      "recordHint": "Parle librement : tes sensations, ton énergie, ce qui t'a marqué.",
       "recordingHint": "Appuie pour arrêter quand tu as fini.",
       "reRecordHint": "Appuie pour réenregistrer.",
       "errorAudioRequired": "Enregistre un court débrief vocal pour terminer.",
@@ -599,7 +599,7 @@
         "nextUp": "Prochaine séance dure : {{name}}",
         "ease": "Allège-la",
         "keep": "Garde-la telle quelle",
-        "easedConfirm": "C'est fait — j'ai allégé {{name}}. Tu peux annuler à tout moment depuis cette séance.",
+        "easedConfirm": "C'est fait. J'ai allégé {{name}}. Tu peux annuler à tout moment depuis cette séance.",
         "easeError": "Impossible de l'ajuster. Réessaie."
       }
     },
@@ -724,7 +724,7 @@
     "targets": {
       "none": {
         "label": "Aucune",
-        "description": "Pas de cible — simplement courir la durée."
+        "description": "Pas de cible. Simplement courir la durée."
       },
       "pace_range": {
         "label": "Allure",
@@ -732,7 +732,7 @@
       },
       "cadence_range": {
         "label": "Cadence",
-        "description": "Plage de cadence — utile pour le travail technique."
+        "description": "Plage de cadence. Utile pour le travail technique."
       },
       "rpe": {
         "label": "RPE",
@@ -930,7 +930,7 @@
       "noNutrition": "Aucune entrée nutrition enregistrée sur cette période.",
       "noDaily": "Pas encore de données d'activité quotidienne sur cette période.",
       "noBody": "Enregistre au moins deux pesées pour voir l'évolution de ton poids.",
-      "noCycle": "Pas encore de données de cycle — ta phase actuelle s'affichera ici dès la première synchro.",
+      "noCycle": "Pas encore de données de cycle. Ta phase actuelle s'affichera ici dès la première synchro.",
       "noHrv": "Pas encore de données HRV sur cette période."
     },
     "cards": {
@@ -972,7 +972,7 @@
       },
       "hrv": {
         "title": "HRV",
-        "subtitle": "Variabilité cardiaque quotidienne — plus c'est haut, mieux tu récupères",
+        "subtitle": "Variabilité cardiaque quotidienne. Plus c'est haut, mieux tu récupères",
         "avgLabel": "Moy. sur la période"
       },
       "bodyWeight": {
@@ -1232,7 +1232,7 @@
       "vdotTitle": "Forme dans le temps",
       "perKm": " /km",
       "lastMeasured": "Dernière mesure {{relative}}",
-      "vdotExplainer": "Le VDOT est ton score de forme — plus il est élevé, mieux c'est. Un marathonien aguerri tourne autour de 50, une élite à 80+.",
+      "vdotExplainer": "Le VDOT est ton score de forme : plus il est élevé, mieux c'est. Un marathonien aguerri tourne autour de 50, une élite à 80+.",
       "reportRaceCta": "Renseigner un résultat de course",
       "emptyTitle": "Renseigne ta forme",
       "emptyDescription": "On ne connaît pas encore ta forme. Renseigne un résultat récent, ou complète le test initial de ton plan pour démarrer.",
@@ -1249,11 +1249,11 @@
         },
         "SV1": {
           "label": "Seuil aérobie (SV1)",
-          "description": "Soutenu mais encore aérobie, juste au-dessus du facile — pour développer l'endurance."
+          "description": "Soutenu mais encore aérobie, juste au-dessus du facile. Pour développer l'endurance."
         },
         "M": {
           "label": "Marathon",
-          "description": "Allure marathon — relâchée mais engagée."
+          "description": "Allure marathon. Relâchée mais engagée."
         },
         "T": {
           "label": "Seuil",
@@ -1261,7 +1261,7 @@
         },
         "I": {
           "label": "Intervalles",
-          "description": "Travail VO₂max — typiquement des répétitions de 3 à 5 min."
+          "description": "Travail VO₂max. Typiquement des répétitions de 3 à 5 min."
         },
         "R": {
           "label": "Répétitions",
@@ -1434,15 +1434,15 @@
         "continue": "Continuer",
         "cancel": "Annuler",
         "garmin": {
-          "intro": "Sur l'écran suivant, Garmin demande quelles données partager. L'historique est désactivé par défaut — activez-le pour qu'on puisse analyser vos entraînements passés.",
+          "intro": "Sur l'écran suivant, Garmin demande quelles données partager. L'historique est désactivé par défaut. Activez-le pour qu'on puisse analyser vos entraînements passés.",
           "caption": "Activez Historique des données, puis appuyez sur Enregistrer."
         },
         "appleHealth": {
-          "intro": "iOS va afficher une feuille d'autorisation. Appuyez sur Tout activer pour donner à votre coach toutes les données — fréquence cardiaque, sommeil, séances et plus.",
+          "intro": "iOS va afficher une feuille d'autorisation. Appuyez sur Tout activer pour donner à votre coach toutes les données : fréquence cardiaque, sommeil, séances et plus.",
           "caption": "Appuyez sur Tout activer en haut, puis sur Autoriser."
         },
         "strava": {
-          "intro": "Strava coche toutes les cases par défaut. Laissez les activités privées cochées pour importer tout votre historique — sinon on ne voit que les séances publiques.",
+          "intro": "Strava coche toutes les cases par défaut. Laissez les activités privées cochées pour importer tout votre historique. Sinon on ne voit que les séances publiques.",
           "caption": "Laissez les activités privées cochées, puis appuyez sur Autoriser."
         }
       }
@@ -1450,7 +1450,7 @@
   },
   "paywall": {
     "title": "Débloquez\nCadence Pro",
-    "subtitle": "Votre coach IA de course — qui adapte chaque séance à votre entraînement et votre récupération réels.",
+    "subtitle": "Votre coach IA de course, qui adapte chaque séance à votre entraînement et votre récupération réels.",
     "features": {
       "coach": "Un coach IA qui adapte votre plan chaque jour",
       "sync": "Synchro automatique Garmin & Strava",
@@ -1471,7 +1471,7 @@
     "terms": "CGU",
     "privacy": "Confidentialité",
     "legal": "Le paiement est prélevé sur votre compte Apple à la fin de l'essai gratuit de 14 jours. L'abonnement se renouvelle automatiquement sauf résiliation au moins 24 heures avant la fin de la période. Gérez ou résiliez à tout moment dans Réglages.",
-    "signOut": "Plus tard — se déconnecter",
+    "signOut": "Plus tard, se déconnecter",
     "loadError": "Impossible de charger les offres. Vérifiez votre connexion et réessayez.",
     "errorTitle": "Une erreur est survenue",
     "restoreNoneTitle": "Rien à restaurer",
