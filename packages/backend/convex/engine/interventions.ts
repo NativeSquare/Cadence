@@ -1,6 +1,6 @@
 /**
- * Runner-initiated ease of an upcoming hard session — the Chemin B reshape from
- * the post-session "we heard you" decision prompt (Mark Done sheet,
+ * Runner-initiated ease of an upcoming hard session — the post-session reshape
+ * from the "we heard you" decision prompt (Mark Done sheet,
  * `concern: "act"` with a conflicting hard session within ~3 days).
  *
  * The Engine acts only because the Runner decided. The choice itself is recorded

@@ -34,9 +34,11 @@ Choosing an *intention* under uncertainty. The Runner decides; the Engine then t
 **Act**:
 Executing the deterministic plan mutation. Only the Engine acts.
 
-> **Chemin A** (confirmed signals): Engine decides *and* acts, Coach informs. **Chemin B** (qualitative/uncertain signals): Coach restitutes memory → Runner decides intention → Engine acts → Coach confirms. Chemin B is the wedge's hero moment.
+> Today the plan changes in exactly one automated way (besides the Runner's manual **Reschedule** / **Swap**): the **post-session ease**. The signal is uncertain (the Runner's voice debrief), so the Engine refuses to act alone — the Coach surfaces context, the **Runner decides** the intention, the Engine acts, and the Coach confirms. This is the wedge's hero moment.
 >
-> _Status (2026-06-17)_: **Chemin A has no live path** — all autonomous triggers were removed (ADR-0003). The product is reactive only: the Engine acts solely via Chemin B (post-session ease). Chemin A returns when the proactive layer is rebuilt.
+> _Deferred_: letting the Engine decide *and* act on its own from confirmed signals (autonomous adaptation). Every such trigger was removed in the reset to zero (ADR-0003), to be rebuilt deliberately later.
+>
+> _Retired naming (2026-06-22)_: the old **Chemin A / Chemin B** pairing that labelled these two flows is dropped from the glossary — with only one flow live, a two-member taxonomy was premature. The historical meaning survives in ADR-0002 / ADR-0003.
 
 ### Agoge — the training-plan domain (external component)
 
@@ -103,7 +105,7 @@ The deterministic construction of a **Goal**'s initial **Plan** (`generatePlan.t
 Any deterministic modification of *upcoming* Workouts (scale intensity, deload, drop filler, ease one session). The only way the live plan changes after generation.
 
 **Trigger**:
-A named condition that *authorizes* a Reshape. The only **live** trigger is `post_session_ease` (the Runner's Chemin B ease). The autonomous triggers `hrv_low_v1`, `adherence_low_v1`, and `weekly_review_v1` were **removed** in the reset to zero (ADR-0003).
+A named condition that *authorizes* a Reshape. The only **live** trigger is `post_session_ease` (the Runner's post-session ease). The autonomous triggers `hrv_low_v1`, `adherence_low_v1`, and `weekly_review_v1` were **removed** in the reset to zero (ADR-0003).
 
 **Guardrail** (`philosophy.*` in code):
 A deterministic invariant that *blocks* a plan move violating training sense — ≤2 quality Workouts/week, ≤+10% weekly volume. Validates Runner edits (**Reschedule**, **Swap**) *and* Coach suggestions. A Guardrail forbids; a Trigger causes. **Live today** — enforced in `agoge/workouts.ts` on every reschedule/swap.
@@ -156,7 +158,7 @@ The triage level the extraction assigns to an entry: `none` / `watch` / `act`. S
 A hard/quality Workout sitting close enough (≤3 days) to a concerning post-session signal that easing it is offered.
 
 **Decision** (the decision log):
-A recorded moment where a **Trigger** prompted a choice to act or not — made by the **Engine** (Chemin A: a *system* decision, e.g. `hrv_low_v1`) or the **Runner** (Chemin B: a chosen intention `go` / `ease`). Carries the trigger (`ruleId`), the chosen action (including no-op like `go` / Keep), and — when it acted — the executed mutation's before/after state. The unit of the decision log; its *acted* facet replaces the old **Intervention**. Stored as rows in the **Journal** (`journalEntry`). A silent evaluation that produces no change records nothing.
+A recorded moment where a **Trigger** prompted a choice to act or not — made by the **Engine** (a *system* decision, e.g. `hrv_low_v1`) or the **Runner** (a chosen intention `go` / `ease`). Carries the trigger (`ruleId`), the chosen action (including no-op like `go` / Keep), and — when it acted — the executed mutation's before/after state. The unit of the decision log; its *acted* facet replaces the old **Intervention**. Stored as rows in the **Journal** (`journalEntry`). A silent evaluation that produces no change records nothing.
 
 **Restitution**:
 The Coach surfacing past decisions/memory at a similar moment ("le 12 mai, même contexte, tu as forcé → 10j d'arrêt"). The pull side of the wedge.
@@ -174,7 +176,7 @@ The later, deterministic labeling of a past Decision — `good_call` / `watch` /
 
 **Workout vs Session**: **Workout** = Agoge's prescription (planned or done) — the only training atom. ("Activity", Soma's raw recorded effort, is retired — Cadence doesn't use it.) "**Session**" is informal UX shorthand ("post-session voice", "Session detail page") — acceptable in UI copy, but in domain conversation say **Workout**.
 
-**Decision vs Intervention** _(superseded 2026-06-17)_: Previously two records in two tables — the Runner's *intention* on `journalEntry`, and the Engine's *executed, revertible* mutation on `coachInterventions`. Now **unified into one Decision concept**, recorded as rows in the **Journal** (`journalEntry`), covering both *system* decisions (Chemin A, e.g. `hrv_low_v1`) and *runner* decisions (Chemin B, `go` / `ease`). A row is written only when there is content — a mutation fired, voice was captured, or the runner actively chose at a presented fork (Keep `go` included); silent no-op evaluations write nothing. The executed mutation is the *acted* facet of a Decision row, not a separate **Intervention**, and **revert (the undo) is dropped** — the before/after snapshot is retained only as analytics signal. See ADR-0002.
+**Decision vs Intervention** _(superseded 2026-06-17)_: Previously two records in two tables — the Runner's *intention* on `journalEntry`, and the Engine's *executed, revertible* mutation on `coachInterventions`. Now **unified into one Decision concept**, recorded as rows in the **Journal** (`journalEntry`), covering both *system* decisions (e.g. `hrv_low_v1`) and *runner* decisions (`go` / `ease`). A row is written only when there is content — a mutation fired, voice was captured, or the runner actively chose at a presented fork (Keep `go` included); silent no-op evaluations write nothing. The executed mutation is the *acted* facet of a Decision row, not a separate **Intervention**, and **revert (the undo) is dropped** — the before/after snapshot is retained only as analytics signal. See ADR-0002.
 
 **Insight vs Coach Memory**: An **Insight** is a deterministically detected, evidence-backed *pattern* (machine + human faces). A **Coach Memory** is a softer durable fact feeding the Portrait. Insights feed Detection and generation; Memories feed narration. Do not merge them.
 
