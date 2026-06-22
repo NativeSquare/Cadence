@@ -193,15 +193,14 @@
       "allDaysUsed": "We'll use every available day."
     },
     "recentRace": {
-      "heading": "Have you raced recently?",
-      "helper": "If you have a recent race time, we'll use it to set your training paces, and you skip the 5K test in week 1.",
+      "heading": "Your most recent race",
+      "helper": "Tell us your most recent race result. We use it to gauge your fitness and set your training paces.",
       "distanceLabel": "Distance",
       "timeLabel": "Finish time",
       "hours": "hh",
       "minutes": "mm",
       "seconds": "ss",
-      "useResult": "Use this result",
-      "skipForTest": "Skip, I'll do the 5K test instead"
+      "useResult": "Use this result"
     }
   },
   "calendar": {
@@ -523,14 +522,6 @@
       "recordingHint": "Tap to stop when you're done.",
       "reRecordHint": "Tap to record again.",
       "errorAudioRequired": "Record a quick voice debrief to finish.",
-      "testHeader": "Log your result",
-      "testDistanceLabel": "Distance",
-      "testDistanceUnit": "km",
-      "testTimeLabel": "Time",
-      "testTimeMinutes": "min",
-      "testTimeSeconds": "sec",
-      "errorDistanceRequired": "Enter the distance you covered.",
-      "errorTimeRequired": "Enter your finish time.",
       "coachLabel": "Coach",
       "responseDone": "Done",
       "tier": {
@@ -587,8 +578,7 @@
       "upper_back": "Upper back"
     },
     "baseline": {
-      "manualCta": "I have a recent race result",
-      "sheetTitle": "Skip the test",
+      "sheetTitle": "Report a race result",
       "sheetDescription": "Report a recent race result. We'll use it to estimate your fitness and pace your plan.",
       "distanceLabel": "Race distance",
       "timeLabel": "Finish time",

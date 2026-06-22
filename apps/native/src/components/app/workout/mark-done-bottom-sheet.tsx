@@ -16,15 +16,10 @@ import { useVoiceRecording } from "@/hooks/use-voice-recording";
 import { getConvexErrorMessage } from "@/utils/getConvexErrorMessage";
 import { api } from "@packages/backend/convex/_generated/api";
 import type { Id } from "@packages/backend/convex/_generated/dataModel";
-import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  BottomSheetModal as GorhomBottomSheetModal,
-  BottomSheetTextInput,
-} from "@gorhom/bottom-sheet";
+import { BottomSheetModal as GorhomBottomSheetModal } from "@gorhom/bottom-sheet";
 import { useAction, useMutation } from "convex/react";
 import { Check, Mic, Sparkles, Square } from "lucide-react-native";
 import React from "react";
-import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
@@ -35,7 +30,6 @@ import {
   View,
 } from "react-native";
 import Animated, { FadeIn } from "react-native-reanimated";
-import { z } from "zod";
 
 const MAX_RECORDING_MS = 120_000;
 
@@ -45,17 +39,6 @@ const MAX_RECORDING_MS = 120_000;
 const ANALYZING_CYCLE_MS = 2600;
 const ANALYZING_STEPS = 3;
 
-const formSchema = z.object({
-  testDistanceKm: z.number().positive().optional(),
-  testDurationMinutes: z.number().int().min(0).optional(),
-  testDurationSeconds: z.number().int().min(0).max(59).optional(),
-});
-
-type FormValues = z.infer<typeof formSchema>;
-
-// Test-workout actuals, resolved + validated before the capture pipeline runs.
-type TestFields = { distanceMeters: number; durationSeconds: number };
-
 // Everything the commit step needs, held client-side after `transcribe`
 // succeeds. On a `deriveAndCommit` failure we retry from here — no re-upload,
 // no second Whisper call (ADR-0004).
@@ -63,7 +46,6 @@ type HeldCapture = {
   audioStorageId: Id<"_storage">;
   transcript: string;
   transcriptLang: "en" | "fr";
-  testFields: TestFields | null;
 };
 
 // The capture pipeline's phase. "idle" = the form is showing (pre-submit, or
@@ -81,7 +63,6 @@ export interface MarkDoneBottomSheetProps {
   sheetRef: React.RefObject<GorhomBottomSheetModal | null>;
   workoutId: string;
   workoutName: string;
-  isTest?: boolean;
   /**
    * Date to record on the completed face. Most users mark a workout done
    * after the fact, so we default the actual date to its planned date
@@ -91,17 +72,10 @@ export interface MarkDoneBottomSheetProps {
   plannedDate?: string;
 }
 
-const DEFAULTS: FormValues = {
-  testDistanceKm: undefined,
-  testDurationMinutes: undefined,
-  testDurationSeconds: undefined,
-};
-
 export function MarkDoneBottomSheet({
   sheetRef,
   workoutId,
   workoutName,
-  isTest,
   plannedDate,
 }: MarkDoneBottomSheetProps) {
   const { t } = useTranslation();
@@ -122,12 +96,6 @@ export function MarkDoneBottomSheet({
   const { uploadFileToStorage } = useUploadImage();
   const micPermission = useMicrophonePermission();
   const voiceRecording = useVoiceRecording();
-
-  const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
-    mode: "onSubmit",
-    defaultValues: DEFAULTS,
-  });
 
   const [submitError, setSubmitError] = React.useState<string | null>(null);
   const [recordedUri, setRecordedUri] = React.useState<string | null>(null);
@@ -222,12 +190,9 @@ export function MarkDoneBottomSheet({
           actualDate: plannedDate ?? nowIso(),
           transcript: capture.transcript,
           transcriptLang: capture.transcriptLang,
-          testDistanceMeters: capture.testFields?.distanceMeters,
-          testDurationSeconds: capture.testFields?.durationSeconds,
         });
-        // Settle into the response view: the form inputs are cleared; the
-        // transcript rides along so it stays inline beneath the reply.
-        form.reset(DEFAULTS);
+        // Settle into the response view; the transcript rides along so it
+        // stays inline beneath the reply.
         setRecordedUri(null);
         setRecordedDurationMs(0);
         setPhase("idle");
@@ -246,10 +211,10 @@ export function MarkDoneBottomSheet({
         setSubmitError(getConvexErrorMessage(err));
       }
     },
-    [deriveAndCommit, workoutId, recordedDurationMs, plannedDate, form],
+    [deriveAndCommit, workoutId, recordedDurationMs, plannedDate],
   );
 
-  const handleSubmit = form.handleSubmit(async (data) => {
+  const handleSubmit = async () => {
     setSubmitError(null);
     Keyboard.dismiss();
 
@@ -259,25 +224,6 @@ export function MarkDoneBottomSheet({
     if (!recordedUri) {
       setSubmitError(t("workout.markDone.errorAudioRequired"));
       return;
-    }
-
-    let testFields: TestFields | null = null;
-    if (isTest) {
-      const km = data.testDistanceKm;
-      if (km == null || !(km > 0)) {
-        setSubmitError(t("workout.markDone.errorDistanceRequired"));
-        return;
-      }
-      const totalSeconds =
-        (data.testDurationMinutes ?? 0) * 60 + (data.testDurationSeconds ?? 0);
-      if (totalSeconds <= 0) {
-        setSubmitError(t("workout.markDone.errorTimeRequired"));
-        return;
-      }
-      testFields = {
-        distanceMeters: Math.round(km * 1000),
-        durationSeconds: totalSeconds,
-      };
     }
 
     // Step 1: upload + transcribe. A failure here clears everything (the
@@ -290,7 +236,7 @@ export function MarkDoneBottomSheet({
       const { transcript: tx, transcriptLang } = await transcribe({
         audioStorageId,
       });
-      capture = { audioStorageId, transcript: tx, transcriptLang, testFields };
+      capture = { audioStorageId, transcript: tx, transcriptLang };
       setTranscript(tx);
       setHeld(capture);
     } catch (err) {
@@ -302,7 +248,7 @@ export function MarkDoneBottomSheet({
     }
 
     await commit(capture);
-  });
+  };
 
   const dismissAfterResponse = React.useCallback(() => {
     selectionFeedback();
@@ -311,7 +257,6 @@ export function MarkDoneBottomSheet({
 
   const handleDismiss = React.useCallback(() => {
     if (voiceRecording.isRecording) void voiceRecording.stop();
-    form.reset(DEFAULTS);
     setSubmitError(null);
     setRecordedUri(null);
     setRecordedDurationMs(0);
@@ -319,7 +264,7 @@ export function MarkDoneBottomSheet({
     setTranscript(null);
     setHeld(null);
     setResponse(null);
-  }, [form, voiceRecording]);
+  }, [voiceRecording]);
 
   const canSubmit = !isCapturing && !!recordedUri && !isRecording;
 
@@ -367,58 +312,6 @@ export function MarkDoneBottomSheet({
         >
           {workoutName}
         </Text>
-
-        {isTest && (
-          <View className="gap-4">
-            <Text
-              className="font-coach-bold text-base"
-              style={{ color: LIGHT_THEME.wText }}
-            >
-              {t("workout.markDone.testHeader")}
-            </Text>
-            <Controller
-              control={form.control}
-              name="testDistanceKm"
-              render={({ field }) => (
-                <DistanceField
-                  value={field.value}
-                  onChange={field.onChange}
-                />
-              )}
-            />
-            <View className="flex-row gap-3">
-              <View className="flex-1">
-                <Controller
-                  control={form.control}
-                  name="testDurationMinutes"
-                  render={({ field }) => (
-                    <TimePartField
-                      label={t("workout.markDone.testTimeLabel")}
-                      suffix={t("workout.markDone.testTimeMinutes")}
-                      value={field.value}
-                      onChange={field.onChange}
-                    />
-                  )}
-                />
-              </View>
-              <View className="flex-1">
-                <Controller
-                  control={form.control}
-                  name="testDurationSeconds"
-                  render={({ field }) => (
-                    <TimePartField
-                      label=" "
-                      suffix={t("workout.markDone.testTimeSeconds")}
-                      value={field.value}
-                      onChange={field.onChange}
-                      maxLength={2}
-                    />
-                  )}
-                />
-              </View>
-            </View>
-          </View>
-        )}
 
         <RecorderField
           isRecording={isRecording}
@@ -843,126 +736,3 @@ function RecorderField({
   );
 }
 
-function DistanceField({
-  value,
-  onChange,
-}: {
-  value: number | undefined;
-  onChange: (v: number | undefined) => void;
-}) {
-  const { t } = useTranslation();
-  const [text, setText] = React.useState<string>(
-    value == null ? "" : String(value),
-  );
-  React.useEffect(() => {
-    setText(value == null ? "" : String(value));
-  }, [value]);
-
-  return (
-    <View className="gap-2">
-      <Text
-        className="font-coach-bold text-sm"
-        style={{ color: LIGHT_THEME.wText }}
-      >
-        {t("workout.markDone.testDistanceLabel")}
-      </Text>
-      <View
-        className="flex-row items-center"
-        style={{
-          paddingHorizontal: 14,
-          borderRadius: 16,
-          borderWidth: 1,
-          borderColor: LIGHT_THEME.wBrd,
-          backgroundColor: LIGHT_THEME.w2,
-        }}
-      >
-        <BottomSheetTextInput
-          value={text}
-          onChangeText={(raw) => {
-            const normalized = raw.replace(",", ".");
-            setText(normalized);
-            const parsed = Number.parseFloat(normalized);
-            onChange(Number.isFinite(parsed) ? parsed : undefined);
-          }}
-          keyboardType="decimal-pad"
-          inputMode="decimal"
-          placeholder="5.0"
-          placeholderTextColor={LIGHT_THEME.wMute}
-          className="flex-1 font-coach text-[15px]"
-          style={{ paddingVertical: 12, color: LIGHT_THEME.wText }}
-        />
-        <Text
-          className="font-coach text-sm"
-          style={{ color: LIGHT_THEME.wMute }}
-        >
-          {t("workout.markDone.testDistanceUnit")}
-        </Text>
-      </View>
-    </View>
-  );
-}
-
-function TimePartField({
-  label,
-  suffix,
-  value,
-  onChange,
-  maxLength,
-}: {
-  label: string;
-  suffix: string;
-  value: number | undefined;
-  onChange: (v: number | undefined) => void;
-  maxLength?: number;
-}) {
-  const [text, setText] = React.useState<string>(
-    value == null ? "" : String(value),
-  );
-  React.useEffect(() => {
-    setText(value == null ? "" : String(value));
-  }, [value]);
-
-  return (
-    <View className="gap-2">
-      <Text
-        className="font-coach-bold text-sm"
-        style={{ color: LIGHT_THEME.wText }}
-      >
-        {label}
-      </Text>
-      <View
-        className="flex-row items-center"
-        style={{
-          paddingHorizontal: 14,
-          borderRadius: 16,
-          borderWidth: 1,
-          borderColor: LIGHT_THEME.wBrd,
-          backgroundColor: LIGHT_THEME.w2,
-        }}
-      >
-        <BottomSheetTextInput
-          value={text}
-          onChangeText={(raw) => {
-            const digits = raw.replace(/\D/g, "");
-            setText(digits);
-            const parsed = Number.parseInt(digits, 10);
-            onChange(Number.isFinite(parsed) ? parsed : undefined);
-          }}
-          keyboardType="number-pad"
-          inputMode="numeric"
-          maxLength={maxLength}
-          placeholder="0"
-          placeholderTextColor={LIGHT_THEME.wMute}
-          className="flex-1 font-coach text-[15px]"
-          style={{ paddingVertical: 12, color: LIGHT_THEME.wText }}
-        />
-        <Text
-          className="font-coach text-sm"
-          style={{ color: LIGHT_THEME.wMute }}
-        >
-          {suffix}
-        </Text>
-      </View>
-    </View>
-  );
-}

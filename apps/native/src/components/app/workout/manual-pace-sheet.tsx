@@ -1,3 +1,4 @@
+import { FORMATS, type Format } from "@/components/app/account/race-form";
 import { BottomSheetModal } from "@/components/custom/bottom-sheet";
 import {
   EMPTY_RECENT_RACE,
@@ -5,7 +6,6 @@ import {
   recentRaceToDistanceMeters,
   recentRaceToSeconds,
   type RecentRaceValue,
-  type SeedRaceFormat,
 } from "@/components/app/onboarding/StepRecentRace";
 import { Text } from "@/components/ui/text";
 import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
@@ -25,14 +25,6 @@ import {
   ScrollView,
   View,
 } from "react-native";
-
-const FORMATS: readonly SeedRaceFormat[] = [
-  "5k",
-  "10k",
-  "15k",
-  "half_marathon",
-  "marathon",
-];
 
 export interface ManualPaceSheetProps {
   sheetRef: React.RefObject<GorhomBottomSheetModal | null>;
@@ -78,10 +70,9 @@ export function ManualPaceSheet({ sheetRef, onSuccess }: ManualPaceSheetProps) {
     }
   };
 
-  const formatLabels: Record<SeedRaceFormat, string> = {
+  const formatLabels: Record<Format, string> = {
     "5k": t("account.races.form.formats.5k"),
     "10k": t("account.races.form.formats.10k"),
-    "15k": t("account.races.form.formats.15k"),
     half_marathon: t("account.races.form.formats.half_marathon"),
     marathon: t("account.races.form.formats.marathon"),
   };

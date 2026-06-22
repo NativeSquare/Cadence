@@ -11,7 +11,7 @@ import {
   query,
   type QueryCtx,
 } from "../_generated/server";
-import { gatePlanGeneration } from "../engine/baselineTest";
+import { recordVdotMetric, scheduleGenerate } from "../engine/baselineTest";
 import {
   fail,
   loadAthlete,
@@ -279,6 +279,12 @@ const updateRaceGoalInput = v.object({
 const createMyRaceWithGoalArgs = {
   race: createMyRaceArgs,
   goal: createRaceGoalInput,
+  // A past race result seeds the athlete's VDOT baseline. Mandatory at
+  // onboarding (ADR-0006); omitted when a returning athlete changes goals and
+  // already has a VDOT.
+  raceResult: v.optional(
+    v.object({ distanceMeters: v.number(), timeSeconds: v.number() }),
+  ),
 };
 
 const updateMyRaceWithGoalArgs = {
@@ -359,7 +365,7 @@ export const getMyRaceWithGoal = query({
 
 export const createMyRaceWithGoal = mutation({
   args: createMyRaceWithGoalArgs,
-  handler: async (ctx, { race, goal }) => {
+  handler: async (ctx, { race, goal, raceResult }) => {
     const validation = await validateCreateMyRace(ctx, race);
     if (!validation.ok)
       throw new ConvexError({
@@ -395,6 +401,17 @@ export const createMyRaceWithGoal = mutation({
       status: initialStatus,
     });
 
+    // Seed the VDOT baseline from the reported race result before generating,
+    // so "VDOT exists before generation" holds in one transaction (ADR-0006).
+    if (raceResult) {
+      await recordVdotMetric(
+        ctx,
+        auth.athlete._id,
+        raceResult.distanceMeters,
+        raceResult.timeSeconds,
+      );
+    }
+
     // Plan ⟺ A-race invariant: an upcoming A-race always has a plan, anchored
     // to its goal (which carries the raceId).
     if (race.priority === "A" && race.status === "upcoming") {
@@ -404,12 +421,7 @@ export const createMyRaceWithGoal = mutation({
         goalId,
         startDate,
       });
-      await gatePlanGeneration(ctx, {
-        athleteId: auth.athlete._id,
-        userId: auth.userId,
-        planId,
-        planStartDate: startDate,
-      });
+      await scheduleGenerate(ctx, planId);
     }
 
     return raceId;
@@ -500,12 +512,7 @@ export const updateMyRaceWithGoal = mutation({
               startDate,
             },
           );
-          await gatePlanGeneration(ctx, {
-            athleteId: auth.athlete._id,
-            userId: auth.userId,
-            planId,
-            planStartDate: startDate,
-          });
+          await scheduleGenerate(ctx, planId);
         }
       }
     }

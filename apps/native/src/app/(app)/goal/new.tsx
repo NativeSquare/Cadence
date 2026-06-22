@@ -11,20 +11,13 @@ import {
   type RaceGoalValue,
 } from "@/components/app/goal";
 import {
-  EMPTY_RECENT_RACE,
   EMPTY_SCHEDULE,
-  isRecentRaceValid,
   isScheduleValid,
-  recentRaceToDistanceMeters,
-  recentRaceToSeconds,
-  StepRecentRace,
   StepSchedule,
-  type RecentRaceValue,
   type ScheduleValue,
 } from "@/components/app/onboarding";
 import { Text } from "@/components/ui/text";
 import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
-import { selectionFeedback } from "@/lib/haptics";
 import { getConvexErrorMessage } from "@/utils/getConvexErrorMessage";
 import { Ionicons } from "@expo/vector-icons";
 import { api } from "@packages/backend/convex/_generated/api";
@@ -42,7 +35,7 @@ import {
   View,
 } from "react-native";
 
-type Step = 1 | 2 | 3 | 4 | 5;
+type Step = 1 | 2 | 3 | 4;
 
 function todayIso(): string {
   const d = new Date();
@@ -93,17 +86,12 @@ export default function NewGoalScreen() {
   const athlete = useQuery(api.agoge.athletes.getAthlete);
   const createRace = useMutation(api.agoge.races.createMyRaceWithGoal);
   const upsertAthlete = useMutation(api.agoge.athletes.upsertAthlete);
-  const setVdotFromRaceResult = useMutation(
-    api.engine.baselineTest.setVdotFromRaceResult,
-  );
 
   const [step, setStep] = useState<Step>(1);
   const [raceDetails, setRaceDetails] =
     useState<RaceDetailsValue>(EMPTY_RACE_DETAILS);
   const [raceGoal, setRaceGoal] = useState<RaceGoalValue>(EMPTY_RACE_GOAL);
   const [plan, setPlan] = useState<PlanValue>(emptyPlan);
-  const [recentRace, setRecentRace] =
-    useState<RecentRaceValue>(EMPTY_RECENT_RACE);
   const [schedule, setSchedule] = useState<ScheduleValue>(EMPTY_SCHEDULE);
   const [scheduleSeeded, setScheduleSeeded] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -122,8 +110,9 @@ export default function NewGoalScreen() {
     setScheduleSeeded(true);
   }, [athlete, scheduleSeeded]);
 
-  // 1 details → 2 goal → 3 plan → 4 schedule → 5 recent race
-  const totalSteps = 5;
+  // 1 details → 2 goal → 3 plan → 4 schedule. No recent-race step: a returning
+  // athlete already has a VDOT baseline from onboarding (ADR-0006).
+  const totalSteps = 4;
 
   const canProceed = useMemo(() => {
     if (step === 1) {
@@ -148,12 +137,10 @@ export default function NewGoalScreen() {
     }
     if (step === 3) return plan.startDate !== "";
     if (step === 4) return isScheduleValid(schedule);
-    // Recent race is optional — caller can submit with a valid time or skip.
-    if (step === 5) return true;
     return false;
   }, [step, raceDetails, raceGoal, plan, schedule]);
 
-  const isFinalStep = step === 5;
+  const isFinalStep = step === 4;
 
   const handleClose = () => {
     router.back();
@@ -175,18 +162,10 @@ export default function NewGoalScreen() {
       setStep((s) => (s + 1) as Step);
       return;
     }
-    await submit({ withRaceResult: isRecentRaceValid(recentRace) });
+    await submit();
   };
 
-  // "I'll do the 5K test instead" — submit without seeding VDOT.
-  const handleSkipRecentRace = async () => {
-    if (submitting) return;
-    selectionFeedback();
-    setSubmitError(null);
-    await submit({ withRaceResult: false });
-  };
-
-  const submit = async ({ withRaceResult }: { withRaceResult: boolean }) => {
+  const submit = async () => {
     setSubmitting(true);
     try {
       // Persist the chosen availability onto the athlete profile — the plan
@@ -216,15 +195,6 @@ export default function NewGoalScreen() {
           raceTarget: buildRaceTarget(raceGoal),
         },
       });
-
-      // Optionally seed VDOT from a recent race — skips the in-app 5K test
-      // by giving the plan generator something to base paces on right away.
-      if (withRaceResult) {
-        await setVdotFromRaceResult({
-          distanceMeters: recentRaceToDistanceMeters(recentRace),
-          timeSeconds: recentRaceToSeconds(recentRace),
-        });
-      }
 
       router.replace("/(app)/(tabs)");
     } catch (err) {
@@ -291,24 +261,6 @@ export default function NewGoalScreen() {
           )}
           {step === 4 && (
             <StepSchedule value={schedule} onChange={setSchedule} />
-          )}
-          {step === 5 && (
-            <StepRecentRace value={recentRace} onChange={setRecentRace} />
-          )}
-
-          {step === 5 && (
-            <Pressable
-              onPress={handleSkipRecentRace}
-              disabled={submitting}
-              className="items-center py-2 active:opacity-70"
-            >
-              <Text
-                className="font-coach-semibold text-[13px] underline"
-                style={{ color: LIGHT_THEME.wSub }}
-              >
-                {t("onboarding.recentRace.skipForTest")}
-              </Text>
-            </Pressable>
           )}
 
           {submitError && (

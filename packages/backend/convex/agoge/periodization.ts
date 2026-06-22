@@ -1014,39 +1014,6 @@ export function buildRaceStructure(args: {
   };
 }
 
-/**
- * A 5K time trial: easy warmup + 5km all-out (RPE 10) + easy cooldown. Used
- * as a baseline workout when the runner has no time goal — the result lets
- * downstream code compute VDOT and re-pace the rest of the plan.
- */
-export function buildTestStructure(): WorkoutStructure {
-  return {
-    schema_version: 1,
-    discipline: "endurance",
-    sport: "run",
-    blocks: [
-      {
-        kind: "step",
-        intent: "warmup",
-        duration: { type: "distance", meters: 2000 },
-        target: { type: "none" },
-      },
-      {
-        kind: "step",
-        intent: "work",
-        duration: { type: "distance", meters: 5000 },
-        target: { type: "rpe", value: 10 },
-      },
-      {
-        kind: "step",
-        intent: "cooldown",
-        duration: { type: "distance", meters: 1000 },
-        target: { type: "none" },
-      },
-    ],
-  };
-}
-
 // ---------------------------------------------------------------------------
 // Date math
 // ---------------------------------------------------------------------------

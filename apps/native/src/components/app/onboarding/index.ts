@@ -15,5 +15,4 @@ export {
   recentRaceToDistanceMeters,
   recentRaceToSeconds,
   type RecentRaceValue,
-  type SeedRaceFormat,
 } from "./StepRecentRace";

@@ -88,9 +88,6 @@ export default function Onboarding() {
   const patchUser = useMutation(api.table.users.patch);
   const upsertAthlete = useMutation(api.agoge.athletes.upsertAthlete);
   const createRaceWithGoal = useMutation(api.agoge.races.createMyRaceWithGoal);
-  const setVdotFromRaceResult = useMutation(
-    api.engine.baselineTest.setVdotFromRaceResult,
-  );
 
   // Step indexing is 1-based.
   //   1 Welcome  2 Profile  3 Experience  4 Schedule
@@ -138,10 +135,10 @@ export default function Onboarding() {
       if (raceGoal.type === "performance") return raceTargetSeconds(raceGoal) > 0;
       return false;
     }
-    // Recent race is optional — caller can submit with a valid time or skip.
-    if (step === 7) return true;
+    // A past race result is mandatory — it seeds the VDOT baseline (ADR-0006).
+    if (step === 7) return isRecentRaceValid(recentRace);
     return false;
-  }, [step, profile, experience, schedule, raceDetails, raceGoal]);
+  }, [step, profile, experience, schedule, raceDetails, raceGoal, recentRace]);
 
   const handleBack = () => {
     if (step === 1) return;
@@ -158,10 +155,10 @@ export default function Onboarding() {
       return;
     }
 
-    await submit({ withRaceResult: isRecentRaceValid(recentRace) });
+    await submit();
   };
 
-  const submit = async ({ withRaceResult }: { withRaceResult: boolean }) => {
+  const submit = async () => {
     if (!user) return;
     setSubmitting(true);
     try {
@@ -174,7 +171,8 @@ export default function Onboarding() {
         sessionsPerWeek: schedule.sessionsPerWeek,
       });
 
-      // 2. Create the race goal (and plan + baseline-test gating)
+      // 2. Create the race goal. The mandatory past race result seeds the VDOT
+      // baseline in the same transaction, then the plan generates (ADR-0006).
       if (raceDetails.format === "") {
         throw new Error("Race details incomplete");
       }
@@ -192,17 +190,13 @@ export default function Onboarding() {
           status: "upcoming",
         } satisfies Omit<RaceFormSubmit, "goal">,
         goal: { raceTarget: buildRaceTarget(raceGoal) },
-      });
-
-      // 3. Optionally seed VDOT from a recent race — skips the in-app 5K test
-      if (withRaceResult) {
-        await setVdotFromRaceResult({
+        raceResult: {
           distanceMeters: recentRaceToDistanceMeters(recentRace),
           timeSeconds: recentRaceToSeconds(recentRace),
-        });
-      }
+        },
+      });
 
-      // 4. Flip the onboarding flag — _layout.tsx then routes to (app)
+      // 3. Flip the onboarding flag — _layout.tsx then routes to (app)
       await patchUser({
         id: user._id,
         data: { hasCompletedOnboarding: true },
@@ -211,13 +205,6 @@ export default function Onboarding() {
       setSubmitError(getConvexErrorMessage(err) || String(err));
       setSubmitting(false);
     }
-  };
-
-  // "I'll do the 5K test instead" — submit without writing the pace zone.
-  const handleSkipRecentRace = async () => {
-    if (submitting) return;
-    setSubmitError(null);
-    await submit({ withRaceResult: false });
   };
 
   return (
@@ -271,21 +258,6 @@ export default function Onboarding() {
           )}
           {step === 7 && (
             <StepRecentRace value={recentRace} onChange={setRecentRace} />
-          )}
-
-          {isRecentRaceStep && (
-            <Pressable
-              onPress={handleSkipRecentRace}
-              disabled={submitting}
-              className="items-center py-2 active:opacity-70"
-            >
-              <Text
-                className="font-coach-semibold text-[13px] underline"
-                style={{ color: LIGHT_THEME.wSub }}
-              >
-                {t("onboarding.recentRace.skipForTest")}
-              </Text>
-            </Pressable>
           )}
 
           {submitError && (

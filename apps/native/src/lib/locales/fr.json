@@ -193,15 +193,14 @@
       "allDaysUsed": "On utilisera tous les jours disponibles."
     },
     "recentRace": {
-      "heading": "As-tu couru une course récemment ?",
-      "helper": "Si tu as un temps récent, on s'en sert pour caler tes allures, et tu sautes le test 5 km de la semaine 1.",
+      "heading": "Ta dernière course",
+      "helper": "Indique le résultat de ta dernière course. On s'en sert pour évaluer ta forme et caler tes allures.",
       "distanceLabel": "Distance",
       "timeLabel": "Temps final",
       "hours": "hh",
       "minutes": "mm",
       "seconds": "ss",
-      "useResult": "Utiliser ce résultat",
-      "skipForTest": "Passer, je ferai le test 5 km"
+      "useResult": "Utiliser ce résultat"
     }
   },
   "calendar": {
@@ -523,14 +522,6 @@
       "recordingHint": "Appuie pour arrêter quand tu as fini.",
       "reRecordHint": "Appuie pour réenregistrer.",
       "errorAudioRequired": "Enregistre un court débrief vocal pour terminer.",
-      "testHeader": "Enregistre ton résultat",
-      "testDistanceLabel": "Distance",
-      "testDistanceUnit": "km",
-      "testTimeLabel": "Temps",
-      "testTimeMinutes": "min",
-      "testTimeSeconds": "sec",
-      "errorDistanceRequired": "Indique la distance parcourue.",
-      "errorTimeRequired": "Indique ton temps d'arrivée.",
       "coachLabel": "Coach",
       "responseDone": "Terminé",
       "tier": {
@@ -587,8 +578,7 @@
       "upper_back": "Haut du dos"
     },
     "baseline": {
-      "manualCta": "J'ai un résultat de course récent",
-      "sheetTitle": "Passer le test",
+      "sheetTitle": "Renseigner un résultat de course",
       "sheetDescription": "Renseigne un résultat de course récent. On l'utilisera pour estimer ta forme et caler ton plan.",
       "distanceLabel": "Distance de la course",
       "timeLabel": "Temps réalisé",

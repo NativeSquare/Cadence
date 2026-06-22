@@ -9,7 +9,6 @@
  */
 
 import { ConfirmationSheet } from "@/components/shared/confirmation-sheet";
-import { ManualPaceSheet } from "@/components/app/workout/manual-pace-sheet";
 import { MarkDoneBottomSheet } from "@/components/app/workout/mark-done-bottom-sheet";
 import { Text } from "@/components/ui/text";
 import { COLORS, LIGHT_THEME } from "@/lib/design-tokens";
@@ -145,7 +144,6 @@ export function WorkoutDetailPage({ workoutId }: WorkoutDetailPageProps) {
   const deleteWorkout = useMutation(api.agoge.workouts.deleteWorkout);
   const deleteSheetRef = React.useRef<BottomSheetModal>(null);
   const markDoneSheetRef = React.useRef<BottomSheetModal>(null);
-  const manualPaceSheetRef = React.useRef<BottomSheetModal>(null);
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
@@ -204,14 +202,6 @@ export function WorkoutDetailPage({ workoutId }: WorkoutDetailPageProps) {
     workout.planned != null &&
     !isFutureDay(workout.planned.date);
 
-  const isBaselineTest =
-    workout.type === "test" && effectiveStatus === "planned";
-
-
-  const handleManualPace = () => {
-    selectionFeedback();
-    manualPaceSheetRef.current?.present();
-  };
 
   const handleDelete = async () => {
     setIsDeleting(true);
@@ -352,19 +342,6 @@ export function WorkoutDetailPage({ workoutId }: WorkoutDetailPageProps) {
             </Text>
           </Pressable>
         )}
-        {isBaselineTest && (
-          <Pressable
-            onPress={handleManualPace}
-            className="items-center rounded-2xl py-3 active:opacity-80"
-          >
-            <Text
-              className="font-coach-semibold text-sm underline"
-              style={{ color: LIGHT_THEME.wMute }}
-            >
-              {t("workout.baseline.manualCta")}
-            </Text>
-          </Pressable>
-        )}
         <Pressable
           onPress={() => {
             selectionFeedback();
@@ -400,15 +377,8 @@ export function WorkoutDetailPage({ workoutId }: WorkoutDetailPageProps) {
         sheetRef={markDoneSheetRef}
         workoutId={workout._id}
         workoutName={workout.name}
-        isTest={workout.type === "test"}
         plannedDate={workout.planned?.date}
       />
-
-      <ManualPaceSheet
-        sheetRef={manualPaceSheetRef}
-        onSuccess={() => router.replace("/(app)/(tabs)")}
-      />
-
     </View>
   );
 }

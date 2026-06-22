@@ -38,7 +38,9 @@ export function CalendarLegendSheet({ sheetRef }: CalendarLegendSheetProps) {
             {t("calendar.legend.workoutTypes")}
           </Text>
           <View className="flex-row flex-wrap gap-y-3">
-            {WORKOUT_TYPES.filter((type) => type !== "recovery").map((type) => (
+            {WORKOUT_TYPES.filter(
+              (type) => type !== "recovery" && type !== "test",
+            ).map((type) => (
               <View
                 key={type}
                 className="flex-row items-center gap-2"

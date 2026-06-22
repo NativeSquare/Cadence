@@ -12,7 +12,6 @@ import {
   query,
   type QueryCtx,
 } from "../_generated/server";
-import { recordVdotFromCompletedTest } from "../engine/baselineTest";
 import {
   fail,
   loadAthlete,
@@ -625,20 +624,6 @@ export const updateWorkout = mutation({
       ...(blockId !== undefined ? { blockId: nextBlockId } : {}),
       workoutId,
     });
-
-    // Baseline test completion → record VDOT metric, kick off plan generation.
-    const effectiveStatus = rest.status ?? existing.status;
-    const effectiveType = rest.type ?? existing.type;
-    const justCompleted =
-      existing.status !== "completed" && effectiveStatus === "completed";
-    if (justCompleted && effectiveType === "test") {
-      const effectiveActual = rest.actual ?? existing.actual;
-      await recordVdotFromCompletedTest(ctx, {
-        athleteId: existing.athleteId,
-        planId: existing.planId,
-        actual: effectiveActual,
-      });
-    }
 
     // Auto-sync to providers disabled — re-enable when ready.
     // await ctx.scheduler.runAfter(

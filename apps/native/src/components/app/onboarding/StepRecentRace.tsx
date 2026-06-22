@@ -1,25 +1,18 @@
+import {
+  FORMAT_DISTANCE_METERS,
+  FORMATS,
+  type Format,
+} from "@/components/app/account/race-form";
 import { FormField, PillSelect, TimeField } from "@/components/app/form";
 import { Text } from "@/components/ui/text";
 import { LIGHT_THEME } from "@/lib/design-tokens";
 import { useTranslation } from "react-i18next";
 import { View } from "react-native";
 
-export type SeedRaceFormat = "5k" | "10k" | "15k" | "half_marathon" | "marathon";
-
-// Distances for the past-race VDOT seed. Kept independent of the goal-race
-// `Format` (which only generates plans for 5K/10K/half/marathon): a 15K is a
-// perfectly valid *past* result to estimate fitness from, even though we don't
-// build 15K plans.
-const SEED_FORMAT_DISTANCE_METERS: Record<SeedRaceFormat, number> = {
-  "5k": 5000,
-  "10k": 10000,
-  "15k": 15000,
-  half_marathon: 21098,
-  marathon: 42195,
-};
-
+// The recent-race seed uses the same standard distances as the goal race —
+// one canonical set, no free-form entry.
 export type RecentRaceValue = {
-  format: SeedRaceFormat | "";
+  format: Format | "";
   hours: string;
   minutes: string;
   seconds: string;
@@ -32,14 +25,6 @@ export const EMPTY_RECENT_RACE: RecentRaceValue = {
   seconds: "",
 };
 
-const FORMATS: readonly SeedRaceFormat[] = [
-  "5k",
-  "10k",
-  "15k",
-  "half_marathon",
-  "marathon",
-];
-
 export function recentRaceToSeconds(value: RecentRaceValue): number {
   const h = Number.parseInt(value.hours || "0", 10);
   const m = Number.parseInt(value.minutes || "0", 10);
@@ -51,7 +36,7 @@ export function recentRaceToSeconds(value: RecentRaceValue): number {
 
 export function recentRaceToDistanceMeters(value: RecentRaceValue): number {
   if (value.format === "") return 0;
-  return SEED_FORMAT_DISTANCE_METERS[value.format];
+  return FORMAT_DISTANCE_METERS[value.format];
 }
 
 export function isRecentRaceValid(value: RecentRaceValue): boolean {
@@ -67,10 +52,9 @@ export function StepRecentRace({
 }) {
   const { t } = useTranslation();
 
-  const formatLabels: Record<SeedRaceFormat, string> = {
+  const formatLabels: Record<Format, string> = {
     "5k": t("account.races.form.formats.5k"),
     "10k": t("account.races.form.formats.10k"),
-    "15k": t("account.races.form.formats.15k"),
     half_marathon: t("account.races.form.formats.half_marathon"),
     marathon: t("account.races.form.formats.marathon"),
   };

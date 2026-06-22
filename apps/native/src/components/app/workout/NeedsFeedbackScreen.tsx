@@ -105,7 +105,6 @@ export function NeedsFeedbackScreen() {
   const [selected, setSelected] = React.useState<{
     id: string;
     name: string;
-    isTest: boolean;
     plannedDate?: string;
   } | null>(null);
   const [pendingMissedId, setPendingMissedId] = React.useState<string | null>(
@@ -130,7 +129,6 @@ export function NeedsFeedbackScreen() {
     setSelected({
       id: workout._id,
       name: workout.name,
-      isTest: workout.type === "test",
       plannedDate: workout.planned?.date,
     });
     markDoneSheetRef.current?.present();
@@ -232,7 +230,6 @@ export function NeedsFeedbackScreen() {
           sheetRef={markDoneSheetRef}
           workoutId={selected.id}
           workoutName={selected.name}
-          isTest={selected.isTest}
           plannedDate={selected.plannedDate}
         />
       )}

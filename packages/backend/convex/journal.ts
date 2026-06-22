@@ -111,9 +111,6 @@ export const deriveAndCommit = action({
     // (drives the extraction prompt language).
     transcript: v.string(),
     transcriptLang: v.union(v.literal("en"), v.literal("fr")),
-    // Present only for baseline test workouts.
-    testDistanceMeters: v.optional(v.number()),
-    testDurationSeconds: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
@@ -138,22 +135,10 @@ export const deriveAndCommit = action({
     );
 
     // ── Commit: complete the workout, then persist the journal entry ──
-    const actual: {
-      date: string;
-      distanceMeters?: number;
-      durationSeconds?: number;
-    } = { date: args.actualDate };
-    if (args.testDistanceMeters !== undefined) {
-      actual.distanceMeters = args.testDistanceMeters;
-    }
-    if (args.testDurationSeconds !== undefined) {
-      actual.durationSeconds = args.testDurationSeconds;
-    }
-
     await ctx.runMutation(api.agoge.workouts.updateWorkout, {
       workoutId: args.workoutId,
       status: "completed",
-      actual,
+      actual: { date: args.actualDate },
     });
 
     // Annotated (not inferred) to break the action→generated-API→action type
