@@ -178,6 +178,8 @@ The later, deterministic labeling of a past Decision — `good_call` / `watch` /
 
 **Insight vs Coach Memory**: An **Insight** is a deterministically detected, evidence-backed *pattern* (machine + human faces). A **Coach Memory** is a softer durable fact feeding the Portrait. Insights feed Detection and generation; Memories feed narration. Do not merge them.
 
+**Onboarding vs Change-goal**: Two surfaces create a race-anchored **Goal**, and they are *not* the same flow. **Onboarding** is the first run — it establishes the **Athlete** (profile, experience, availability) and captures the **VDOT** once via a mandatory past race result. **Change-goal** is the returning Runner replacing their active Goal — it *reuses* the athlete-level VDOT and only re-confirms availability (which shifts at training-block boundaries). Both share a **Goal Setup** core — choosing the **Race** and its target — but each owns its surrounding steps and what it does on finish. They share vocabulary, not a wizard (ADR-0007).
+
 ## Example dialogue
 
 > **Dev**: When the runner says "calf felt tight" after a hard session, does the plan change?
