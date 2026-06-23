@@ -123,7 +123,6 @@ export function StepRaceDetails({
         maxDate={dateBounds.maxYmd}
         defaultDate={defaultRaceDateIso()}
         error={dateError}
-        calendar
         disabled={value.format === ""}
         note={
           value.format === "5k"
