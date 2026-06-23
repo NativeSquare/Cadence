@@ -10,6 +10,7 @@ import {
   tierColors,
   type DerivedSignals,
 } from "@/components/app/workout/signal-display";
+import { workoutTypeLabel } from "@/components/app/workout/workout-helpers";
 import { useMicrophonePermission } from "@/hooks/use-microphone-permission";
 import { useUploadImage } from "@/hooks/use-upload-image";
 import { useVoiceRecording } from "@/hooks/use-voice-recording";
@@ -51,6 +52,23 @@ type HeldCapture = {
 // The capture pipeline's phase. "idle" = the form is showing (pre-submit, or
 // after a transcribe failure cleared everything).
 type Phase = "idle" | "uploading" | "transcribing" | "analyzing";
+
+// A workout's volume for the white-box ease preview. `0` on either dimension
+// means "not computable" — the preview then shows a type-only contrast rather
+// than inventing numbers.
+type PreviewVolume = { type: string; durationSec: number; distanceM: number };
+
+// The upcoming hard session the debrief collides with, plus the before/after
+// the ease would produce. `before`/`after` come from the same Engine core that
+// performs the reshape, so the preview matches what "Ease it" applies.
+type Conflict = {
+  workoutId: string;
+  name: string;
+  date: string;
+  type: string;
+  before: PreviewVolume;
+  after: PreviewVolume & { rpe: number };
+};
 
 function formatDuration(ms: number): string {
   const totalSeconds = Math.floor(ms / 1000);
@@ -117,12 +135,7 @@ export function MarkDoneBottomSheet({
     // The journal entry the capture created — the target for `recordDecision`
     // when the runner picks Keep/Ease.
     entryId: Id<"journalEntry">;
-    conflict: {
-      workoutId: string;
-      name: string;
-      date: string;
-      type: string;
-    } | null;
+    conflict: Conflict | null;
   } | null>(null);
   const isRecording = voiceRecording.isRecording;
   const isCapturing = phase !== "idle";
@@ -484,7 +497,7 @@ function CoachResponse({
   coachReply: string;
   derived: DerivedSignals;
   transcript: string;
-  conflict: { workoutId: string; name: string } | null;
+  conflict: Conflict | null;
   onEase: (workoutId: string) => Promise<unknown>;
   onDecision: (intention: "go" | "ease") => Promise<unknown>;
   onDone: () => void;
@@ -573,15 +586,12 @@ function CoachResponse({
       <SignalChips chips={chips} />
 
       {/* Decision prompt — only when a hard session is in conflict and the
-          runner hasn't already eased it. */}
+          runner hasn't already eased it. The before/after preview makes the
+          reshape white-box: the runner sees exactly what easing produces
+          before they tap it. */}
       {conflict && phase !== "eased" && (
-        <View className="gap-2">
-          <Text
-            className="font-coach-semibold text-[12px]"
-            style={{ color: LIGHT_THEME.wSub }}
-          >
-            {t("workout.markDone.decision.nextUp", { name: conflict.name })}
-          </Text>
+        <View className="gap-3">
+          <EasePreview conflict={conflict} resolved={false} />
           {phase === "error" && (
             <Text
               className="font-coach text-[12px]"
@@ -626,18 +636,23 @@ function CoachResponse({
         </View>
       )}
 
-      {/* Confirmation after an ease, or the plain Done when there's no prompt. */}
+      {/* Confirmation after an ease, or the plain Done when there's no prompt.
+          The resolved preview closes the loop — the runner sees the new
+          prescription, not just a claim that it changed. */}
       {(!conflict || phase === "eased") && (
         <>
           {phase === "eased" && conflict && (
-            <Text
-              className="font-coach text-[13px]"
-              style={{ color: LIGHT_THEME.wSub, lineHeight: 19 }}
-            >
-              {t("workout.markDone.decision.easedConfirm", {
-                name: conflict.name,
-              })}
-            </Text>
+            <View className="gap-3">
+              <EasePreview conflict={conflict} resolved={true} />
+              <Text
+                className="font-coach text-[13px]"
+                style={{ color: LIGHT_THEME.wSub, lineHeight: 19 }}
+              >
+                {t("workout.markDone.decision.easedConfirm", {
+                  name: conflict.name,
+                })}
+              </Text>
+            </View>
           )}
           <Pressable
             onPress={onDone}
@@ -653,6 +668,157 @@ function CoachResponse({
           </Pressable>
         </>
       )}
+    </View>
+  );
+}
+
+/** "9.0 km · 48 min" / "~45 min" / null when nothing is computable. */
+function formatVolume(
+  durationSec: number,
+  distanceM: number,
+  approx: boolean,
+): string | null {
+  const km = distanceM > 0 ? `${(distanceM / 1000).toFixed(1)} km` : null;
+  const min =
+    durationSec > 0
+      ? `${approx ? "~" : ""}${Math.round(durationSec / 60)} min`
+      : null;
+  const parts = [km, min].filter((p): p is string => p !== null);
+  return parts.length > 0 ? parts.join(" · ") : null;
+}
+
+/**
+ * White-box before/after for the post-session ease. Two rows — the session as
+ * prescribed vs. the easy run it becomes — so the runner sees the trade-off
+ * (time-on-feet held, intensity dropped) before deciding. The numbers come from
+ * the same Engine core that performs the reshape, so the preview can't lie.
+ *
+ * In `resolved` mode (after the ease applied) the BEFORE is struck through and
+ * the AFTER is highlighted as the new reality. When the conflicting session has
+ * no computable volume, both rows fall back to a type-only contrast rather than
+ * inventing numbers.
+ */
+function EasePreview({
+  conflict,
+  resolved,
+}: {
+  conflict: Conflict;
+  resolved: boolean;
+}) {
+  const { t } = useTranslation();
+  const { before, after } = conflict;
+
+  const hasVolume = before.durationSec > 0 || before.distanceM > 0;
+  const beforeVolume = formatVolume(before.durationSec, before.distanceM, false);
+  // The eased duration is 5-min-rounded; flag it approximate so it never
+  // masquerades as exactly held.
+  const afterVolume = formatVolume(after.durationSec, after.distanceM, true);
+  const rpe = `RPE ${after.rpe}`;
+  const afterDetail = hasVolume
+    ? [afterVolume, rpe].filter(Boolean).join(" · ")
+    : rpe;
+
+  return (
+    <View
+      className="gap-3 rounded-2xl border p-4"
+      style={{ backgroundColor: LIGHT_THEME.w1, borderColor: LIGHT_THEME.wBrd }}
+    >
+      <Text
+        className="font-coach-semibold text-[12px]"
+        style={{ color: LIGHT_THEME.wSub }}
+      >
+        {t("workout.markDone.decision.nextUp", { name: conflict.name })}
+      </Text>
+
+      <PreviewRow
+        label={t("workout.markDone.decision.preview.before")}
+        title={workoutTypeLabel(t, before.type)}
+        detail={hasVolume ? beforeVolume : null}
+        dimmed={resolved}
+        strike={resolved}
+        color={LIGHT_THEME.wText}
+      />
+
+      <Text
+        className="text-center font-coach text-[15px]"
+        style={{ color: LIGHT_THEME.wMute }}
+      >
+        ↓
+      </Text>
+
+      <PreviewRow
+        label={t("workout.markDone.decision.preview.after")}
+        title={workoutTypeLabel(t, after.type)}
+        detail={afterDetail}
+        dimmed={false}
+        strike={false}
+        color={resolved ? COLORS.grn : LIGHT_THEME.wText}
+      />
+
+      <Text
+        className="font-coach text-[12px]"
+        style={{ color: LIGHT_THEME.wMute, lineHeight: 17 }}
+      >
+        {t(
+          hasVolume
+            ? "workout.markDone.decision.preview.caption"
+            : "workout.markDone.decision.preview.captionNoVolume",
+        )}
+      </Text>
+    </View>
+  );
+}
+
+function PreviewRow({
+  label,
+  title,
+  detail,
+  dimmed,
+  strike,
+  color,
+}: {
+  label: string;
+  title: string;
+  detail: string | null;
+  dimmed: boolean;
+  strike: boolean;
+  color: string;
+}) {
+  return (
+    <View
+      className="flex-row items-baseline justify-between gap-3"
+      style={{ opacity: dimmed ? 0.5 : 1 }}
+    >
+      <Text
+        className="font-coach-semibold text-[11px] uppercase tracking-wider"
+        style={{ color: LIGHT_THEME.wMute }}
+      >
+        {label}
+      </Text>
+      <View className="flex-1 items-end">
+        <Text
+          className="font-coach-bold text-[14px]"
+          style={{
+            color,
+            textDecorationLine: strike ? "line-through" : "none",
+          }}
+          numberOfLines={1}
+        >
+          {title}
+        </Text>
+        {detail && (
+          <Text
+            className="mt-0.5 font-coach text-[12px]"
+            style={{
+              color: LIGHT_THEME.wSub,
+              textDecorationLine: strike ? "line-through" : "none",
+            }}
+            numberOfLines={1}
+          >
+            {detail}
+          </Text>
+        )}
+      </View>
     </View>
   );
 }

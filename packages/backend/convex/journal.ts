@@ -1,5 +1,10 @@
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { ConvexError, v } from "convex/values";
+import { EASE_RPE, buildEasedWorkout } from "@packages/shared/ease";
+import {
+  parseStructure,
+  summarizeStructure,
+} from "@packages/shared/workout-summary";
 import { api, components, internal } from "./_generated/api";
 import { type ActionCtx, action } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
@@ -163,7 +168,12 @@ export const deriveAndCommit = action({
     // conflicting hard session → no prompt, just the serious acknowledgment.
     const conflict =
       derived.concern === "act"
-        ? await findConflictingHardSession(ctx, userId, args.actualDate)
+        ? await findConflictingHardSession(
+            ctx,
+            userId,
+            args.actualDate,
+            args.transcriptLang,
+          )
         : null;
 
     // `coachReply` rides back to the client for the in-the-moment "we heard
@@ -175,20 +185,32 @@ export const deriveAndCommit = action({
   },
 });
 
+/** A workout's volume for the before/after preview. `0` means "not computable". */
+type PreviewVolume = { type: string; durationSec: number; distanceM: number };
+
 /**
  * Nearest planned hard session strictly after the completed session's day and
- * within `CONFLICT_WINDOW_DAYS`. Returns the minimal shape the client needs to
- * render and act on the ease prompt, or null if none.
+ * within `CONFLICT_WINDOW_DAYS`. Returns the shape the client needs to render
+ * the white-box ease preview and act on the prompt, or null if none.
+ *
+ * `before` summarises the session as prescribed; `after` is the eased form from
+ * the *same* `buildEasedWorkout` core the Engine mutation uses, so the preview
+ * matches what tapping "Ease it" will produce. Either volume is `0` when the
+ * session has no computable distance/duration — the client then shows a
+ * type-only contrast instead of inventing numbers.
  */
 async function findConflictingHardSession(
   ctx: ActionCtx,
   userId: Id<"users">,
   actualDate: string,
+  locale: "en" | "fr",
 ): Promise<{
   workoutId: string;
   name: string;
   date: string;
   type: string;
+  before: PreviewVolume;
+  after: PreviewVolume & { rpe: number };
 } | null> {
   const athlete = await ctx.runQuery(
     components.agoge.public.getAthleteByUserId,
@@ -216,10 +238,28 @@ async function findConflictingHardSession(
     .sort((a, b) => a.planned!.date.localeCompare(b.planned!.date))[0];
 
   if (!next || !next.planned) return null;
+
+  const structure = parseStructure(next.planned.structure);
+  const beforeSummary = structure
+    ? summarizeStructure(structure)
+    : { durationSeconds: 0, distanceMeters: 0 };
+  const eased = structure ? buildEasedWorkout(structure, locale) : null;
+
   return {
     workoutId: next._id,
     name: next.name,
     date: next.planned.date,
     type: next.type,
+    before: {
+      type: next.type,
+      durationSec: beforeSummary.durationSeconds,
+      distanceM: beforeSummary.distanceMeters,
+    },
+    after: {
+      type: "easy",
+      durationSec: eased?.summary.durationSec ?? 0,
+      distanceM: eased?.summary.distanceM ?? 0,
+      rpe: EASE_RPE,
+    },
   };
 }

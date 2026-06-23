@@ -14,25 +14,19 @@
 import type { Workout as WorkoutStructure } from "@nativesquare/agoge";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { ConvexError, v } from "convex/values";
+import { buildEasedWorkout } from "@packages/shared/ease";
 import { components } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { type MutationCtx, mutation } from "../_generated/server";
-import { summarizeStructure } from "../agoge/periodization";
-
-function round5min(seconds: number): number {
-  const min = Math.max(20, Math.round(seconds / 60));
-  return Math.round(min / 5) * 5 * 60;
-}
-
-function easyName(locale: "en" | "fr", durationSec: number): string {
-  const min = Math.round(durationSec / 60);
-  return locale === "fr" ? `Facile ${min} min` : `Easy ${min} min`;
-}
 
 /**
  * Swap a workout to a single easy step, keeping time-on-feet (intensity drops to
  * RPE 3, volume holds). The reshape only — no record is written; the eased
  * choice already lives on the debrief journal entry's `decision` field.
+ *
+ * The eased shape comes from the shared `buildEasedWorkout` core, the same one
+ * that feeds the white-box preview in the Mark Done sheet — so what the runner
+ * previews is exactly what this mutation applies.
  */
 async function applyEase(
   ctx: MutationCtx,
@@ -41,52 +35,21 @@ async function applyEase(
   const workout = await ctx.runQuery(components.agoge.public.getWorkout, {
     workoutId,
   });
-  if (!workout || !workout.planned) return;
+  if (!workout || !workout.planned?.structure) return;
 
   const user = await ctx.db.get(userId);
   const locale: "en" | "fr" = user?.locale === "fr" ? "fr" : "en";
 
-  const originalPlanned = workout.planned;
-  const summary = originalPlanned.structure
-    ? summarizeStructure(originalPlanned.structure as WorkoutStructure)
-    : undefined;
-  const originalDistance = summary?.distanceMeters;
-  const originalDuration = summary?.durationSeconds;
-
-  const newDuration =
-    originalDuration && originalDuration > 0
-      ? round5min(originalDuration)
-      : undefined;
-  const newDistance =
-    originalDistance && originalDistance > 0
-      ? Math.round(originalDistance)
-      : undefined;
-
-  const newName = easyName(locale, newDuration ?? 30 * 60);
-
-  // Single easy step — distance-anchored if known, otherwise time. An easy run
-  // is one continuous work step at RPE 3.
-  const newStructure: WorkoutStructure = {
-    schema_version: 1,
-    discipline: "endurance",
-    sport: "run",
-    blocks: [
-      {
-        kind: "step",
-        intent: "work",
-        duration: newDistance
-          ? { type: "distance", meters: newDistance }
-          : { type: "time", seconds: newDuration ?? 30 * 60 },
-        target: { type: "rpe", value: 3 },
-      },
-    ],
-  };
+  const eased = buildEasedWorkout(
+    workout.planned.structure as WorkoutStructure,
+    locale,
+  );
 
   await ctx.runMutation(components.agoge.public.updateWorkout, {
     workoutId,
-    type: "easy",
-    name: newName,
-    planned: { date: originalPlanned.date, structure: newStructure },
+    type: eased.type,
+    name: eased.name,
+    planned: { date: workout.planned.date, structure: eased.structure },
   });
 }
 

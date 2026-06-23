@@ -557,8 +557,14 @@
         "nextUp": "Next hard session: {{name}}",
         "ease": "Ease it",
         "keep": "Keep it as is",
-        "easedConfirm": "Done. I eased {{name}}. You can undo it anytime from that session.",
-        "easeError": "Couldn't adjust it. Try again."
+        "easedConfirm": "Done — {{name}} is now an easy run.",
+        "easeError": "Couldn't adjust it. Try again.",
+        "preview": {
+          "before": "Currently",
+          "after": "If you ease it",
+          "caption": "About the same time on feet — just an easier effort.",
+          "captionNoVolume": "Same slot — just an easier effort."
+        }
       }
     },
     "bodyPart": {

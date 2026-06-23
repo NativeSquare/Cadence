@@ -557,8 +557,14 @@
         "nextUp": "Prochaine séance dure : {{name}}",
         "ease": "Allège-la",
         "keep": "Garde-la telle quelle",
-        "easedConfirm": "C'est fait. J'ai allégé {{name}}. Tu peux annuler à tout moment depuis cette séance.",
-        "easeError": "Impossible de l'ajuster. Réessaie."
+        "easedConfirm": "C'est fait — {{name}} est maintenant un footing facile.",
+        "easeError": "Impossible de l'ajuster. Réessaie.",
+        "preview": {
+          "before": "Actuellement",
+          "after": "Si tu l'allèges",
+          "caption": "Quasiment le même temps de course — juste un effort plus facile.",
+          "captionNoVolume": "Même créneau — juste un effort plus facile."
+        }
       }
     },
     "bodyPart": {
