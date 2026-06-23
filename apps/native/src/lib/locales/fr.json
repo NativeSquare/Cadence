@@ -413,6 +413,19 @@
     "next": "Suivant",
     "done": "Terminer",
     "stepOf": "Étape {{current}} sur {{total}}",
+    "chooseType": {
+      "heading": "Quel type d'objectif ?",
+      "helper": "Choisis ce pour quoi tu t'entraînes.",
+      "comingSoon": "Bientôt",
+      "race": {
+        "title": "Course",
+        "desc": "Vise une course et un temps précis."
+      },
+      "fitness": {
+        "title": "Forme générale",
+        "desc": "Cours régulièrement, sans course au calendrier."
+      }
+    },
     "raceDetails": {
       "heading": "Parlez-nous de votre course",
       "name": "Nom",

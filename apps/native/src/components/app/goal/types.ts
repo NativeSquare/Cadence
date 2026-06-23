@@ -16,3 +16,8 @@ export type RaceGoalValue = {
 export type PlanValue = {
   startDate: string;
 };
+
+// The kind of goal the runner is setting. Only "race" is selectable at MVP;
+// "fitness" is shown as a disabled "coming soon" teaser and never set (ADR-0008).
+// Grows to "race" | "fitness" when general-fitness goals actually ship.
+export type GoalCategory = "race";

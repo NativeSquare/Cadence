@@ -1,0 +1,19 @@
+# The goal-type chooser returns as a "coming soon" teaser, not a fork
+
+ADR-0005 removed the general-fitness Goal category outright and ADR-0007 deleted `StepChooseType`, on the rationale that "every Goal is race-anchored, which is what lets the shared spine be a single straight line rather than a fork." We now **re-add the chooser step** — a screen showing two cards, **Race** (live) and **General Fitness** (disabled, "Coming Soon") — to both the onboarding flow and the change-goal wizard. The purpose is presentational only: preserve the two-pillar mental model we designed, and tell runners that fitness goals are coming so non-racers know they are not in the wrong app.
+
+The decisive constraint is that this restores the **visual scaffold without restoring the control-flow fork**. We do not revive `GoalBranch`, `StepFitnessGoal`, the fitness branches in submit, or any backend fitness path (`createMyFitnessGoal` stays removed per ADR-0005). The General Fitness card is inert — it cannot be selected and advances nothing. The step carries a one-member `GoalCategory` selection (`"race" | null`) purely to drive the card highlight and gate the footer **Next**, mirroring `StepExperience`. Submit logic never reads it; advancing always means a race Goal. So the flow remains the single straight line ADR-0007 protects — the chooser is a gate that has exactly one open door.
+
+## Consequences
+
+- **The chooser is a shared goal-core component.** A single `StepChooseType` in `components/app/goal/` is imported by both `(onboarding)/index.tsx` (step 5, after Schedule, before Race Details) and `(app)/goal/new.tsx` (step 1). It takes `value`/`onChange` of type `GoalType`, not the old `onSelect: (branch) => …`. This keeps it consistent with ADR-0007's "shared spine, two thin orchestrators."
+
+- **The type is `GoalCategory`, not `GoalType` or `GoalBranch`.** `GoalType` was already taken — it means the race *target* type (`"performance" | "completion"`) — so reusing it would collide on two unrelated concepts. We name the chooser's selection `GoalCategory` (`"race" | null` today, growing to `"race" | "fitness"` when fitness ships), which matches the glossary's own word for it ("Goal… holds a *category*"). It is deliberately *not* the retired `GoalBranch`, whose name carried the now-dead "which flow do we fork into" meaning. A one-member union reads oddly but is honest forward-compat: when fitness lands, the union grows and the real fork returns *with its backend*, which is the right time to pay for it.
+
+- **The fork stays deleted; only the teaser returns.** No `StepFitnessGoal`, no `if (branch === "fitness")`, no `createMyFitnessGoal`. A future reader who sees the disabled card and the one-member union should not "fix" it by deleting it — that is the surprise this ADR exists to absorb. The control-flow fork comes back only when general-fitness goals are actually built.
+
+- **`StepPlan` is out of scope.** The wizard's `StepPlan` (which ADR-0007 says to delete but which is still live) is left untouched here; that cleanup remains ADR-0007's own job. Adding the chooser makes the wizard 5 steps for now (`ChooseType · RaceDetails · RaceGoal · StepPlan · Schedule`).
+
+- **Rejected — auto-advance on card tap (the old behaviour).** The original `StepChooseType` advanced the instant a card was tapped. We instead use select-then-Next to match `StepExperience` and the rest of the current footer-driven flow; a single consistent interaction model beats reviving the old one-off.
+
+- **Rejected — a tappable "notify me" fitness card.** A card that captured demand (toast, waitlist) would be a real feature with analytics and copy to maintain. The intent here is expectation-setting, not measurement; an inert card is the honest minimum. If we later want a demand signal, that is a separate, deliberate build.

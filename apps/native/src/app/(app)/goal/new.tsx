@@ -3,9 +3,11 @@ import {
   getRaceDateError,
 } from "@/components/app/account/race-form";
 import {
+  StepChooseType,
   StepPlan,
   StepRaceDetails,
   StepRaceGoal,
+  type GoalCategory,
   type PlanValue,
   type RaceDetailsValue,
   type RaceGoalValue,
@@ -35,7 +37,7 @@ import {
   View,
 } from "react-native";
 
-type Step = 1 | 2 | 3 | 4;
+type Step = 1 | 2 | 3 | 4 | 5;
 
 function todayIso(): string {
   const d = new Date();
@@ -88,6 +90,8 @@ export default function NewGoalScreen() {
   const upsertAthlete = useMutation(api.agoge.athletes.upsertAthlete);
 
   const [step, setStep] = useState<Step>(1);
+  // Only "race" is selectable; the fitness card is an inert teaser (ADR-0008).
+  const [goalCategory, setGoalCategory] = useState<GoalCategory | null>(null);
   const [raceDetails, setRaceDetails] =
     useState<RaceDetailsValue>(EMPTY_RACE_DETAILS);
   const [raceGoal, setRaceGoal] = useState<RaceGoalValue>(EMPTY_RACE_GOAL);
@@ -110,12 +114,13 @@ export default function NewGoalScreen() {
     setScheduleSeeded(true);
   }, [athlete, scheduleSeeded]);
 
-  // 1 details → 2 goal → 3 plan → 4 schedule. No recent-race step: a returning
-  // athlete already has a VDOT baseline from onboarding (ADR-0006).
-  const totalSteps = 4;
+  // 1 type → 2 details → 3 goal → 4 plan → 5 schedule. No recent-race step: a
+  // returning athlete already has a VDOT baseline from onboarding (ADR-0006).
+  const totalSteps = 5;
 
   const canProceed = useMemo(() => {
-    if (step === 1) {
+    if (step === 1) return goalCategory !== null;
+    if (step === 2) {
       const fieldsFilled =
         raceDetails.name.trim() !== "" &&
         raceDetails.date !== "" &&
@@ -130,17 +135,17 @@ export default function NewGoalScreen() {
       );
       return dateError === null;
     }
-    if (step === 2) {
+    if (step === 3) {
       if (raceGoal.type === "completion") return true;
       if (raceGoal.type === "performance") return hasNonZeroTime(raceGoal);
       return false;
     }
-    if (step === 3) return plan.startDate !== "";
-    if (step === 4) return isScheduleValid(schedule);
+    if (step === 4) return plan.startDate !== "";
+    if (step === 5) return isScheduleValid(schedule);
     return false;
-  }, [step, raceDetails, raceGoal, plan, schedule]);
+  }, [step, goalCategory, raceDetails, raceGoal, plan, schedule]);
 
-  const isFinalStep = step === 4;
+  const isFinalStep = step === 5;
 
   const handleClose = () => {
     router.back();
@@ -246,12 +251,15 @@ export default function NewGoalScreen() {
       >
         <View className="w-full max-w-md gap-6 self-center">
           {step === 1 && (
-            <StepRaceDetails value={raceDetails} onChange={setRaceDetails} />
+            <StepChooseType value={goalCategory} onChange={setGoalCategory} />
           )}
           {step === 2 && (
-            <StepRaceGoal value={raceGoal} onChange={setRaceGoal} />
+            <StepRaceDetails value={raceDetails} onChange={setRaceDetails} />
           )}
           {step === 3 && (
+            <StepRaceGoal value={raceGoal} onChange={setRaceGoal} />
+          )}
+          {step === 4 && (
             <StepPlan
               value={plan}
               onChange={setPlan}
@@ -259,7 +267,7 @@ export default function NewGoalScreen() {
               maxDate={raceDetails.date || undefined}
             />
           )}
-          {step === 4 && (
+          {step === 5 && (
             <StepSchedule value={schedule} onChange={setSchedule} />
           )}
 

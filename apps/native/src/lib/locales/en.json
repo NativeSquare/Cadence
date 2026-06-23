@@ -413,6 +413,19 @@
     "next": "Next",
     "done": "Done",
     "stepOf": "Step {{current}} of {{total}}",
+    "chooseType": {
+      "heading": "What kind of goal?",
+      "helper": "Pick what you're training for.",
+      "comingSoon": "Coming soon",
+      "race": {
+        "title": "Race",
+        "desc": "Train for a specific race and finish time."
+      },
+      "fitness": {
+        "title": "General fitness",
+        "desc": "Build a running habit without a race on the calendar."
+      }
+    },
     "raceDetails": {
       "heading": "Tell us about your race",
       "name": "Name",

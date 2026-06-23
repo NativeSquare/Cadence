@@ -4,8 +4,10 @@ import {
   type RaceFormSubmit,
 } from "@/components/app/account/race-form";
 import {
+  StepChooseType,
   StepRaceDetails,
   StepRaceGoal,
+  type GoalCategory,
   type RaceDetailsValue,
   type RaceGoalValue,
 } from "@/components/app/goal";
@@ -90,12 +92,14 @@ export default function Onboarding() {
   const createRaceWithGoal = useMutation(api.agoge.races.createMyRaceWithGoal);
 
   // Step indexing is 1-based.
-  //   1 Welcome  2 Profile  3 Experience  4 Schedule
-  //   5 RaceDetails  6 RaceGoal  7 RecentRace
+  //   1 Welcome  2 Profile  3 Experience  4 Schedule  5 ChooseType
+  //   6 RaceDetails  7 RaceGoal  8 RecentRace
   const [step, setStep] = useState<number>(1);
   const [profile, setProfile] = useState<ProfileValue>(EMPTY_PROFILE);
   const [experience, setExperience] = useState<ExperienceLevel | null>(null);
   const [schedule, setSchedule] = useState<ScheduleValue>(EMPTY_SCHEDULE);
+  // Only "race" is selectable; the fitness card is an inert teaser (ADR-0008).
+  const [goalCategory, setGoalCategory] = useState<GoalCategory | null>(null);
   const [raceDetails, setRaceDetails] =
     useState<RaceDetailsValue>(EMPTY_RACE_DETAILS);
   const [raceGoal, setRaceGoal] = useState<RaceGoalValue>(EMPTY_RACE_GOAL);
@@ -104,8 +108,8 @@ export default function Onboarding() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  const totalSteps = 7;
-  const isRecentRaceStep = step === 7;
+  const totalSteps = 8;
+  const isRecentRaceStep = step === 8;
   const isFinalStep = isRecentRaceStep;
 
   const canProceed = useMemo(() => {
@@ -113,7 +117,8 @@ export default function Onboarding() {
     if (step === 2) return profile.sex !== null && profile.dateOfBirth !== "";
     if (step === 3) return experience !== null;
     if (step === 4) return isScheduleValid(schedule);
-    if (step === 5) {
+    if (step === 5) return goalCategory !== null;
+    if (step === 6) {
       const fieldsFilled =
         raceDetails.name.trim() !== "" &&
         raceDetails.date !== "" &&
@@ -130,15 +135,15 @@ export default function Onboarding() {
         ) === null
       );
     }
-    if (step === 6) {
+    if (step === 7) {
       if (raceGoal.type === "completion") return true;
       if (raceGoal.type === "performance") return raceTargetSeconds(raceGoal) > 0;
       return false;
     }
     // A past race result is mandatory — it seeds the VDOT baseline (ADR-0006).
-    if (step === 7) return isRecentRaceValid(recentRace);
+    if (step === 8) return isRecentRaceValid(recentRace);
     return false;
-  }, [step, profile, experience, schedule, raceDetails, raceGoal, recentRace]);
+  }, [step, profile, experience, schedule, goalCategory, raceDetails, raceGoal, recentRace]);
 
   const handleBack = () => {
     if (step === 1) return;
@@ -251,12 +256,15 @@ export default function Onboarding() {
             <StepSchedule value={schedule} onChange={setSchedule} />
           )}
           {step === 5 && (
-            <StepRaceDetails value={raceDetails} onChange={setRaceDetails} />
+            <StepChooseType value={goalCategory} onChange={setGoalCategory} />
           )}
           {step === 6 && (
-            <StepRaceGoal value={raceGoal} onChange={setRaceGoal} />
+            <StepRaceDetails value={raceDetails} onChange={setRaceDetails} />
           )}
           {step === 7 && (
+            <StepRaceGoal value={raceGoal} onChange={setRaceGoal} />
+          )}
+          {step === 8 && (
             <StepRecentRace value={recentRace} onChange={setRecentRace} />
           )}
 
