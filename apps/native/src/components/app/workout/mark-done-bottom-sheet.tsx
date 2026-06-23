@@ -14,9 +14,15 @@ import { workoutTypeLabel } from "@/components/app/workout/workout-helpers";
 import { useMicrophonePermission } from "@/hooks/use-microphone-permission";
 import { useUploadImage } from "@/hooks/use-upload-image";
 import { useVoiceRecording } from "@/hooks/use-voice-recording";
+import { useLanguage, type Language } from "@/lib/i18n";
 import { getConvexErrorMessage } from "@/utils/getConvexErrorMessage";
 import { api } from "@packages/backend/convex/_generated/api";
 import type { Id } from "@packages/backend/convex/_generated/dataModel";
+import type { WorkoutType } from "@nativesquare/agoge/schema";
+import {
+  WORKOUT_TYPES_COLORS,
+  WORKOUT_TYPES_COLORS_DIM,
+} from "@packages/shared/colors";
 import { BottomSheetModal as GorhomBottomSheetModal } from "@gorhom/bottom-sheet";
 import { useAction, useMutation } from "convex/react";
 import { Check, Mic, Sparkles, Square } from "lucide-react-native";
@@ -688,15 +694,19 @@ function formatVolume(
 }
 
 /**
- * White-box before/after for the post-session ease. Two rows — the session as
- * prescribed vs. the easy run it becomes — so the runner sees the trade-off
- * (time-on-feet held, intensity dropped) before deciding. The numbers come from
- * the same Engine core that performs the reshape, so the preview can't lie.
+ * White-box before/after for the post-session ease. Two cards — the session as
+ * prescribed vs. the easy run it becomes — echoing the WorkoutCard / Swap-confirm
+ * look so the runner reads the trade-off (time-on-feet held, intensity dropped)
+ * in the same visual language as the rest of the app. The colored day-badge
+ * carries both the workout-type color and the session's date; the orange→green
+ * shift between the two cards *is* the intensity drop. The numbers come from the
+ * same Engine core that performs the reshape, so the preview can't lie.
  *
- * In `resolved` mode (after the ease applied) the BEFORE is struck through and
- * the AFTER is highlighted as the new reality. When the conflicting session has
- * no computable volume, both rows fall back to a type-only contrast rather than
- * inventing numbers.
+ * Both cards stamp the *same* date — easing holds the date and drops intensity,
+ * it never reschedules. In `resolved` mode (after the ease applied) the BEFORE
+ * card is dimmed + struck through and the AFTER card stands as the new reality.
+ * When the conflicting session has no computable volume, the cards fall back to
+ * a type-only contrast rather than inventing numbers.
  */
 function EasePreview({
   conflict,
@@ -719,24 +729,14 @@ function EasePreview({
     : rpe;
 
   return (
-    <View
-      className="gap-3 rounded-2xl border p-4"
-      style={{ backgroundColor: LIGHT_THEME.w1, borderColor: LIGHT_THEME.wBrd }}
-    >
-      <Text
-        className="font-coach-semibold text-[12px]"
-        style={{ color: LIGHT_THEME.wSub }}
-      >
-        {t("workout.markDone.decision.nextUp", { name: conflict.name })}
-      </Text>
-
-      <PreviewRow
-        label={t("workout.markDone.decision.preview.before")}
-        title={workoutTypeLabel(t, before.type)}
+    <View className="gap-2">
+      <EaseCard
+        date={conflict.date}
+        type={before.type}
+        title={conflict.name}
         detail={hasVolume ? beforeVolume : null}
         dimmed={resolved}
         strike={resolved}
-        color={LIGHT_THEME.wText}
       />
 
       <Text
@@ -746,17 +746,17 @@ function EasePreview({
         ↓
       </Text>
 
-      <PreviewRow
-        label={t("workout.markDone.decision.preview.after")}
+      <EaseCard
+        date={conflict.date}
+        type={after.type}
         title={workoutTypeLabel(t, after.type)}
         detail={afterDetail}
         dimmed={false}
         strike={false}
-        color={resolved ? COLORS.grn : LIGHT_THEME.wText}
       />
 
       <Text
-        className="font-coach text-[12px]"
+        className="mt-1 font-coach text-[12px]"
         style={{ color: LIGHT_THEME.wMute, lineHeight: 17 }}
       >
         {t(
@@ -769,51 +769,89 @@ function EasePreview({
   );
 }
 
-function PreviewRow({
-  label,
+/** "Sat" / "sam" + day-of-month, for the colored date badge. */
+function formatEaseDay(
+  locale: Language,
+  iso: string,
+): { weekday: string; day: string } {
+  const d = new Date(iso);
+  const weekday = new Intl.DateTimeFormat(locale, { weekday: "short" })
+    .format(d)
+    .slice(0, 3);
+  return { weekday, day: String(d.getDate()) };
+}
+
+/**
+ * Presentational card for one side of the ease before/after. Mirrors WorkoutCard's
+ * look — colored day-badge + title + subtitle — but takes plain projection props
+ * (the eased "after" side is a synthetic projection, not a persisted WorkoutDoc),
+ * and drops the chevron/navigation since this lives inside a confirmation preview.
+ */
+function EaseCard({
+  date,
+  type,
   title,
   detail,
   dimmed,
   strike,
-  color,
 }: {
-  label: string;
+  date: string;
+  type: string;
   title: string;
   detail: string | null;
   dimmed: boolean;
   strike: boolean;
-  color: string;
 }) {
+  const locale = useLanguage();
+  const day = formatEaseDay(locale, date);
+  const typeColor = WORKOUT_TYPES_COLORS[type as WorkoutType];
+  const typeColorDim = WORKOUT_TYPES_COLORS_DIM[type as WorkoutType];
+  const lineThrough = strike ? "line-through" : undefined;
+
   return (
     <View
-      className="flex-row items-baseline justify-between gap-3"
-      style={{ opacity: dimmed ? 0.5 : 1 }}
+      className="flex-row items-center gap-3 rounded-2xl border px-4 py-3.5"
+      style={{
+        backgroundColor: LIGHT_THEME.w1,
+        borderColor: LIGHT_THEME.wBrd,
+        opacity: dimmed ? 0.5 : 1,
+      }}
     >
-      <Text
-        className="font-coach-semibold text-[11px] uppercase tracking-wider"
-        style={{ color: LIGHT_THEME.wMute }}
+      <View
+        className="size-10 items-center justify-center rounded-xl"
+        style={{ backgroundColor: typeColorDim }}
       >
-        {label}
-      </Text>
-      <View className="flex-1 items-end">
         <Text
-          className="font-coach-bold text-[14px]"
+          className="font-coach-extrabold uppercase"
           style={{
-            color,
-            textDecorationLine: strike ? "line-through" : "none",
+            color: typeColor,
+            fontSize: 9,
+            letterSpacing: 0.5,
+            lineHeight: 11,
           }}
+        >
+          {day.weekday}
+        </Text>
+        <Text
+          className="font-coach-extrabold"
+          style={{ color: typeColor, fontSize: 14, lineHeight: 16 }}
+        >
+          {day.day}
+        </Text>
+      </View>
+      <View className="flex-1">
+        <Text
           numberOfLines={1}
+          className="font-coach-semibold text-[15px]"
+          style={{ color: LIGHT_THEME.wText, textDecorationLine: lineThrough }}
         >
           {title}
         </Text>
         {detail && (
           <Text
-            className="mt-0.5 font-coach text-[12px]"
-            style={{
-              color: LIGHT_THEME.wSub,
-              textDecorationLine: strike ? "line-through" : "none",
-            }}
             numberOfLines={1}
+            className="mt-0.5 font-coach text-[12px]"
+            style={{ color: LIGHT_THEME.wSub, textDecorationLine: lineThrough }}
           >
             {detail}
           </Text>
