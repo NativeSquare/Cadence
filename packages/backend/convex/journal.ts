@@ -2,6 +2,12 @@ import { getAuthUserId } from "@convex-dev/auth/server";
 import { ConvexError, v } from "convex/values";
 import { EASE_RPE, buildEasedWorkout } from "@packages/shared/ease";
 import {
+  type DailyRecord,
+  type Readiness,
+  type SleepRecord,
+  computeReadiness,
+} from "@packages/shared/readiness";
+import {
   parseStructure,
   summarizeStructure,
 } from "@packages/shared/workout-summary";
@@ -32,6 +38,49 @@ function addDaysYmd(ymd: string, days: number): string {
   const d = new Date(`${ymd}T00:00:00.000Z`);
   d.setUTCDate(d.getUTCDate() + days);
   return d.toISOString().slice(0, 10);
+}
+
+// Trailing window the HRV / resting-HR baseline is computed over. Matches the
+// 14-day baseline the glossary defines for the HRV z-score.
+const READINESS_WINDOW_DAYS = 14;
+
+/**
+ * Best-effort pre-fetch of the runner's Soma Readiness for the completed
+ * session's day — the deterministic input that lets the triage corroborate the
+ * voice debrief with the body's signal (ADR-0009). Reads the trailing 14-day
+ * window of daily summaries + sleep and folds them into the normalized block.
+ *
+ * Soma is an OPPORTUNISTIC enrichment, never a point of failure: any error (no
+ * connection, component hiccup) is swallowed and degrades to `noSignal`. This
+ * runs before `deriveSignals` and any DB write, so a failure here can never
+ * break the all-or-nothing capture (ADR-0004).
+ */
+async function fetchReadiness(
+  ctx: ActionCtx,
+  userId: Id<"users">,
+  actualDate: string,
+): Promise<Readiness> {
+  try {
+    const endYmd = actualDate.slice(0, 10);
+    const startYmd = addDaysYmd(endYmd, -READINESS_WINDOW_DAYS);
+    const range = {
+      userId,
+      startTime: `${startYmd}T00:00:00.000Z`,
+      endTime: `${endYmd}T23:59:59.999Z`,
+      order: "asc" as const,
+    };
+    const [dailies, sleeps] = await Promise.all([
+      ctx.runQuery(components.soma.public.listDaily, range),
+      ctx.runQuery(components.soma.public.listSleep, range),
+    ]);
+    return computeReadiness({
+      dayKey: dayKeyFromInstant(actualDate),
+      dailies: dailies as DailyRecord[],
+      sleeps: sleeps as SleepRecord[],
+    });
+  } catch {
+    return { noSignal: true };
+  }
 }
 
 /**
@@ -133,10 +182,14 @@ export const deriveAndCommit = action({
       });
     }
 
+    // ── Best-effort Soma read (no DB state yet); degrades to noSignal ──
+    const readiness = await fetchReadiness(ctx, userId, args.actualDate);
+
     // ── Flaky external call first (no DB state yet) ──
     const { derived, coachReply } = await deriveSignals(
       args.transcript,
       args.transcriptLang,
+      readiness,
     );
 
     // ── Commit: complete the workout, then persist the journal entry ──
@@ -159,6 +212,7 @@ export const deriveAndCommit = action({
         transcript: args.transcript,
         transcriptLang: args.transcriptLang,
         derived,
+        readiness,
       },
     );
 

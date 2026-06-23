@@ -83,11 +83,15 @@ Owns recorded physiological reality (Garmin / Strava / HealthKit). Source of tru
 A day's biometric record keyed to a calendar day, carrying heart-rate data (HRV, resting HR) among other fields.
 
 **HRV z-score**:
-Today's HRV (rMSSD) expressed as deviations from the Runner's own **14-day baseline** (≥7 samples, else "no signal"). **Read-only context only** as of the reset to zero (ADR-0003): the Engine acts on **no** Soma signal. The `hrv_low_v1` reshape and the z-score computation (`getHrvReadiness`) were removed; the raw HRV **display chart** (`analytics/hrv.ts`) stays as Analytics context.
-_Avoid_: claiming HRV "drives" any plan change — it currently drives none.
+Today's HRV (rMSSD) expressed as deviations from the Runner's own **14-day baseline** (≥7 samples, else "no signal"). Computed deterministically. It feeds the post-session **Concern tier** as **corroborating Readiness context** — it can ratchet the tier the LLM assigns *up* by one step, never originate it (see Concern tier). It still **drives no plan mutation by itself**: the Engine acts only when the Runner decides. The autonomous `hrv_low_v1` reshape stays removed (ADR-0003); what returns is the z-score *computation* as a triage input, not the trigger. The raw HRV **display chart** (`analytics/hrv.ts`) remains independent Analytics context.
+_Avoid_: claiming HRV "drives" a plan change on its own — it corroborates a decision the Runner makes; it never acts alone.
 
 **Companion signals** (last night's sleep hours, today's resting HR):
-Captured alongside the HRV reading as context for narration and the decision snapshot. They colour the message; they do **not** independently trigger a reshape.
+Captured alongside the HRV reading as part of **Readiness**. They colour the message and may help ratchet the Concern tier; they do **not** independently trigger a reshape.
+
+**Readiness**:
+The Runner's pre-session recovery state on the workout's day — the morning's **HRV z-score**, the resting-HR delta vs baseline, and last night's sleep — bundled as the **corroborating context** for a post-session **Concern tier**. It is computed deterministically from Soma and, at the post-session capture, **frozen onto the Journal Entry** so the decision log stays durable even if the Soma connection is later removed. `noSignal` when the wearable data is absent or too sparse (<7 samples / 14 days) — recorded explicitly, since "we had no signal" is itself restitution context. Readiness only ever *corroborates* the Runner's voice (it can ratchet the tier up by one step); it never originates concern or drives a plan mutation.
+_Avoid_: treating Readiness as a trigger — it is context the Runner's decision leans on, not an actor.
 
 **Body battery / stress / nutrition / menstruation**:
 Available to the **Coach** as read context (Analytics surfaces them); they drive **no** plan mutation. Named only to mark them read-only, not actors.
@@ -152,7 +156,7 @@ The unit of the journal spine, keyed to a calendar day and (when about a session
 The structured signals an LLM extracts from a transcript (RPE, pain locations, sleep quality, life stress, motivation, effort feel, mood, notes). The LLM fills only what the Runner actually said; there is no code gate.
 
 **Concern tier**:
-The triage level the extraction assigns to an entry: `none` / `watch` / `act`. Scales the Coach's reply and gates whether a decision prompt appears.
+The triage level the extraction assigns to an entry: `none` / `watch` / `act`. Scales the Coach's reply and gates whether a decision prompt appears. The Runner's voice is always the **originator** of the tier; **Readiness context** (HRV z-score, resting-HR delta, sleep) may only **ratchet it up by one step** (`none → watch`, `watch → act`) and may **never skip** (`none → act` forbidden) or **downgrade** it. So Soma corroborates a concern the Runner already voiced; it never manufactures one from silence, and a reassuring metric never silences a worried Runner.
 
 **Conflict**:
 A hard/quality Workout sitting close enough (≤3 days) to a concerning post-session signal that easing it is offered.

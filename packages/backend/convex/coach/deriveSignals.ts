@@ -16,6 +16,11 @@ import { anthropic } from "@ai-sdk/anthropic";
 import { generateObject } from "ai";
 import { z } from "zod";
 import type { Infer } from "convex/values";
+import {
+  type Concern,
+  type Readiness,
+  ratchetConcern,
+} from "@packages/shared/readiness";
 import type { derivedValidator } from "../table/journalEntry";
 
 export type Derived = Infer<typeof derivedValidator>;
@@ -98,18 +103,15 @@ const derivedSchema = z.object({
     .describe(
       "Anything else useful the runner said that doesn't fit the fields above, verbatim and in their own language.",
     ),
-  concern: z
-    .enum(["none", "watch", "act"])
-    .describe(
-      [
-        "How much this debrief warrants interrupting the runner. Judge the whole message, not any single number:",
-        '"none" — nothing notable; the session went fine.',
-        '"watch" — a mild niggle or off-feeling worth acknowledging and keeping an eye on, but not acting on.',
-        '"act" — something serious: real pain, an injury scare, or clear anxiety about upcoming hard sessions, where a good coach would consider changing the plan.',
-        'Lean on what the runner conveys, not just severity numbers — genuine worry counts even without a high pain score. Always pick exactly one.',
-      ].join(" "),
-    ),
 });
+
+const CONCERN_TIER_GUIDANCE = [
+  "Triage tier — how much this debrief warrants interrupting the runner. Judge the whole message, not any single number:",
+  '"none" — nothing notable; the session went fine.',
+  '"watch" — a mild niggle or off-feeling worth acknowledging and keeping an eye on, but not acting on.',
+  '"act" — something serious: real pain, an injury scare, or clear anxiety about upcoming hard sessions, where a good coach would consider changing the plan.',
+  "Lean on what the runner conveys, not just severity numbers — genuine worry counts even without a high pain score.",
+].join(" ");
 
 /**
  * The LLM emits the signals plus a short first-person coach reply in the same
@@ -118,10 +120,25 @@ const derivedSchema = z.object({
  * persist it on the entry.
  */
 const replySchema = derivedSchema.extend({
+  concernFromVoice: z
+    .enum(["none", "watch", "act"])
+    .describe(
+      `${CONCERN_TIER_GUIDANCE} Judge this purely from the runner's WORDS — ignore any Readiness context. Always pick exactly one.`,
+    ),
+  concernFinal: z
+    .enum(["none", "watch", "act"])
+    .describe(
+      [
+        `${CONCERN_TIER_GUIDANCE}`,
+        "This is your tier AFTER also weighing the Readiness context block (HRV, resting HR, sleep), if one was provided.",
+        "Readiness may only CORROBORATE the runner's words: you may raise concernFromVoice by at most one step when poor readiness backs up a concern they voiced (none→watch, or watch→act).",
+        "Never lower it below concernFromVoice, never jump none→act, and if NO Readiness context was provided you MUST return exactly concernFromVoice.",
+      ].join(" "),
+    ),
   coachReply: z
     .string()
     .describe(
-      "A short (1-2 sentence) first-person reply from the coach to the runner, in the runner's language. Warm, direct, never clinical. Scale it to `concern`: affirm a good session for \"none\"; acknowledge and say you'll keep an eye on it for \"watch\"; for \"act\", take it seriously and recommend going easy on the next hard session. Never invent specific plan numbers.",
+      "A short (1-2 sentence) first-person reply from the coach to the runner, in the runner's language. Warm, direct, never clinical. Scale it to your final tier: affirm a good session for \"none\"; acknowledge and say you'll keep an eye on it for \"watch\"; for \"act\", take it seriously and recommend going easy on the next hard session. You may reference the Readiness context naturally when it corroborates (\"your HRV was down this morning\"), but never invent specific plan numbers.",
     ),
 });
 
@@ -132,8 +149,49 @@ function systemPrompt(locale: "en" | "fr"): string {
     `The transcript is in ${lang}. Read it carefully and fill in ONLY the fields the runner actually mentioned — leave everything else unset. Do not infer, guess, or invent.`,
     "Pain/effort/sleep/stress/motivation enums are fixed English tokens. Body-part keys are canonical snake_case (see the field description). `mood` and `rawNotes` stay in the runner's own language.",
     "If the runner said nothing relevant to a field, omit it.",
-    "Always set `concern` (the triage tier) and write a `coachReply` — a short first-person reply in the runner's language, scaled to that tier.",
+    "Always set BOTH `concernFromVoice` (the tier from the runner's words alone) and `concernFinal` (after weighing any Readiness context, per its field rules), and write a `coachReply` in the runner's language scaled to the final tier.",
   ].join(" ");
+}
+
+/**
+ * Render the Readiness block as a compact English context section appended to
+ * the transcript. Returns null when there is no usable signal — the prompt then
+ * carries no Readiness section and the LLM is told to keep `concernFinal` equal
+ * to `concernFromVoice`.
+ */
+function renderReadiness(readiness?: Readiness): string | null {
+  if (!readiness || readiness.noSignal) return null;
+  const lines: string[] = [];
+  if (typeof readiness.hrvZScore === "number") {
+    const dir =
+      readiness.hrvZScore <= -1
+        ? "well below"
+        : readiness.hrvZScore < 0
+          ? "below"
+          : "at or above";
+    lines.push(
+      `- HRV: z-score ${readiness.hrvZScore} (${dir} their own 14-day baseline)`,
+    );
+  }
+  if (typeof readiness.restingHrDelta === "number") {
+    const sign = readiness.restingHrDelta > 0 ? "+" : "";
+    lines.push(
+      `- Resting HR: ${sign}${readiness.restingHrDelta} bpm vs baseline`,
+    );
+  }
+  if (typeof readiness.sleepHours === "number") {
+    const q = readiness.sleepQuality ? ` (${readiness.sleepQuality})` : "";
+    lines.push(`- Sleep last night: ${readiness.sleepHours}h${q}`);
+  }
+  if (lines.length === 0) return null;
+  return [
+    "",
+    "---",
+    "Readiness context for this session's day, from the runner's wearable.",
+    "Lower HRV / elevated resting HR / poor sleep indicate under-recovery.",
+    "Use ONLY to corroborate the runner's words, never to originate concern:",
+    ...lines,
+  ].join("\n");
 }
 
 /** Strip undefined-valued keys so the stored object is clean. */
@@ -159,24 +217,50 @@ function clamp(
 }
 
 /**
- * Extract structured signals from a transcript. Throws on LLM failure — the
+ * Extract structured signals from a transcript, optionally corroborated by the
+ * runner's Soma Readiness for the session's day. Throws on LLM failure — the
  * caller (deriveAndCommit) runs this before any DB write, so a failure leaves
  * no partial state and the runner cleanly retries.
+ *
+ * The stored `concern` is the FINAL tier, deterministically clamped by
+ * `ratchetConcern`: Readiness can ratchet the voice-only tier up by at most one
+ * step, never skip or downgrade. When Readiness is absent/noSignal the final
+ * tier is forced equal to the voice tier — Soma never bumps without data. See
+ * ADR-0009.
  */
 export async function deriveSignals(
   transcript: string,
   locale: "en" | "fr",
+  readiness?: Readiness,
 ): Promise<{ derived: Derived; coachReply: string }> {
+  const readinessBlock = renderReadiness(readiness);
+
   const { object } = await generateObject({
     model: anthropic.chat("claude-haiku-4-5-20251001"),
     schema: replySchema,
     system: systemPrompt(locale),
-    prompt: transcript,
+    prompt: readinessBlock ? `${transcript}\n${readinessBlock}` : transcript,
   });
 
   // `coachReply` is narration, returned to the client but not stored on the
   // entry; everything else is the structured `derived` signal object.
-  const { coachReply, ...signals } = object;
+  const { coachReply, concernFromVoice, concernFinal, ...signals } = object;
+
+  // The runner's voice is the floor and the originator. Readiness may ratchet
+  // up by one step — but only when a Readiness block actually reached the model.
+  // No block → the final tier is the voice tier, full stop.
+  const voice = concernFromVoice as Concern;
+  const concern: Concern = readinessBlock
+    ? ratchetConcern(voice, concernFinal as Concern)
+    : voice;
+
+  if (readinessBlock && concern !== concernFinal) {
+    // Dev-only visibility that the model strayed outside the ratchet and we
+    // clamped it. No standing telemetry (ADR-0009) — just a rollout signal.
+    console.warn(
+      `[deriveSignals] ratchet clamped concernFinal ${concernFinal} -> ${concern} (voice=${voice})`,
+    );
+  }
 
   const painLocations = signals.painLocations
     ?.map((p) => compact({ ...p, severity: clamp(p.severity, 1, 5) }))
@@ -186,6 +270,8 @@ export async function deriveSignals(
     ...signals,
     rpe: clamp(signals.rpe, 0, 10),
     painLocations: painLocations?.length ? painLocations : undefined,
+    concern,
+    concernFromVoice: voice,
   });
 
   return { derived, coachReply };

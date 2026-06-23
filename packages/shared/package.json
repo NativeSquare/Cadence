@@ -8,6 +8,7 @@
     "./app": "./src/app.ts",
     "./colors": "./src/colors.ts",
     "./ease": "./src/ease.ts",
+    "./readiness": "./src/readiness.ts",
     "./types": "./src/types.ts",
     "./utils": "./src/utils.ts",
     "./workout-summary": "./src/workout-summary.ts"

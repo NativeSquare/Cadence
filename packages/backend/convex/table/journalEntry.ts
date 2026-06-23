@@ -57,12 +57,40 @@ export const derivedValidator = v.object({
   // Triage tier the LLM assigns to the whole debrief: does it warrant
   // interrupting the runner? "none" = nothing notable, "watch" = worth a
   // gentle acknowledgment, "act" = serious enough to (later) offer a plan
-  // change. Drives the scaled coach response in the Mark Done sheet. Optional
-  // in storage so pre-existing `derived` rows (which lack it) still validate;
-  // `deriveSignals` always emits it on new entries.
+  // change. Drives the scaled coach response in the Mark Done sheet. This is
+  // the FINAL tier — after Readiness corroboration, clamped by the monotonic
+  // ratchet (see `readiness` below + ADR-0009). Optional in storage so
+  // pre-existing `derived` rows (which lack it) still validate; `deriveSignals`
+  // always emits it on new entries.
   concern: v.optional(
     v.union(v.literal("none"), v.literal("watch"), v.literal("act")),
   ),
+  // The tier from the runner's VOICE alone, before any Readiness corroboration.
+  // Persisted alongside `concern` so the voice↔body disagreement — the
+  // cross-signal pattern the wedge exists to learn from — stays reconstructible
+  // for restitution ("you felt fine but your body flagged it"). Equals
+  // `concern` whenever Readiness was absent or didn't ratchet.
+  concernFromVoice: v.optional(
+    v.union(v.literal("none"), v.literal("watch"), v.literal("act")),
+  ),
+});
+
+/**
+ * The runner's pre-session Readiness for this entry's day — the morning's HRV
+ * z-score, resting-HR delta, and last night's sleep, computed deterministically
+ * from Soma at capture time and FROZEN here. We persist (not recompute-on-read)
+ * so the decision log stays durable even if the Soma connection is later removed
+ * and its raw summaries purged — the moat must survive provider churn. See
+ * ADR-0009. `noSignal: true` records "we had no usable signal" explicitly.
+ */
+export const readinessValidator = v.object({
+  hrvZScore: v.optional(v.number()),
+  restingHrDelta: v.optional(v.number()),
+  sleepHours: v.optional(v.number()),
+  sleepQuality: v.optional(
+    v.union(v.literal("poor"), v.literal("ok"), v.literal("good")),
+  ),
+  noSignal: v.boolean(),
 });
 
 const documentSchema = {
@@ -77,6 +105,9 @@ const documentSchema = {
   transcript: v.optional(v.string()),
   transcriptLang: v.optional(v.union(v.literal("en"), v.literal("fr"))),
   derived: v.optional(derivedValidator),
+  // Frozen Soma Readiness snapshot for `dayKey` (see readinessValidator).
+  // Optional so pre-existing rows still validate; new captures always set it.
+  readiness: v.optional(readinessValidator),
   // The runner's logged intention at the post-session fork: Keep → "go",
   // Ease → "ease". Set only when a decision fork was actually presented
   // (`concern: "act"` + a conflicting hard session); quiet sessions leave it
@@ -107,6 +138,7 @@ export const recordPostSession = internalMutation({
     transcript: v.string(),
     transcriptLang: v.union(v.literal("en"), v.literal("fr")),
     derived: derivedValidator,
+    readiness: readinessValidator,
   },
   handler: async (ctx, args) => {
     return await ctx.db.insert("journalEntry", {
@@ -119,6 +151,7 @@ export const recordPostSession = internalMutation({
       transcript: args.transcript,
       transcriptLang: args.transcriptLang,
       derived: args.derived,
+      readiness: args.readiness,
     });
   },
 });
