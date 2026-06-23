@@ -7,6 +7,7 @@ import { broadcastRecipients } from "./table/broadcastRecipients";
 import { broadcasts } from "./table/broadcasts";
 import { coachMemories } from "./table/coachMemories";
 import { contacts } from "./table/contacts";
+import { cycleStarts } from "./table/cycleStarts";
 import { feedback } from "./table/feedback";
 import { journalEntry } from "./table/journalEntry";
 // `sessionFeedback` is superseded by `journalEntry`. It stays registered only
@@ -34,6 +35,7 @@ export default defineSchema({
   broadcasts,
   coachMemories,
   contacts,
+  cycleStarts,
   feedback,
   journalEntry,
   sessionFeedback,

@@ -960,6 +960,7 @@
     "sections": {
       "account": "Compte",
       "training": "Entraînement",
+      "health": "Santé",
       "integrations": "Intégrations",
       "preferences": "Préférences",
       "about": "À propos"
@@ -969,6 +970,7 @@
       "subscription": "Abonnement",
       "goal": "Mon objectif",
       "fitness": "Métriques",
+      "cycle": "Cycle",
       "appsAndDevices": "Apple Santé et appareils",
       "calendars": "Calendriers",
       "coach": "Coach",
@@ -992,6 +994,42 @@
     }
   },
   "account": {
+    "cycle": {
+      "title": "Cycle",
+      "cycleDayLabel": "Jour du cycle",
+      "phases": {
+        "menstrual": {
+          "label": "Menstruelle",
+          "hint": "Tes règles. L'énergie est souvent plus basse — sois indulgente sur les séances dures."
+        },
+        "follicular": {
+          "label": "Folliculaire",
+          "hint": "L'énergie remonte après les règles — souvent la meilleure fenêtre pour les efforts intenses."
+        },
+        "ovulatory": {
+          "label": "Ovulatoire",
+          "hint": "Autour de l'ovulation — la force et l'énergie sont en général au plus haut."
+        },
+        "luteal": {
+          "label": "Lutéale",
+          "hint": "Avant les prochaines règles — l'effort peut sembler plus dur et le sommeil plus léger. À lever le pied si ton corps le demande."
+        }
+      },
+      "estimateNote": "Estimation — logue quelques cycles de plus pour l'affiner.",
+      "cycleLengthNote": "D'après ta longueur de cycle d'environ {{days}} jours.",
+      "emptyTitle": "Suis ton cycle",
+      "emptyDescription": "Logue le jour où tes règles commencent et Cadence t'indique où tu en es dans ton cycle. Juste le jour de début — rien d'autre.",
+      "addTitle": "Logger un début de règles",
+      "addFieldLabel": "Jour de début des règles",
+      "addPlaceholder": "Choisir un jour",
+      "duplicateError": "Tu as déjà logué un début pour ce jour-là.",
+      "historyTitle": "Débuts logués",
+      "deleteSheet": {
+        "title": "Supprimer ce début ?",
+        "description": "Ceci supprime le début de règles logué. Tu pourras le re-logger à tout moment.",
+        "confirm": "Supprimer"
+      }
+    },
     "coach": {
       "title": "Coach",
       "toneSection": "Ton",

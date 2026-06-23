@@ -960,6 +960,7 @@
     "sections": {
       "account": "Account",
       "training": "Training",
+      "health": "Health",
       "integrations": "Integrations",
       "preferences": "Preferences",
       "about": "About"
@@ -969,6 +970,7 @@
       "subscription": "Subscription",
       "goal": "My Goal",
       "fitness": "Metrics",
+      "cycle": "Cycle",
       "appsAndDevices": "Apple Health & Devices",
       "calendars": "Calendars",
       "coach": "Coach",
@@ -992,6 +994,42 @@
     }
   },
   "account": {
+    "cycle": {
+      "title": "Cycle",
+      "cycleDayLabel": "Cycle day",
+      "phases": {
+        "menstrual": {
+          "label": "Menstrual",
+          "hint": "Your period. Energy is often lower — be kind to yourself on hard sessions."
+        },
+        "follicular": {
+          "label": "Follicular",
+          "hint": "Rising energy after your period — often the best window for harder efforts."
+        },
+        "ovulatory": {
+          "label": "Ovulatory",
+          "hint": "Around ovulation — strength and energy usually peak here."
+        },
+        "luteal": {
+          "label": "Luteal",
+          "hint": "Before your next period — effort can feel harder and sleep lighter. Worth easing if your body asks."
+        }
+      },
+      "estimateNote": "Estimated — log a few more cycles to sharpen it.",
+      "cycleLengthNote": "Based on your cycle length of about {{days}} days.",
+      "emptyTitle": "Track your cycle",
+      "emptyDescription": "Log the day your period starts and Cadence shows where you are in your cycle. Just the start day — nothing else.",
+      "addTitle": "Log a period start",
+      "addFieldLabel": "Period start day",
+      "addPlaceholder": "Select a day",
+      "duplicateError": "You already logged a start for that day.",
+      "historyTitle": "Logged starts",
+      "deleteSheet": {
+        "title": "Remove this start?",
+        "description": "This removes the logged period start. You can log it again anytime.",
+        "confirm": "Remove"
+      }
+    },
     "coach": {
       "title": "Coach",
       "toneSection": "Tone",

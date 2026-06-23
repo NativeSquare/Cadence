@@ -94,9 +94,24 @@ The Runner's pre-session recovery state on the workout's day — the morning's *
 _Avoid_: treating Readiness as a trigger — it is context the Runner's decision leans on, not an actor.
 
 **Body battery / stress / nutrition / menstruation**:
-Available to the **Coach** as read context (Analytics surfaces them); they drive **no** plan mutation. Named only to mark them read-only, not actors.
+Available to the **Coach** as read context (Analytics surfaces them); they drive **no** plan mutation. Named only to mark them read-only, not actors. Soma's wearable-sourced **Menstruation** is **distinct** from the Runner's self-reported **Cycle Start** (see _Cycle — self-reported menstrual data_ below): the former is what a device measured, the latter is what the Runner declared. The two homes are kept separate on purpose (ADR-0010); merging them is deferred.
 
 _Retired_: **Activity** — Soma's `activities` table is unused by Cadence; a done **Workout**'s actuals come from Agoge.
+
+### Cycle — self-reported menstrual data (Cadence-native)
+
+The menstrual cycle, **declared by the Runner herself**, not measured by a wearable. A self-report — the same nature as the voice debrief, not biometrics — so it is **Cadence-native**, deliberately kept out of Soma (ADR-0010). Read context only today: it surfaces in Profile and (later) crosses with the post-session **ressenti**; it drives **no** plan mutation.
+
+**Cycle Start** ("J1"):
+The Runner's declaration that her period began on a given calendar day. The **only stored** menstrual fact — the equivalent of **VDOT** on the fitness side: store the one fact, derive the rest on read. A self-report, distinct from Soma's wearable-sourced **Menstruation**.
+_Avoid_: "period log" implying daily flow tracking — flow (light/medium/heavy) is **out of scope**; only the start day is recorded.
+
+**Cycle**:
+The span from one **Cycle Start** to the next. Its length is **derived on read** from the sequence of Cycle Starts (never stored), and the derivation is **honest about thin history** — it falls back to a default until enough Cycle Starts have accrued, the same `noSignal`/baseline posture as **Readiness**.
+
+**Phase**:
+The Runner's **derived** position within the current **Cycle** — `menstrual` / `follicular` / `ovulatory` / `luteal`. Computed on read from the Cycle Starts, never stored. The **luteal** phase is the training-relevant one (raised perceived effort, degraded sleep) — the reason this concept exists at all is the eventual cross with the post-session ressenti.
+_Avoid_: treating Phase as a stored field, or as a Soma signal — it is a Cadence-side derivation over self-reported Cycle Starts.
 
 ### Engine — plan generation & mutation
 
@@ -183,6 +198,8 @@ The later, deterministic labeling of a past Decision — `good_call` / `watch` /
 **Decision vs Intervention** _(superseded 2026-06-17)_: Previously two records in two tables — the Runner's *intention* on `journalEntry`, and the Engine's *executed, revertible* mutation on `coachInterventions`. Now **unified into one Decision concept**, recorded as rows in the **Journal** (`journalEntry`), covering both *system* decisions (e.g. `hrv_low_v1`) and *runner* decisions (`go` / `ease`). A row is written only when there is content — a mutation fired, voice was captured, or the runner actively chose at a presented fork (Keep `go` included); silent no-op evaluations write nothing. The executed mutation is the *acted* facet of a Decision row, not a separate **Intervention**, and **revert (the undo) is dropped** — the before/after snapshot is retained only as analytics signal. See ADR-0002.
 
 **Insight vs Coach Memory**: An **Insight** is a deterministically detected, evidence-backed *pattern* (machine + human faces). A **Coach Memory** is a softer durable fact feeding the Portrait. Insights feed Detection and generation; Memories feed narration. Do not merge them.
+
+**Cycle Start vs Menstruation**: **Cycle Start** is the Runner's *self-reported* J1, owned by Cadence (`cycleStarts`). **Menstruation** is Soma's *wearable-measured* menstrual data. Same subject, two homes, two provenances — kept separate deliberately (ADR-0010), with the merge deferred. Say **Cycle Start** for the manual marker and the **Cycle** / **Phase** derived from it; reserve **Menstruation** for the Soma signal.
 
 **Onboarding vs Change-goal**: Two surfaces create a race-anchored **Goal**, and they are *not* the same flow. **Onboarding** is the first run — it establishes the **Athlete** (profile, experience, availability) and captures the **VDOT** once via a mandatory past race result. **Change-goal** is the returning Runner replacing their active Goal — it *reuses* the athlete-level VDOT and only re-confirms availability (which shifts at training-block boundaries). Both share a **Goal Setup** core — choosing the **Race** and its target — but each owns its surrounding steps and what it does on finish. They share vocabulary, not a wizard (ADR-0007).
 

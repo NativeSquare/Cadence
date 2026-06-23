@@ -214,6 +214,18 @@ export default function Profile() {
               ]}
             />
 
+            {/* Health */}
+            <SettingsGroup
+              title={t("profile.sections.health")}
+              items={[
+                {
+                  label: t("profile.items.cycle"),
+                  icon: "ellipse-outline",
+                  onPress: () => router.push("/account/cycle"),
+                },
+              ]}
+            />
+
             {/* Integrations */}
             <SettingsGroup
               title={t("profile.sections.integrations")}

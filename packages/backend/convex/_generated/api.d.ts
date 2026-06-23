@@ -59,6 +59,7 @@ import type * as coach_voice from "../coach/voice.js";
 import type * as coach_whisper from "../coach/whisper.js";
 import type * as contacts from "../contacts.js";
 import type * as crons from "../crons.js";
+import type * as cycle_derive from "../cycle/derive.js";
 import type * as emails from "../emails.js";
 import type * as engine_baselineTest from "../engine/baselineTest.js";
 import type * as engine_generatePlan from "../engine/generatePlan.js";
@@ -82,6 +83,7 @@ import type * as table_broadcastRecipients from "../table/broadcastRecipients.js
 import type * as table_broadcasts from "../table/broadcasts.js";
 import type * as table_coachMemories from "../table/coachMemories.js";
 import type * as table_contacts from "../table/contacts.js";
+import type * as table_cycleStarts from "../table/cycleStarts.js";
 import type * as table_feedback from "../table/feedback.js";
 import type * as table_journalEntry from "../table/journalEntry.js";
 import type * as table_sessionFeedback from "../table/sessionFeedback.js";
@@ -147,6 +149,7 @@ declare const fullApi: ApiFromModules<{
   "coach/whisper": typeof coach_whisper;
   contacts: typeof contacts;
   crons: typeof crons;
+  "cycle/derive": typeof cycle_derive;
   emails: typeof emails;
   "engine/baselineTest": typeof engine_baselineTest;
   "engine/generatePlan": typeof engine_generatePlan;
@@ -170,6 +173,7 @@ declare const fullApi: ApiFromModules<{
   "table/broadcasts": typeof table_broadcasts;
   "table/coachMemories": typeof table_coachMemories;
   "table/contacts": typeof table_contacts;
+  "table/cycleStarts": typeof table_cycleStarts;
   "table/feedback": typeof table_feedback;
   "table/journalEntry": typeof table_journalEntry;
   "table/sessionFeedback": typeof table_sessionFeedback;
